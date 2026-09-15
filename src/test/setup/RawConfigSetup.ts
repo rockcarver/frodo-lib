@@ -2,6 +2,11 @@ import { state } from '../../index';
 import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 import { filterRecording } from '../../utils/PollyUtils';
 import { stageEmailTemplate, template1, template2 } from './EmailTemplateSetup';
+import {
+  requestType1,
+  requestType3,
+  stageRequestType,
+} from './IgaRequestTypeSetup';
 import { customNode1, customNode2, stageCustomNode } from './NodeSetup';
 import { stageVariable, variable1, variable2 } from './VariablesSetup';
 
@@ -26,6 +31,8 @@ export function setup() {
       await stageCustomNode(customNode2);
       await stageEmailTemplate(template1, true);
       await stageEmailTemplate(template2);
+      await stageRequestType(requestType1, true);
+      await stageRequestType(requestType3);
     }
   });
 
@@ -38,6 +45,8 @@ export function setup() {
       await stageCustomNode(customNode2);
       await stageEmailTemplate(template1);
       await stageEmailTemplate(template2);
+      await stageRequestType(requestType1);
+      await stageRequestType(requestType3);
     }
   });
 }

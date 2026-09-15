@@ -1,12 +1,8 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`RawConfigOps exportRawConfig() 1: Export raw config am 1`] = `
+exports[`RawConfigOps Cloud Tests exportRawConfig() 1: Export raw config am 1`] = `
 {
-  "_id": "test",
-  "_pushApiVersion": {
-    "protocol": "2.1",
-    "resource": "2.0",
-  },
+  "_id": "a605506774a848f7877b4d17a453bd39-1",
   "_rev": "-1063514607",
   "description": "Checks if the user has a current session.",
   "displayName": "Has Session - TEST",
@@ -37,7 +33,7 @@ main();
 }
 `;
 
-exports[`RawConfigOps exportRawConfig() 2: Export raw config openidm 1`] = `
+exports[`RawConfigOps Cloud Tests exportRawConfig() 2: Export raw config openidm 1`] = `
 {
   "_id": "emailTemplate/FrodoTestEmailTemplate1",
   "defaultLocale": "en",
@@ -56,7 +52,7 @@ exports[`RawConfigOps exportRawConfig() 2: Export raw config openidm 1`] = `
 }
 `;
 
-exports[`RawConfigOps exportRawConfig() 3: Export raw config environment 1`] = `
+exports[`RawConfigOps Cloud Tests exportRawConfig() 3: Export raw config environment 1`] = `
 {
   "_id": "esv-frodo-test-variable-1",
   "description": "description1",
@@ -68,7 +64,7 @@ exports[`RawConfigOps exportRawConfig() 3: Export raw config environment 1`] = `
 }
 `;
 
-exports[`RawConfigOps importRawConfig() 1: importRawConfig am 1`] = `
+exports[`RawConfigOps Cloud Tests importRawConfig() 1: importRawConfig am 1`] = `
 {
   "_id": "aaaa3fb2f5dc42dd9772bedc93898bd8-1",
   "_rev": "-1203317137",
@@ -133,7 +129,7 @@ main();
 }
 `;
 
-exports[`RawConfigOps importRawConfig() 2: importRawConfig openidm 1`] = `
+exports[`RawConfigOps Cloud Tests importRawConfig() 2: importRawConfig openidm 1`] = `
 {
   "_id": "FrodoTestEmailTemplate2",
   "defaultLocale": "en",
@@ -150,7 +146,7 @@ exports[`RawConfigOps importRawConfig() 2: importRawConfig openidm 1`] = `
 }
 `;
 
-exports[`RawConfigOps importRawConfig() 3: importRawConfig environment 1`] = `
+exports[`RawConfigOps Cloud Tests importRawConfig() 3: importRawConfig environment 1`] = `
 {
   "_id": "esv-frodo-test-variable-2",
   "description": "description2",
@@ -159,5 +155,198 @@ exports[`RawConfigOps importRawConfig() 3: importRawConfig environment 1`] = `
   "lastChangedBy": "Frodo-SA-1758728043147",
   "loaded": false,
   "valueBase64": "NDI=",
+}
+`;
+
+exports[`RawConfigOps IGA Tests exportRawConfig() 4: Export raw config iga 1`] = `
+{
+  "_rev": 1,
+  "custom": true,
+  "displayName": "test_request_type_1",
+  "id": "5f80166a-d551-47f2-8110-8bc0e093d2cc",
+  "metadata": {
+    "createdDate": "2026-09-14T21:52:03.229577192Z",
+    "modifiedDate": "2026-09-14T21:52:03.229580192Z",
+  },
+  "schemas": {
+    "common": [
+      {
+        "_meta": {
+          "displayName": "commonRequest",
+          "properties": {
+            "blob": {
+              "isInternal": true,
+              "isRequired": false,
+            },
+            "context": {
+              "display": {
+                "description": "The context of the request",
+                "isVisible": true,
+                "name": "Context",
+                "order": 1,
+              },
+              "isInternal": true,
+              "isMultiValue": false,
+              "isRequired": false,
+            },
+            "endDate": {
+              "display": {
+                "description": "End date of the grant",
+                "isVisible": true,
+                "name": "End date",
+                "order": 8,
+              },
+              "isInternal": true,
+              "isRequired": false,
+            },
+            "expiryDate": {
+              "display": {
+                "description": "User provided date on which the request will cancel",
+                "isVisible": true,
+                "name": "Request expiration date",
+                "order": 7,
+              },
+              "isInternal": true,
+              "isRequired": false,
+            },
+            "externalRequestId": {
+              "display": {
+                "description": "The external ID for the request",
+                "isVisible": true,
+                "name": "External Request ID",
+                "order": 4,
+              },
+              "isChangable": false,
+              "isInternal": true,
+              "isRequired": false,
+            },
+            "isDraft": {
+              "isInternal": true,
+              "isRequired": false,
+            },
+            "justification": {
+              "display": {
+                "description": "The reason for the request",
+                "isVisible": true,
+                "name": "Justification",
+                "order": 3,
+              },
+              "isInternal": true,
+              "isRequired": false,
+            },
+            "priority": {
+              "display": {
+                "description": "The priority of the reqeust",
+                "isVisible": true,
+                "name": "Priority",
+                "order": 6,
+              },
+              "isRequired": false,
+              "text": {
+                "defaultValue": "low",
+              },
+            },
+            "requestIdPrefix": {
+              "display": {
+                "description": "Prefix for the request ID",
+                "isVisible": true,
+                "name": "Request ID prefix",
+                "order": 5,
+              },
+              "isInternal": true,
+              "isRequired": false,
+            },
+            "startDate": {
+              "display": {
+                "description": "Start date of the grant",
+                "isVisible": true,
+                "name": "Start date",
+                "order": 8,
+              },
+              "isInternal": true,
+              "isRequired": false,
+            },
+            "workflowId": {
+              "display": {
+                "description": "The ID key of the BPMN workflow",
+                "isVisible": true,
+                "name": "BPMN workflow ID",
+                "order": 7,
+              },
+              "isChangable": false,
+              "isInternal": true,
+              "isRequired": false,
+            },
+          },
+          "type": "system",
+        },
+        "properties": {
+          "blob": {
+            "type": "object",
+          },
+          "context": {
+            "type": "object",
+          },
+          "endDate": {
+            "type": "text",
+          },
+          "expiryDate": {
+            "type": "text",
+          },
+          "externalRequestId": {
+            "type": "text",
+          },
+          "isDraft": {
+            "type": "boolean",
+          },
+          "justification": {
+            "type": "text",
+          },
+          "priority": {
+            "type": "text",
+          },
+          "requestIdPrefix": {
+            "type": "text",
+          },
+          "startDate": {
+            "type": "text",
+          },
+          "workflowId": {
+            "type": "text",
+          },
+        },
+      },
+    ],
+  },
+  "workflow": {},
+}
+`;
+
+exports[`RawConfigOps IGA Tests importRawConfig() 4: importRawConfig iga 1`] = `
+{
+  "_rev": 32,
+  "custom": null,
+  "customValidation": null,
+  "displayName": "Create Entitlement",
+  "id": "createEntitlement",
+  "notModifiableProperties": [
+    "entitlement.applicationId",
+    "entitlement.objectType",
+  ],
+  "schemas": {
+    "common": [
+      "/requestSchema/iga/commonRequest",
+    ],
+    "entitlement": [
+      "/requestSchema/iga/createEntitlement",
+    ],
+  },
+  "validation": {
+    "source": "var validation = {"errors" : [], "comments" : []};if(object.requester.id.startsWith("managed/user/")){var userId = object.requester.id.split('/');try{var application = openidm.action("iga/governance/application/" + request.entitlement.applicationId, 'GET', {}, {"endUserId": userId[2]});if(!application.permissions.createEntitlement){validation.errors.push("User does not have permission to create this entitlement.");}}catch(e){validation.errors.push("User does not have permission to create this entitlement.")}}if(systemSettings.settings.requireRequestJustification === true && (request.common.justification == undefined || request.common.justification.trim() == "")){validation.errors.push("Justification is required");}validation;",
+  },
+  "workflow": {
+    "id": "CreateEntitlement",
+    "type": "bpmn",
+  },
 }
 `;

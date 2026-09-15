@@ -89,6 +89,7 @@ jest.unstable_mockModule('../api/BaseApi', () => ({
   generateGovernanceApi: generate,
   generateWSFedApi: generate,
   generateReleaseApi: generate,
+  getApiConfig: generate,
 }));
 
 const { default: State } = await import('../shared/State');

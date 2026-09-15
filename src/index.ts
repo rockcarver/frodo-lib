@@ -100,7 +100,7 @@ export type {
   Writable,
 } from './api/ApiTypes';
 
-export type { RetryStrategy } from './api/BaseApi';
+export type { ApiVersion, RetryStrategy } from './api/BaseApi';
 
 export type { CircleOfTrustSkeleton } from './api/CirclesOfTrustApi';
 

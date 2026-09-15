@@ -7,8 +7,11 @@
  *    script and override all the connection state variables required
  *    to connect to the env to record from:
  *
- *        FRODO_DEBUG=1 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record RawConfigOps
+ *        phase 1
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=1 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record RawConfigOps
  *
+ *        phase 2
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=2 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record RawConfigOps
  *    The above command assumes that you have a connection profile for
  *    'frodo-dev' on your development machine.
  *
@@ -31,6 +34,7 @@
  */
 import { state } from '../index';
 import { template1, template2 } from '../test/setup/EmailTemplateSetup';
+import { requestType1, requestType3 } from '../test/setup/IgaRequestTypeSetup';
 import { customNode1, customNode2 } from '../test/setup/NodeSetup';
 import * as TestData from '../test/setup/RawConfigSetup';
 import { variable1, variable2 } from '../test/setup/VariablesSetup';
@@ -41,78 +45,104 @@ import * as RawConfigOps from './RawConfigOps';
 describe('RawConfigOps', () => {
   TestData.setup();
 
-  describe('exportRawConfig()', () => {
-    test('0: Method is implemented', async () => {
-      expect(RawConfigOps.exportRawConfig).toBeDefined();
-    });
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '1')
+  ) {
+    describe('Cloud Tests', () => {
+      describe('exportRawConfig()', () => {
+        test('0: Method is implemented', async () => {
+          expect(RawConfigOps.exportRawConfig).toBeDefined();
+        });
 
-    test('1: Export raw config am', async () => {
-      const response = await RawConfigOps.exportRawConfig({
-        options: {
-          path: '/am/json/node-designer/node-type/' + customNode1._id,
-          overrides: { _id: 'test' },
-          pushApiVersion: { protocol: '2.1', resource: '2.0' },
-        },
-        state,
+        test('1: Export raw config am', async () => {
+          const response = await RawConfigOps.exportRawConfig({
+            endpoint: '/am/json/node-designer/node-type/' + customNode1._id,
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
+
+        test('2: Export raw config openidm', async () => {
+          const response = await RawConfigOps.exportRawConfig({
+            endpoint: `/openidm/config/${EMAIL_TEMPLATE_TYPE}/${template1._id}`,
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
+
+        test('3: Export raw config environment', async () => {
+          const response = await RawConfigOps.exportRawConfig({
+            endpoint: '/environment/variables/' + variable1._id,
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
       });
-      expect(response._id).toBe('test');
-      expect(response).toMatchSnapshot();
-    });
 
-    test('2: Export raw config openidm', async () => {
-      const response = await RawConfigOps.exportRawConfig({
-        options: {
-          path: `/openidm/config/${EMAIL_TEMPLATE_TYPE}/${template1._id}`,
-        },
-        state,
+      describe('importRawConfig()', () => {
+        test('0: Method is implemented', async () => {
+          expect(RawConfigOps.importRawConfig).toBeDefined();
+        });
+
+        test(`1: importRawConfig am`, async () => {
+          const response = await RawConfigOps.importRawConfig({
+            endpoint: '/am/json/node-designer/node-type/' + customNode2._id,
+            payload: customNode2,
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
+
+        test(`2: importRawConfig openidm`, async () => {
+          const response = await RawConfigOps.importRawConfig({
+            endpoint: '/openidm/config/' + template2._id,
+            payload: template2,
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
+
+        test(`3: importRawConfig environment`, async () => {
+          const variable = { ...variable2 };
+          variable.valueBase64 = encode(variable.value);
+          delete variable.value;
+          const response = await RawConfigOps.importRawConfig({
+            endpoint: '/environment/variables/' + variable2._id,
+            payload: variable,
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
       });
-      expect(response).toMatchSnapshot();
     });
-
-    test('3: Export raw config environment', async () => {
-      const response = await RawConfigOps.exportRawConfig({
-        options: { path: '/environment/variables/' + variable1._id },
-        state,
+  }
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '2')
+  ) {
+    describe('IGA Tests', () => {
+      describe('exportRawConfig()', () => {
+        test('4: Export raw config iga', async () => {
+          const response = await RawConfigOps.exportRawConfig({
+            endpoint: `/iga/governance/requestTypes/${requestType1.id}`,
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
       });
-      expect(response).toMatchSnapshot();
-    });
-  });
-
-  describe('importRawConfig()', () => {
-    test('0: Method is implemented', async () => {
-      expect(RawConfigOps.importRawConfig).toBeDefined();
-    });
-
-    test(`1: importRawConfig am`, async () => {
-      const response = await RawConfigOps.importRawConfig({
-        options: {
-          path: '/am/json/node-designer/node-type/' + customNode2._id,
-        },
-        data: customNode2,
-        state,
+      describe('importRawConfig()', () => {
+        test(`4: importRawConfig iga`, async () => {
+          const response = await RawConfigOps.importRawConfig({
+            endpoint: `/iga/governance/requestTypes/${requestType3.id}`,
+            payload: requestType3,
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
       });
-      expect(response).toMatchSnapshot();
     });
-
-    test(`2: importRawConfig openidm`, async () => {
-      const response = await RawConfigOps.importRawConfig({
-        options: { path: '/openidm/config/' + template2._id },
-        data: template2,
-        state,
-      });
-      expect(response).toMatchSnapshot();
-    });
-
-    test(`3: importRawConfig environment`, async () => {
-      const variable = { ...variable2 };
-      variable.valueBase64 = encode(variable.value);
-      delete variable.value;
-      const response = await RawConfigOps.importRawConfig({
-        options: { path: '/environment/variables/' + variable2._id },
-        data: variable,
-        state,
-      });
-      expect(response).toMatchSnapshot();
-    });
-  });
+  }
 });
