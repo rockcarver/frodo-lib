@@ -3,7 +3,7 @@ import path from 'path';
 
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import Constants from '../shared/Constants';
-import { State } from '../shared/State';
+import { CredentialType, State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import DataProtection from '../utils/DataProtection';
 import {
@@ -122,7 +122,10 @@ export type ConnectionProfile = {
    */
   listAdditionalServiceAccounts(
     host: string
-  ): Pick<AdditionalServiceAccountInterface, 'name' | 'svcacctId' | 'svcacctScope'>[];
+  ): Pick<
+    AdditionalServiceAccountInterface,
+    'name' | 'svcacctId' | 'svcacctScope'
+  >[];
   /**
    * Get one named additional service account from a connection profile, with its JWK decrypted.
    * @param {string} host host tenant, host url, unique substring, or alias
@@ -202,7 +205,10 @@ export default (state: State): ConnectionProfile => {
     },
     listAdditionalServiceAccounts(
       host: string
-    ): Pick<AdditionalServiceAccountInterface, 'name' | 'svcacctId' | 'svcacctScope'>[] {
+    ): Pick<
+      AdditionalServiceAccountInterface,
+      'name' | 'svcacctId' | 'svcacctScope'
+    >[] {
       return listAdditionalServiceAccounts({ host, state });
     },
     async getAdditionalServiceAccount(
@@ -240,16 +246,23 @@ export interface SecureConnectionProfileInterface {
   svcacctScope?: string | null;
   encodedAmsterPrivateKey?: string | null;
   // browser-login settings — none of these are secrets (unlike
-  // username/password above), so no encoded variant is needed
+  // username/password above), so no encoded variant is needed.
+  // authMode is frozen legacy-read-only (see saveConnectionProfile()) --
+  // never freshly written going forward, kept only so an already-saved
+  // profile from before this field existed still falls back correctly.
   authMode?: 'noninteractive' | 'interactive';
   browserLoginClientId?: string | null;
   browserLoginScope?: string | null;
-  // Explicit preference for which non-interactive credential type to use
-  // when a profile has more than one configured (e.g. both a service
-  // account and a plain username/password) — see State.ts's
-  // setDefaultCredential()/getDefaultCredential() for the full contract.
-  // Not a secret, so no encoded variant.
-  defaultCredential?: 'user' | 'svcacct' | 'amster';
+  // Only meaningful when defaultCredential === 'browser': prefer the
+  // device-authorization-grant flow over the default loopback redirect for
+  // this profile's interactive logins, without needing --device repeated
+  // on every invocation. Not a secret, so no encoded variant.
+  preferredDeviceFlow?: boolean;
+  // Explicit, persisted preference for which credential type later implicit
+  // commands against this profile should use ('browser' included) — see
+  // State.ts's setPreferredCredential()/getPreferredCredential() for the
+  // full contract. Not a secret, so no encoded variant.
+  defaultCredential?: CredentialType;
   // Named service accounts beyond the profile's own single primary one
   // (svcacctId/encodedSvcacctJwk above), independently addressable by
   // name — see addAdditionalServiceAccount()'s own remarks for why these
@@ -304,7 +317,8 @@ export interface ConnectionProfileInterface {
   authMode?: 'noninteractive' | 'interactive';
   browserLoginClientId?: string | null;
   browserLoginScope?: string | null;
-  defaultCredential?: 'user' | 'svcacct' | 'amster';
+  preferredDeviceFlow?: boolean;
+  defaultCredential?: CredentialType;
   additionalServiceAccounts?: AdditionalServiceAccountInterface[];
 }
 
@@ -600,6 +614,7 @@ export async function getConnectionProfileByHost({
       browserLoginScope: profiles[0].browserLoginScope
         ? profiles[0].browserLoginScope
         : null,
+      preferredDeviceFlow: profiles[0].preferredDeviceFlow,
       defaultCredential: profiles[0].defaultCredential,
     };
     debugMessage({
@@ -688,8 +703,11 @@ export async function loadConnectionProfileByHost({
   if (conn.browserLoginScope) {
     state.setBrowserLoginScope(conn.browserLoginScope);
   }
+  if (conn.preferredDeviceFlow !== undefined) {
+    state.setPreferredDeviceFlow(conn.preferredDeviceFlow);
+  }
   if (conn.defaultCredential) {
-    state.setDefaultCredential(conn.defaultCredential);
+    state.setPreferredCredential(conn.defaultCredential);
   }
   return true;
 }
@@ -817,21 +835,31 @@ export async function saveConnectionProfile({
     // Deliberately never writes username/encodedPassword for a browser-login
     // profile: state.getUsername()/getPassword() are simply never set for
     // that auth mode, so the checks below already omit them naturally.
-    if (state.getAuthMode() === 'interactive') {
-      profile.authMode = state.getAuthMode();
+    //
+    // profile.authMode is deliberately never written here anymore (frozen
+    // legacy-read-only, see its own field comment) -- it used to mirror
+    // whatever *ambient* per-invocation state.authMode happened to be
+    // (true even for an unrelated command's --save, since --browser sets it
+    // unconditionally), which is exactly what left a profile permanently
+    // stuck defaulting to interactive login with no way to undo it. Client
+    // id/scope are now gated on the *explicit*, persisted preferredCredential
+    // instead, matching how defaultCredential below has always behaved.
+    if (state.getPreferredCredential() === 'browser') {
       if (state.getBrowserLoginClientId())
         profile.browserLoginClientId = state.getBrowserLoginClientId();
       if (state.getBrowserLoginScope())
         profile.browserLoginScope = state.getBrowserLoginScope();
     }
+    if (state.getPreferredDeviceFlow() !== undefined)
+      profile.preferredDeviceFlow = state.getPreferredDeviceFlow();
 
-    // default credential: unlike authMode above, this is never derived from
-    // what this session happened to authenticate as — only ever written
-    // when the caller explicitly set it (e.g. via --default-credential),
-    // so an unrelated save never silently overwrites a previously-saved
-    // preference with nothing/whatever credential this invocation used.
-    if (state.getDefaultCredential())
-      profile.defaultCredential = state.getDefaultCredential();
+    // preferred credential: never derived from what this session happened
+    // to authenticate as — only ever written when the caller explicitly set
+    // it (e.g. via --preferred-credential), so an unrelated save never
+    // silently overwrites a previously-saved preference with nothing/
+    // whatever credential this invocation used.
+    if (state.getPreferredCredential())
+      profile.defaultCredential = state.getPreferredCredential();
 
     // user account
     if (state.getUsername()) profile.username = state.getUsername();
@@ -1320,7 +1348,10 @@ export function listAdditionalServiceAccounts({
 }: {
   host: string;
   state: State;
-}): Pick<AdditionalServiceAccountInterface, 'name' | 'svcacctId' | 'svcacctScope'>[] {
+}): Pick<
+  AdditionalServiceAccountInterface,
+  'name' | 'svcacctId' | 'svcacctScope'
+>[] {
   const { connectionsData, tenant } = loadSingleProfileForHost({
     host,
     state,

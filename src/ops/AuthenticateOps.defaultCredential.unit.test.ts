@@ -3,13 +3,17 @@
  *
  *        NODE_OPTIONS=--experimental-vm-modules npx jest --silent AuthenticateOps.defaultCredential
  *
- * Regression coverage for `defaultCredential` (a profile's explicit
- * preference for which non-interactive credential type to use when more
- * than one is configured — service account, Amster, or plain user), plus
- * `tryBrowserLogin()`'s companion fix: a merely-cached (not `--save`d)
- * browser session must not be silently ignored by a later implicit command
- * when nothing else was explicitly configured, but an explicit
- * `forceLoginAsUser`/`defaultCredential` preference always wins over it.
+ * Regression coverage for `defaultCredential`/`preferredCredential` (a
+ * profile's explicit preference for which credential type to use when more
+ * than one is configured — service account, Amster, plain user, or
+ * browser), plus `tryBrowserLogin()`'s companion fixes: a merely-cached
+ * (not `--save`d) browser session must not be silently ignored by a later
+ * implicit command when nothing else was explicitly configured, but an
+ * explicit `forceLoginAsUser`/`preferredCredential` preference always wins
+ * over it (test 5) — and an explicit `preferredCredential` also wins over a
+ * *stale legacy* `authMode: 'interactive'` a profile may already carry from
+ * before `preferredCredential` existed (test 11), which used to have no
+ * way to be undone once persisted.
  *
  * Distinguishes which non-interactive branch actually ran without needing
  * each one to complete a full, real login: the service account branch
@@ -307,5 +311,29 @@ describe('AuthenticateOps defaultCredential resolution', () => {
     expect(accessToken).not.toHaveBeenCalled();
     expect(step).not.toHaveBeenCalled();
     expect(underlying.message).toMatch(/Incomplete or no credentials/);
+  });
+
+  test("11: an explicit preferredCredential 'user' overrides a stale legacy authMode: 'interactive' — the actual fix for there previously being no way to undo it", async () => {
+    // Simulates a profile saved before preferredCredential existed (still
+    // carrying authMode: 'interactive' from an old --browser --save), which
+    // a user has since explicitly told to prefer a plain user login again
+    // (e.g. via the frodo conn interactive picker, or --preferred-credential
+    // user). No promptHandler is passed below — if this incorrectly still
+    // went down the interactive branch, it would throw a distinct
+    // "requires a promptHandler" error instead of reaching the plain-user
+    // branch's own TREE_LOGIN_SENTINEL, so this also proves the interactive
+    // branch was genuinely skipped, not just that *a* non-interactive
+    // branch happened to run.
+    const state = stateWithAllThreeCredentials();
+    state.setAuthMode('interactive');
+    state.setPreferredCredential('user');
+
+    const underlying = await getUnderlyingError(getTokens({ state }));
+
+    expect(accessToken).not.toHaveBeenCalled();
+    expect(underlying).toBe(TREE_LOGIN_SENTINEL);
+    expect(state.getAuthenticationService()).not.toBe(
+      Constants.DEFAULT_AMSTER_SERVICE
+    );
   });
 });

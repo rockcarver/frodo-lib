@@ -7,10 +7,11 @@
  * isolated file I/O round trip (save from one State instance, load into a
  * fresh one — simulating a brand-new CLI process), confirming
  * saveConnectionProfile()/loadConnectionProfileByHost() persist and restore
- * authMode + browserLoginClientId/Scope/RedirectPort correctly, and never
- * persist username/password for such a profile. Parameterized across all
- * three deployment types, since none of ConnectionProfileOps.ts's
- * browser-login handling is deployment-type-conditional.
+ * preferredCredential ('browser') + browserLoginClientId/Scope/RedirectPort
+ * correctly, and never persist username/password for such a profile.
+ * Parameterized across all three deployment types, since none of
+ * ConnectionProfileOps.ts's browser-login handling is
+ * deployment-type-conditional.
  */
 import fs from 'fs';
 import { resolve } from 'path';
@@ -67,6 +68,7 @@ describe('Browser-login connection profile round trip', () => {
       const loginState = freshState(host, connectionProfilesPath);
       loginState.setDeploymentType(deploymentType);
       loginState.setAuthMode('interactive');
+      loginState.setPreferredCredential('browser');
       loginState.setBrowserLoginClientId('my-browser-client');
       loginState.setBrowserLoginScope('openid fr:idm:*');
       // Shared with the non-interactive synthetic flow's own
@@ -84,7 +86,12 @@ describe('Browser-login connection profile round trip', () => {
 
       expect(loaded).toBe(true);
       expect(freshProcessState.getDeploymentType()).toBe(deploymentType);
-      expect(freshProcessState.getAuthMode()).toBe('interactive');
+      expect(freshProcessState.getPreferredCredential()).toBe('browser');
+      // authMode is frozen legacy-read-only going forward -- saveConnectionProfile()
+      // no longer writes it at all, so a freshly-saved profile's reload
+      // correctly sees only the default, not the ambient value the saving
+      // session happened to have set.
+      expect(freshProcessState.getAuthMode()).toBe('noninteractive');
       expect(freshProcessState.getBrowserLoginClientId()).toBe(
         'my-browser-client'
       );

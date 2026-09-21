@@ -934,8 +934,8 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "autoRefresh", type: "boolean", description: "true to automatically refresh tokens before they expire (default: true)", required: false },
       { name: "types", type: "string[]", description: "Array of supported deployment types. The function will throw an error if an unsupported type is detected (default: ['classic', 'cloud', 'forgeops'])", required: false },
       { name: "callbackHandler", type: "CallbackHandler", description: "function allowing the library to collect responses from the user through callbacks", required: false },
-      { name: "useDeviceFlow", type: "boolean", description: "only consulted when a loaded connection profile has `authMode: 'interactive'` — see `getTokensInteractive()` (default: false)", required: false },
-      { name: "promptHandler", type: "BrowserLoginPromptHandler", description: "required only when a loaded connection profile has `authMode: 'interactive'`; every other auth mode ignores it", required: false },
+      { name: "useDeviceFlow", type: "boolean", description: "only consulted when a loaded connection profile prefers browser login (`preferredCredential: 'browser'`, or the legacy `authMode: 'interactive'` for a profile predating that field) — falls back to the profile's own `preferredDeviceFlow` when not explicitly passed; see `getTokensInteractive()` (default: false)", required: false },
+      { name: "promptHandler", type: "BrowserLoginPromptHandler", description: "required only when a loaded connection profile prefers browser login; every other case ignores it", required: false },
     ],
     returns: "{Promise<Tokens>} object containing the tokens",
   },
@@ -1302,7 +1302,7 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "ConnectionProfile",
     methodName: "listAdditionalServiceAccounts",
-    signature: "listAdditionalServiceAccounts( host: string ): Pick<AdditionalServiceAccountInterface, 'name' | 'svcacctId' | 'svcacctScope'>[]",
+    signature: "listAdditionalServiceAccounts( host: string ): Pick< AdditionalServiceAccountInterface, 'name' | 'svcacctId' | 'svcacctScope' >[]",
     description: "List the additional service accounts on a connection profile (no secrets).",
     params: [
       { name: "host", type: "string", description: "host tenant, host url, unique substring, or alias", required: true },

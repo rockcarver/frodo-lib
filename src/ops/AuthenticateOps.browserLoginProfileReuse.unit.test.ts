@@ -4,14 +4,15 @@
  *        npm run test:only AuthenticateOps.browserLoginProfileReuse
  *
  * Regression coverage for the exact workflow the user asked about: save a
- * browser-login connection profile once (e.g. via `frodo conn save
- * --browser --login-client-id <id>`), persisting the OAuth2 client id, then
- * on a *separate*, later invocation against the same host — with none of
- * those flags repeated — getTokens() must load the saved profile and
- * transparently re-trigger the interactive flow using the *saved* client
- * id, not require it again. Real, isolated file I/O for the connection
- * profile (not mocked) — only the actual network-facing browser-login
- * primitives are mocked.
+ * browser-login connection profile once (e.g. via `frodo login --browser
+ * --save --login-client-id <id>`, which persists preferredCredential:
+ * 'browser' alongside the OAuth2 client id — see login.ts's own
+ * --browser/--device + --save fallback), then on a *separate*, later
+ * invocation against the same host — with none of those flags repeated —
+ * getTokens() must load the saved profile and transparently re-trigger the
+ * interactive flow using the *saved* client id, not require it again. Real,
+ * isolated file I/O for the connection profile (not mocked) — only the
+ * actual network-facing browser-login primitives are mocked.
  */
 import { jest } from '@jest/globals';
 
@@ -108,15 +109,17 @@ describe('Reusing a saved browser-login connection profile (no flags repeated)',
   });
 
   test('A fresh invocation against a saved host uses the saved client id, scope, and redirect URI automatically', async () => {
-    // Step 1: simulate `frodo conn save --browser --login-client-id
+    // Step 1: simulate `frodo login --browser --save --login-client-id
     // my-saved-client --login-scope "openid fr:idm:*" --type forgeops
     // <host>` — the caller supplies the client id explicitly once, and it
-    // gets persisted.
+    // (along with preferredCredential: 'browser', via login.ts's own
+    // --browser + --save fallback) gets persisted.
     const saveState = StateImpl({ host });
     saveState.setConnectionProfilesPath(connectionProfilesPath);
     saveState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
     saveState.setDeploymentType('forgeops');
     saveState.setAuthMode('interactive');
+    saveState.setPreferredCredential('browser');
     saveState.setBrowserLoginClientId('my-saved-client');
     saveState.setBrowserLoginScope('openid fr:idm:*');
     // Shared with the non-interactive synthetic flow's own
