@@ -484,6 +484,24 @@ describe('State', () => {
   // setDirectory,
   // getDirectory,
 
+  describe('getForceUpdate()/setForceUpdate()', () => {
+    test('0: Method getForceUpdate is implemented', () => {
+      expect(state.getForceUpdate).toBeDefined();
+    });
+
+    test('1: Method setForceUpdate is implemented', () => {
+      expect(state.setForceUpdate).toBeDefined();
+    });
+
+    test("2: Should get/set forceUpdate", () => {
+      expect(state.getForceUpdate()).toBe(false);
+      state.setForceUpdate(true);
+      expect(state.getForceUpdate()).toBe(true);
+      state.setForceUpdate(false);
+      expect(state.getForceUpdate()).toBe(false);
+    });
+  });
+
   // setPrintHandler,
   // getPrintHandler,
 

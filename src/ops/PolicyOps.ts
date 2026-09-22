@@ -23,6 +23,7 @@ import {
 import {
   convertBase64TextToArray,
   getMetadata,
+  updateRemote,
 } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError, isNotFoundError } from './FrodoError';
@@ -67,12 +68,12 @@ export type Policy = {
    * Update or create policy
    * @param {string} policyId policy id/name
    * @param {PolicySkeleton} policyData policy object
-   * @returns {Promise<PolicySkeleton>} promise resolving to a policy object
+   * @returns {Promise<PolicySkeleton | null>} promise resolving to a policy object if an update is made, or null if no update is made
    */
   updatePolicy(
     policyId: string,
     policyData: PolicySkeleton
-  ): Promise<PolicySkeleton>;
+  ): Promise<PolicySkeleton | null>;
   /**
    * Delete policy
    * @param {string} policyId policy id/name
@@ -109,23 +110,23 @@ export type Policy = {
    * @param {string} policyId policy id
    * @param {PolicyExportInterface} importData import data
    * @param {PolicyImportOptions} options import options
-   * @returns {Promise<PolicySkeleton>} imported policy object
+   * @returns {Promise<PolicySkeleton>} imported policy object, or null if no update is made
    */
   importPolicy(
     policyId: string,
     importData: PolicyExportInterface,
     options?: PolicyImportOptions
-  ): Promise<PolicySkeleton>;
+  ): Promise<PolicySkeleton | null>;
   /**
    * Import first policy
    * @param {PolicyExportInterface} importData import data
    * @param {PolicyImportOptions} options import options
-   * @returns {Promise<PolicySkeleton>} imported policy object
+   * @returns {Promise<PolicySkeleton | null>} imported policy object, or null if no update is made
    */
   importFirstPolicy(
     importData: PolicyExportInterface,
     options?: PolicyImportOptions
-  ): Promise<PolicySkeleton>;
+  ): Promise<PolicySkeleton | null>;
   /**
    * Import policies
    * @param {PolicyExportInterface} importData import data
@@ -157,7 +158,10 @@ export default (state: State): Policy => {
     async createPolicy(policyId: string, policyData: PolicySkeleton) {
       return createPolicy({ policyId, policyData, state });
     },
-    async updatePolicy(policyId: string, policyData: PolicySkeleton) {
+    async updatePolicy(
+      policyId: string,
+      policyData: PolicySkeleton
+    ): Promise<PolicySkeleton | null> {
       return updatePolicy({ policyId, policyData, state });
     },
     async deletePolicy(policyId: string) {
@@ -200,13 +204,13 @@ export default (state: State): Policy => {
       policyId: string,
       importData: PolicyExportInterface,
       options: PolicyImportOptions = { deps: true, prereqs: false }
-    ): Promise<PolicySkeleton> {
+    ): Promise<PolicySkeleton | null> {
       return importPolicy({ policyId, importData, options, state });
     },
     async importFirstPolicy(
       importData: PolicyExportInterface,
       options: PolicyImportOptions = { deps: true, prereqs: false }
-    ): Promise<PolicySkeleton> {
+    ): Promise<PolicySkeleton | null> {
       return importFirstPolicy({ importData, options, state });
     },
     async importPolicies(
@@ -407,10 +411,15 @@ export async function updatePolicy({
   policyId: string;
   policyData: PolicySkeleton;
   state: State;
-}) {
+}): Promise<PolicySkeleton | null> {
   try {
-    const response = await _putPolicy({ policyId, policyData, state });
-    return response;
+    return await updateRemote({
+      data: policyData,
+      type: 'policy',
+      readFn: async () => await readPolicy({ policyId, state }),
+      updateFn: async () => await _putPolicy({ policyId, policyData, state }),
+      state,
+    });
   } catch (error) {
     throw new FrodoError(
       `Error updating ${getCurrentRealmName(state) + ' realm'} policy ${policyId}`,
@@ -1106,7 +1115,7 @@ function validatePolicyDependencyDefinitions({
  * @param {string} policyId policy id
  * @param {PolicyExportInterface} importData import data
  * @param {PolicyImportOptions} options import options
- * @returns {Promise<PolicySkeleton>} imported policy object
+ * @returns {Promise<PolicySkeleton | null>} imported policy object, or null if no update is made
  */
 export async function importPolicy({
   policyId,
@@ -1118,7 +1127,7 @@ export async function importPolicy({
   importData: PolicyExportInterface;
   options?: PolicyImportOptions;
   state: State;
-}): Promise<PolicySkeleton> {
+}): Promise<PolicySkeleton | null> {
   let response = null;
   const errors = [];
   const imported = [];
@@ -1193,7 +1202,7 @@ export async function importPolicy({
  * Import first policy
  * @param {PolicyExportInterface} importData import data
  * @param {PolicyImportOptions} options import options
- * @returns {Promise<PolicySkeleton>} imported policy object
+ * @returns {Promise<PolicySkeleton | null>} imported policy object, or null if no update is made
  */
 export async function importFirstPolicy({
   importData,
@@ -1203,7 +1212,7 @@ export async function importFirstPolicy({
   importData: PolicyExportInterface;
   options?: PolicyImportOptions;
   state: State;
-}): Promise<PolicySkeleton> {
+}): Promise<PolicySkeleton | null> {
   let response = null;
   const errors = [];
   const imported = [];
@@ -1346,5 +1355,5 @@ export async function importPolicies({
       errors
     );
   }
-  return response;
+  return response.filter((p) => p);
 }

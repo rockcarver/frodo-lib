@@ -128,6 +128,54 @@ describe('SecretsOps', () => {
     });
   });
 
+  describe('updateSecret()', () => {
+    test('0: Method is implemented', async () => {
+      expect(SecretsOps.updateSecret).toBeDefined();
+    });
+
+    test('1: Update secret', async () => {
+      const response = await SecretsOps.updateSecret({
+        secretId: TestData.secret1._id,
+        description: TestData.secret1.description,
+        value: TestData.secret1.value,
+        state: state,
+      });
+      expect(response).not.toBeNull();
+      expect(response).toMatchSnapshot();
+    });
+
+    test('2: Should not update secret if no changes are made', async () => {
+      state.setForceUpdate(false);
+      let response = await SecretsOps.updateSecret({
+        secretId: TestData.secret1._id,
+        description: TestData.secret1.description,
+        value: TestData.secret1.value,
+        state: state,
+      });
+      expect(response).toBeNull();
+      // Test updating only description
+      response = await SecretsOps.updateSecret({
+        secretId: TestData.secret1._id,
+        description: "test new description",
+        value: TestData.secret1.value,
+        state: state,
+      });
+      expect(response).not.toBeNull();
+      expect(response.description).toBe("test new description");
+      expect(response).toMatchSnapshot();
+      // Test updating only value 
+      response = await SecretsOps.updateSecret({
+        secretId: TestData.secret1._id,
+        description: "test new description",
+        value: "test new value",
+        state: state,
+      });
+      expect(response).not.toBeNull();
+      expect(response.description).toBe("test new description");
+      expect(response).toMatchSnapshot();
+    });
+  });
+
   describe('importSecret()', () => {
     test('0: Method is implemented', async () => {
       expect(SecretsOps.importSecret).toBeDefined();
@@ -161,6 +209,43 @@ describe('SecretsOps', () => {
         // fail("Command should've succeeded");
       }
     });
+
+    test('3: Do not import secret if no changes made', async () => {
+      state.setForceUpdate(false);
+      let response = await SecretsOps.importSecret({
+        secretId: TestData.secret2._id,
+        importData: TestData.createTestSecretExport([TestData.secret2]),
+        options: {
+          includeActiveValues: true
+        },
+        state: state,
+      });
+      expect(response).toBeNull();
+      // Test updating only description
+      response = await SecretsOps.importSecret({
+        secretId: TestData.secret2._id,
+        importData: TestData.createTestSecretExport([{...TestData.secret2, description: "test new description"}]),
+        options: {
+          includeActiveValues: true
+        },
+        state: state,
+      });
+      expect(response).not.toBeNull();
+      expect(response.description).toBe("test new description");
+      expect(response).toMatchSnapshot();
+      // Test updating only value 
+      response = await SecretsOps.importSecret({
+        secretId: TestData.secret2._id,
+        importData: TestData.createTestSecretExport([{...TestData.secret2, description: "test new description", activeValue: "test new value" }]),
+        options: {
+          includeActiveValues: true
+        },
+        state: state,
+      });
+      expect(response).not.toBeNull();
+      expect(response.description).toBe("test new description");
+      expect(response).toMatchSnapshot();
+    });
   });
 
   describe('importSecrets()', () => {
@@ -182,6 +267,40 @@ describe('SecretsOps', () => {
         options: { includeActiveValues: true },
         state: state,
       });
+      expect(response).toMatchSnapshot();
+    });
+
+    test('3: Import all changed secrets', async () => {
+      state.setForceUpdate(false);
+      let response = await SecretsOps.importSecrets({
+        importData: TestData.createTestSecretExport([TestData.secret16]),
+        options: {
+          includeActiveValues: true
+        },
+        state: state,
+      });
+      expect(response.length).toBe(0);
+      // Test updating only description
+      response = await SecretsOps.importSecrets({
+        importData: TestData.createTestSecretExport([{...TestData.secret16, description: "test new description"}]),
+        options: {
+          includeActiveValues: true
+        },
+        state: state,
+      });
+      expect(response.length).not.toBe(0);
+      expect(response[0].description).toBe("test new description");
+      expect(response).toMatchSnapshot();
+      // Test updating only value 
+      response = await SecretsOps.importSecrets({
+        importData: TestData.createTestSecretExport([{...TestData.secret16, description: "test new description", activeValue: "test new value" }]),
+        options: {
+          includeActiveValues: true
+        },
+        state: state,
+      });
+      expect(response.length).not.toBe(0);
+      expect(response[0].description).toBe("test new description");
       expect(response).toMatchSnapshot();
     });
   });
@@ -232,6 +351,40 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
         useInPlaceholders: TestData.secret5.useInPlaceholders,
         state,
       });
+      expect(response).toMatchSnapshot();
+    });
+  });
+
+  describe('updateSecretDescription()', () => {
+    test('0: Method is implemented', async () => {
+      expect(SecretsOps.updateSecretDescription).toBeDefined();
+    });
+
+    test('1: Update secret description', async () => {
+      const response = await SecretsOps.updateSecretDescription({
+        secretId: TestData.secret17._id,
+        description: TestData.secret17.description,
+        state: state,
+      });
+      expect(response).not.toBeNull();
+      expect(response).toMatchSnapshot();
+    });
+
+    test('2: Do not update secret description when no changes are made', async () => {
+      state.setForceUpdate(false);
+      let response = await SecretsOps.updateSecretDescription({
+        secretId: TestData.secret17._id,
+        description: TestData.secret17.description,
+        state: state,
+      });
+      expect(response).toBeNull();
+      response = await SecretsOps.updateSecretDescription({
+        secretId: TestData.secret17._id,
+        description: "test new description",
+        state: state,
+      });
+      expect(response).not.toBeNull();
+      expect(response.description).toBe("test new description");
       expect(response).toMatchSnapshot();
     });
   });

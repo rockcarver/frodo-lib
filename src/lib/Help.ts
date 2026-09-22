@@ -3957,13 +3957,13 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Policy",
     methodName: "updatePolicy",
-    signature: "updatePolicy( policyId: string, policyData: PolicySkeleton ): Promise<PolicySkeleton>",
+    signature: "updatePolicy( policyId: string, policyData: PolicySkeleton ): Promise<PolicySkeleton | null>",
     description: "Update or create policy",
     params: [
       { name: "policyId", type: "string", description: "policy id/name", required: true },
       { name: "policyData", type: "PolicySkeleton", description: "policy object", required: true },
     ],
-    returns: "{Promise<PolicySkeleton>} promise resolving to a policy object",
+    returns: "{Promise<PolicySkeleton | null>} promise resolving to a policy object if an update is made, or null if no update is made",
   },
   {
     typeName: "Policy",
@@ -4009,25 +4009,25 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Policy",
     methodName: "importPolicy",
-    signature: "importPolicy( policyId: string, importData: PolicyExportInterface, options?: PolicyImportOptions ): Promise<PolicySkeleton>",
+    signature: "importPolicy( policyId: string, importData: PolicyExportInterface, options?: PolicyImportOptions ): Promise<PolicySkeleton | null>",
     description: "Import policy by id",
     params: [
       { name: "policyId", type: "string", description: "policy id", required: true },
       { name: "importData", type: "PolicyExportInterface", description: "import data", required: true },
       { name: "options", type: "PolicyImportOptions", description: "import options", required: false },
     ],
-    returns: "{Promise<PolicySkeleton>} imported policy object",
+    returns: "{Promise<PolicySkeleton>} imported policy object, or null if no update is made",
   },
   {
     typeName: "Policy",
     methodName: "importFirstPolicy",
-    signature: "importFirstPolicy( importData: PolicyExportInterface, options?: PolicyImportOptions ): Promise<PolicySkeleton>",
+    signature: "importFirstPolicy( importData: PolicyExportInterface, options?: PolicyImportOptions ): Promise<PolicySkeleton | null>",
     description: "Import first policy",
     params: [
       { name: "importData", type: "PolicyExportInterface", description: "import data", required: true },
       { name: "options", type: "PolicyImportOptions", description: "import options", required: false },
     ],
-    returns: "{Promise<PolicySkeleton>} imported policy object",
+    returns: "{Promise<PolicySkeleton | null>} imported policy object, or null if no update is made",
   },
   {
     typeName: "Policy",
@@ -4077,10 +4077,13 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "PolicySet",
     methodName: "updatePolicySet",
-    signature: "updatePolicySet( policySetData: PolicySetSkeleton, policySetName?: string ): Promise<PolicySetSkeleton>",
-    description: "",
-    params: [],
-    returns: "",
+    signature: "updatePolicySet( policySetData: PolicySetSkeleton, policySetName?: string ): Promise<PolicySetSkeleton | null>",
+    description: "Update policy set",
+    params: [
+      { name: "importData", type: "PolicySetExportInterface", description: "import data", required: true },
+      { name: "policySetName", type: "string", description: "optional policy set name", required: false },
+    ],
+    returns: "{Promise<PolicySetSkeleton | null>} the updated policy set, or null if no update was made",
   },
   {
     typeName: "PolicySet",
@@ -4114,36 +4117,36 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "PolicySet",
     methodName: "importPolicySet",
-    signature: "importPolicySet( policySetName: string, importData: PolicySetExportInterface, options?: PolicySetImportOptions ): Promise<any>",
+    signature: "importPolicySet( policySetName: string, importData: PolicySetExportInterface, options?: PolicySetImportOptions ): Promise<PolicySetSkeleton | null>",
     description: "Import policy set",
     params: [
       { name: "policySetName", type: "string", description: "policy set name", required: true },
       { name: "importData", type: "PolicySetExportInterface", description: "import data", required: true },
       { name: "options", type: "PolicySetImportOptions", description: "import options", required: false },
     ],
-    returns: "",
+    returns: "{Promise<PolicySetSkeleton | null>} the imported policy set, or null if no update was made",
   },
   {
     typeName: "PolicySet",
     methodName: "importFirstPolicySet",
-    signature: "importFirstPolicySet( importData: PolicySetExportInterface, options?: PolicySetImportOptions ): Promise<any>",
+    signature: "importFirstPolicySet( importData: PolicySetExportInterface, options?: PolicySetImportOptions ): Promise<PolicySetSkeleton | null>",
     description: "Import first policy set",
     params: [
       { name: "importData", type: "PolicySetExportInterface", description: "import data", required: true },
       { name: "options", type: "PolicySetImportOptions", description: "import options", required: false },
     ],
-    returns: "",
+    returns: "{Promise<PolicySetSkeleton | null>} the imported policy set, or null if no update was made",
   },
   {
     typeName: "PolicySet",
     methodName: "importPolicySets",
-    signature: "importPolicySets( importData: PolicySetExportInterface, options?: PolicySetImportOptions ): Promise<any[]>",
+    signature: "importPolicySets( importData: PolicySetExportInterface, options?: PolicySetImportOptions ): Promise<PolicySetSkeleton[]>",
     description: "Import policy sets",
     params: [
       { name: "importData", type: "PolicySetExportInterface", description: "import data", required: true },
       { name: "options", type: "PolicySetImportOptions", description: "import options", required: false },
     ],
-    returns: "{any[]} The imported policy sets",
+    returns: "{Promise<PolicySetSkeleton[]>} The imported policy sets",
   },
   {
     typeName: "RawConfig",
@@ -4369,12 +4372,13 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "ResourceType",
     methodName: "updateResourceType",
-    signature: "updateResourceType( resourceTypeUuid: string, resourceTypeData: ResourceTypeSkeleton ): Promise<ResourceTypeSkeleton>",
+    signature: "updateResourceType( resourceTypeUuid: string, resourceTypeData: ResourceTypeSkeleton ): Promise<ResourceTypeSkeleton | null>",
     description: "Update resource type",
     params: [
+      { name: "resourceTypeUuid", type: "", description: "resource type uuid", required: true },
       { name: "resourceTypeData", type: "string", description: "resource type data", required: true },
     ],
-    returns: "{Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object",
+    returns: "{Promise<ResourceTypeSkeleton | null>} a promise that resolves to a resource type object, or null if no update was made",
   },
   {
     typeName: "ResourceType",
@@ -4427,44 +4431,44 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "ResourceType",
     methodName: "importResourceType",
-    signature: "importResourceType( resourceTypeUuid: string, importData: ResourceTypeExportInterface ): Promise<any>",
+    signature: "importResourceType( resourceTypeUuid: string, importData: ResourceTypeExportInterface ): Promise<ResourceTypeSkeleton | null>",
     description: "Import resource type by uuid",
     params: [
       { name: "resourceTypeUuid", type: "string", description: "client uuid", required: true },
       { name: "importData", type: "ResourceTypeExportInterface", description: "import data", required: true },
     ],
-    returns: "",
+    returns: "{Promise<ResourceTypeSkeleton | null>} a promise that resolves to the imported resource type object, or null if no update was made",
   },
   {
     typeName: "ResourceType",
     methodName: "importResourceTypeByName",
-    signature: "importResourceTypeByName( resourceTypeName: string, importData: ResourceTypeExportInterface ): Promise<any>",
+    signature: "importResourceTypeByName( resourceTypeName: string, importData: ResourceTypeExportInterface ): Promise<ResourceTypeSkeleton | null>",
     description: "Import resource type by name",
     params: [
       { name: "resourceTypeName", type: "string", description: "client id", required: true },
       { name: "importData", type: "ResourceTypeExportInterface", description: "import data", required: true },
     ],
-    returns: "",
+    returns: "{Promise<ResourceTypeSkeleton | null>} a promise that resolves to the imported resource type object, or null if no update was made",
   },
   {
     typeName: "ResourceType",
     methodName: "importFirstResourceType",
-    signature: "importFirstResourceType( importData: ResourceTypeExportInterface ): Promise<any>",
+    signature: "importFirstResourceType( importData: ResourceTypeExportInterface ): Promise<ResourceTypeSkeleton | null>",
     description: "Import first resource type",
     params: [
       { name: "importData", type: "ResourceTypeExportInterface", description: "import data", required: true },
     ],
-    returns: "",
+    returns: "{Promise<ResourceTypeSkeleton | null>} a promise that resolves to the imported resource type object, or null if no update was made",
   },
   {
     typeName: "ResourceType",
     methodName: "importResourceTypes",
-    signature: "importResourceTypes(importData: ResourceTypeExportInterface): Promise<any[]>",
+    signature: "importResourceTypes( importData: ResourceTypeExportInterface ): Promise<ResourceTypeSkeleton[]>",
     description: "Import resource types",
     params: [
       { name: "importData", type: "ResourceTypeExportInterface", description: "import data", required: true },
     ],
-    returns: "",
+    returns: "{Promise<ResourceTypeSkeleton[]>} a promise that resolves to the imported resource type objects",
   },
   {
     typeName: "Saml2",
@@ -4693,13 +4697,13 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Script",
     methodName: "updateScript",
-    signature: "updateScript( scriptId: string, scriptData: ScriptSkeleton ): Promise<ScriptSkeleton>",
+    signature: "updateScript( scriptId: string, scriptData: ScriptSkeleton ): Promise<ScriptSkeleton | null>",
     description: "Create or update script",
     params: [
       { name: "scriptId", type: "string", description: "script id", required: true },
       { name: "scriptData", type: "ScriptSkeleton", description: "script object", required: true },
     ],
-    returns: "{Promise<ScriptSkeleton>} a status object",
+    returns: "{Promise<ScriptSkeleton | null>} a script object, or null if no update was made",
   },
   {
     typeName: "Script",
@@ -6657,7 +6661,7 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Secret",
     methodName: "importSecret",
-    signature: "importSecret( secretId: string, importData: SecretsExportInterface, includeActiveValue?: boolean, source?: string ): Promise<SecretSkeleton>",
+    signature: "importSecret( secretId: string, importData: SecretsExportInterface, includeActiveValue?: boolean, source?: string ): Promise<SecretSkeleton | null>",
     description: "Import secret by id",
     params: [
       { name: "secretId", type: "string", description: "secret id/name", required: true },
@@ -6665,7 +6669,7 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "includeActiveValue", type: "boolean", description: "include active value of secret (default: false)", required: false },
       { name: "source", type: "string", description: "Host URL of source environment where the secret was exported from", required: false },
     ],
-    returns: "{Promise<SecretSkeleton>} imported secret object",
+    returns: "{Promise<SecretSkeleton | null>} imported secret object, or null if no update was made",
   },
   {
     typeName: "Secret",
@@ -6696,13 +6700,13 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Secret",
     methodName: "updateSecretDescription",
-    signature: "updateSecretDescription(secretId: string, description: string): Promise<any>",
+    signature: "updateSecretDescription( secretId: string, description: string ): Promise<SecretSkeleton | null>",
     description: "Update secret description",
     params: [
       { name: "secretId", type: "string", description: "secret id/name", required: true },
       { name: "description", type: "string", description: "secret description", required: true },
     ],
-    returns: "{Promise<any>} a promise that resolves to an empty string",
+    returns: "{Promise<SecretSkeleton | null>} a promise that resolves to the updated secret object if a change was made, otherwise returns null",
   },
   {
     typeName: "Secret",
@@ -6734,6 +6738,18 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "value", type: "string", description: "secret value", required: true },
     ],
     returns: "{Promise<VersionOfSecretSkeleton>} a promise that resolves to a version object",
+  },
+  {
+    typeName: "Secret",
+    methodName: "updateSecret",
+    signature: "updateSecret( secretId: string, description?: string, value?: string ): Promise<SecretSkeleton | null>",
+    description: "Update secret",
+    params: [
+      { name: "secretId", type: "string", description: "secret id/name", required: true },
+      { name: "description", type: "string", description: "optional secret description; if provided, attempts to update the secret description", required: false },
+      { name: "value", type: "string", description: "optional secret value; if provided, attempts to create a new version of the secret", required: false },
+    ],
+    returns: "{Promise<SecretSkeleton | null>} imported secret object, or null if no update was made",
   },
   {
     typeName: "Secret",
@@ -6961,13 +6977,13 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Variable",
     methodName: "importVariable",
-    signature: "importVariable( variableId: string, importData: VariablesExportInterface ): Promise<VariableSkeleton>",
+    signature: "importVariable( variableId: string, importData: VariablesExportInterface ): Promise<VariableSkeleton | null>",
     description: "Import variable by id",
     params: [
       { name: "variableId", type: "string", description: "variable id/name", required: true },
       { name: "importData", type: "VariablesExportInterface", description: "import data", required: true },
     ],
-    returns: "{Promise<VariableSkeleton>} imported variable object",
+    returns: "{Promise<VariableSkeleton | null>} imported variable object, or null if no update was made",
   },
   {
     typeName: "Variable",
@@ -6982,12 +6998,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Variable",
     methodName: "createVariable",
-    signature: "createVariable( variableId: string, value: string, description: string, expressionType?: VariableExpressionType, noEncode?: boolean ): Promise<VariableSkeleton>",
+    signature: "createVariable( variableId: string, value: string, description?: string, expressionType?: VariableExpressionType, noEncode?: boolean ): Promise<VariableSkeleton>",
     description: "Create variable",
     params: [
       { name: "variableId", type: "string", description: "variable id/name", required: true },
       { name: "value", type: "string", description: "variable value", required: true },
-      { name: "description", type: "string", description: "variable description", required: true },
+      { name: "description", type: "string", description: "variable description", required: false },
       { name: "expressionType", type: "VariableExpressionType", description: "type of the value", required: false },
       { name: "noEncode", type: "boolean", description: "do not encode if passing a pre-encoded (base64) value", required: false },
     ],
@@ -6996,27 +7012,27 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Variable",
     methodName: "updateVariable",
-    signature: "updateVariable( variableId: string, value: string, description: string, expressionType?: VariableExpressionType, noEncode?: boolean ): Promise<VariableSkeleton>",
+    signature: "updateVariable( variableId: string, value?: string, description?: string, expressionType?: VariableExpressionType, noEncode?: boolean ): Promise<VariableSkeleton | null>",
     description: "Update or create variable",
     params: [
       { name: "variableId", type: "string", description: "variable id/name", required: true },
-      { name: "value", type: "string", description: "variable value", required: true },
-      { name: "description", type: "string", description: "variable description", required: true },
+      { name: "value", type: "string", description: "variable value", required: false },
+      { name: "description", type: "string", description: "variable description", required: false },
       { name: "expressionType", type: "VariableExpressionType", description: "type of the value", required: false },
       { name: "noEncode", type: "boolean", description: "do not encode if passing a pre-encoded (base64) value", required: false },
     ],
-    returns: "{Promise<VariableSkeleton>} a promise that resolves to a variable object",
+    returns: "{Promise<VariableSkeleton | null>} a promise that resolves to a variable object, or null if no update was made",
   },
   {
     typeName: "Variable",
     methodName: "updateVariableDescription",
-    signature: "updateVariableDescription( variableId: string, description: string ): Promise<VariableSkeleton>",
+    signature: "updateVariableDescription( variableId: string, description: string ): Promise<VariableSkeleton | null>",
     description: "Update variable description",
     params: [
       { name: "variableId", type: "string", description: "variable id/name", required: true },
       { name: "description", type: "string", description: "variable description", required: true },
     ],
-    returns: "{Promise<VariableSkeleton>} a promise that resolves to a status object",
+    returns: "{Promise<VariableSkeleton | null>} a promise that resolves to a variable object, or null if no update was made",
   },
   {
     typeName: "Variable",

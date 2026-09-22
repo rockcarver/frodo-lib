@@ -11972,6 +11972,25 @@ exports[`ScriptOps importScripts() 3: Import script by id 1`] = `
 
 exports[`ScriptOps importScripts() 4: Import no scripts when excluding default scripts and only default scripts given 1`] = `[]`;
 
+exports[`ScriptOps importScripts() 5: Import all changed scripts 1`] = `
+[
+  {
+    "_id": "10643e95-873a-4ec0-b713-a7f56760d179",
+    "context": "AUTHENTICATION_TREE_DECISION_NODE",
+    "createdBy": "id=9f7b6b8b-6ab5-45b3-aad5-5bda19eb3064,ou=user,ou=am-config",
+    "creationDate": 1788982887312,
+    "default": false,
+    "description": "test new description",
+    "evaluatorVersion": "1.0",
+    "language": "JAVASCRIPT",
+    "lastModifiedBy": "id=9f7b6b8b-6ab5-45b3-aad5-5bda19eb3064,ou=user,ou=am-config",
+    "lastModifiedDate": 1788982888371,
+    "name": "FrodoTestScript4",
+    "script": "LyogQ2hlY2sgVXNlcm5hbWUKICoKICogQXV0aG9yOiB2b2xrZXIuc2NoZXViZXJAZm9yZ2Vyb2NrLmNvbQogKiAKICogQ2hlY2sgaWYgdXNlcm5hbWUgaGFzIGFscmVhZHkgYmVlbiBjb2xsZWN0ZWQuCiAqIFJldHVybiAia25vd24iIGlmIHllcywgInVua25vd24iIG90aGVyd2lzZS4KICogCiAqIFRoaXMgc2NyaXB0IGRvZXMgbm90IG5lZWQgdG8gYmUgcGFyYW1ldHJpemVkLiBJdCB3aWxsIHdvcmsgcHJvcGVybHkgYXMgaXMuCiAqIAogKiBUaGUgU2NyaXB0ZWQgRGVjaXNpb24gTm9kZSBuZWVkcyB0aGUgZm9sbG93aW5nIG91dGNvbWVzIGRlZmluZWQ6CiAqIC0ga25vd24KICogLSB1bmtub3duCiAqLwooZnVuY3Rpb24gKCkgewogICAgaWYgKG51bGwgIT0gc2hhcmVkU3RhdGUuZ2V0KCJ1c2VybmFtZSIpKSB7CiAgICAgICAgb3V0Y29tZSA9ICJrbm93biI7CiAgICB9CiAgICBlbHNlIHsKICAgICAgICBvdXRjb21lID0gInVua25vd24iOwogICAgfQp9KCkpOw==",
+  },
+]
+`;
+
 exports[`ScriptOps readScript() 1: Read script by id 'c9cb4b1e-1cd3-4e5b-8f56-140f83ba9f6d' 1`] = `
 {
   "_id": "c9cb4b1e-1cd3-4e5b-8f56-140f83ba9f6d",
@@ -13341,6 +13360,23 @@ exports[`ScriptOps updateScript() 1: Update script '3b2f6836-184c-4ee9-8a1d-557c
   "lastModifiedBy": "id=ba58ff99-76d3-4c69-9c4a-7f150ac70e2c,ou=user,ou=am-config",
   "lastModifiedDate": 1718832502358,
   "name": "FrodoTestScript3",
+  "script": "LyogQ2hlY2sgVXNlcm5hbWUKICoKICogQXV0aG9yOiB2b2xrZXIuc2NoZXViZXJAZm9yZ2Vyb2NrLmNvbQogKiAKICogQ2hlY2sgaWYgdXNlcm5hbWUgaGFzIGFscmVhZHkgYmVlbiBjb2xsZWN0ZWQuCiAqIFJldHVybiAia25vd24iIGlmIHllcywgInVua25vd24iIG90aGVyd2lzZS4KICogCiAqIFRoaXMgc2NyaXB0IGRvZXMgbm90IG5lZWQgdG8gYmUgcGFyYW1ldHJpemVkLiBJdCB3aWxsIHdvcmsgcHJvcGVybHkgYXMgaXMuCiAqIAogKiBUaGUgU2NyaXB0ZWQgRGVjaXNpb24gTm9kZSBuZWVkcyB0aGUgZm9sbG93aW5nIG91dGNvbWVzIGRlZmluZWQ6CiAqIC0ga25vd24KICogLSB1bmtub3duCiAqLwooZnVuY3Rpb24gKCkgewogICAgaWYgKG51bGwgIT0gc2hhcmVkU3RhdGUuZ2V0KCJ1c2VybmFtZSIpKSB7CiAgICAgICAgb3V0Y29tZSA9ICJrbm93biI7CiAgICB9CiAgICBlbHNlIHsKICAgICAgICBvdXRjb21lID0gInVua25vd24iOwogICAgfQp9KCkpOw==",
+}
+`;
+
+exports[`ScriptOps updateScript() 2: Do not update script 'b7259916-71ed-4675-8c5a-de86a80e4aed' 1`] = `
+{
+  "_id": "b7259916-71ed-4675-8c5a-de86a80e4aed",
+  "context": "AUTHENTICATION_TREE_DECISION_NODE",
+  "createdBy": "id=9f7b6b8b-6ab5-45b3-aad5-5bda19eb3064,ou=user,ou=am-config",
+  "creationDate": 1788982967900,
+  "default": false,
+  "description": "test new description",
+  "evaluatorVersion": "1.0",
+  "language": "JAVASCRIPT",
+  "lastModifiedBy": "id=9f7b6b8b-6ab5-45b3-aad5-5bda19eb3064,ou=user,ou=am-config",
+  "lastModifiedDate": 1788982969975,
+  "name": "FrodoTestScript2",
   "script": "LyogQ2hlY2sgVXNlcm5hbWUKICoKICogQXV0aG9yOiB2b2xrZXIuc2NoZXViZXJAZm9yZ2Vyb2NrLmNvbQogKiAKICogQ2hlY2sgaWYgdXNlcm5hbWUgaGFzIGFscmVhZHkgYmVlbiBjb2xsZWN0ZWQuCiAqIFJldHVybiAia25vd24iIGlmIHllcywgInVua25vd24iIG90aGVyd2lzZS4KICogCiAqIFRoaXMgc2NyaXB0IGRvZXMgbm90IG5lZWQgdG8gYmUgcGFyYW1ldHJpemVkLiBJdCB3aWxsIHdvcmsgcHJvcGVybHkgYXMgaXMuCiAqIAogKiBUaGUgU2NyaXB0ZWQgRGVjaXNpb24gTm9kZSBuZWVkcyB0aGUgZm9sbG93aW5nIG91dGNvbWVzIGRlZmluZWQ6CiAqIC0ga25vd24KICogLSB1bmtub3duCiAqLwooZnVuY3Rpb24gKCkgewogICAgaWYgKG51bGwgIT0gc2hhcmVkU3RhdGUuZ2V0KCJ1c2VybmFtZSIpKSB7CiAgICAgICAgb3V0Y29tZSA9ICJrbm93biI7CiAgICB9CiAgICBlbHNlIHsKICAgICAgICBvdXRjb21lID0gInVua25vd24iOwogICAgfQp9KCkpOw==",
 }
 `;

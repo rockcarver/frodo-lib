@@ -20,6 +20,7 @@ import {
 import {
   convertBase64TextToArray,
   getMetadata,
+  updateRemote,
 } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
@@ -54,10 +55,16 @@ export type PolicySet = {
     policySetData: PolicySetSkeleton,
     policySetName?: string
   ): Promise<PolicySetSkeleton>;
+  /**
+   * Update policy set
+   * @param {PolicySetExportInterface} importData import data
+   * @param {string} policySetName optional policy set name
+   * @returns {Promise<PolicySetSkeleton | null>} the updated policy set, or null if no update was made
+   */
   updatePolicySet(
     policySetData: PolicySetSkeleton,
     policySetName?: string
-  ): Promise<PolicySetSkeleton>;
+  ): Promise<PolicySetSkeleton | null>;
   deletePolicySet(policySetName: string): Promise<PolicySetSkeleton>;
   /**
    * Export policy set
@@ -82,31 +89,33 @@ export type PolicySet = {
    * @param {string} policySetName policy set name
    * @param {PolicySetExportInterface} importData import data
    * @param {PolicySetImportOptions} options import options
+   * @returns {Promise<PolicySetSkeleton | null>} the imported policy set, or null if no update was made
    */
   importPolicySet(
     policySetName: string,
     importData: PolicySetExportInterface,
     options?: PolicySetImportOptions
-  ): Promise<any>;
+  ): Promise<PolicySetSkeleton | null>;
   /**
    * Import first policy set
    * @param {PolicySetExportInterface} importData import data
    * @param {PolicySetImportOptions} options import options
+   * @returns {Promise<PolicySetSkeleton | null>} the imported policy set, or null if no update was made
    */
   importFirstPolicySet(
     importData: PolicySetExportInterface,
     options?: PolicySetImportOptions
-  ): Promise<any>;
+  ): Promise<PolicySetSkeleton | null>;
   /**
    * Import policy sets
    * @param {PolicySetExportInterface} importData import data
    * @param {PolicySetImportOptions} options import options
-   * @returns {any[]} The imported policy sets
+   * @returns {Promise<PolicySetSkeleton[]>} The imported policy sets
    */
   importPolicySets(
     importData: PolicySetExportInterface,
     options?: PolicySetImportOptions
-  ): Promise<any[]>;
+  ): Promise<PolicySetSkeleton[]>;
 };
 
 export default (state: State): PolicySet => {
@@ -129,7 +138,7 @@ export default (state: State): PolicySet => {
     async updatePolicySet(
       policySetData: PolicySetSkeleton,
       policySetName = undefined
-    ) {
+    ): Promise<PolicySetSkeleton | null> {
       return updatePolicySet({ policySetData, policySetName, state });
     },
     async deletePolicySet(policySetName: string) {
@@ -158,7 +167,7 @@ export default (state: State): PolicySet => {
       policySetName: string,
       importData: PolicySetExportInterface,
       options: PolicySetImportOptions = { deps: true, prereqs: false }
-    ) {
+    ): Promise<PolicySetSkeleton | null> {
       return importPolicySet({
         policySetName,
         importData,
@@ -169,13 +178,13 @@ export default (state: State): PolicySet => {
     async importFirstPolicySet(
       importData: PolicySetExportInterface,
       options: PolicySetImportOptions = { deps: true, prereqs: false }
-    ) {
+    ): Promise<PolicySetSkeleton | null> {
       return importFirstPolicySet({ importData, options, state });
     },
     async importPolicySets(
       importData: PolicySetExportInterface,
       options: PolicySetImportOptions = { deps: true, prereqs: false }
-    ) {
+    ): Promise<PolicySetSkeleton[]> {
       return importPolicySets({ importData, options, state });
     },
   };
@@ -313,14 +322,17 @@ export async function updatePolicySet({
   policySetName?: string;
   policySetData: PolicySetSkeleton;
   state: State;
-}) {
+}): Promise<PolicySetSkeleton | null> {
+  if (!policySetName) policySetName = policySetData.name;
   try {
-    const response = await _updatePolicySet({
-      policySetName,
-      policySetData,
+    return await updateRemote({
+      data: policySetData,
+      type: 'policy set',
+      readFn: async () => await readPolicySet({ policySetName, state }),
+      updateFn: async () =>
+        await _updatePolicySet({ policySetName, policySetData, state }),
       state,
     });
-    return response;
   } catch (error) {
     throw new FrodoError(
       `Error updating ${getCurrentRealmName(state) + ' realm'} policy set ${policySetName}`,
@@ -768,6 +780,7 @@ async function importPolicySetDependencies({
  * @param {string} policySetName policy set name
  * @param {PolicySetExportInterface} importData import data
  * @param {PolicySetImportOptions} options import options
+ * @returns {Promise<PolicySetSkeleton | null>} the imported policy set, or null if no update was made
  */
 export async function importPolicySet({
   policySetName,
@@ -779,7 +792,7 @@ export async function importPolicySet({
   importData: PolicySetExportInterface;
   options?: PolicySetImportOptions;
   state: State;
-}) {
+}): Promise<PolicySetSkeleton | null> {
   let response = null;
   const errors = [];
   const imported = [];
@@ -800,13 +813,20 @@ export async function importPolicySet({
           }
         }
         try {
-          response = await _createPolicySet({ policySetData, state });
+          response = await updateRemote({
+            data: policySetData,
+            type: 'policy set',
+            readFn: async () =>
+              await readPolicySet({ policySetName: policySetData.name, state }),
+            updateFn: async () =>
+              await _updatePolicySet({ policySetData, state }),
+            createFn: async () =>
+              await _createPolicySet({ policySetData, state }),
+            state,
+          });
           imported.push(id);
         } catch (error) {
-          if (error.response?.status === 409) {
-            response = await _updatePolicySet({ policySetData, state });
-            imported.push(id);
-          } else throw error;
+          errors.push(error);
         }
         if (options.deps) {
           try {
@@ -842,6 +862,7 @@ export async function importPolicySet({
  * Import first policy set
  * @param {PolicySetExportInterface} importData import data
  * @param {PolicySetImportOptions} options import options
+ * @returns {Promise<PolicySetSkeleton | null>} the imported policy set, or null if no update was made
  */
 export async function importFirstPolicySet({
   importData,
@@ -851,7 +872,7 @@ export async function importFirstPolicySet({
   importData: PolicySetExportInterface;
   options?: PolicySetImportOptions;
   state: State;
-}) {
+}): Promise<PolicySetSkeleton | null> {
   let response = null;
   const errors = [];
   const imported = [];
@@ -872,13 +893,20 @@ export async function importFirstPolicySet({
         }
       }
       try {
-        response = await _createPolicySet({ policySetData, state });
+        response = await updateRemote({
+          data: policySetData,
+          type: 'policy set',
+          readFn: async () =>
+            await readPolicySet({ policySetName: policySetData.name, state }),
+          updateFn: async () =>
+            await _updatePolicySet({ policySetData, state }),
+          createFn: async () =>
+            await _createPolicySet({ policySetData, state }),
+          state,
+        });
         imported.push(id);
       } catch (error) {
-        if (error.response?.status === 409) {
-          response = await _updatePolicySet({ policySetData, state });
-          imported.push(id);
-        } else throw error;
+        errors.push(error);
       }
       if (options.deps) {
         try {
@@ -912,7 +940,7 @@ export async function importFirstPolicySet({
  * Import policy sets
  * @param {PolicySetExportInterface} importData import data
  * @param {PolicySetImportOptions} options import options
- * @returns {any[]} The imported policy sets
+ * @returns {Promise<PolicySetSkeleton[]>} The imported policy sets
  */
 export async function importPolicySets({
   importData,
@@ -922,8 +950,8 @@ export async function importPolicySets({
   importData: PolicySetExportInterface;
   options?: PolicySetImportOptions;
   state: State;
-}): Promise<any[]> {
-  const response: any[] = [];
+}): Promise<PolicySetSkeleton[]> {
+  const response: PolicySetSkeleton[] = [];
   const errors = [];
   for (const id of Object.keys(importData.policyset)) {
     try {
@@ -941,11 +969,21 @@ export async function importPolicySets({
         }
       }
       try {
-        response.push(await _createPolicySet({ policySetData, state }));
+        response.push(
+          await updateRemote({
+            data: policySetData,
+            type: 'policy set',
+            readFn: async () =>
+              await readPolicySet({ policySetName: policySetData.name, state }),
+            updateFn: async () =>
+              await _updatePolicySet({ policySetData, state }),
+            createFn: async () =>
+              await _createPolicySet({ policySetData, state }),
+            state,
+          })
+        );
       } catch (error) {
-        if (error.response?.status === 409) {
-          response.push(await _updatePolicySet({ policySetData, state }));
-        } else throw error;
+        errors.push(error);
       }
       if (options.deps) {
         try {
@@ -968,5 +1006,5 @@ export async function importPolicySets({
       errors
     );
   }
-  return response;
+  return response.filter((p) => p);
 }

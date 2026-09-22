@@ -121,7 +121,7 @@ export async function getVariable({
 export async function putVariable({
   variableId,
   valueBase64,
-  description = '',
+  description,
   expressionType = 'string',
   state,
 }: {

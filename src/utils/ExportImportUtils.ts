@@ -22,8 +22,13 @@ import {
   encode,
   encodeBase64Url,
 } from './Base64Utils';
-import { debugMessage, printMessage, updateProgressIndicator } from './Console';
-import { deleteDeepByKeys, stringify } from './JsonUtils';
+import {
+  debugMessage,
+  printMessage,
+  updateProgressIndicator,
+  verboseMessage,
+} from './Console';
+import { deleteDeepByKeys, isEqualJson, stringify } from './JsonUtils';
 import { resolveVariable } from '../ops/cloud/VariablesOps';
 import { VariableSkeleton } from '../api/cloud/VariablesApi';
 
@@ -869,15 +874,23 @@ export async function importWithErrorHandling<P extends { state: State }, R>(
     : null;
 }
 
+/**
+ * Helper that calls a function expecting a result, and handles that result in the given result callback if it exists
+ * @param {ResultCallback<R> | undefined} resultCallback The result callback
+ * @param {string} errorMessage The error message to associate with the error if one occurs
+ * @param {(...params: any) => Promise<R | null>} func The function to call to get the result
+ * @param {any} parameters The parameters for the function
+ * @returns {R | null} The result of calling the function, or null if an error occurs that is handled by the resultCallback
+ */
 export async function getResult<R>(
   resultCallback: ResultCallback<R> | undefined,
   errorMessage: string,
-  func: (...params: any) => Promise<R>,
+  func: (...params: any) => Promise<R | null>,
   ...parameters: any
 ): Promise<R | null> {
   try {
     const result = await func(...parameters);
-    if (resultCallback) {
+    if (result && resultCallback) {
       resultCallback(undefined, result);
     }
     return result;
@@ -1189,4 +1202,89 @@ export function objectRecurse(
   }
   objOp(obj);
   Object.values(obj).forEach((o) => objectRecurse(o, objOp));
+}
+
+/**
+ * Helper that handles updating a remote entity if there have been changes
+ * @param {string} type The type of data being updated (used for verbose messaging)
+ * @param {() => Promise<T>} updateFn The function that updates the remote entity
+ * @param {T} data If state.getForceUpdate() is false and readFn is provided, compares this data with the remote data to determine if update is needed
+ * @param {() => Promise<T>} readFn optional function that reads in the remote entity for comparison (if state.getForceUpdate() is false); if not provided, will just attempt to update (and create if createFn is provided)
+ * @param {() => Promise<T>} createFn optional function that creates the remote entity if update fails; if not provided, will just throw the update error
+ * @param {(e: any) => boolean} notFoundCheck optional function that checks the error thrown during an update is a "not found" error (true if thrown, false if different error); if no provided, will always run createFn on error (if it's provided)
+ * @param {string[]} ignoreAttributes attributes to ignore during remote comparison in addition to the usual ones (e.g. _rev, _id) that automatically get ignored
+ * @param {State} state The library state
+ * @returns {T | null} the updated object, or null if no update was made
+ */
+export async function updateRemote<T extends object>({
+  type,
+  updateFn,
+  data,
+  readFn,
+  createFn,
+  notFoundCheck,
+  ignoreAttributes = [],
+  state,
+}: {
+  type: string;
+  updateFn: () => Promise<T>;
+  data?: T;
+  readFn?: () => Promise<T>;
+  createFn?: () => Promise<T>;
+  notFoundCheck?: (e: any) => boolean;
+  ignoreAttributes?: string[];
+  state: State;
+}): Promise<T | null> {
+  if (!state.getForceUpdate() && readFn) {
+    verboseMessage({
+      message: `Comparing ${type} with remote...`,
+      state,
+    });
+    try {
+      const remoteData = await readFn();
+      const isEqual = await isEqualJson(remoteData, data, [
+        '_id',
+        'id',
+        '_rev',
+        'createdBy',
+        'creationDate',
+        'lastModifiedBy',
+        'lastModifiedDate',
+        'lastChangeDate',
+        'lastChangedBy',
+        'modifiedDate',
+        'createdDate',
+        ...ignoreAttributes,
+      ]);
+      if (isEqual) {
+        verboseMessage({
+          message: `Identical ${type} already exists in remote. Update skipped.`,
+          state,
+        });
+        return null;
+      }
+      verboseMessage({
+        message: `Different ${type} exists in remote. Attempting update...`,
+        state,
+      });
+    } catch (e) {
+      verboseMessage({
+        message: `Unable to compare ${type} due to error (${e}). Attempting update...`,
+        state,
+      });
+    }
+  }
+  try {
+    return await updateFn();
+  } catch (e) {
+    const notFound = notFoundCheck && notFoundCheck(e);
+    if (createFn && (!notFoundCheck || notFound)) {
+      verboseMessage({
+        message: `Unable to update ${type} ${notFound ? `since not found` : `due to error (${e})`}. Attempting create...`,
+        state,
+      });
+      return await createFn();
+    }
+    throw e;
+  }
 }

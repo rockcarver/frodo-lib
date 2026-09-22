@@ -32,6 +32,7 @@ const state = {
   getStopProgressHandler: () => undefined,
   getUpdateProgressHandler: () => undefined,
   getUsername: () => 'tester',
+  getForceUpdate: () => true
 } as any;
 
 const encodeScript = (lines: string[]) =>
