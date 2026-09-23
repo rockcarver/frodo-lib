@@ -687,7 +687,7 @@ export async function exportFullConfiguration({
           !!state.getIsIGA()
         )
       )?.workflow,
-      ...config.global,
+      ...config?.global,
     } as FullGlobalExportInterface;
 
     // Clean up duplicates
@@ -721,7 +721,7 @@ export async function exportFullConfiguration({
   if (!onlyGlobal || onlyRealm) {
     // Export realm configs
     const activeRealm = state.getRealm();
-    for (const realm of Object.keys(config.realm)) {
+    for (const realm of Object.keys(config?.realm ?? {})) {
       const currentRealm = getRealmUsingExportFormat(realm);
       if (
         onlyRealm &&
@@ -908,7 +908,7 @@ export async function exportFullConfiguration({
             resultCallback
           )
         )?.trustedJwtIssuer,
-        ...config.realm[realm],
+        ...config?.realm[realm],
       };
       //Clean up realm duplicates
       if (

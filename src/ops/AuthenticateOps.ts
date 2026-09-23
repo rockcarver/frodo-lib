@@ -174,7 +174,7 @@ const CLOUD_ADMIN_MINIMAL_SCOPES: string[] = [
   s.PromotionScope,
   s.ReleaseFullScope,
   s.SSOCookieFullScope,
-  s.TelemetryReadScope,
+  s.TelemetryFullScope,
 ];
 const CLOUD_ADMIN_DEFAULT_SCOPES: string[] = [
   s.AnalyticsFullScope,
@@ -194,7 +194,7 @@ const CLOUD_ADMIN_DEFAULT_SCOPES: string[] = [
   s.SSOCookieFullScope,
   s.ProxyConnectFullScope,
   s.WSFedAdminScope,
-  s.TelemetryReadScope,
+  s.TelemetryFullScope,
 ];
 const FORGEOPS_ADMIN_DEFAULT_SCOPES: string[] = [s.IdmFullScope, s.OpenIdScope];
 const forgeopsAdminScopes = FORGEOPS_ADMIN_DEFAULT_SCOPES.join(' ');

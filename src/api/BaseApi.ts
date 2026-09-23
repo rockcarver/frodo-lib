@@ -606,11 +606,18 @@ export function generateAmApi({
   resource,
   requestOverride = {},
   requiredScopes,
+  anonymous = false,
   state,
 }: {
   resource: ResourceConfig;
   requestOverride?: AxiosRequestConfig;
   requiredScopes: string[];
+  // Skip attaching a credential entirely. A handful of AM endpoints (e.g.
+  // /serverinfo/*) are meant to be reachable without one, and on PingOne
+  // Advanced Identity Cloud attaching one anyway gets the request rejected
+  // outright rather than just ignored -- see AmConfigApi.ts's
+  // EntitySubInfo.anonymous for where this matters in practice.
+  anonymous?: boolean;
   state: State;
 }): AxiosInstance {
   const headers = {
@@ -642,16 +649,18 @@ export function generateAmApi({
 
   const request = createAxiosInstance(state, requestConfig);
 
-  // resolve the actual credential (session cookie, bearer token, or — for
-  // cloud browser-login mode — a freshly RFC 8693-exchanged token) right
-  // before this request is sent, not once at construction time. See
-  // `resolveAmRequestCredential`'s remarks for why this matters.
-  attachCredentialInterceptor(
-    request,
-    () => resolveAmRequestCredential(state, requiredScopes),
-    state
-  );
-  attachEscalationResponseInterceptor(request, state);
+  if (!anonymous) {
+    // resolve the actual credential (session cookie, bearer token, or — for
+    // cloud browser-login mode — a freshly RFC 8693-exchanged token) right
+    // before this request is sent, not once at construction time. See
+    // `resolveAmRequestCredential`'s remarks for why this matters.
+    attachCredentialInterceptor(
+      request,
+      () => resolveAmRequestCredential(state, requiredScopes),
+      state
+    );
+    attachEscalationResponseInterceptor(request, state);
+  }
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
