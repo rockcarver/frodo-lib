@@ -28,6 +28,13 @@ export async function getServerInfo({ state }: { state: State }) {
   const { data } = await generateAmAuthApi({
     resource: getServerInfoApiConfig(),
     requestOverride: {},
+    // /serverinfo/* is only reachable unauthenticated on PingOne Advanced
+    // Identity Cloud — attaching even a valid token gets a 400 (see
+    // AmConfigApi.ts's EntitySubInfo.anonymous). A long-lived
+    // already-authenticated instance (e.g. the MCP server's singleton
+    // re-running getTokens() on every request) otherwise sends its bearer
+    // here and breaks.
+    anonymous: true,
     state,
   }).get(urlString, {});
   return data;
@@ -47,6 +54,10 @@ export async function getServerVersionInfo({ state }: { state: State }) {
   const { data } = await generateAmAuthApi({
     resource: getServerVersionApiConfig(),
     requestOverride: {},
+    // Deliberately NOT anonymous: unlike /serverinfo/*, /serverinfo/version
+    // requires a credential on PingOne Advanced Identity Cloud (anonymous
+    // calls 403 with "No session for request"), and every caller reaches it
+    // post-login with a valid bearer token.
     state,
   }).get(urlString, {});
   return data;
