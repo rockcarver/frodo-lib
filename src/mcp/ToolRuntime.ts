@@ -1353,6 +1353,31 @@ async function resolveScopedFrodoInstance(
     ? await customResolver(context, frodoRoot)
     : resolveRequestScopedFrodo(context, frodoRoot);
 
+  // The request-scoped factory helpers seed state from only the credential
+  // fields each auth mode carries — auxiliary connection-profile credentials
+  // (Log API key/secret) never make it onto scoped instances, so a singleton
+  // whose connection profile had them configured would still fail
+  // assertRequiredCredential on any realm-overridden request. Inherit each
+  // credential the scoped instance is missing from the root instance's state
+  // (getLogApiKey()/getLogApiSecret() fall back to FRODO_LOG_KEY/FRODO_LOG_
+  // SECRET themselves, so an explicit env-provided credential is unaffected).
+  try {
+    if (scopedFrodo?.state && frodoRoot?.state) {
+      const rootLogApiKey = frodoRoot.state.getLogApiKey?.();
+      if (!scopedFrodo.state.getLogApiKey?.() && rootLogApiKey) {
+        scopedFrodo.state.setLogApiKey(rootLogApiKey);
+      }
+      const rootLogApiSecret = frodoRoot.state.getLogApiSecret?.();
+      if (!scopedFrodo.state.getLogApiSecret?.() && rootLogApiSecret) {
+        scopedFrodo.state.setLogApiSecret(rootLogApiSecret);
+      }
+    }
+  } catch {
+    // Best-effort inheritance — when the credentials genuinely aren't
+    // available anywhere, assertRequiredCredential raises its own clean,
+    // actionable error below.
+  }
+
   // A caller-configuration error, not an authentication failure — thrown
   // outside the try/catch below so its specific message isn't swallowed by
   // the generic "authentication failed" wrapper.

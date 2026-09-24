@@ -1851,6 +1851,175 @@ describe('MCP hybrid runtime', () => {
     expect(result.data).toEqual({ result: [] });
   });
 
+  test('dispatch inherits log API credentials from the root instance when the scoped one lacks them', async () => {
+    const fetch = jest.fn(async () => ({ result: [] }));
+    const descriptor = makeDescriptor({
+      id: 'cloud.log.fetch',
+      toolName: 'frodo.cloud.log.fetch',
+      methodName: 'fetch',
+      modulePath: ['cloud', 'log'],
+      domain: 'cloud',
+      objectType: 'LogEvent',
+      operationType: 'search',
+      requiredCredential: 'logApi',
+    });
+    // Root state models the startup singleton: a connection profile that had
+    // logApi credentials configured. The custom resolver returns a scoped
+    // instance whose fresh state has none (what the service-account/admin/
+    // bearer factory helpers produce) — resolveScopedFrodoInstance must
+    // inherit the missing credentials from the root before the credential
+    // gate runs, or every realm-overridden request against such a profile
+    // would fail despite the profile being fully configured.
+    const scopedLogApi = { key: undefined as string | undefined, secret: undefined as string | undefined };
+    const scopedSetLogApiKey = jest.fn((key: string) => {
+      scopedLogApi.key = key;
+    });
+    const scopedSetLogApiSecret = jest.fn((secret: string) => {
+      scopedLogApi.secret = secret;
+    });
+    const runtime = createToolRuntime(
+      makeManifest([descriptor]),
+      [descriptor],
+      {
+        frodoRoot: {
+          state: {
+            getLogApiKey: () => 'root-key-id',
+            getLogApiSecret: () => 'root-secret',
+          },
+        } as any,
+        resolveFrodoForRequest: () =>
+          ({
+            state: {
+              getLogApiKey: () => scopedLogApi.key,
+              getLogApiSecret: () => scopedLogApi.secret,
+              setLogApiKey: scopedSetLogApiKey,
+              setLogApiSecret: scopedSetLogApiSecret,
+            },
+            login: { getTokens: jest.fn(async () => {}) },
+            cloud: { log: { fetch } },
+          }) as any,
+      }
+    );
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_dispatch_read_only',
+      arguments: { skillId: descriptor.id },
+      context: { auth: { mode: 'state-config', config: {} } },
+    });
+
+    expect(scopedSetLogApiKey).toHaveBeenCalledWith('root-key-id');
+    expect(scopedSetLogApiSecret).toHaveBeenCalledWith('root-secret');
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(result.data).toEqual({ result: [] });
+  });
+
+  test('dispatch leaves scoped log API credentials untouched when the root has none', async () => {
+    const fetch = jest.fn(async () => ({ result: [] }));
+    const descriptor = makeDescriptor({
+      id: 'cloud.log.fetch',
+      toolName: 'frodo.cloud.log.fetch',
+      methodName: 'fetch',
+      modulePath: ['cloud', 'log'],
+      domain: 'cloud',
+      objectType: 'LogEvent',
+      operationType: 'search',
+      requiredCredential: 'logApi',
+    });
+    // Neither root nor scoped state has credentials (no profile, no env
+    // vars) — the inheritance must not write undefined values onto the
+    // scoped instance, and the credential gate must raise its own clean,
+    // actionable error.
+    const scopedSetLogApiKey = jest.fn();
+    const scopedSetLogApiSecret = jest.fn();
+    const runtime = createToolRuntime(
+      makeManifest([descriptor]),
+      [descriptor],
+      {
+        frodoRoot: {
+          state: {
+            getLogApiKey: () => undefined,
+            getLogApiSecret: () => undefined,
+          },
+        } as any,
+        resolveFrodoForRequest: () =>
+          ({
+            state: {
+              getLogApiKey: () => undefined,
+              getLogApiSecret: () => undefined,
+              setLogApiKey: scopedSetLogApiKey,
+              setLogApiSecret: scopedSetLogApiSecret,
+            },
+            login: { getTokens: jest.fn(async () => {}) },
+            cloud: { log: { fetch } },
+          }) as any,
+      }
+    );
+
+    await expect(
+      runtime.executeTool({
+        toolName: 'frodo_dispatch_read_only',
+        arguments: { skillId: descriptor.id },
+        context: { auth: { mode: 'state-config', config: {} } },
+      })
+    ).rejects.toThrow('requires a Log API key/secret');
+    expect(scopedSetLogApiKey).not.toHaveBeenCalled();
+    expect(scopedSetLogApiSecret).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test('dispatch keeps scoped-instance log API credentials that already exist', async () => {
+    const fetch = jest.fn(async () => ({ result: [] }));
+    const descriptor = makeDescriptor({
+      id: 'cloud.log.fetch',
+      toolName: 'frodo.cloud.log.fetch',
+      methodName: 'fetch',
+      modulePath: ['cloud', 'log'],
+      domain: 'cloud',
+      objectType: 'LogEvent',
+      operationType: 'search',
+      requiredCredential: 'logApi',
+    });
+    // A scoped instance that already carries its own credentials (e.g. a
+    // state-config mode seeded with the full profile state) must not be
+    // overwritten by the root's values.
+    const scopedSetLogApiKey = jest.fn();
+    const scopedSetLogApiSecret = jest.fn();
+    const runtime = createToolRuntime(
+      makeManifest([descriptor]),
+      [descriptor],
+      {
+        frodoRoot: {
+          state: {
+            getLogApiKey: () => 'root-key-id',
+            getLogApiSecret: () => 'root-secret',
+          },
+        } as any,
+        resolveFrodoForRequest: () =>
+          ({
+            state: {
+              getLogApiKey: () => 'scoped-key-id',
+              getLogApiSecret: () => 'scoped-secret',
+              setLogApiKey: scopedSetLogApiKey,
+              setLogApiSecret: scopedSetLogApiSecret,
+            },
+            login: { getTokens: jest.fn(async () => {}) },
+            cloud: { log: { fetch } },
+          }) as any,
+      }
+    );
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_dispatch_read_only',
+      arguments: { skillId: descriptor.id },
+      context: { auth: { mode: 'state-config', config: {} } },
+    });
+
+    expect(scopedSetLogApiKey).not.toHaveBeenCalled();
+    expect(scopedSetLogApiSecret).not.toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(result.data).toEqual({ result: [] });
+  });
+
   test('dispatch executes mutating descriptor selected by tuple', async () => {
     const updateJourney = jest.fn(
       async (journeyId: string, payload: unknown) => ({
