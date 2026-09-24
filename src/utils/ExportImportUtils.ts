@@ -908,13 +908,15 @@ export async function getResult<R>(
     if (
       !(
         // operation is not available in PingOne Advanced Identity Cloud
-        (error.httpStatus === 403 &&
-          error.httpMessage ===
-            'This operation is not available in PingOne Advanced Identity Cloud.') ||
-        // tenant supports the feature, but this credential lacks the scope
-        // for it -- treat the same as "not available" for a best-effort,
-        // export-everything style caller rather than failing the whole export
-        isCausedByInsufficientScope(error)
+        (
+          (error.httpStatus === 403 &&
+            error.httpMessage ===
+              'This operation is not available in PingOne Advanced Identity Cloud.') ||
+          // tenant supports the feature, but this credential lacks the scope
+          // for it -- treat the same as "not available" for a best-effort,
+          // export-everything style caller rather than failing the whole export
+          isCausedByInsufficientScope(error)
+        )
       )
     ) {
       const finalError = errorMessage
