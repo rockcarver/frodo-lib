@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [v4.8.6] - 2026-09-25
+
+### Changed
+- Unified `preferredCredential` to replace the overlapping `defaultCredential` and ambient `authMode` mechanisms, resolving an issue where unrelated `--save` operations could affect authentication modes. (d4c179ab3)
+- Updated `logApi` credentials to inherit from root state on request-scoped instances, improving consistency in credential management. (1db5ec1f4)
+
+### Fixed
+- Resolved an issue where `/serverinfo/*` requests were incorrectly sent authenticated from authenticated instances, ensuring proper unauthenticated access. (2a3091043)
+- Stabilized shared login cassette and fixed scope/authentication bugs in full-export operations, enhancing reliability in end-to-end testing scenarios. (34b01c1a6)
+
 ## [v4.8.6-1] - 2026-09-25
 
 ### Changed
@@ -2415,6 +2425,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v4.8.6]: https://github.com/rockcarver/frodo-lib/compare/v4.8.6-1...v4.8.6
 [v4.8.6-1]: https://github.com/rockcarver/frodo-lib/compare/v4.8.5...v4.8.6-1
 [unreleased]: https://github.com/rockcarver/frodo-lib/compare/v4.1.3-0...HEAD
 [4.1.3-0]: https://github.com/rockcarver/frodo-lib/compare/v4.1.2...v4.1.3-0
