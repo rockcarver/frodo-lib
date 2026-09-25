@@ -34,6 +34,16 @@ export type AmCredentialOverride = {
 };
 
 /**
+ * The four credential types Frodo can authenticate a connection with —
+ * shared by `activeCredentialSource` (which one is active this session),
+ * `preferredCredential` (a profile's persisted preference), and
+ * `AuthenticateOps.ts`'s `credentialOverride`/`CredentialOverrideType` (a
+ * one-shot per-invocation override) — one vocabulary across all three
+ * rather than each redeclaring its own copy of the same four literals.
+ */
+export type CredentialType = 'user' | 'svcacct' | 'amster' | 'browser';
+
+/**
  * Browser-mode's per-call AM credential source: cloud browser-login mints a
  * fresh, short-lived, mint-and-discard RFC 8693-exchanged token immediately
  * before every AM-domain call (see `ops/BrowserAuthenticateOps.ts`'s
@@ -136,19 +146,44 @@ export type State = {
   setAuthMode(authMode: 'noninteractive' | 'interactive'): void;
   getAuthMode(): 'noninteractive' | 'interactive';
   /**
-   * Explicit, persisted preference for which non-interactive credential
-   * type a profile with more than one configured should use — an
-   * `undefined` value means "no preference set," not "none of the above."
-   * Unlike authMode, never mirrors ambient session state on save; only
-   * ever written when the caller explicitly requests it (e.g. via
-   * `--default-credential`), so an unrelated save never silently
-   * overwrites a previously-configured preference. See
-   * `AuthenticateOps.ts`'s `tryBrowserLogin()`/`getTokens()` for how this
-   * is consulted.
+   * Explicit, persisted preference for which credential type later implicit
+   * commands against this profile should use — `'browser'` included, unlike
+   * the deprecated `defaultCredential` accessors below. An `undefined` value
+   * means "no preference set," not "none of the above." Never mirrors
+   * ambient session state on save; only ever written when the caller
+   * explicitly requests it (e.g. via `--preferred-credential`), so an
+   * unrelated save never silently overwrites a previously-configured
+   * preference — and, when explicitly set, takes priority over a stale
+   * legacy `authMode: 'interactive'` a profile may already carry (the fix
+   * for there previously being no way to undo that once persisted). Backed
+   * by the same underlying storage `defaultCredential` uses below — the two
+   * are two typed views onto one value, not two separate fields. See
+   * `AuthenticateOps.ts`'s `tryBrowserLogin()`/`getTokens()` for how this is
+   * consulted.
    */
-  setDefaultCredential(
-    defaultCredential: 'user' | 'svcacct' | 'amster'
-  ): void;
+  setPreferredCredential(preferredCredential: CredentialType): void;
+  getPreferredCredential(): CredentialType | undefined;
+  /**
+   * Only meaningful when `preferredCredential === 'browser'`: whether this
+   * profile prefers the OAuth2 Device Authorization Grant over the default
+   * loopback-redirect flow for its interactive logins, without needing
+   * `--device` repeated on every invocation. `undefined` means no
+   * preference set (falls back to whatever `--device`/the env var says for
+   * that one invocation, exactly like today).
+   */
+  setPreferredDeviceFlow(preferredDeviceFlow: boolean): void;
+  getPreferredDeviceFlow(): boolean | undefined;
+  /**
+   * @deprecated since v4.9.0 — use `setPreferredCredential()`/
+   * `getPreferredCredential()` instead, which also support `'browser'`.
+   * Kept working, unchanged, for external callers still typed against the
+   * 3-value union: `getDefaultCredential()` defensively filters out
+   * `'browser'` (returning `undefined` instead) so it can never hand back a
+   * value outside its own declared type, even though it now shares storage
+   * with the wider `preferredCredential`.
+   */
+  setDefaultCredential(defaultCredential: 'user' | 'svcacct' | 'amster'): void;
+  /** @deprecated since v4.9.0 — use `getPreferredCredential()` instead. */
   getDefaultCredential(): 'user' | 'svcacct' | 'amster' | undefined;
   setTokenRefreshHandler(handler: TokenRefreshHandler | undefined): void;
   getTokenRefreshHandler(): TokenRefreshHandler | undefined;
@@ -183,10 +218,8 @@ export type State = {
    * actually activate a credential. Used by `ops/PrivilegeEscalationOps.ts`
    * to know where on the escalation ladder the current session sits.
    */
-  setActiveCredentialSource(
-    source: 'user' | 'svcacct' | 'amster' | 'browser'
-  ): void;
-  getActiveCredentialSource(): 'user' | 'svcacct' | 'amster' | 'browser' | undefined;
+  setActiveCredentialSource(source: CredentialType): void;
+  getActiveCredentialSource(): CredentialType | undefined;
   /**
    * Extension point letting `api/BaseApi.ts` trigger a credential-privilege
    * escalation without importing `ops/AuthenticateOps.ts` directly (would be
@@ -527,11 +560,30 @@ export default (initialState: StateInterface): State => {
           : 'noninteractive')
       );
     },
+    setPreferredCredential(preferredCredential: CredentialType) {
+      state.defaultCredential = preferredCredential;
+    },
+    getPreferredCredential() {
+      return state.defaultCredential;
+    },
+    setPreferredDeviceFlow(preferredDeviceFlow: boolean) {
+      state.preferredDeviceFlow = preferredDeviceFlow;
+    },
+    getPreferredDeviceFlow() {
+      return state.preferredDeviceFlow;
+    },
+    // Deprecated shims -- see the interface's own JSDoc. Share
+    // `state.defaultCredential`'s storage with setPreferredCredential/
+    // getPreferredCredential above; the getter defensively hides 'browser'
+    // so it can never hand an old, narrower-typed caller a value outside
+    // its own declared union.
     setDefaultCredential(defaultCredential: 'user' | 'svcacct' | 'amster') {
       state.defaultCredential = defaultCredential;
     },
     getDefaultCredential() {
-      return state.defaultCredential;
+      return state.defaultCredential === 'browser'
+        ? undefined
+        : state.defaultCredential;
     },
     setTokenRefreshHandler(handler: TokenRefreshHandler | undefined) {
       // De-duplicated here, structurally, rather than trusting every caller
@@ -607,15 +659,15 @@ export default (initialState: StateInterface): State => {
     getBearerTokenMeta(): AccessTokenMetaType {
       return state.bearerToken;
     },
-    setActiveCredentialSource(
-      source: 'user' | 'svcacct' | 'amster' | 'browser'
-    ) {
+    setActiveCredentialSource(source: CredentialType) {
       state.activeCredentialSource = source;
     },
     getActiveCredentialSource() {
       return state.activeCredentialSource;
     },
-    setPrivilegeEscalationHandler(handler: (() => Promise<boolean>) | undefined) {
+    setPrivilegeEscalationHandler(
+      handler: (() => Promise<boolean>) | undefined
+    ) {
       state.privilegeEscalationHandler = handler;
     },
     getPrivilegeEscalationHandler() {
@@ -906,9 +958,15 @@ export interface StateInterface {
   // Amster settings
   amsterPrivateKey?: string;
   // browser-login settings
+  // authMode is frozen legacy-read-only going forward (see
+  // ConnectionProfileOps.ts's saveConnectionProfile()) -- preferredCredential
+  // (stored in defaultCredential, widened to include 'browser') is now the
+  // canonical field; authMode is only ever consulted as a fallback for a
+  // profile predating this change.
   authMode?: 'noninteractive' | 'interactive';
-  defaultCredential?: 'user' | 'svcacct' | 'amster';
-  activeCredentialSource?: 'user' | 'svcacct' | 'amster' | 'browser';
+  defaultCredential?: CredentialType;
+  preferredDeviceFlow?: boolean;
+  activeCredentialSource?: CredentialType;
   privilegeEscalationHandler?: () => Promise<boolean>;
   tokenRefreshHandler?: TokenRefreshHandler;
   amCredentialProvider?: AmCredentialProvider;

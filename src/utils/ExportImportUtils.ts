@@ -14,6 +14,7 @@ import {
 } from '../ops/EmailTemplateOps';
 import { FrodoError } from '../ops/FrodoError';
 import { ErrorFilter, ExportMetaData, ResultCallback } from '../ops/OpsTypes';
+import { InsufficientScopeError } from '../ops/RequiredScopesOps';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import {
@@ -869,6 +870,28 @@ export async function importWithErrorHandling<P extends { state: State }, R>(
     : null;
 }
 
+/**
+ * Walks a (possibly multi-level) FrodoError.originalErrors chain to check
+ * whether it was ultimately caused by an InsufficientScopeError -- i.e. the
+ * tenant supports the feature but the current credential just isn't granted
+ * the scope for it (distinct from the feature being unavailable outright).
+ * FrodoError only derives its own httpStatus/httpMessage from the
+ * *immediate* original error, so a shallow check misses this once the error
+ * has been wrapped more than one layer deep, which is the common case for
+ * export-everything style callers.
+ * @param {unknown} error the error to inspect
+ * @returns {boolean} true if an InsufficientScopeError is anywhere in the chain
+ */
+function isCausedByInsufficientScope(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  if (error instanceof InsufficientScopeError) return true;
+  const originalErrors = (error as FrodoError).originalErrors;
+  return (
+    Array.isArray(originalErrors) &&
+    originalErrors.some(isCausedByInsufficientScope)
+  );
+}
+
 export async function getResult<R>(
   resultCallback: ResultCallback<R> | undefined,
   errorMessage: string,
@@ -886,9 +909,13 @@ export async function getResult<R>(
       !(
         // operation is not available in PingOne Advanced Identity Cloud
         (
-          error.httpStatus === 403 &&
-          error.httpMessage ===
-            'This operation is not available in PingOne Advanced Identity Cloud.'
+          (error.httpStatus === 403 &&
+            error.httpMessage ===
+              'This operation is not available in PingOne Advanced Identity Cloud.') ||
+          // tenant supports the feature, but this credential lacks the scope
+          // for it -- treat the same as "not available" for a best-effort,
+          // export-everything style caller rather than failing the whole export
+          isCausedByInsufficientScope(error)
         )
       )
     ) {

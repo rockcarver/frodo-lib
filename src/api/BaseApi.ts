@@ -606,11 +606,18 @@ export function generateAmApi({
   resource,
   requestOverride = {},
   requiredScopes,
+  anonymous = false,
   state,
 }: {
   resource: ResourceConfig;
   requestOverride?: AxiosRequestConfig;
   requiredScopes: string[];
+  // Skip attaching a credential entirely. A handful of AM endpoints (e.g.
+  // /serverinfo/*) are meant to be reachable without one, and on PingOne
+  // Advanced Identity Cloud attaching one anyway gets the request rejected
+  // outright rather than just ignored -- see AmConfigApi.ts's
+  // EntitySubInfo.anonymous for where this matters in practice.
+  anonymous?: boolean;
   state: State;
 }): AxiosInstance {
   const headers = {
@@ -642,16 +649,18 @@ export function generateAmApi({
 
   const request = createAxiosInstance(state, requestConfig);
 
-  // resolve the actual credential (session cookie, bearer token, or — for
-  // cloud browser-login mode — a freshly RFC 8693-exchanged token) right
-  // before this request is sent, not once at construction time. See
-  // `resolveAmRequestCredential`'s remarks for why this matters.
-  attachCredentialInterceptor(
-    request,
-    () => resolveAmRequestCredential(state, requiredScopes),
-    state
-  );
-  attachEscalationResponseInterceptor(request, state);
+  if (!anonymous) {
+    // resolve the actual credential (session cookie, bearer token, or — for
+    // cloud browser-login mode — a freshly RFC 8693-exchanged token) right
+    // before this request is sent, not once at construction time. See
+    // `resolveAmRequestCredential`'s remarks for why this matters.
+    attachCredentialInterceptor(
+      request,
+      () => resolveAmRequestCredential(state, requiredScopes),
+      state
+    );
+    attachEscalationResponseInterceptor(request, state);
+  }
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
@@ -674,10 +683,18 @@ export function generateAmApi({
 export function generateAmAuthApi({
   resource,
   requestOverride = {},
+  anonymous = false,
   state,
 }: {
   resource: ResourceConfig;
   requestOverride?: AxiosRequestConfig;
+  // Skip attaching a credential entirely, mirroring generateAmApi()'s
+  // `anonymous` option. ServerInfoApi.ts needs this: PingOne Advanced Identity
+  // Cloud's edge rejects /serverinfo/* with a 400 the moment ANY Authorization
+  // header is present, valid token or not — so a long-lived, already-
+  // authenticated instance (e.g. the MCP server's singleton re-running
+  // getTokens() per request) must still send these calls unauthenticated.
+  anonymous?: boolean;
   state: State;
 }): AxiosInstance {
   const headers = {
@@ -708,25 +725,17 @@ export function generateAmAuthApi({
 
   const request = createAxiosInstance(state, requestConfig);
 
-  // Resolve the actual credential (session cookie, bearer token, or — for
-  // cloud browser-login mode — a freshly RFC 8693-exchanged token) right
-  // before this request is sent. This generator used to build its headers
-  // once, synchronously, at construction time, checking only a plain
-  // session cookie or a bearer token gated by getUseBearerTokenForAmApis().
-  // It never knew about getAmCredentialProvider() at all, so a browser-login
-  // session (which deliberately never sets that flag — see
-  // applyCloudInteractiveToken's own remarks) got a request with no
-  // credential whatsoever: a real, live-repro'd bug (`frodo info <host>`
-  // 403 "No session for request" immediately after a successful `frodo
-  // login --browser`). Uses resolveAmAuthRequestCredential(), not
-  // resolveAmRequestCredential() — see that function's own remarks for why
-  // this generator specifically must not inherit the staleness-check/
-  // refresh/scope-gating behavior bundled into the other one.
-  attachCredentialInterceptor(
-    request,
-    () => resolveAmAuthRequestCredential(state),
-    state
-  );
+  // Same send-time credential resolution as generateAmApi(), skipped when
+  // `anonymous` is set — see that generator's remarks and the `anonymous`
+  // parameter's own comment above for why some callers need no credential
+  // at all.
+  if (!anonymous) {
+    attachCredentialInterceptor(
+      request,
+      () => resolveAmAuthRequestCredential(state),
+      state
+    );
+  }
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {

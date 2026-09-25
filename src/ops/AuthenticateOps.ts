@@ -88,8 +88,8 @@ export type Authenticate = {
    * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
    * @param {string[]} types Array of supported deployment types. The function will throw an error if an unsupported type is detected (default: ['classic', 'cloud', 'forgeops'])
    * @param {CallbackHandler} callbackHandler function allowing the library to collect responses from the user through callbacks
-   * @param {boolean} useDeviceFlow only consulted when a loaded connection profile has `authMode: 'interactive'` — see `getTokensInteractive()` (default: false)
-   * @param {BrowserLoginPromptHandler} promptHandler required only when a loaded connection profile has `authMode: 'interactive'`; every other auth mode ignores it
+   * @param {boolean} useDeviceFlow only consulted when a loaded connection profile prefers browser login (`preferredCredential: 'browser'`, or the legacy `authMode: 'interactive'` for a profile predating that field) — falls back to the profile's own `preferredDeviceFlow` when not explicitly passed; see `getTokensInteractive()` (default: false)
+   * @param {BrowserLoginPromptHandler} promptHandler required only when a loaded connection profile prefers browser login; every other case ignores it
    * @returns {Promise<Tokens>} object containing the tokens
    */
   getTokens(
@@ -174,7 +174,7 @@ const CLOUD_ADMIN_MINIMAL_SCOPES: string[] = [
   s.PromotionScope,
   s.ReleaseFullScope,
   s.SSOCookieFullScope,
-  s.TelemetryReadScope,
+  s.TelemetryFullScope,
 ];
 const CLOUD_ADMIN_DEFAULT_SCOPES: string[] = [
   s.AnalyticsFullScope,
@@ -194,7 +194,7 @@ const CLOUD_ADMIN_DEFAULT_SCOPES: string[] = [
   s.SSOCookieFullScope,
   s.ProxyConnectFullScope,
   s.WSFedAdminScope,
-  s.TelemetryReadScope,
+  s.TelemetryFullScope,
 ];
 const FORGEOPS_ADMIN_DEFAULT_SCOPES: string[] = [s.IdmFullScope, s.OpenIdScope];
 const forgeopsAdminScopes = FORGEOPS_ADMIN_DEFAULT_SCOPES.join(' ');
@@ -1644,9 +1644,10 @@ function buildPrivilegeEscalationHandler({
       // session that also has both a service account and a plain user
       // configured on the same profile — a genuine choice, so it's worth
       // the one classifyCredentialTier() call needed to rank them.
-      const available: EscalationCandidate[] = untriedSources.map(
-        (source) => ({ source, tier: 'service-account' as const })
-      );
+      const available: EscalationCandidate[] = untriedSources.map((source) => ({
+        source,
+        tier: 'service-account' as const,
+      }));
       const userIndex = untriedSources.indexOf('user');
       if (userIndex !== -1) {
         available[userIndex] = {
@@ -1758,9 +1759,9 @@ export async function getTokens({
   autoRefresh?: boolean;
   types?: string[];
   callbackHandler?: CallbackHandler;
-  /** Only consulted when a loaded connection profile has `authMode: 'interactive'` — see below. */
+  /** Only consulted when a loaded connection profile prefers browser login — see below; falls back to the profile's own `preferredDeviceFlow` when not explicitly passed. */
   useDeviceFlow?: boolean;
-  /** Required only when a loaded connection profile has `authMode: 'interactive'`; every other auth mode ignores it. */
+  /** Required only when a loaded connection profile prefers browser login; every other case ignores it. */
   promptHandler?: BrowserLoginPromptHandler;
   state: State;
 }): Promise<Tokens> {
@@ -1795,16 +1796,17 @@ export async function getTokens({
       return tokens;
     }
     // credentialOverride is an absolute override, checked before even the
-    // authMode branch below: 'browser' means the caller explicitly wants
-    // the cached browser session (reused regardless of authMode, a saved
-    // defaultCredential, or anything else) and fails clearly rather than
-    // silently trying something else if none is valid — still never pops a
-    // fresh interactive login, exactly like the ambient-reuse case this
-    // generalizes. Any other credentialOverride value means the caller
-    // explicitly does NOT want a browser session this time, so this
-    // returns undefined unconditionally, skipping both branches below
-    // (including a profile's own saved `authMode: 'interactive'`) and
-    // falling straight through to the non-interactive priority chain.
+    // preferredCredential/authMode branch below: 'browser' means the caller
+    // explicitly wants the cached browser session (reused regardless of
+    // authMode, a saved preferredCredential, or anything else) and fails
+    // clearly rather than silently trying something else if none is valid —
+    // still never pops a fresh interactive login, exactly like the
+    // ambient-reuse case this generalizes. Any other credentialOverride
+    // value means the caller explicitly does NOT want a browser session
+    // this time, so this returns undefined unconditionally, skipping both
+    // branches below (including a profile's own saved
+    // `preferredCredential: 'browser'`/legacy `authMode: 'interactive'`)
+    // and falling straight through to the non-interactive priority chain.
     if (credentialOverride === 'browser') {
       const reused = await tryReuseCachedBrowserSession({ state });
       if (reused) {
@@ -1817,21 +1819,39 @@ export async function getTokens({
     if (credentialOverride) {
       return undefined;
     }
-    if (state.getAuthMode() !== 'interactive') {
-      // Not explicitly interactive — but an ad hoc `frodo login --browser`
-      // (without --save) leaves a valid, cached session that nothing about
-      // this invocation or the resolved profile ever marked interactive,
-      // so it would otherwise be silently ignored in favor of whatever
+    // preferredCredential, once explicitly set (persisted via
+    // --preferred-credential, or the frodo conn interactive picker), is an
+    // absolute signal for this profile — including overriding a *stale*
+    // legacy authMode: 'interactive' a profile may already carry from
+    // before this field existed (this is the actual fix for there
+    // previously being no way to undo that once persisted: setting
+    // preferredCredential to anything but 'browser' makes the old field
+    // stop mattering, with no need to delete it from the profile at all).
+    // authMode is only ever consulted as a fallback, for a profile that
+    // predates preferredCredential entirely.
+    const preferredCredential = state.getPreferredCredential();
+    if (preferredCredential && preferredCredential !== 'browser') {
+      return undefined;
+    }
+    const wantsInteractive =
+      preferredCredential === 'browser' ||
+      (!preferredCredential && state.getAuthMode() === 'interactive');
+    if (!wantsInteractive) {
+      // Not interactive — but an ad hoc `frodo login --browser` (without
+      // --save) leaves a valid, cached session that nothing about this
+      // invocation or the resolved profile ever marked interactive, so it
+      // would otherwise be silently ignored in favor of whatever
       // non-interactive credential happens to be configured, however
       // recently that browser login actually happened. Only reused here
-      // when nothing was explicitly requested instead: forceLoginAsUser or
-      // an explicit defaultCredential preference always wins over merely
-      // ambient cache state. Cache-only — never attempts a fresh
-      // interactive login (that would mean popping a browser mid-script
-      // for a command that never asked for one), so this silently returns
-      // undefined and falls through to the credential-priority chain below
-      // exactly as before when no cached session exists either.
-      if (forceLoginAsUser || state.getDefaultCredential()) {
+      // when nothing was explicitly requested instead: forceLoginAsUser
+      // always wins over merely ambient cache state (an explicit
+      // preferredCredential already returned above, so it can't reach
+      // here). Cache-only — never attempts a fresh interactive login (that
+      // would mean popping a browser mid-script for a command that never
+      // asked for one), so this silently returns undefined and falls
+      // through to the credential-priority chain below exactly as before
+      // when no cached session exists either.
+      if (forceLoginAsUser) {
         return undefined;
       }
       const reused = await tryReuseCachedBrowserSession({ state });
@@ -1848,7 +1868,7 @@ export async function getTokens({
     }
     if (!promptHandler) {
       throw new FrodoError(
-        `This connection profile uses browser login (authMode: 'interactive'), which requires a promptHandler to present the login step. Pass one to getTokens(), or call getTokensInteractive() directly instead.`
+        `This connection profile prefers browser login, which requires a promptHandler to present the login step. Pass one to getTokens(), or call getTokensInteractive() directly instead.`
       );
     }
     const tokens = await getTokensInteractive({
@@ -1861,7 +1881,15 @@ export async function getTokens({
       // browser-login-specific to remember and re-supply here, unlike
       // loginClientId (whose browser-resolved value, e.g. cloud's built-in
       // default, has no equivalent in state.getAdminClientId()).
-      useDeviceFlow,
+      //
+      // An explicit useDeviceFlow (--device on this one invocation) always
+      // wins; otherwise fall back to the profile's own persisted
+      // preference. Safe to read unconditionally here — on the first,
+      // pre-profile-load call to tryBrowserLogin() this is simply
+      // undefined (nothing to fall back to yet); by the time a real
+      // profile-driven interactive login reaches this line, loadConnectionProfile()
+      // has already run.
+      useDeviceFlow: useDeviceFlow || state.getPreferredDeviceFlow(),
       promptHandler,
       state,
     });
@@ -1980,23 +2008,24 @@ export async function getTokens({
     // Amster either." 'svcacct' (or unset) changes nothing: service
     // account already wins first in the fallback order below, same as
     // always. forceLoginAsUser (the --force-login-as-user flag/env var)
-    // remains its own, simpler override, equivalent to defaultCredential:
+    // remains its own, simpler override, equivalent to preferredCredential:
     // 'user' but without needing to persist anything to the profile.
-    // skipUser only exists for credentialOverride's sake — defaultCredential
+    // skipUser only exists for credentialOverride's sake — preferredCredential
     // alone never needed it, since 'user' is the final, unconditional
-    // fallback below regardless.
-    const defaultCredential = state.getDefaultCredential();
+    // fallback below regardless. A 'browser' preferredCredential never
+    // reaches here at all — tryBrowserLogin() already returned above,
+    // either with a real interactive login or (for anything else) an early
+    // `return undefined` before this function's non-interactive chain runs.
+    const preferredCredential = state.getPreferredCredential();
     const skipServiceAccount = credentialOverride
       ? credentialOverride !== 'svcacct'
       : forceLoginAsUser ||
-        defaultCredential === 'user' ||
-        defaultCredential === 'amster';
+        preferredCredential === 'user' ||
+        preferredCredential === 'amster';
     const skipAmster = credentialOverride
       ? credentialOverride !== 'amster'
-      : forceLoginAsUser || defaultCredential === 'user';
-    const skipUser = credentialOverride
-      ? credentialOverride !== 'user'
-      : false;
+      : forceLoginAsUser || preferredCredential === 'user';
+    const skipUser = credentialOverride ? credentialOverride !== 'user' : false;
 
     // use service account to login?
     if (
@@ -2149,7 +2178,12 @@ export async function getTokens({
       ) {
         verboseMessage({ message: `Using cached session token.`, state });
       }
-      scheduleAutoRefresh(forceLoginAsUser, credentialOverride, autoRefresh, state);
+      scheduleAutoRefresh(
+        forceLoginAsUser,
+        credentialOverride,
+        autoRefresh,
+        state
+      );
       // On-demand counterpart to the timer above: api/BaseApi.ts's request
       // interceptors call this when a cached token is found stale at actual
       // send time, rather than relying solely on the timer (which never

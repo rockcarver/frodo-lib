@@ -180,7 +180,13 @@ const AM_ENTITIES: Record<string, EntityInfo> = {
   },
   serverInformation: {
     // Note: Amster documentation says to do this by realm, but it really should be global (the API explorer does it this way and it makes more sense)
-    global: { path: '/serverinfo/*', version: '2.0' },
+    // anonymous: true is required, not optional -- confirmed directly against
+    // PingOne Advanced Identity Cloud that this exact endpoint returns 400
+    // the moment ANY Authorization header is attached, valid token or not
+    // (distinct from a normal 401 for a bad credential), regardless of the
+    // resource version requested (verified against 1.0/1.1/2.0/2.1 -- all
+    // four 400 with a header attached, all four 200 without one).
+    global: { path: '/serverinfo/*', version: '2.0', anonymous: true },
     deployments: ALL_DEPLOYMENTS,
     readonly: true,
   },
@@ -309,6 +315,7 @@ export async function getConfigEntities({
           path: entityInfo.global.path,
           version: entityInfo.global.version,
           protocol: entityInfo.global.protocol,
+          anonymous: entityInfo.global.anonymous,
           queryFilter: entityInfo.global.queryFilter
             ? entityInfo.global.queryFilter
             : entityInfo.queryFilter,

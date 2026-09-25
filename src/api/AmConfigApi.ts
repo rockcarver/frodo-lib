@@ -58,6 +58,12 @@ export type EntitySubInfo = {
   deployments?: string[];
   queryFilter?: string;
   action?: string;
+  // Some AM endpoints (e.g. /serverinfo/*, confirmed on PingOne Advanced
+  // Identity Cloud) are only reachable unauthenticated -- PingOne AIC's edge
+  // rejects the exact same request with a 400 the moment ANY Authorization
+  // header is present, valid token or not, distinct from a normal 401 for a
+  // bad credential. Set this so getConfigEntity() skips attaching one.
+  anonymous?: boolean;
 };
 
 export type ConfigEntitySkeleton =
@@ -83,6 +89,7 @@ export async function getConfigEntity({
   realm,
   queryFilter,
   action,
+  anonymous,
 }: {
   state: State;
   path: string;
@@ -91,6 +98,7 @@ export async function getConfigEntity({
   realm?: string;
   queryFilter?: string;
   action?: string;
+  anonymous?: boolean;
 }): Promise<ConfigEntitySkeleton> {
   const currentRealm = state.getRealm();
   if (realm) {
@@ -106,6 +114,7 @@ export async function getConfigEntity({
     const axios = generateAmApi({
       resource: getApiConfig(protocol ? protocol : DEFAULT_PROTOCOL, version),
       requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+      anonymous,
       state,
     });
     let data;

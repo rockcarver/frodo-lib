@@ -109,9 +109,12 @@ const AVAILABLE_SCOPES = {
   ReleaseFullScope: 'fr:idc:release:*', //                                  All product release APIs
   ReleaseReadScope: 'fr:idc:release:read', //                               Read product release information
 
-  // Confirmed a real tenant scope (2026-09-06, tested against AICMCPExchangeClient
-  // during Phase B's browser-login exchange spikes — see the plan doc), but Ping has
-  // no documented `fr:idc:telemetry:*` write scope; only `:read` is confirmed to exist.
+  // `fr:idc:telemetry:*` confirmed as a real, grantable tenant scope
+  // (2026-09-21, granted directly via the AIC admin console and verified to
+  // unlock telemetry write/push operations that `:read` alone doesn't cover)
+  // — the earlier note here (2026-09-06) predates that confirmation and was
+  // wrong to assume no wildcard scope existed.
+  TelemetryFullScope: 'fr:idc:telemetry:*', //                              All telemetry APIs
   TelemetryReadScope: 'fr:idc:telemetry:read', //                           Read telemetry data
 
   SSOCookieFullScope: 'fr:idc:sso-cookie:*', //                             All SSO cookie APIs
