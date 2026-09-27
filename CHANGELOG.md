@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [v4.9.0] - 2026-09-27
+
+### Added
+- Introduced the `forceUpdate` option to control imports/updates, ensuring updates occur only when changes are made. This applies to ESV variables/secrets, scripts, authorization policies, policy sets, and resource types. (d3daf084c, #646)
+
 ## [v4.8.6] - 2026-09-25
 
 ### Changed
@@ -2425,6 +2430,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v4.9.0]: https://github.com/rockcarver/frodo-lib/compare/v4.8.6...v4.9.0
 [v4.8.6]: https://github.com/rockcarver/frodo-lib/compare/v4.8.6-1...v4.8.6
 [v4.8.6-1]: https://github.com/rockcarver/frodo-lib/compare/v4.8.5...v4.8.6-1
 [unreleased]: https://github.com/rockcarver/frodo-lib/compare/v4.1.3-0...HEAD
