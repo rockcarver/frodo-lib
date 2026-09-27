@@ -121,10 +121,10 @@ describe('PolicySetOps', () => {
       'AuthenticateToService',
     ],
     resourceTypeUuids: ['76656a38-5f8e-401b-83aa-4ccb74ce88d2'],
-    resourceComparator: undefined,
+    resourceComparator: null,
     editable: true,
-    saveIndex: undefined,
-    searchIndex: undefined,
+    saveIndex: null,
+    searchIndex: null,
     applicationType: 'iPlanetAMWebAgentService',
     entitlementCombiner: 'DenyOverride',
     subjects: [
@@ -256,6 +256,7 @@ describe('PolicySetOps', () => {
     }
   });
   beforeEach(async () => {
+    state.setForceUpdate(true);
     if (process.env.FRODO_POLLY_MODE === 'record') {
       ctx.polly.server.any().on('beforePersist', (_req, recording) => {
         filterRecording(recording);
@@ -349,6 +350,22 @@ describe('PolicySetOps', () => {
         } catch (error) {
           expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
+      });
+
+      test(`3: Do not update existing policy set [${set4.name}] with no changes`, async () => {
+        state.setForceUpdate(false);
+        let response = await PolicySetOps.updatePolicySet({
+          policySetData: set4,
+          state,
+        });
+        expect(response).toBeNull();
+        response = await PolicySetOps.updatePolicySet({
+          policySetData: {...set4, description: 'test new description'},
+          state,
+        });
+        expect(response).not.toBeNull();
+        expect(response.description).toBe("test new description");
+        expect(response).toMatchSnapshot();
       });
     });
 
@@ -456,6 +473,28 @@ describe('PolicySetOps', () => {
           expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
+
+      test(`3: Do not import policy set [${set5.name}] with no changes`, async () => {
+        state.setForceUpdate(false);
+        let response = await PolicySetOps.importPolicySet({
+          policySetName: set5.name,
+          importData: { policyset: {[set5.name]: set5 }} as PolicySetExportInterface,
+          options: { deps: false, prereqs: false },
+          state,
+        });
+        expect(response).toBeNull();
+        const set = cloneDeep(set5);
+        set.description = "test new description"
+        response = await PolicySetOps.importPolicySet({
+          policySetName: set.name,
+          importData: { policyset: {[set.name]: set }} as PolicySetExportInterface,
+          options: { deps: false, prereqs: false },
+          state,
+        });
+        expect(response).not.toBeNull();
+        expect(response.description).toBe("test new description");
+        expect(response).toMatchSnapshot();
+      });
     });
 
     describe('importFirstPolicySet()', () => {
@@ -474,6 +513,26 @@ describe('PolicySetOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
+
+      test(`2: Do not import first policy set with no changes`, async () => {
+        state.setForceUpdate(false);
+        let response = await PolicySetOps.importFirstPolicySet({
+          importData: { policyset: {[set7.name]: set7 }} as PolicySetExportInterface,
+          options: { deps: false, prereqs: false },
+          state,
+        });
+        expect(response).toBeNull();
+        const set = cloneDeep(set7);
+        set.description = "test new description"
+        response = await PolicySetOps.importFirstPolicySet({
+          importData: { policyset: {[set.name]: set }} as PolicySetExportInterface,
+          options: { deps: false, prereqs: false },
+          state,
+        });
+        expect(response).not.toBeNull();
+        expect(response.description).toBe("test new description");
+        expect(response).toMatchSnapshot();
+      });
     });
 
     describe('importPolicySets()', () => {
@@ -490,6 +549,26 @@ describe('PolicySetOps', () => {
           },
           state,
         });
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`2: Import all changed policy sets`, async () => {
+        state.setForceUpdate(false);
+        let response = await PolicySetOps.importPolicySets({
+          importData: { policyset: {[set9.name]: set9 }} as PolicySetExportInterface,
+          options: { deps: false, prereqs: false },
+          state,
+        });
+        expect(response.length).toBe(0);
+        const set = cloneDeep(set9);
+        set.description = "test new description";
+        response = await PolicySetOps.importPolicySets({
+          importData: { policyset: {[set.name]: set }} as PolicySetExportInterface,
+          options: { deps: false, prereqs: false },
+          state,
+        });
+        expect(response.length).not.toBe(0);
+        expect(response[0].description).toBe("test new description");
         expect(response).toMatchSnapshot();
       });
     });

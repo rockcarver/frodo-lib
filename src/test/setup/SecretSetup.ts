@@ -1,5 +1,8 @@
 import { autoSetupPolly } from '../../utils/AutoSetupPolly';
-import { filterRecording } from '../../utils/PollyUtils';
+import {
+  filterRecording,
+  orderedMatchRequestsBy,
+} from '../../utils/PollyUtils';
 import { FrodoError, state } from '../../index';
 import * as SecretsOps from '../../ops/cloud/SecretsOps';
 import {
@@ -126,12 +129,12 @@ export const secret10 = createTestSecret({
       type: 'x-simple-encryption',
       value: {
         cipher: 'AES/CBC/PKCS5Padding',
-        data: 'SZ8gU3fq5dGlbhPgd7kT3Q==',
-        iv: 'KCOai4hfGovwyrSswB9mow==',
+        data: 'ePa7/BK3Xv+/YmAzj8vopg==',
+        iv: 'w2uGgvI+InA5xHonjitsdQ==',
         keySize: 16,
-        mac: 'lJdfWa1DkNkxcHBMfqlXuw==',
+        mac: 'oHxlJxYoLyPuNxCqRAUkTg==',
         purpose: 'idm.password.encryption',
-        salt: 'bqeoBikq1SB1c+ThqqQDaw==',
+        salt: 'jMG49hF4oQV7hE5Di+aQEA==',
         stableId: 'openidm-sym-default',
       },
     },
@@ -149,12 +152,12 @@ export const secret11 = createTestSecret({
       type: 'x-simple-encryption',
       value: {
         cipher: 'AES/CBC/PKCS5Padding',
-        data: 'Sxb6VWMMUCQ/qBmYB08kCA==',
-        iv: '7rayASsrtPPg+VAojLADdQ==',
+        data: 'adhWJWnBVDMNOGhn72Qk+w==',
+        iv: 'BaVkWOvzJIJ2fDNAOGhJxA==',
         keySize: 16,
-        mac: 'nx2l6Sx4k8nk3DDVXb5rqQ==',
+        mac: 'Djv4HusTLCcvvgHn/QXRXw==',
         purpose: 'idm.password.encryption',
-        salt: 'i4CP2IeVdFR9vTXvs69/RA==',
+        salt: 'x60sruU/Y31tOgqLmYTNbA==',
         stableId: 'openidm-sym-default',
       },
     },
@@ -191,6 +194,33 @@ export const secret15 = createTestSecret({
   description: 'description15',
   encoding: 'generic',
   useInPlaceholders: false,
+});
+
+export const secret16 = createTestSecret({
+  id: 'esv-frodo-test-secret-16',
+  value: 'value16',
+  description: 'description16',
+  encoding: 'generic',
+  useInPlaceholders: true,
+  activeValue: 'value16',
+});
+
+export const secret17 = createTestSecret({
+  id: 'esv-frodo-test-secret-17',
+  value: 'value17',
+  description: 'description17',
+  encoding: 'generic',
+  useInPlaceholders: true,
+  activeValue: 'value17',
+});
+
+export const secret18 = createTestSecret({
+  id: 'esv-frodo-test-secret-18',
+  value: 'value18',
+  description: 'description18',
+  encoding: 'generic',
+  useInPlaceholders: false,
+  activeValue: 'value18',
 });
 
 export const secret6Export = createTestSecretExport([secret6]);
@@ -332,7 +362,7 @@ export async function stageSecret(
           break;
         default:
           throw new FrodoError(
-            `Unknown version status supplied: ${versions[i].status}`
+            `Unknown version status supplied: ${versions[i - 1].status}`
           );
       }
     }
@@ -340,10 +370,11 @@ export async function stageSecret(
 }
 
 export async function setup() {
-  const ctx = autoSetupPolly();
+  const ctx = autoSetupPolly(orderedMatchRequestsBy());
 
   // filter out secrets when recording
   beforeEach(async () => {
+    state.setForceUpdate(true);
     if (process.env.FRODO_POLLY_MODE === 'record') {
       ctx.polly.server.any().on('beforePersist', (_req, recording) => {
         filterRecording(recording);
@@ -369,6 +400,9 @@ export async function setup() {
       await stageSecret(secret13, true, allVersions);
       await stageSecret(secret14, true, allVersions);
       await stageSecret(secret15, true, allVersions);
+      await stageSecret(secret16);
+      await stageSecret(secret17);
+      await stageSecret(secret18);
     }
   });
 
@@ -390,6 +424,9 @@ export async function setup() {
       await stageSecret(secret13, false);
       await stageSecret(secret14, false);
       await stageSecret(secret15, false);
+      await stageSecret(secret16, false);
+      await stageSecret(secret17, false);
+      await stageSecret(secret18, false);
     }
   });
 }

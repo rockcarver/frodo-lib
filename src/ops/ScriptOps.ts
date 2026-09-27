@@ -25,6 +25,7 @@ import {
   convertTextArrayToBase64,
   getMetadata,
   getResult,
+  updateRemote,
 } from '../utils/ExportImportUtils';
 import {
   applyNameCollisionPolicy,
@@ -98,12 +99,12 @@ export type Script = {
    * Create or update script
    * @param {string} scriptId script id
    * @param {ScriptSkeleton} scriptData script object
-   * @returns {Promise<ScriptSkeleton>} a status object
+   * @returns {Promise<ScriptSkeleton | null>} a script object, or null if no update was made
    */
   updateScript(
     scriptId: string,
     scriptData: ScriptSkeleton
-  ): Promise<ScriptSkeleton>;
+  ): Promise<ScriptSkeleton | null>;
   /**
    * Update only a script's source, preserving all other metadata
    * @param {string} scriptId script id
@@ -219,7 +220,7 @@ export default (state: State): Script => {
     async updateScript(
       scriptId: string,
       scriptData: ScriptSkeleton
-    ): Promise<ScriptSkeleton> {
+    ): Promise<ScriptSkeleton | null> {
       return updateScript({ scriptId, scriptData, state });
     },
     async updateScriptSource(
@@ -688,7 +689,7 @@ export async function createScript({
  * Create or update script
  * @param {string} scriptId script uuid
  * @param {ScriptSkeleton} scriptData script object
- * @returns {Promise<ScriptSkeleton>} a status object
+ * @returns {Promise<ScriptSkeleton | null>} a script object, or null if no update was made
  */
 export async function updateScript({
   scriptId,
@@ -698,7 +699,7 @@ export async function updateScript({
   scriptId: string;
   scriptData: ScriptSkeleton;
   state: State;
-}): Promise<ScriptSkeleton> {
+}): Promise<ScriptSkeleton | null> {
   let result = null;
   try {
     if (Array.isArray(scriptData.script)) {
@@ -706,7 +707,14 @@ export async function updateScript({
     } else if (!isBase64Encoded(scriptData.script)) {
       scriptData.script = encode(scriptData.script);
     }
-    result = await _putScript({ scriptId, scriptData, state });
+    result = await updateRemote({
+      data: scriptData,
+      type: 'script',
+      readFn: async () => await readScript({ scriptId, state }),
+      updateFn: async () => await _putScript({ scriptId, scriptData, state }),
+      ignoreAttributes: ['exports'],
+      state,
+    });
   } catch (error) {
     if (error.response?.status === 409) {
       verboseMessage({
@@ -1026,7 +1034,7 @@ export async function importScripts({
         scriptData,
         state,
       });
-      if (resultCallback) {
+      if (result && resultCallback) {
         resultCallback(undefined, result);
       }
       response.push(result);
@@ -1042,7 +1050,7 @@ export async function importScripts({
     }
   }
   debugMessage({ message: `ScriptOps.importScripts: end`, state });
-  return response;
+  return response.filter((s) => s);
 }
 
 function applyScriptFilter(

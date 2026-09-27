@@ -278,6 +278,18 @@ exports[`VariablesOps importVariable() 4: Import first variable7 (decoded) 1`] =
 }
 `;
 
+exports[`VariablesOps importVariable() 5: Should not import variable if no changes were made 1`] = `
+{
+  "_id": "esv-frodo-test-variable-20",
+  "description": "description20",
+  "expressionType": "string",
+  "lastChangeDate": "2026-09-21T22:19:13.309684948Z",
+  "lastChangedBy": "Frodo-SA-1783448612033",
+  "loaded": false,
+  "valueBase64": "dGVzdCBuZXcgdmFsdWU=",
+}
+`;
+
 exports[`VariablesOps importVariables() 1: Import all variables 1`] = `
 [
   {
@@ -320,6 +332,20 @@ exports[`VariablesOps importVariables() 2: Import all variables (decoded) 1`] = 
     "lastChangedBy": "Frodo-SA-1701393386423",
     "loaded": false,
     "valueBase64": "dmFsdWUxMQ==",
+  },
+]
+`;
+
+exports[`VariablesOps importVariables() 3: Should import all changed variables 1`] = `
+[
+  {
+    "_id": "esv-frodo-test-variable-2",
+    "description": "description2",
+    "expressionType": "int",
+    "lastChangeDate": "2026-09-21T22:19:14.843207493Z",
+    "lastChangedBy": "Frodo-SA-1783448612033",
+    "loaded": false,
+    "valueBase64": "NDU=",
   },
 ]
 `;
@@ -541,4 +567,38 @@ exports[`VariablesOps updateVariable() 4: Update/create non-existing variable17 
 }
 `;
 
-exports[`VariablesOps updateVariableDescription() 1: Update variable18 description 1`] = `""`;
+exports[`VariablesOps updateVariable() 5: Should not update variable if no changes are made 1`] = `
+{
+  "_id": "esv-frodo-test-variable-1",
+  "description": "description1",
+  "expressionType": "string",
+  "lastChangeDate": "2026-09-21T22:19:16.545215599Z",
+  "lastChangedBy": "Frodo-SA-1783448612033",
+  "loaded": false,
+  "valueBase64": "dGVzdCBuZXcgdmFsdWU=",
+}
+`;
+
+exports[`VariablesOps updateVariableDescription() 1: Update variable18 description 1`] = `
+{
+  "_id": "esv-frodo-test-variable-18",
+  "description": "description18",
+  "expressionType": "string",
+  "lastChangeDate": "2026-09-21T22:19:07.560866Z",
+  "lastChangedBy": "Frodo-SA-1783448612033",
+  "loaded": false,
+  "valueBase64": "dmFsdWUxOA==",
+}
+`;
+
+exports[`VariablesOps updateVariableDescription() 2: Do not update variable21 description when no changes 1`] = `
+{
+  "_id": "esv-frodo-test-variable-21",
+  "description": "test new description",
+  "expressionType": "string",
+  "lastChangeDate": "2026-09-21T21:15:18.576331Z",
+  "lastChangedBy": "Frodo-SA-1783448612033",
+  "loaded": false,
+  "valueBase64": "dmFsdWUyMQ==",
+}
+`;
