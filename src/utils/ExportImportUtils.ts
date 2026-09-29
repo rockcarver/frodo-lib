@@ -12,7 +12,7 @@ import {
   EmailTemplateSkeleton,
   readEmailTemplate,
 } from '../ops/EmailTemplateOps';
-import { FrodoError } from '../ops/FrodoError';
+import { FrodoError, isNotFoundError } from '../ops/FrodoError';
 import { ErrorFilter, ExportMetaData, ResultCallback } from '../ops/OpsTypes';
 import { InsufficientScopeError } from '../ops/RequiredScopesOps';
 import Constants from '../shared/Constants';
@@ -1238,7 +1238,7 @@ export function objectRecurse(
  * @param {T} data If state.getForceUpdate() is false and readFn is provided, compares this data with the remote data to determine if update is needed
  * @param {() => Promise<T>} readFn optional function that reads in the remote entity for comparison (if state.getForceUpdate() is false); if not provided, will just attempt to update (and create if createFn is provided)
  * @param {() => Promise<T>} createFn optional function that creates the remote entity if update fails; if not provided, will just throw the update error
- * @param {(e: any) => boolean} notFoundCheck optional function that checks the error thrown during an update is a "not found" error (true if thrown, false if different error); if no provided, will always run createFn on error (if it's provided)
+ * @param {(e: any) => boolean} notFoundCheck function that checks whether the error thrown during an update is a "not found" error (true if so, false for any other error); defaults to {@link isNotFoundError}, which recognizes a plain HTTP 404 as well as one wrapped inside a `FrodoError` chain. Only a confirmed "not found" falls through to createFn (if provided) -- any other error (a validation failure, a permission error, a network error, ...) is thrown as-is rather than papered over with a create attempt that would itself fail confusingly (e.g. a 409 "already exists" that hides the real cause).
  * @param {string[]} ignoreAttributes attributes to ignore during remote comparison in addition to the usual ones (e.g. _rev, _id) that automatically get ignored
  * @param {State} state The library state
  * @returns {T | null} the updated object, or null if no update was made
@@ -1249,7 +1249,7 @@ export async function updateRemote<T extends object>({
   data,
   readFn,
   createFn,
-  notFoundCheck,
+  notFoundCheck = isNotFoundError,
   ignoreAttributes = [],
   state,
 }: {
@@ -1304,10 +1304,9 @@ export async function updateRemote<T extends object>({
   try {
     return await updateFn();
   } catch (e) {
-    const notFound = notFoundCheck && notFoundCheck(e);
-    if (createFn && (!notFoundCheck || notFound)) {
+    if (createFn && notFoundCheck(e)) {
       verboseMessage({
-        message: `Unable to update ${type} ${notFound ? `since not found` : `due to error (${e})`}. Attempting create...`,
+        message: `Unable to update ${type} since not found. Attempting create...`,
         state,
       });
       return await createFn();
