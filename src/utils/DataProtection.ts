@@ -28,6 +28,28 @@ const _salt = new WeakMap();
 const _key = new WeakMap();
 const _encrypt = new WeakMap();
 
+/**
+ * Tighten the permissions of the master key file on disk, without deriving
+ * or touching a key — for callers that run on every command invocation
+ * (e.g. initConnectionProfiles) and want to self-heal a key file left
+ * over from an older frodo version, even when this particular command
+ * never ends up calling encrypt()/decrypt() (e.g. connection profiles that
+ * are already fully migrated, so no secret gets encrypted this run).
+ * A no-op if the key comes from FRODO_MASTER_KEY (no file involved) or the
+ * file doesn't exist yet (it will be created owner-only on first use).
+ * @param {string} pathToMasterKey optional explicit master key path, same as the DataProtection constructor
+ */
+export function secureMasterKeyFile(pathToMasterKey?: string): void {
+  if (process.env[Constants.FRODO_MASTER_KEY_KEY]) return;
+  const masterKeyPath =
+    pathToMasterKey ||
+    process.env[Constants.FRODO_MASTER_KEY_PATH_KEY] ||
+    path.join(getFrodoHome(), 'masterkey.key');
+  if (fs.existsSync(masterKeyPath)) {
+    secureExistingFileSync(masterKeyPath);
+  }
+}
+
 class DataProtection {
   constructor({
     pathToMasterKey = undefined,

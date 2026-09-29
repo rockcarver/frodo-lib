@@ -5,7 +5,7 @@ import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import Constants from '../shared/Constants';
 import { CredentialType, State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
-import DataProtection from '../utils/DataProtection';
+import DataProtection, { secureMasterKeyFile } from '../utils/DataProtection';
 import {
   isValidUrl,
   saveJsonToFile,
@@ -452,6 +452,10 @@ export async function initConnectionProfiles({ state }: { state: State }) {
     pathToMasterKey: state.getMasterKeyPath(),
     state,
   });
+  // self-heal the master key file's permissions on every invocation, not
+  // just when this run happens to encrypt/decrypt something below (most
+  // runs against an already-migrated profiles file don't)
+  secureMasterKeyFile(state.getMasterKeyPath());
   try {
     // create connections.json file if it doesn't exist
     const filename = getConnectionProfilesPath({ state });

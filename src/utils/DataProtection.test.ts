@@ -45,7 +45,9 @@ jest.unstable_mockModule('./FrodoUtils', () => ({
   default: () => ({ getFrodoHome: () => getFrodoHomeMock() }),
   getFrodoHome: getFrodoHomeMock,
 }));
-const { default: DataProtection } = await import('./DataProtection');
+const { default: DataProtection, secureMasterKeyFile } = await import(
+  './DataProtection'
+);
 
 function cleanupEnv() {
   if (savedMasterKey === undefined)
@@ -177,4 +179,65 @@ describe('DataProtection master-key bootstrap', () => {
     expect(fs.readFileSync(defaultKeyPath, 'utf8').length).toBeGreaterThan(0);
     expect(decrypted).toBe(secret);
   }, 30000);
+});
+
+describe('secureMasterKeyFile (self-heal without deriving a key)', () => {
+  const isWindows = process.platform === 'win32';
+
+  (isWindows ? test.skip : test)(
+    'tightens an existing key file to 0600 without changing its content',
+    () => {
+      const masterKeyPath = join(
+        dataprotectionTmpBase,
+        'secure-heal',
+        'master.key'
+      );
+      fs.mkdirSync(join(dataprotectionTmpBase, 'secure-heal'), {
+        recursive: true,
+      });
+      const existingKey = 'bxnQlhcU5VfyDs+BBPhRhK09yHaNtdIIk85HUMKBnqg=';
+      fs.writeFileSync(masterKeyPath, existingKey, { mode: 0o644 });
+      fs.chmodSync(masterKeyPath, 0o644);
+      delete process.env[Constants.FRODO_MASTER_KEY_KEY];
+
+      secureMasterKeyFile(masterKeyPath);
+
+      expect(fs.statSync(masterKeyPath).mode & 0o777).toBe(0o600);
+      expect(fs.readFileSync(masterKeyPath, 'utf8')).toBe(existingKey);
+    }
+  );
+
+  test('is a silent no-op when the key file does not exist yet', () => {
+    const masterKeyPath = join(
+      dataprotectionTmpBase,
+      'secure-heal-missing',
+      'master.key'
+    );
+    delete process.env[Constants.FRODO_MASTER_KEY_KEY];
+    expect(() => secureMasterKeyFile(masterKeyPath)).not.toThrow();
+    expect(fs.existsSync(masterKeyPath)).toBe(false);
+  });
+
+  test('is a no-op when FRODO_MASTER_KEY is set (key has no file)', () => {
+    const masterKeyPath = join(
+      dataprotectionTmpBase,
+      'secure-heal-env-key',
+      'master.key'
+    );
+    fs.mkdirSync(join(dataprotectionTmpBase, 'secure-heal-env-key'), {
+      recursive: true,
+    });
+    // a file happens to exist at the path, but since FRODO_MASTER_KEY takes
+    // precedence, secureMasterKeyFile must not touch it
+    fs.writeFileSync(masterKeyPath, 'unrelated-content', { mode: 0o644 });
+    fs.chmodSync(masterKeyPath, 0o644);
+    process.env[Constants.FRODO_MASTER_KEY_KEY] =
+      'bxnQlhcU5VfyDs+BBPhRhK09yHaNtdIIk85HUMKBnqg=';
+
+    secureMasterKeyFile(masterKeyPath);
+
+    if (!isWindows) {
+      expect(fs.statSync(masterKeyPath).mode & 0o777).toBe(0o644);
+    }
+  });
 });

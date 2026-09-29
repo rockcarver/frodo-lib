@@ -27,6 +27,8 @@ import {
   writeSecureFile,
   writeSecureFileSync,
 } from './ExportImportUtils';
+import { state } from '../index';
+import { initConnectionProfiles } from '../ops/ConnectionProfileOps';
 
 const isWindows = process.platform === 'win32';
 const OWNER_ONLY_FILE = 0o600;
@@ -194,4 +196,48 @@ describe('secureExistingFileSync', () => {
     expect(() => secureExistingFileSync(filename)).not.toThrow();
     expect(fs.existsSync(filename)).toBe(false);
   });
+});
+
+describe('initConnectionProfiles (end-to-end self-heal)', () => {
+  (isWindows ? test.skip : test)(
+    'tightens an already-migrated profiles file and the master key on every call, not just when converting legacy secrets',
+    async () => {
+      // The common case for an existing install: Connections.json already
+      // has no plaintext secrets to convert, so the encrypt()/decrypt()
+      // calls that would otherwise self-heal the master key never run.
+      // initConnectionProfiles must still tighten both files on every
+      // invocation -- this is what lets "just run any frodo command" (no
+      // manual chmod) actually hold.
+      const dir = join(baseTmp, 'init-profiles-self-heal');
+      const profilesPath = join(dir, 'Connections.json');
+      const masterKeyPath = join(dir, 'masterkey.key');
+      fs.mkdirSync(dir, { recursive: true, mode: 0o755 });
+      fs.chmodSync(dir, 0o755);
+      fs.writeFileSync(profilesPath, '{}', { mode: 0o644 });
+      fs.chmodSync(profilesPath, 0o644);
+      fs.writeFileSync(masterKeyPath, 'pre-existing-key-material', {
+        mode: 0o644,
+      });
+      fs.chmodSync(masterKeyPath, 0o644);
+
+      const prevProfilesPath = state.getConnectionProfilesPath();
+      const prevMasterKeyPath = state.getMasterKeyPath();
+      try {
+        state.setConnectionProfilesPath(profilesPath);
+        state.setMasterKeyPath(masterKeyPath);
+        await initConnectionProfiles({ state });
+
+        expect(mode(profilesPath)).toBe(OWNER_ONLY_FILE);
+        expect(mode(masterKeyPath)).toBe(OWNER_ONLY_FILE);
+        // content untouched: still no connections, still the same key
+        expect(fs.readFileSync(profilesPath, 'utf8')).toBe('{}');
+        expect(fs.readFileSync(masterKeyPath, 'utf8')).toBe(
+          'pre-existing-key-material'
+        );
+      } finally {
+        state.setConnectionProfilesPath(prevProfilesPath);
+        state.setMasterKeyPath(prevMasterKeyPath);
+      }
+    }
+  );
 });
