@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [v4.9.1] - 2026-09-29
+
+### Fixed
+- Corrected the default behavior of `updateRemote()` to use `isNotFoundError` for the `notFoundCheck`, ensuring consistent error handling when resources are not found. (8e476ff68)
+
 ## [v4.9.0] - 2026-09-27
 
 ### Added
@@ -2430,6 +2435,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v4.9.1]: https://github.com/rockcarver/frodo-lib/compare/v4.9.0...v4.9.1
 [v4.9.0]: https://github.com/rockcarver/frodo-lib/compare/v4.8.6...v4.9.0
 [v4.8.6]: https://github.com/rockcarver/frodo-lib/compare/v4.8.6-1...v4.8.6
 [v4.8.6-1]: https://github.com/rockcarver/frodo-lib/compare/v4.8.5...v4.8.6-1
