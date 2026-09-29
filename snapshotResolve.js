@@ -1,7 +1,19 @@
 const fs = require('fs');
 
+// All the matching/replacing below is hardcoded to forward slashes. Jest
+// passes Windows paths with backslashes (e.g. D:\a\frodo-lib\...), which
+// silently fails every '/src/'-style match, so resolveSnapshotPath forgets
+// to insert 'test/snapshots/' and resolveTestPath can never map a real
+// .snap file back to its test -- Jest then treats every snapshot file as
+// obsolete and fails the run even when every test passed. Normalizing to
+// forward slashes up front fixes the matching; Node's fs APIs (existsSync
+// below) and Jest itself both accept forward-slash paths fine on Windows,
+// so nothing needs converting back.
+const toPosix = (p) => p.replace(/\\/g, '/');
+
 module.exports = {
   resolveSnapshotPath: (testPath, snapshotExtension) => {
+    testPath = toPosix(testPath);
     let snapshotFilePath = '';
     if (testPath.endsWith('.ts')) {
       snapshotFilePath = testPath.slice(0, -3).concat('.js').concat(snapshotExtension);
@@ -17,6 +29,7 @@ module.exports = {
 
   // resolves from snapshot to test path
   resolveTestPath: (snapshotFilePath, snapshotExtension) => {
+    snapshotFilePath = toPosix(snapshotFilePath);
     let testFilePath = snapshotFilePath.replace('/test/snapshots/', '/');
     testFilePath = testFilePath.substring(
       0,
