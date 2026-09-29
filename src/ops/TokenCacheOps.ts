@@ -9,7 +9,10 @@ import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import DataProtection from '../utils/DataProtection';
-import { ensureDirectoryForFile } from '../utils/ExportImportUtils';
+import {
+  secureExistingFileSync,
+  writeSecureFileSync,
+} from '../utils/ExportImportUtils';
 import { getFrodoHome } from '../utils/FrodoUtils';
 import { get, put, stringify } from '../utils/JsonUtils';
 import { UserSessionMetaType } from './AuthenticateOps';
@@ -362,33 +365,22 @@ export function initTokenCache({ state }: { state: State }) {
     });
     // create token cache file if it doesn't exist
     const filename = getTokenCachePath({ state });
-    const folderName = path.dirname(filename);
     if (!fs.existsSync(filename)) {
-      if (!fs.existsSync(folderName)) {
-        debugMessage({
-          message: `TokenCacheOps.initTokenCache: folder does not exist: ${folderName}, creating...`,
-          state,
-        });
-        fs.mkdirSync(folderName, { recursive: true });
-      }
-      if (!fs.existsSync(filename)) {
-        debugMessage({
-          message: `TokenCacheOps.initTokenCache: file does not exist: ${filename}, creating...`,
-          state,
-        });
-        fs.writeFileSync(
-          filename,
-          JSON.stringify({}, null, fileOptions.indentation)
-        );
-      }
+      debugMessage({
+        message: `TokenCacheOps.initTokenCache: file does not exist: ${filename}, creating...`,
+        state,
+      });
+      writeSecureFileSync(
+        filename,
+        JSON.stringify({}, null, fileOptions.indentation)
+      );
     }
     // purge expired tokens
     else {
       const data = fs.readFileSync(filename, 'utf8');
       const tokenCache: TokenCacheInterface = JSON.parse(data);
       purgeExpiredTokens(tokenCache, state);
-      ensureDirectoryForFile(filename);
-      fs.writeFileSync(filename, stringify(tokenCache));
+      writeSecureFileSync(filename, stringify(tokenCache));
     }
     debugMessage({
       message: `TokenCacheOps.initTokenCache: end`,
@@ -519,8 +511,7 @@ function recordHostIndexEntry(state: State): void {
     const filename = getHostIndexPath(state);
     const index = readHostIndex(state);
     index[getHostKey(state)] = state.getHost();
-    ensureDirectoryForFile(filename);
-    fs.writeFileSync(filename, stringify(index));
+    writeSecureFileSync(filename, stringify(index));
   } catch (error) {
     debugMessage({
       message: `TokenCacheOps.recordHostIndexEntry: error recording host index entry: ${error}`,
@@ -596,8 +587,7 @@ function recordSubjectIndexEntry(
     const index = readSubjectIndex(state);
     const hostKey = getHostKey(state);
     index[hostKey] = { ...index[hostKey], [getTypeKey(tokenType)]: subject };
-    ensureDirectoryForFile(filename);
-    fs.writeFileSync(filename, stringify(index));
+    writeSecureFileSync(filename, stringify(index));
   } catch (error) {
     debugMessage({
       message: `TokenCacheOps.recordSubjectIndexEntry: error recording subject index entry: ${error}`,
@@ -613,8 +603,7 @@ function removeSubjectIndexEntry(hostKey: string, state: State): void {
     const index = readSubjectIndex(state);
     if (hostKey in index) {
       delete index[hostKey];
-      ensureDirectoryForFile(filename);
-      fs.writeFileSync(filename, stringify(index));
+      writeSecureFileSync(filename, stringify(index));
     }
   } catch (error) {
     debugMessage({
@@ -804,8 +793,14 @@ function readMasterKeyContent(state: State): string {
     process.env[Constants.FRODO_MASTER_KEY_PATH_KEY] ||
     path.join(getFrodoHome(), 'masterkey.key');
   if (!fs.existsSync(masterKeyPath)) {
-    ensureDirectoryForFile(masterKeyPath);
-    fs.writeFileSync(masterKeyPath, crypto.randomBytes(32).toString('base64'));
+    writeSecureFileSync(
+      masterKeyPath,
+      crypto.randomBytes(32).toString('base64')
+    );
+  } else {
+    // self-heal an existing key file created by an older frodo version
+    // that didn't restrict permissions
+    secureExistingFileSync(masterKeyPath);
   }
   return fs.readFileSync(masterKeyPath, 'utf8');
 }
@@ -910,8 +905,7 @@ export async function saveUserSessionToken({
         `${token.expires}`,
         tokenKey,
       ]);
-      ensureDirectoryForFile(filename);
-      fs.writeFileSync(filename, stringify(tokenCache));
+      writeSecureFileSync(filename, stringify(tokenCache));
       debugMessage({
         message: `TokenCacheOps.saveUserSessionToken: saved token in cache`,
         state,
@@ -1003,8 +997,7 @@ export async function saveUserBearerToken({
         `${token.expires}`,
         tokenKey,
       ]);
-      ensureDirectoryForFile(filename);
-      fs.writeFileSync(filename, stringify(tokenCache));
+      writeSecureFileSync(filename, stringify(tokenCache));
       debugMessage({
         message: `TokenCacheOps.saveUserBearerToken: saved token in cache`,
         state,
@@ -1100,8 +1093,7 @@ export async function saveSaBearerToken({
         `${token.expires}`,
         tokenKey,
       ]);
-      ensureDirectoryForFile(filename);
-      fs.writeFileSync(filename, stringify(tokenCache));
+      writeSecureFileSync(filename, stringify(tokenCache));
       debugMessage({
         message: `TokenCacheOps.saveSaBearerToken: saved token in cache`,
         state,
@@ -1195,8 +1187,7 @@ export async function saveToken({
         `${token.expires}`,
         tokenKey,
       ]);
-      ensureDirectoryForFile(filename);
-      fs.writeFileSync(filename, stringify(tokenCache));
+      writeSecureFileSync(filename, stringify(tokenCache));
       debugMessage({
         message: `TokenCacheOps.saveToken: saved token in cache [tokenType=${tokenType}]`,
         state,
@@ -1234,8 +1225,7 @@ export function purge({ state }: { state: State }): TokenCacheInterface {
       : undefined;
     const tokenCache: TokenCacheInterface = data ? JSON.parse(data) : {};
     const purgedCache = purgeExpiredTokens(tokenCache, state);
-    ensureDirectoryForFile(filename);
-    fs.writeFileSync(filename, stringify(purgedCache));
+    writeSecureFileSync(filename, stringify(purgedCache));
     debugMessage({
       message: `TokenCacheOps.purge: end`,
       state,
@@ -1257,8 +1247,7 @@ export function flush({ state }: { state: State }): boolean {
       state,
     });
     const filename = getTokenCachePath({ state });
-    ensureDirectoryForFile(filename);
-    fs.writeFileSync(filename, stringify({}));
+    writeSecureFileSync(filename, stringify({}));
     debugMessage({
       message: `TokenCacheOps.flush: end`,
       state,
@@ -1298,8 +1287,7 @@ function removeHostIndexEntry(hostKey: string, state: State): void {
     const index = readHostIndex(state);
     if (hostKey in index) {
       delete index[hostKey];
-      ensureDirectoryForFile(filename);
-      fs.writeFileSync(filename, stringify(index));
+      writeSecureFileSync(filename, stringify(index));
     }
   } catch (error) {
     debugMessage({
@@ -1364,7 +1352,9 @@ export function listCachedSessions({
           const recordedSubject = subjectIndex[hostKey]?.[typeKey];
           const subject =
             recordedSubject ??
-            (subjectKey === BROWSER_LOGIN_SUBJECT_KEY ? 'browser-login' : 'unknown');
+            (subjectKey === BROWSER_LOGIN_SUBJECT_KEY
+              ? 'browser-login'
+              : 'unknown');
           for (const expKey of Object.keys(
             tokenCache[hostKey][realmKey][typeKey][subjectKey]
           )) {
@@ -1433,8 +1423,7 @@ export function deleteHostTokens({
       removeHostIndexEntry(hostKey, state);
       removeSubjectIndexEntry(hostKey, state);
     }
-    ensureDirectoryForFile(filename);
-    fs.writeFileSync(filename, stringify(tokenCache));
+    writeSecureFileSync(filename, stringify(tokenCache));
     return true;
   } catch (error) {
     debugMessage({

@@ -17,7 +17,7 @@ import { promisify } from 'util';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { printMessage } from './Console';
-import { ensureDirectoryForFile } from './ExportImportUtils';
+import { secureExistingFileSync, writeSecureFile } from './ExportImportUtils';
 import { getFrodoHome } from './FrodoUtils';
 
 const scrypt = promisify(crypto.scrypt);
@@ -51,19 +51,23 @@ class DataProtection {
           if (!fs.existsSync(masterKeyPath())) {
             const masterKey = crypto.randomBytes(32).toString('base64');
             // the directory portion of the path may not exist yet (bare
-            // consumers, custom FRODO_MASTER_KEY_PATH); create it so a
-            // generated key can actually be persisted. A master key that
-            // cannot be persisted must not degrade into empty-key encryption:
-            // scrypt('', salt, 32) is recoverable by anyone, so let the
-            // failure propagate instead of silently encrypting.
+            // consumers, custom FRODO_MASTER_KEY_PATH); create it (and the
+            // key file, owner-only, 0700/0600) so a generated key can
+            // actually be persisted. A master key that cannot be persisted
+            // must not degrade into empty-key encryption: scrypt('', salt,
+            // 32) is recoverable by anyone, so let the failure propagate
+            // instead of silently encrypting.
             try {
-              ensureDirectoryForFile(masterKeyPath());
-            } catch (mkdirError) {
+              await writeSecureFile(masterKeyPath(), masterKey);
+            } catch (writeError) {
               throw new Error(
-                `Unable to create directory for master key file ${masterKeyPath()}: ${mkdirError.message}`
+                `Unable to create master key file ${masterKeyPath()}: ${writeError.message}`
               );
             }
-            await fsp.writeFile(masterKeyPath(), masterKey);
+          } else {
+            // self-heal an existing key file created by an older frodo
+            // version that didn't restrict permissions
+            secureExistingFileSync(masterKeyPath());
           }
           return await fsp.readFile(masterKeyPath(), 'utf8');
         } catch (err) {

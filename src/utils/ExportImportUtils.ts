@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { lstat, readdir, readFile } from 'fs/promises';
+import { chmod, lstat, readdir, readFile, writeFile } from 'fs/promises';
 import { dirname, join } from 'path';
 
 import { Reader } from 'properties-reader';
@@ -521,6 +521,95 @@ export function saveJsonToFile({
  */
 export function ensureDirectoryForFile(filename: string): void {
   fs.mkdirSync(dirname(filename), { recursive: true });
+}
+
+/**
+ * Make sure the directory portion of a file path exists and is only
+ * accessible to the owner (0700). Used for directories that hold
+ * credentials or other secrets (connection profiles, master key, token
+ * cache) so they aren't readable/listable by other local users. `mkdirSync`'s
+ * `mode` is subject to the process umask, so the directory is chmod'd
+ * afterward as well, which also tightens it up if it already existed with
+ * looser permissions from an older frodo version. Best-effort: a chmod
+ * failure (e.g. a filesystem that doesn't support Unix permissions) is
+ * swallowed, matching ensureDirectoryForFile's best-effort contract.
+ * @param {string} filename file name (absolute or relative path)
+ */
+export function ensureSecureDirectoryForFile(filename: string): void {
+  const dir = dirname(filename);
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  try {
+    fs.chmodSync(dir, 0o700);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
+    // best effort
+  }
+}
+
+/**
+ * Write a file that holds credentials or other secrets (connection
+ * profiles, master key, token cache) with owner-only permissions (0600), so
+ * it isn't readable by other local users. Creates the parent directory
+ * (also owner-only, see ensureSecureDirectoryForFile) if needed, and
+ * chmod's the file after writing so an existing, previously
+ * group/world-readable file left over from an older frodo version is
+ * tightened up in place rather than only protecting newly created ones.
+ * @param {string} filename file name (absolute or relative path)
+ * @param {string | NodeJS.ArrayBufferView} data data to write
+ */
+export function writeSecureFileSync(
+  filename: string,
+  data: string | NodeJS.ArrayBufferView
+): void {
+  ensureSecureDirectoryForFile(filename);
+  fs.writeFileSync(filename, data, { mode: 0o600 });
+  try {
+    fs.chmodSync(filename, 0o600);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
+    // best effort
+  }
+}
+
+/**
+ * Async counterpart to {@link writeSecureFileSync}, for callers already in
+ * an async context (e.g. DataProtection's master key bootstrap).
+ * @param {string} filename file name (absolute or relative path)
+ * @param {string | NodeJS.ArrayBufferView} data data to write
+ */
+export async function writeSecureFile(
+  filename: string,
+  data: string | NodeJS.ArrayBufferView
+): Promise<void> {
+  ensureSecureDirectoryForFile(filename);
+  await writeFile(filename, data, { mode: 0o600 });
+  try {
+    await chmod(filename, 0o600);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
+    // best effort
+  }
+}
+
+/**
+ * Tighten the permissions of a credential file (and its containing
+ * directory) that already exists and isn't being rewritten on this call
+ * path, e.g. the master key or a connection profiles file that's only read,
+ * not written, by the current command. Self-heals installs created by an
+ * older frodo version that didn't restrict permissions, without requiring
+ * the file's content to change. Best-effort and silent: called from hot,
+ * read-only paths (every command touches the master key), so a permission
+ * error here must never surface as a command failure.
+ * @param {string} filename file name (absolute or relative path)
+ */
+export function secureExistingFileSync(filename: string): void {
+  try {
+    fs.chmodSync(dirname(filename), 0o700);
+    fs.chmodSync(filename, 0o600);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
+    // best effort
+  }
 }
 
 /**

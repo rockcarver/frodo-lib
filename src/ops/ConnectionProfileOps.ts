@@ -7,9 +7,10 @@ import { CredentialType, State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import DataProtection from '../utils/DataProtection';
 import {
-  ensureDirectoryForFile,
   isValidUrl,
   saveJsonToFile,
+  secureExistingFileSync,
+  writeSecureFileSync,
 } from '../utils/ExportImportUtils';
 import { getFrodoHome } from '../utils/FrodoUtils';
 import { readServiceAccountScopes } from './cloud/EnvServiceAccountScopesOps';
@@ -412,16 +413,18 @@ function migrateFromLegacyProfile() {
     const newPath = path.join(getFrodoHome(), newProfileFilename);
     if (!fs.existsSync(legacyPath) && !fs.existsSync(newPath)) {
       // no connections file (old or new), create empty new one
-      fs.writeFileSync(
+      writeSecureFileSync(
         newPath,
         JSON.stringify({}, null, fileOptions.indentation)
       );
     } else if (fs.existsSync(legacyPath) && !fs.existsSync(newPath)) {
       // old exists, new one does not - so copy old to new one
       fs.copyFileSync(legacyPath, newPath);
+      secureExistingFileSync(newPath);
       // for now, just add a "deprecated" suffix. May delete the old file
       // in a future release
       fs.renameSync(legacyPath, `${legacyPath}.deprecated`);
+      secureExistingFileSync(`${legacyPath}.deprecated`);
     }
     // in other cases, where
     // (both old and new exist) OR (only new one exists) don't do anything
@@ -452,25 +455,15 @@ export async function initConnectionProfiles({ state }: { state: State }) {
   try {
     // create connections.json file if it doesn't exist
     const filename = getConnectionProfilesPath({ state });
-    const folderName = path.dirname(filename);
     if (!fs.existsSync(filename)) {
-      if (!fs.existsSync(folderName)) {
-        debugMessage({
-          message: `ConnectionProfileOps.initConnectionProfiles: folder does not exist: ${folderName}, creating...`,
-          state,
-        });
-        fs.mkdirSync(folderName, { recursive: true });
-      }
-      if (!fs.existsSync(filename)) {
-        debugMessage({
-          message: `ConnectionProfileOps.initConnectionProfiles: file does not exist: ${filename}, creating...`,
-          state,
-        });
-        fs.writeFileSync(
-          filename,
-          JSON.stringify({}, null, fileOptions.indentation)
-        );
-      }
+      debugMessage({
+        message: `ConnectionProfileOps.initConnectionProfiles: file does not exist: ${filename}, creating...`,
+        state,
+      });
+      writeSecureFileSync(
+        filename,
+        JSON.stringify({}, null, fileOptions.indentation)
+      );
     }
     // encrypt the password and logApiSecret from clear text to aes-256-GCM
     else {
@@ -508,10 +501,14 @@ export async function initConnectionProfiles({ state }: { state: State }) {
         }
       }
       if (convert) {
-        fs.writeFileSync(
+        writeSecureFileSync(
           filename,
           JSON.stringify(connectionsData, null, fileOptions.indentation)
         );
+      } else {
+        // self-heal a file created by an older frodo version that didn't
+        // restrict permissions, even though its content isn't changing
+        secureExistingFileSync(filename);
       }
     }
     debugMessage({
@@ -1053,8 +1050,7 @@ export function setConnectionProfileAlias({
     }
   }
   connectionsData[tenant].alias = alias;
-  ensureDirectoryForFile(filename);
-  fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
+  writeSecureFileSync(filename, JSON.stringify(connectionsData, null, 2));
   debugMessage({
     message: `Alias '${alias}' has been set for connection profile '${tenant}'`,
     state,
@@ -1100,8 +1096,7 @@ export function deleteConnectionProfileAlias({
   }
   const alias = connectionsData[tenant].alias;
   delete connectionsData[tenant].alias;
-  ensureDirectoryForFile(filename);
-  fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
+  writeSecureFileSync(filename, JSON.stringify(connectionsData, null, 2));
   debugMessage({
     message: `Alias '${alias}' has been deleted for connection profile '${tenant}'.`,
     state,
@@ -1144,8 +1139,7 @@ export function deleteConnectionProfile({
     );
   }
   delete connectionsData[profiles[0].tenant];
-  ensureDirectoryForFile(filename);
-  fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
+  writeSecureFileSync(filename, JSON.stringify(connectionsData, null, 2));
 }
 
 /**
@@ -1293,8 +1287,7 @@ export async function addAdditionalServiceAccount({
   });
   connectionsData[tenant].additionalServiceAccounts = existing;
   const filename = getConnectionProfilesPath({ state });
-  ensureDirectoryForFile(filename);
-  fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
+  writeSecureFileSync(filename, JSON.stringify(connectionsData, null, 2));
   debugMessage({
     message: `ConnectionProfileOps.addAdditionalServiceAccount: added '${name}' to connection profile '${tenant}'`,
     state,
@@ -1328,8 +1321,7 @@ export function removeAdditionalServiceAccount({
   existing.splice(index, 1);
   connectionsData[tenant].additionalServiceAccounts = existing;
   const filename = getConnectionProfilesPath({ state });
-  ensureDirectoryForFile(filename);
-  fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
+  writeSecureFileSync(filename, JSON.stringify(connectionsData, null, 2));
   debugMessage({
     message: `ConnectionProfileOps.removeAdditionalServiceAccount: removed '${name}' from connection profile '${tenant}'`,
     state,
