@@ -1,0 +1,617 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`IgaSodPolicyRuleOps createPolicyRule() 1: Create policy rule 1`] = `
+{
+  "active": true,
+  "correctionAdvice": "",
+  "decisionOptions": {
+    "allow": true,
+    "exception": true,
+    "remediate": true,
+  },
+  "description": "this is a test policy rule",
+  "documentationUrl": "",
+  "id": Any<String>,
+  "maxExceptionDuration": 90,
+  "mitigatingControl": "",
+  "name": "frodo\`-test-rule-create",
+  "policyRuleOwner": {
+    "id": "managed/user/5068da35-7971-4f11-becf-ba716b6aadb9",
+  },
+  "remediation": {
+    "schemas": [
+      "grantRemoval",
+    ],
+  },
+  "riskScore": 0,
+  "ruleDefinition": [
+    {
+      "operand": [
+        {
+          "operand": {
+            "targetName": "entitlement.displayName",
+            "targetValue": "aicGroup1",
+          },
+          "operator": "EQUALS",
+        },
+      ],
+      "operator": "OR",
+      "type": [
+        "entitlementGrant",
+      ],
+    },
+    {
+      "operand": [
+        {
+          "operand": {
+            "targetName": "entitlement.displayName",
+            "targetValue": "aicGroup2",
+          },
+          "operator": "EQUALS",
+        },
+      ],
+      "operator": "AND",
+      "type": [
+        "entitlementGrant",
+      ],
+    },
+  ],
+  "ruleDefinitionTags": [
+    "targetName=entitlement.displayName&targetValue=aicGroup1",
+    "targetValue=aicGroup1&targetName=entitlement.displayName",
+    "targetName=entitlement.displayName&targetValue=aicGroup2",
+    "targetValue=aicGroup2&targetName=entitlement.displayName",
+  ],
+  "scanTypes": {
+    "detective": true,
+    "preventative": true,
+  },
+  "userFilter": {
+    "operand": [],
+    "operator": "ALL",
+  },
+  "violationLifecycle": {
+    "exception": {
+      "justificationCheck": true,
+    },
+    "expiration": {
+      "expires": false,
+    },
+    "workflow": {
+      "action": "do_nothing",
+    },
+  },
+  "violationOwner": {
+    "id": "managed/user/5068da35-7971-4f11-becf-ba716b6aadb9",
+  },
+  "violationOwnerType": "user",
+}
+`;
+
+exports[`IgaSodPolicyRuleOps createPolicyRuleExportTemplate() 1: Create Policy Rule Export Template 1`] = `
+{
+  "meta": Any<Object>,
+  "policyRule": {},
+}
+`;
+
+exports[`IgaSodPolicyRuleOps deletePolicyRule() 1: Delete existing policy rule by id 1`] = `
+{
+  "active": true,
+  "correctionAdvice": "",
+  "decisionOptions": {
+    "allow": true,
+    "exception": true,
+    "remediate": true,
+  },
+  "description": "this is a test policy rule",
+  "documentationUrl": "",
+  "id": Any<String>,
+  "maxExceptionDuration": 90,
+  "metadata": {
+    "createdDate": "2026-06-08T16:52:23.728957476Z",
+    "modifiedDate": "2026-06-08T16:52:23.728958806Z",
+  },
+  "mitigatingControl": "",
+  "name": "frodo\`-test-rule-delete-by-id",
+  "policyRuleOwner": {
+    "id": "managed/user/5068da35-7971-4f11-becf-ba716b6aadb9",
+  },
+  "remediation": {
+    "schemas": [
+      "grantRemoval",
+    ],
+  },
+  "riskScore": 0,
+  "ruleDefinition": [
+    {
+      "operand": [
+        {
+          "operand": {
+            "targetName": "entitlement.displayName",
+            "targetValue": "aicGroup1",
+          },
+          "operator": "EQUALS",
+        },
+      ],
+      "operator": "OR",
+      "type": [
+        "entitlementGrant",
+      ],
+    },
+    {
+      "operand": [
+        {
+          "operand": {
+            "targetName": "entitlement.displayName",
+            "targetValue": "aicGroup2",
+          },
+          "operator": "EQUALS",
+        },
+      ],
+      "operator": "AND",
+      "type": [
+        "entitlementGrant",
+      ],
+    },
+  ],
+  "ruleDefinitionTags": [
+    "targetName=entitlement.displayName&targetValue=aicGroup1",
+    "targetValue=aicGroup1&targetName=entitlement.displayName",
+    "targetName=entitlement.displayName&targetValue=aicGroup2",
+    "targetValue=aicGroup2&targetName=entitlement.displayName",
+  ],
+  "scanTypes": {
+    "detective": true,
+    "preventative": true,
+  },
+  "userFilter": {
+    "operand": [],
+    "operator": "ALL",
+  },
+  "violationLifecycle": {
+    "exception": {
+      "justificationCheck": true,
+    },
+    "expiration": {
+      "expires": false,
+    },
+    "workflow": {
+      "action": "do_nothing",
+    },
+  },
+  "violationOwner": {
+    "id": "managed/user/5068da35-7971-4f11-becf-ba716b6aadb9",
+  },
+  "violationOwnerType": "user",
+}
+`;
+
+exports[`IgaSodPolicyRuleOps deletePolicyRuleByName() 1: Delete existing policy rule by name 1`] = `
+{
+  "active": true,
+  "correctionAdvice": "",
+  "decisionOptions": {
+    "allow": true,
+    "exception": true,
+    "remediate": true,
+  },
+  "description": "this is a test policy rule",
+  "documentationUrl": "",
+  "id": Any<String>,
+  "maxExceptionDuration": 90,
+  "metadata": {
+    "createdDate": "2026-06-08T16:52:25.64478083Z",
+    "modifiedDate": "2026-06-08T16:52:25.64478243Z",
+  },
+  "mitigatingControl": "",
+  "name": "frodo\`-test-rule-delete-by-name",
+  "policyRuleOwner": {
+    "id": "managed/user/5068da35-7971-4f11-becf-ba716b6aadb9",
+  },
+  "remediation": {
+    "schemas": [
+      "grantRemoval",
+    ],
+  },
+  "riskScore": 0,
+  "ruleDefinition": [
+    {
+      "operand": [
+        {
+          "operand": {
+            "targetName": "entitlement.displayName",
+            "targetValue": "aicGroup1",
+          },
+          "operator": "EQUALS",
+        },
+      ],
+      "operator": "OR",
+      "type": [
+        "entitlementGrant",
+      ],
+    },
+    {
+      "operand": [
+        {
+          "operand": {
+            "targetName": "entitlement.displayName",
+            "targetValue": "aicGroup2",
+          },
+          "operator": "EQUALS",
+        },
+      ],
+      "operator": "AND",
+      "type": [
+        "entitlementGrant",
+      ],
+    },
+  ],
+  "ruleDefinitionTags": [
+    "targetName=entitlement.displayName&targetValue=aicGroup1",
+    "targetValue=aicGroup1&targetName=entitlement.displayName",
+    "targetName=entitlement.displayName&targetValue=aicGroup2",
+    "targetValue=aicGroup2&targetName=entitlement.displayName",
+  ],
+  "scanTypes": {
+    "detective": true,
+    "preventative": true,
+  },
+  "userFilter": {
+    "operand": [],
+    "operator": "ALL",
+  },
+  "violationLifecycle": {
+    "exception": {
+      "justificationCheck": true,
+    },
+    "expiration": {
+      "expires": false,
+    },
+    "workflow": {
+      "action": "do_nothing",
+    },
+  },
+  "violationOwner": {
+    "id": "managed/user/5068da35-7971-4f11-becf-ba716b6aadb9",
+  },
+  "violationOwnerType": "user",
+}
+`;
+
+exports[`IgaSodPolicyRuleOps exportPolicyRule() 1: Export existing policy rule by id 1`] = `
+{
+  "meta": Any<Object>,
+  "policyRule": {},
+}
+`;
+
+exports[`IgaSodPolicyRuleOps exportPolicyRuleByName() 1: Export existing policy rule by name 1`] = `
+{
+  "meta": Any<Object>,
+  "policyRule": {},
+}
+`;
+
+exports[`IgaSodPolicyRuleOps exportPolicyRules() 1: Export existing policy rules 1`] = `
+{
+  "meta": Any<Object>,
+  "policyRule": {},
+}
+`;
+
+exports[`IgaSodPolicyRuleOps importPolicyRule() 1: Import None 1`] = `[]`;
+
+exports[`IgaSodPolicyRuleOps importPolicyRule() 2: Import by id 1`] = `[]`;
+
+exports[`IgaSodPolicyRuleOps importPolicyRule() 3: Import by name 1`] = `[]`;
+
+exports[`IgaSodPolicyRuleOps importPolicyRule() 4: Import all 1`] = `
+"Error importing policy rule frodo\`-test-rule-existing
+  Error creating policy frodo\`-test-rule-existing
+    Network error:
+      URL: https://openam-frodo-dev.forgeblocks.com/iga/governance/policy/rule?_action=create
+      Status: 400
+      Code: ERR_BAD_REQUEST
+      Message: Name must be different from the existing policy rules."
+`;
+
+exports[`IgaSodPolicyRuleOps importPolicyRule() 4: Import all 2`] = `
+"Error importing policy rule frodo\`-test-rule-delete-by-id
+  Error creating policy frodo\`-test-rule-delete-by-id
+    Network error:
+      URL: https://openam-frodo-dev.forgeblocks.com/iga/governance/policy/rule?_action=create
+      Status: 400
+      Code: ERR_BAD_REQUEST
+      Message: Name must be different from the existing policy rules."
+`;
+
+exports[`IgaSodPolicyRuleOps importPolicyRule() 4: Import all 3`] = `
+"Error importing policy rule frodo\`-test-rule-delete-by-name
+  Error creating policy frodo\`-test-rule-delete-by-name
+    Network error:
+      URL: https://openam-frodo-dev.forgeblocks.com/iga/governance/policy/rule?_action=create
+      Status: 400
+      Code: ERR_BAD_REQUEST
+      Message: Name must be different from the existing policy rules."
+`;
+
+exports[`IgaSodPolicyRuleOps importPolicyRule() 4: Import all 4`] = `[]`;
+
+exports[`IgaSodPolicyRuleOps readPolicyRule() 1: Read existing policy rule by id 1`] = `
+{
+  "active": true,
+  "correctionAdvice": "",
+  "decisionOptions": {
+    "allow": true,
+    "exception": true,
+    "remediate": true,
+  },
+  "description": "this is a test policy rule",
+  "documentationUrl": "",
+  "id": Any<String>,
+  "maxExceptionDuration": 90,
+  "metadata": {
+    "createdDate": "2026-06-08T16:52:21.53686529Z",
+    "modifiedDate": "2026-06-08T16:52:21.536866718Z",
+  },
+  "mitigatingControl": "",
+  "name": "frodo\`-test-rule-existing",
+  "policyRuleOwner": {
+    "id": "managed/user/5068da35-7971-4f11-becf-ba716b6aadb9",
+  },
+  "remediation": {
+    "schemas": [
+      "grantRemoval",
+    ],
+  },
+  "riskScore": 0,
+  "ruleDefinition": [
+    {
+      "operand": [
+        {
+          "operand": {
+            "targetName": "entitlement.displayName",
+            "targetValue": "aicGroup1",
+          },
+          "operator": "EQUALS",
+        },
+      ],
+      "operator": "OR",
+      "type": [
+        "entitlementGrant",
+      ],
+    },
+    {
+      "operand": [
+        {
+          "operand": {
+            "targetName": "entitlement.displayName",
+            "targetValue": "aicGroup2",
+          },
+          "operator": "EQUALS",
+        },
+      ],
+      "operator": "AND",
+      "type": [
+        "entitlementGrant",
+      ],
+    },
+  ],
+  "ruleDefinitionTags": [
+    "targetName=entitlement.displayName&targetValue=aicGroup1",
+    "targetValue=aicGroup1&targetName=entitlement.displayName",
+    "targetName=entitlement.displayName&targetValue=aicGroup2",
+    "targetValue=aicGroup2&targetName=entitlement.displayName",
+  ],
+  "scanTypes": {
+    "detective": true,
+    "preventative": true,
+  },
+  "userFilter": {
+    "operand": [],
+    "operator": "ALL",
+  },
+  "violationLifecycle": {
+    "exception": {
+      "justificationCheck": true,
+    },
+    "expiration": {
+      "expires": false,
+    },
+    "workflow": {
+      "action": "do_nothing",
+    },
+  },
+  "violationOwner": {
+    "id": "managed/user/5068da35-7971-4f11-becf-ba716b6aadb9",
+  },
+  "violationOwnerType": "user",
+}
+`;
+
+exports[`IgaSodPolicyRuleOps readPolicyRuleByName() 1: Read existing policy rule by name 1`] = `
+{
+  "active": true,
+  "correctionAdvice": "",
+  "decisionOptions": {
+    "allow": true,
+    "exception": true,
+    "remediate": true,
+  },
+  "description": "this is a test policy rule",
+  "documentationUrl": "",
+  "id": Any<String>,
+  "maxExceptionDuration": 90,
+  "metadata": {
+    "createdDate": "2026-06-08T16:52:21.53686529Z",
+    "modifiedDate": "2026-06-08T16:52:21.536866718Z",
+  },
+  "mitigatingControl": "",
+  "name": "frodo\`-test-rule-existing",
+  "policyRuleOwner": {
+    "id": "managed/user/5068da35-7971-4f11-becf-ba716b6aadb9",
+  },
+  "remediation": {
+    "schemas": [
+      "grantRemoval",
+    ],
+  },
+  "riskScore": 0,
+  "ruleDefinition": [
+    {
+      "operand": [
+        {
+          "operand": {
+            "targetName": "entitlement.displayName",
+            "targetValue": "aicGroup1",
+          },
+          "operator": "EQUALS",
+        },
+      ],
+      "operator": "OR",
+      "type": [
+        "entitlementGrant",
+      ],
+    },
+    {
+      "operand": [
+        {
+          "operand": {
+            "targetName": "entitlement.displayName",
+            "targetValue": "aicGroup2",
+          },
+          "operator": "EQUALS",
+        },
+      ],
+      "operator": "AND",
+      "type": [
+        "entitlementGrant",
+      ],
+    },
+  ],
+  "ruleDefinitionTags": [
+    "targetName=entitlement.displayName&targetValue=aicGroup1",
+    "targetValue=aicGroup1&targetName=entitlement.displayName",
+    "targetName=entitlement.displayName&targetValue=aicGroup2",
+    "targetValue=aicGroup2&targetName=entitlement.displayName",
+  ],
+  "scanTypes": {
+    "detective": true,
+    "preventative": true,
+  },
+  "userFilter": {
+    "operand": [],
+    "operator": "ALL",
+  },
+  "violationLifecycle": {
+    "exception": {
+      "justificationCheck": true,
+    },
+    "expiration": {
+      "expires": false,
+    },
+    "workflow": {
+      "action": "do_nothing",
+    },
+  },
+  "violationOwner": {
+    "id": "managed/user/5068da35-7971-4f11-becf-ba716b6aadb9",
+  },
+  "violationOwnerType": "user",
+}
+`;
+
+exports[`IgaSodPolicyRuleOps readPolicyRules() 1: Read existing policy rules 1`] = `[]`;
+
+exports[`IgaSodPolicyRuleOps updatePolicyRules() 1: Update existing policy rule 1`] = `
+{
+  "active": true,
+  "correctionAdvice": "",
+  "decisionOptions": {
+    "allow": true,
+    "exception": true,
+    "remediate": true,
+  },
+  "description": "updated description",
+  "documentationUrl": "",
+  "id": Any<String>,
+  "maxExceptionDuration": 90,
+  "metadata": {
+    "createdDate": "2026-06-08T16:52:21.53686529Z",
+    "modifiedDate": "2026-06-08T16:52:21.536866718Z",
+  },
+  "mitigatingControl": "",
+  "name": "frodo\`-test-rule-existing",
+  "policyRuleOwner": {
+    "id": "managed/user/5068da35-7971-4f11-becf-ba716b6aadb9",
+  },
+  "remediation": {
+    "schemas": [
+      "grantRemoval",
+    ],
+  },
+  "riskScore": 0,
+  "ruleDefinition": [
+    {
+      "operand": [
+        {
+          "operand": {
+            "targetName": "entitlement.displayName",
+            "targetValue": "aicGroup1",
+          },
+          "operator": "EQUALS",
+        },
+      ],
+      "operator": "OR",
+      "type": [
+        "entitlementGrant",
+      ],
+    },
+    {
+      "operand": [
+        {
+          "operand": {
+            "targetName": "entitlement.displayName",
+            "targetValue": "aicGroup2",
+          },
+          "operator": "EQUALS",
+        },
+      ],
+      "operator": "AND",
+      "type": [
+        "entitlementGrant",
+      ],
+    },
+  ],
+  "ruleDefinitionTags": [
+    "targetName=entitlement.displayName&targetValue=aicGroup1",
+    "targetValue=aicGroup1&targetName=entitlement.displayName",
+    "targetName=entitlement.displayName&targetValue=aicGroup2",
+    "targetValue=aicGroup2&targetName=entitlement.displayName",
+  ],
+  "scanTypes": {
+    "detective": true,
+    "preventative": true,
+  },
+  "userFilter": {
+    "operand": [],
+    "operator": "ALL",
+  },
+  "violationLifecycle": {
+    "exception": {
+      "justificationCheck": true,
+    },
+    "expiration": {
+      "expires": false,
+    },
+    "workflow": {
+      "action": "do_nothing",
+    },
+  },
+  "violationOwner": {
+    "id": "managed/user/5068da35-7971-4f11-becf-ba716b6aadb9",
+  },
+  "violationOwnerType": "user",
+}
+`;

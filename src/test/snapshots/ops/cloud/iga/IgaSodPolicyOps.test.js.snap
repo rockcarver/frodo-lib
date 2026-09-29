@@ -1,0 +1,492 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`IgaSodPolicyOps createPolicy() 1: Create policy 1`] = `
+{
+  "active": true,
+  "description": "this is a test policy",
+  "id": Any<String>,
+  "name": "frodo-test-create",
+  "policyOwner": {
+    "givenName": "Frodo",
+    "id": "managed/user/0ece145b-1467-4cac-b472-f8f34dfaeef3",
+    "mail": "test@mail.com",
+    "sn": "Test",
+    "userName": "frodo-test",
+  },
+  "policyRuleIds": [
+    "df95d487-a251-458d-8299-14f2b131264c",
+  ],
+  "policyRuleNames": [
+    "test rule",
+  ],
+  "scheduleId": Any<String>,
+}
+`;
+
+exports[`IgaSodPolicyOps createPolicyExportTemplate() 1: Create Policy Export Template 1`] = `
+{
+  "meta": Any<Object>,
+  "policy": {},
+}
+`;
+
+exports[`IgaSodPolicyOps deletePolicy() 1: Delete existing policy by id 1`] = `
+{
+  "active": true,
+  "description": "this is a test policy",
+  "id": Any<String>,
+  "metadata": {
+    "createdDate": "2026-06-08T16:57:52.98528696Z",
+    "modifiedDate": "2026-06-08T16:57:52.985288004Z",
+  },
+  "name": "frodo-test-delete-by-id",
+  "policyOwner": {
+    "givenName": "Frodo",
+    "id": "managed/user/0ece145b-1467-4cac-b472-f8f34dfaeef3",
+    "mail": "test@mail.com",
+    "sn": "Test",
+    "userName": "frodo-test",
+  },
+  "policyRuleIds": [
+    "df95d487-a251-458d-8299-14f2b131264c",
+  ],
+  "policyRuleNames": [
+    "test rule",
+  ],
+  "scheduleId": Any<String>,
+}
+`;
+
+exports[`IgaSodPolicyOps deletePolicyByName() 1: Delete existing policy by name 1`] = `
+{
+  "active": true,
+  "description": "this is a test policy",
+  "id": Any<String>,
+  "metadata": {
+    "createdDate": "2026-06-08T16:57:55.1906951Z",
+    "modifiedDate": "2026-06-08T16:57:55.190696592Z",
+  },
+  "name": "frodo-test-delete-by-name",
+  "policyOwner": {
+    "givenName": "Frodo",
+    "id": "managed/user/0ece145b-1467-4cac-b472-f8f34dfaeef3",
+    "mail": "test@mail.com",
+    "sn": "Test",
+    "userName": "frodo-test",
+  },
+  "policyRuleIds": [
+    "df95d487-a251-458d-8299-14f2b131264c",
+  ],
+  "policyRuleNames": [
+    "test rule",
+  ],
+  "scheduleId": Any<String>,
+}
+`;
+
+exports[`IgaSodPolicyOps exportPolicies() 1: Export existing policies 1`] = `
+{
+  "meta": Any<Object>,
+  "policy": {
+    "frodo-test-create": {
+      "active": true,
+      "description": "this is a test policy",
+      "id": "[id]",
+      "metadata": {
+        "createdDate": "2026-06-08T16:57:57.07384849Z",
+        "modifiedDate": "2026-06-08T16:57:57.07385059Z",
+      },
+      "name": "frodo-test-create",
+      "policyOwner": {
+        "givenName": "Frodo",
+        "id": "managed/user/0ece145b-1467-4cac-b472-f8f34dfaeef3",
+        "mail": "test@mail.com",
+        "sn": "Test",
+        "userName": "frodo-test",
+      },
+      "policyRuleIds": [
+        "df95d487-a251-458d-8299-14f2b131264c",
+      ],
+      "policyRuleNames": [
+        "test rule",
+      ],
+      "scheduleId": "[scheduleId]",
+    },
+    "frodo-test-delete-by-id": {
+      "active": true,
+      "description": "this is a test policy",
+      "id": "[id]",
+      "metadata": {
+        "createdDate": "2026-06-08T16:57:52.98528696Z",
+        "modifiedDate": "2026-06-08T16:57:52.985288004Z",
+      },
+      "name": "frodo-test-delete-by-id",
+      "policyOwner": {
+        "givenName": "Frodo",
+        "id": "managed/user/0ece145b-1467-4cac-b472-f8f34dfaeef3",
+        "mail": "test@mail.com",
+        "sn": "Test",
+        "userName": "frodo-test",
+      },
+      "policyRuleIds": [
+        "df95d487-a251-458d-8299-14f2b131264c",
+      ],
+      "policyRuleNames": [
+        "test rule",
+      ],
+      "scheduleId": "[scheduleId]",
+    },
+    "frodo-test-delete-by-name": {
+      "active": true,
+      "description": "this is a test policy",
+      "id": "[id]",
+      "metadata": {
+        "createdDate": "2026-06-08T16:57:55.1906951Z",
+        "modifiedDate": "2026-06-08T16:57:55.190696592Z",
+      },
+      "name": "frodo-test-delete-by-name",
+      "policyOwner": {
+        "givenName": "Frodo",
+        "id": "managed/user/0ece145b-1467-4cac-b472-f8f34dfaeef3",
+        "mail": "test@mail.com",
+        "sn": "Test",
+        "userName": "frodo-test",
+      },
+      "policyRuleIds": [
+        "df95d487-a251-458d-8299-14f2b131264c",
+      ],
+      "policyRuleNames": [
+        "test rule",
+      ],
+      "scheduleId": "[scheduleId]",
+    },
+    "frodo-test-existing": {
+      "active": true,
+      "description": "this is a test policy",
+      "id": "[id]",
+      "metadata": {
+        "createdDate": "2026-06-08T16:57:47.12447938Z",
+        "modifiedDate": "2026-06-08T16:57:47.124482991Z",
+      },
+      "name": "frodo-test-existing",
+      "policyOwner": {
+        "givenName": "Frodo",
+        "id": "managed/user/0ece145b-1467-4cac-b472-f8f34dfaeef3",
+        "mail": "test@mail.com",
+        "sn": "Test",
+        "userName": "frodo-test",
+      },
+      "policyRuleIds": [
+        "df95d487-a251-458d-8299-14f2b131264c",
+      ],
+      "policyRuleNames": [
+        "test rule",
+      ],
+      "scheduleId": "[scheduleId]",
+    },
+  },
+}
+`;
+
+exports[`IgaSodPolicyOps exportPoliciesByName() 1: Export existing policy by name 1`] = `
+{
+  "meta": Any<Object>,
+  "policy": {
+    "frodo-test-existing": {
+      "active": true,
+      "description": "this is a test policy",
+      "id": "[id]",
+      "metadata": {
+        "createdDate": "2026-06-08T16:57:47.12447938Z",
+        "modifiedDate": "2026-06-08T16:57:47.124482991Z",
+      },
+      "name": "frodo-test-existing",
+      "policyOwner": {
+        "givenName": "Frodo",
+        "id": "managed/user/0ece145b-1467-4cac-b472-f8f34dfaeef3",
+        "mail": "test@mail.com",
+        "sn": "Test",
+        "userName": "frodo-test",
+      },
+      "policyRuleIds": [
+        "df95d487-a251-458d-8299-14f2b131264c",
+      ],
+      "policyRuleNames": [
+        "test rule",
+      ],
+      "scheduleId": "[scheduleId]",
+    },
+  },
+}
+`;
+
+exports[`IgaSodPolicyOps exportPolicy() 1: Export existing policy by id 1`] = `
+{
+  "meta": Any<Object>,
+  "policy": {
+    "frodo-test-existing": {
+      "active": true,
+      "description": "this is a test policy",
+      "id": "[id]",
+      "metadata": {
+        "createdDate": "2026-06-08T16:57:47.12447938Z",
+        "modifiedDate": "2026-06-08T16:57:47.124482991Z",
+      },
+      "name": "frodo-test-existing",
+      "policyOwner": {
+        "givenName": "Frodo",
+        "id": "managed/user/0ece145b-1467-4cac-b472-f8f34dfaeef3",
+        "mail": "test@mail.com",
+        "sn": "Test",
+        "userName": "frodo-test",
+      },
+      "policyRuleIds": [
+        "df95d487-a251-458d-8299-14f2b131264c",
+      ],
+      "policyRuleNames": [
+        "test rule",
+      ],
+      "scheduleId": "[scheduleId]",
+    },
+  },
+}
+`;
+
+exports[`IgaSodPolicyOps importPolicy() 1: Import None 1`] = `[]`;
+
+exports[`IgaSodPolicyOps importPolicy() 2: Import by id 1`] = `
+[
+  {
+    "active": true,
+    "description": "this is a test policy",
+    "id": "[id]",
+    "name": "frodo-test-delete-by-id",
+    "policyOwner": {
+      "givenName": "Frodo",
+      "id": "managed/user/0ece145b-1467-4cac-b472-f8f34dfaeef3",
+      "mail": "test@mail.com",
+      "sn": "Test",
+      "userName": "frodo-test",
+    },
+    "policyRuleIds": [
+      "df95d487-a251-458d-8299-14f2b131264c",
+    ],
+    "policyRuleNames": [
+      "test rule",
+    ],
+    "scheduleId": "[scheduleId]",
+  },
+]
+`;
+
+exports[`IgaSodPolicyOps importPolicy() 3: Import by name 1`] = `
+[
+  {
+    "active": true,
+    "description": "this is a test policy",
+    "id": "[id]",
+    "name": "frodo-test-delete-by-name",
+    "policyOwner": {
+      "givenName": "Frodo",
+      "id": "managed/user/0ece145b-1467-4cac-b472-f8f34dfaeef3",
+      "mail": "test@mail.com",
+      "sn": "Test",
+      "userName": "frodo-test",
+    },
+    "policyRuleIds": [
+      "df95d487-a251-458d-8299-14f2b131264c",
+    ],
+    "policyRuleNames": [
+      "test rule",
+    ],
+    "scheduleId": "[scheduleId]",
+  },
+]
+`;
+
+exports[`IgaSodPolicyOps importPolicy() 4: Import all 1`] = `
+"Error importing policy frodo-test-existing
+  Error creating policy frodo-test-existing
+    Network error:
+      URL: https://openam-frodo-dev.forgeblocks.com/iga/governance/policy?_action=create
+      Status: 400
+      Code: ERR_BAD_REQUEST
+      Message: Name must be different from the existing policies."
+`;
+
+exports[`IgaSodPolicyOps importPolicy() 4: Import all 2`] = `
+"Error importing policy frodo-test-delete-by-id
+  Error creating policy frodo-test-delete-by-id
+    Network error:
+      URL: https://openam-frodo-dev.forgeblocks.com/iga/governance/policy?_action=create
+      Status: 400
+      Code: ERR_BAD_REQUEST
+      Message: Name must be different from the existing policies."
+`;
+
+exports[`IgaSodPolicyOps importPolicy() 4: Import all 3`] = `
+"Error importing policy frodo-test-delete-by-name
+  Error creating policy frodo-test-delete-by-name
+    Network error:
+      URL: https://openam-frodo-dev.forgeblocks.com/iga/governance/policy?_action=create
+      Status: 400
+      Code: ERR_BAD_REQUEST
+      Message: Name must be different from the existing policies."
+`;
+
+exports[`IgaSodPolicyOps importPolicy() 4: Import all 4`] = `[]`;
+
+exports[`IgaSodPolicyOps readPolicies() 1: Read existing policies 1`] = `
+[
+  {
+    "active": true,
+    "description": "this is a test policy",
+    "id": "[id]",
+    "metadata": {
+      "createdDate": "2026-06-08T16:57:57.07384849Z",
+      "modifiedDate": "2026-06-08T16:57:57.07385059Z",
+    },
+    "name": "frodo-test-create",
+    "policyOwner": {
+      "givenName": "Frodo",
+      "id": "managed/user/0ece145b-1467-4cac-b472-f8f34dfaeef3",
+      "mail": "test@mail.com",
+      "sn": "Test",
+      "userName": "frodo-test",
+    },
+    "policyRuleIds": [
+      "df95d487-a251-458d-8299-14f2b131264c",
+    ],
+    "policyRuleNames": [
+      "test rule",
+    ],
+    "scheduleId": "[scheduleId]",
+  },
+  {
+    "active": true,
+    "description": "this is a test policy",
+    "id": "[id]",
+    "metadata": {
+      "createdDate": "2026-06-08T16:57:52.98528696Z",
+      "modifiedDate": "2026-06-08T16:57:52.985288004Z",
+    },
+    "name": "frodo-test-delete-by-id",
+    "policyOwner": {
+      "givenName": "Frodo",
+      "id": "managed/user/0ece145b-1467-4cac-b472-f8f34dfaeef3",
+      "mail": "test@mail.com",
+      "sn": "Test",
+      "userName": "frodo-test",
+    },
+    "policyRuleIds": [
+      "df95d487-a251-458d-8299-14f2b131264c",
+    ],
+    "policyRuleNames": [
+      "test rule",
+    ],
+    "scheduleId": "[scheduleId]",
+  },
+  {
+    "active": true,
+    "description": "this is a test policy",
+    "id": "[id]",
+    "metadata": {
+      "createdDate": "2026-06-08T16:57:55.1906951Z",
+      "modifiedDate": "2026-06-08T16:57:55.190696592Z",
+    },
+    "name": "frodo-test-delete-by-name",
+    "policyOwner": {
+      "givenName": "Frodo",
+      "id": "managed/user/0ece145b-1467-4cac-b472-f8f34dfaeef3",
+      "mail": "test@mail.com",
+      "sn": "Test",
+      "userName": "frodo-test",
+    },
+    "policyRuleIds": [
+      "df95d487-a251-458d-8299-14f2b131264c",
+    ],
+    "policyRuleNames": [
+      "test rule",
+    ],
+    "scheduleId": "[scheduleId]",
+  },
+  {
+    "active": true,
+    "description": "this is a test policy",
+    "id": "[id]",
+    "metadata": {
+      "createdDate": "2026-06-08T16:57:47.12447938Z",
+      "modifiedDate": "2026-06-08T16:57:47.124482991Z",
+    },
+    "name": "frodo-test-existing",
+    "policyOwner": {
+      "givenName": "Frodo",
+      "id": "managed/user/0ece145b-1467-4cac-b472-f8f34dfaeef3",
+      "mail": "test@mail.com",
+      "sn": "Test",
+      "userName": "frodo-test",
+    },
+    "policyRuleIds": [
+      "df95d487-a251-458d-8299-14f2b131264c",
+    ],
+    "policyRuleNames": [
+      "test rule",
+    ],
+    "scheduleId": "[scheduleId]",
+  },
+]
+`;
+
+exports[`IgaSodPolicyOps readPolicy() 1: Read existing policy by id 1`] = `
+{
+  "active": true,
+  "description": "this is a test policy",
+  "id": Any<String>,
+  "metadata": {
+    "createdDate": "2026-06-08T16:57:47.12447938Z",
+    "modifiedDate": "2026-06-08T16:57:47.124482991Z",
+  },
+  "name": "frodo-test-existing",
+  "policyOwner": {
+    "givenName": "Frodo",
+    "id": "managed/user/0ece145b-1467-4cac-b472-f8f34dfaeef3",
+    "mail": "test@mail.com",
+    "sn": "Test",
+    "userName": "frodo-test",
+  },
+  "policyRuleIds": [
+    "df95d487-a251-458d-8299-14f2b131264c",
+  ],
+  "policyRuleNames": [
+    "test rule",
+  ],
+  "scheduleId": Any<String>,
+}
+`;
+
+exports[`IgaSodPolicyOps readPolicyByName() 1: Read existing policy by name 1`] = `
+{
+  "active": true,
+  "description": "this is a test policy",
+  "id": Any<String>,
+  "metadata": {
+    "createdDate": "2026-06-08T16:57:47.12447938Z",
+    "modifiedDate": "2026-06-08T16:57:47.124482991Z",
+  },
+  "name": "frodo-test-existing",
+  "policyOwner": {
+    "givenName": "Frodo",
+    "id": "managed/user/0ece145b-1467-4cac-b472-f8f34dfaeef3",
+    "mail": "test@mail.com",
+    "sn": "Test",
+    "userName": "frodo-test",
+  },
+  "policyRuleIds": [
+    "df95d487-a251-458d-8299-14f2b131264c",
+  ],
+  "policyRuleNames": [
+    "test rule",
+  ],
+  "scheduleId": Any<String>,
+}
+`;
