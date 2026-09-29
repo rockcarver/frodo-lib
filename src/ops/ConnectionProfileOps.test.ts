@@ -27,6 +27,13 @@ describe('ConnectionProfileOps', () => {
   const connectionProfilePath1 = `${homedir()}/connections1.json`;
   const connectionProfilePath2 = `${homedir()}/connections2.json`;
   const connectionProfilePath3 = `${homedir()}/connections3.json`;
+  // Several tests below encrypt a password via saveConnectionProfile()
+  // without setting FRODO_MASTER_KEY(_PATH); without an explicit path here,
+  // DataProtection falls back to the real ~/.frodo/masterkey.key, reading
+  // (and, since the credential-file-permissions fix, chmod'ing) a real
+  // developer's actual master key. Route every test in this file through
+  // its own throwaway key instead.
+  const testMasterKeyPath = `${homedir()}/masterkey-connectionprofileops-test.key`;
 
   // delete all connection profile files before running the tests
   beforeAll(() => {
@@ -45,12 +52,18 @@ describe('ConnectionProfileOps', () => {
     } catch (error) {
       // ignore
     }
+    try {
+      fs.unlinkSync(testMasterKeyPath);
+    } catch (error) {
+      // ignore
+    }
   });
 
   beforeEach(() => {
     fs.writeFileSync(connectionProfilePath1, JSON.stringify({}));
     fs.writeFileSync(connectionProfilePath2, JSON.stringify({}));
     fs.writeFileSync(connectionProfilePath3, JSON.stringify({}));
+    state.setMasterKeyPath(testMasterKeyPath);
   });
 
   // clean up all connection profile files after running the tests
@@ -67,6 +80,11 @@ describe('ConnectionProfileOps', () => {
     }
     try {
       fs.unlinkSync(connectionProfilePath3);
+    } catch (error) {
+      // ignore
+    }
+    try {
+      fs.unlinkSync(testMasterKeyPath);
     } catch (error) {
       // ignore
     }

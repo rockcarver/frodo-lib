@@ -17,7 +17,7 @@ import { promisify } from 'util';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { printMessage } from './Console';
-import { ensureDirectoryForFile } from './ExportImportUtils';
+import { secureExistingFileSync, writeSecureFile } from './ExportImportUtils';
 import { getFrodoHome } from './FrodoUtils';
 
 const scrypt = promisify(crypto.scrypt);
@@ -27,6 +27,28 @@ const _nonce = new WeakMap();
 const _salt = new WeakMap();
 const _key = new WeakMap();
 const _encrypt = new WeakMap();
+
+/**
+ * Tighten the permissions of the master key file on disk, without deriving
+ * or touching a key — for callers that run on every command invocation
+ * (e.g. initConnectionProfiles) and want to self-heal a key file left
+ * over from an older frodo version, even when this particular command
+ * never ends up calling encrypt()/decrypt() (e.g. connection profiles that
+ * are already fully migrated, so no secret gets encrypted this run).
+ * A no-op if the key comes from FRODO_MASTER_KEY (no file involved) or the
+ * file doesn't exist yet (it will be created owner-only on first use).
+ * @param {string} pathToMasterKey optional explicit master key path, same as the DataProtection constructor
+ */
+export function secureMasterKeyFile(pathToMasterKey?: string): void {
+  if (process.env[Constants.FRODO_MASTER_KEY_KEY]) return;
+  const masterKeyPath =
+    pathToMasterKey ||
+    process.env[Constants.FRODO_MASTER_KEY_PATH_KEY] ||
+    path.join(getFrodoHome(), 'masterkey.key');
+  if (fs.existsSync(masterKeyPath)) {
+    secureExistingFileSync(masterKeyPath);
+  }
+}
 
 class DataProtection {
   constructor({
@@ -51,19 +73,23 @@ class DataProtection {
           if (!fs.existsSync(masterKeyPath())) {
             const masterKey = crypto.randomBytes(32).toString('base64');
             // the directory portion of the path may not exist yet (bare
-            // consumers, custom FRODO_MASTER_KEY_PATH); create it so a
-            // generated key can actually be persisted. A master key that
-            // cannot be persisted must not degrade into empty-key encryption:
-            // scrypt('', salt, 32) is recoverable by anyone, so let the
-            // failure propagate instead of silently encrypting.
+            // consumers, custom FRODO_MASTER_KEY_PATH); create it (and the
+            // key file, owner-only, 0700/0600) so a generated key can
+            // actually be persisted. A master key that cannot be persisted
+            // must not degrade into empty-key encryption: scrypt('', salt,
+            // 32) is recoverable by anyone, so let the failure propagate
+            // instead of silently encrypting.
             try {
-              ensureDirectoryForFile(masterKeyPath());
-            } catch (mkdirError) {
+              await writeSecureFile(masterKeyPath(), masterKey);
+            } catch (writeError) {
               throw new Error(
-                `Unable to create directory for master key file ${masterKeyPath()}: ${mkdirError.message}`
+                `Unable to create master key file ${masterKeyPath()}: ${writeError.message}`
               );
             }
-            await fsp.writeFile(masterKeyPath(), masterKey);
+          } else {
+            // self-heal an existing key file created by an older frodo
+            // version that didn't restrict permissions
+            secureExistingFileSync(masterKeyPath());
           }
           return await fsp.readFile(masterKeyPath(), 'utf8');
         } catch (err) {

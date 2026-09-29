@@ -89,7 +89,11 @@ describe('saveConnectionProfile', () => {
     const filename = join(baseTmp, 'profiles', 'Connections.json');
     const host = 'https://openam-writers-test.forgeblocks.com/am';
     const prevStatePath = state.getConnectionProfilesPath();
+    const prevMasterKeyPath = state.getMasterKeyPath();
     try {
+      // encrypting the password below would otherwise fall back to the
+      // real ~/.frodo/masterkey.key (no FRODO_MASTER_KEY(_PATH) set here)
+      state.setMasterKeyPath(join(baseTmp, 'profiles-master.key'));
       state.setConnectionProfilesPath(filename);
       state.setHost(host);
       state.setDeploymentType('classic');
@@ -102,6 +106,7 @@ describe('saveConnectionProfile', () => {
       expect(connections[host].username).toBe('frodo.baggins@shire.me');
     } finally {
       state.setConnectionProfilesPath(prevStatePath);
+      state.setMasterKeyPath(prevMasterKeyPath);
     }
   }, 30000);
 
