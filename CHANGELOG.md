@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [v4.9.2] - 2026-09-29
+
+### Fixed
+- Normalized path separators in `snapshotResolve.js` for Windows, ensuring consistent behavior across platforms. (f2419e186)
+- Self-heal master key permissions on every command execution, not just during legacy migration, to maintain secure access. (5f8beee6a)
+- Restricted permissions on credential files (master key, connection profiles, token cache) to prevent unauthorized access. These files are now written with secure permissions, addressing potential vulnerabilities on multi-user systems. (a5185272b, #649)
+
+### Security
+- Improved security by restricting permissions on credential files, including the master key, connection profiles, and token cache. This change prevents unauthorized access to sensitive data on multi-user systems. (a5185272b, #649)
+
 ## [v4.9.1] - 2026-09-29
 
 ### Fixed
@@ -2435,6 +2445,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v4.9.2]: https://github.com/rockcarver/frodo-lib/compare/v4.9.1...v4.9.2
 [v4.9.1]: https://github.com/rockcarver/frodo-lib/compare/v4.9.0...v4.9.1
 [v4.9.0]: https://github.com/rockcarver/frodo-lib/compare/v4.8.6...v4.9.0
 [v4.8.6]: https://github.com/rockcarver/frodo-lib/compare/v4.8.6-1...v4.8.6
