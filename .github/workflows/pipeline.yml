@@ -247,6 +247,20 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
+      # The repo's Polly-recorded mock fixtures include very deeply nested
+      # directory names (e.g. under src/test/mock-recordings/...) that
+      # exceed Windows' default ~260-char MAX_PATH. Without this, git
+      # itself fails to check them out ("Filename too long") before any
+      # test code runs. core.longpaths makes git use the \\?\ long-path
+      # prefix internally, which Windows has honored since XP -- no OS-level
+      # opt-in (e.g. the LongPathsEnabled registry key) is required. Must
+      # run before checkout, which does its own fresh `git init` and would
+      # otherwise pick up the default (disabled) setting.
+      - name: Enable git long paths (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --global core.longpaths true
+
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
