@@ -52,6 +52,10 @@ npm run lint
 npm test
 ```
 
+### Testing with recorded HTTP traffic
+
+Unit tests in frodo-lib replay recorded HTTP responses instead of calling a real environment, and consumers such as frodo-cli use the same machinery for their own tests. The [record and replay developer guide](RECORD_REPLAY.md) covers both the process-wide mechanism (`FRODO_MOCK`) that tools use and the in-process Jest helper (`autoSetupPolly()`, `FRODO_POLLY_MODE`) that frodo-lib's own tests use. Read it before changing anything in `src/utils/SetupPollyForFrodoLib.ts`, `src/utils/PollyUtils.ts` or `src/utils/AutoSetupPolly.ts`, and update it in the same PR.
+
 ### Code structure and conventions
 
 Frodo Library adheres to the following folder and file structure:

@@ -1,4 +1,9 @@
 /* eslint-disable no-console */
+// Process-wide record/replay of frodo-lib's HTTP traffic, enabled by the
+// FRODO_MOCK environment variable (see api/BaseApi.ts). For how to use it,
+// what every FRODO_MOCK* variable does, and how recordings are named and
+// shared, see RECORD_REPLAY.md at the root of this repository -- and keep that
+// guide in sync when changing this file.
 import path from 'path';
 
 import { EXPIRY_STRATEGY, Polly } from '@pollyjs/core';
