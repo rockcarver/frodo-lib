@@ -74,11 +74,10 @@ function authenticationMatchRequestsBy(pathname: boolean = true) {
 // shared cassette (shared/auth/<type>, see getSharedAuthRecordingName below).
 // Classic and forgeops log in differently from each other and from cloud
 // (forgeops additionally needs an oauth2 token for IDM, classic needs none),
-// so each type gets its own cassette rather than sharing one. Only cloud has
-// been migrated so far: classic and forgeops keep the original per-command
-// recording name until their cassettes are populated -- add them here once
-// they are.
-const SHARED_AUTH_DEPLOYMENT_TYPES = ['cloud'];
+// so each type gets its own cassette rather than sharing one. Classic has not
+// been migrated yet and keeps the original per-command recording name until
+// its cassette is populated -- add it here once it is.
+const SHARED_AUTH_DEPLOYMENT_TYPES = ['cloud', 'forgeops'];
 
 /**
  * The deployment type the current test process is exercising, used to pick a
