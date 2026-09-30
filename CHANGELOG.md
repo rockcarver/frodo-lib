@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [v4.9.3] - 2026-09-30
+
+### Added
+- Introduced a developer guide for record and replay functionality, detailing how to supply custom recording hosts. This guide aids developers in utilizing the record/replay support effectively. (commit 542735d0b, commit 18e5396db)
+
+### Changed
+- Enabled shared authentication cassettes for different deployment types, optimizing the login sequence in end-to-end tests. This change deduplicates the login sequence recordings across deployment types, enhancing test efficiency. (commit 397bee712)
+
 ## [v4.9.2] - 2026-09-29
 
 ### Fixed
@@ -2445,6 +2453,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v4.9.3]: https://github.com/rockcarver/frodo-lib/compare/v4.9.2...v4.9.3
 [v4.9.2]: https://github.com/rockcarver/frodo-lib/compare/v4.9.1...v4.9.2
 [v4.9.1]: https://github.com/rockcarver/frodo-lib/compare/v4.9.0...v4.9.1
 [v4.9.0]: https://github.com/rockcarver/frodo-lib/compare/v4.8.6...v4.9.0
