@@ -96,7 +96,7 @@ This mechanism is process-wide and is designed for tools that run frodo-lib in t
 | `FRODO_NO_CACHE` | Set to `1` when recording. Disables frodo-lib's on-disk token cache; otherwise a cached token can mean the login calls you want to capture never happen. |
 | `FRODO_TEST_NAME` | Sets the recording identity explicitly. Record and replay must use the same value. See [Recording identity and layout](#recording-identity-and-layout). |
 | `FRODO_MOCK_DIR` | Directory recordings are read from and written to. Default `test/e2e/mocks`, relative to the working directory. |
-| `FRODO_MOCK_HOSTS` | Comma-separated list of origins (scheme, host, and port if non-default) whose traffic is routed to per-area recordings. Default: the frodo development hosts. See [Hosts](#hosts). |
+| `FRODO_MOCK_HOSTS` | Comma-separated list of origins (scheme, host, and port if non-default) whose traffic is routed to per-area recordings. **Replaces** the built-in list of frodo development hosts. See [Hosts](#hosts). |
 | `FRODO_MOCK_DEPLOYMENT` | `cloud`, `forgeops` or `classic`. Selects the [shared login cassette](#shared-login-cassettes). |
 | `FRODO_MOCK_DEDICATED_AUTH` | Set to any value to opt one run out of the shared login cassette (for example a test of invalid credentials). |
 | `FRODO_MOCK_REFRESH_SHARED_AUTH` | Set to `1`, together with `FRODO_MOCK=record`, to deliberately write the shared login cassette. Without it a recording run never writes to it. |
@@ -163,7 +163,9 @@ It deliberately **ignores** hostname, port, protocol, credentials in the URL, an
 
 ## Hosts
 
-`FRODO_MOCK_HOSTS` controls which origins get the per-area routing described above. The default is:
+`FRODO_MOCK_HOSTS` is a **routing list, not an allow-list**. Requests to a host on the list are grouped into the per-area recordings described under [Request routing](#request-routing). Requests to any other host are still intercepted (recorded or replayed like the rest) but are not routed: they all land in Polly's fallback recording, `default`. So a host that is missing from the list does not fail loudly; you just get a `default_<hash>` directory at the top of the recordings folder while recording, and `Recording for the following request is not found` while replaying.
+
+**The built-in list** is what you get when the variable is unset:
 
 ```
 https://openam-frodo-dev.forgeblocks.com
@@ -173,7 +175,34 @@ https://nightly.gcp.forgeops.com
 http://openam-frodo-dev.classic.com:8080
 ```
 
-For your own tenant, set it explicitly (comma-separated, including scheme and any port), otherwise its traffic lands in the `default` recording. Recorded URLs are otherwise normalized (`filterRecording`: proxy prefixes are stripped so a run through a proxy records the same as one without, and the `host` header is rewritten), but matching never depends on the host.
+**Supplying your own hosts.** Set `FRODO_MOCK_HOSTS` to a comma-separated list of origins:
+
+```console
+# one tenant
+FRODO_MOCK_HOSTS=https://openam-mytenant.forgeblocks.com
+
+# several environments (a cloud tenant and a classic server on a non-default port)
+FRODO_MOCK_HOSTS=https://openam-mytenant.forgeblocks.com,http://am.internal.example.com:8080
+```
+
+Rules that matter:
+
+- **It replaces the built-in list; it does not add to it.** If a run also talks to one of the built-in hosts, list that host too. (Verified: with only an unrelated host set, a run against a built-in host stops finding its recordings; with the built-in host listed alongside another, it works.)
+- **Each entry is an origin**: scheme, host, and the port if it is not the default for the scheme. No path: write `https://openam-mytenant.forgeblocks.com`, not `.../am`. This is the form of the built-in entries.
+- **Separate entries with commas.** Whitespace around an entry was tolerated when tested, but write them without spaces.
+- **The variable is read once, when frodo-lib loads.** Set it in the environment of the process that runs frodo-lib (for a spawned tool, in the environment you spawn it with).
+- **`api.github.com` and `registry.npmjs.org` are always handled** (as `github` and `npmjs`) and do not need listing.
+- **An empty value counts as unset** and gives you the built-in list.
+
+**When it matters.** The host a run talks to has to be on that run's list, both when recording and when replaying. It does *not* have to be the same host: matching ignores the host, so you can record against `openam-mytenant.forgeblocks.com` and replay against a built-in host (or the reverse), as long as each run lists the host it uses. In practice:
+
+- Recording against your own tenant: set `FRODO_MOCK_HOSTS` for the recording run.
+- Replaying recordings that were made elsewhere, against a host you did not list: set it there too, or make the replay target a host that is on the list.
+- A tool with its own permanent set of environments: bake the variable into the script or runner that launches it (a `package.json` script, a CI job's environment, a shell profile) so every developer records and replays with the same list.
+
+**Checking that it worked.** After a recording run, look for a `default_*` directory in the recordings folder. If one appears, some host was not on the list (its recordings are worthless for routing; delete them, fix the list, and record again).
+
+Recorded URLs are otherwise normalized by `filterRecording` (a proxy prefix is stripped, so a run through a proxy records the same as one without, and the `host` header is rewritten), but matching never depends on the host.
 
 ## Shared login cassettes
 

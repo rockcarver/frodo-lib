@@ -24,6 +24,10 @@ const FRODO_TEST_NAME = process.env.FRODO_TEST_NAME
   ? process.env.FRODO_TEST_NAME
   : null;
 
+// Origins whose traffic is routed to per-area recordings (see the route setup
+// below). FRODO_MOCK_HOSTS (comma-separated origins) REPLACES this default
+// list; traffic to a host that is not listed lands in the "default"
+// recording. See the "Hosts" section of RECORD_REPLAY.md.
 const FRODO_MOCK_HOSTS = process.env.FRODO_MOCK_HOSTS
   ? process.env.FRODO_MOCK_HOSTS.split(',')
   : [
