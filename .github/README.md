@@ -13,6 +13,7 @@ Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the comma
 - [Considerations](#considerations)
 - [Installing](#installing)
 - [Using the library](#using-the-library)
+- [Recording and replaying HTTP traffic](#recording-and-replaying-http-traffic)
 - [Library API docs](#library-api-docs)
 - [Request features or report issues](#feature-requests)
 - [Contributing](#contributing)
@@ -546,6 +547,12 @@ await defaultAdminLogin();
 ```
 
 Check out all the examples in `/path/to/frodo-lib/examples`.
+
+## Recording and replaying HTTP traffic
+
+frodo-lib can record the HTTP traffic it produces against a real environment and replay it later with no network access. frodo-cli runs its whole end-to-end test suite this way, and any tool built on frodo-lib can do the same: set `FRODO_MOCK=record` to record and `FRODO_MOCK=1` to replay.
+
+See the [record and replay developer guide](https://github.com/rockcarver/frodo-lib/blob/main/RECORD_REPLAY.md) for how to record and replay, where recordings are stored, how login is shared between runs, and how secrets and expiration are handled.
 
 ## Library API docs
 

@@ -1,4 +1,9 @@
 /* eslint-disable no-console */
+// Process-wide record/replay of frodo-lib's HTTP traffic, enabled by the
+// FRODO_MOCK environment variable (see api/BaseApi.ts). For how to use it,
+// what every FRODO_MOCK* variable does, and how recordings are named and
+// shared, see RECORD_REPLAY.md at the root of this repository -- and keep that
+// guide in sync when changing this file.
 import path from 'path';
 
 import { EXPIRY_STRATEGY, Polly } from '@pollyjs/core';
@@ -19,6 +24,10 @@ const FRODO_TEST_NAME = process.env.FRODO_TEST_NAME
   ? process.env.FRODO_TEST_NAME
   : null;
 
+// Origins whose traffic is routed to per-area recordings (see the route setup
+// below). FRODO_MOCK_HOSTS (comma-separated origins) REPLACES this default
+// list; traffic to a host that is not listed lands in the "default"
+// recording. See the "Hosts" section of RECORD_REPLAY.md.
 const FRODO_MOCK_HOSTS = process.env.FRODO_MOCK_HOSTS
   ? process.env.FRODO_MOCK_HOSTS.split(',')
   : [
@@ -35,6 +44,8 @@ let mode = MODES.REPLAY;
 const recordingsDir = process.env.FRODO_MOCK_DIR
   ? process.env.FRODO_MOCK_DIR
   : 'test/e2e/mocks';
+
+const SHARED_AUTH_RECORDING_BASE_NAME = 'shared/auth';
 
 // How long a recorded fixture stays trusted before it's considered stale.
 // Defaults to warning only (never breaks a replay run on its own) so that
@@ -68,34 +79,56 @@ function authenticationMatchRequestsBy(pathname: boolean = true) {
   return matchRequestsBy;
 }
 
-// Scopes the shared-login recording dedup (see getSharedAuthRecordingName
-// below) to PingOne Advanced Identity Cloud hosts. Classic and forgeops
-// hosts keep the original per-command recording name untouched -- their
-// e2e fixtures were recorded under that scheme and, unlike cloud, don't yet
-// have a live re-recording story to repopulate a renamed shared cassette.
-function isCloudHost(host: string): boolean {
-  return host.includes('.forgeblocks.com');
+// Deployment types whose login/session-bootstrap sequence is deduped into a
+// shared cassette (shared/auth/<type>, see getSharedAuthRecordingName below).
+// Classic and forgeops log in differently from each other and from cloud
+// (forgeops additionally needs an oauth2 token for IDM, classic needs none),
+// so each type gets its own cassette rather than sharing one.
+const SHARED_AUTH_DEPLOYMENT_TYPES = ['cloud', 'forgeops', 'classic'];
+
+/**
+ * The deployment type the current test process is exercising, used to pick a
+ * shared auth cassette. The e2e harness declares it explicitly through
+ * FRODO_MOCK_DEPLOYMENT (set by test/e2e/utils/TestUtils.js's getEnv() from
+ * the connection it was given): nothing else is reliable at the time Polly is
+ * configured -- frodo-lib's own deployment type isn't known until login has
+ * already started, and classic and forgeops login requests are identical up
+ * to the point they'd be distinguishable. When unset, cloud hosts are still
+ * recognized by hostname so callers that don't declare a type keep sharing
+ * the cloud cassette; anything else returns undefined (no shared cassette).
+ */
+function getMockDeploymentType(host: string): string | undefined {
+  return (
+    process.env.FRODO_MOCK_DEPLOYMENT ||
+    (host.includes('.forgeblocks.com') ? 'cloud' : undefined)
+  );
 }
 
 /**
  * Recording name for the login/session-bootstrap sequence (oauth2 token
  * exchange, /authenticate, and the getSessionInfo call that immediately
- * follows it) on a cloud host. Deliberately independent of
+ * follows it) of a deployment type. Deliberately independent of
  * getFrodoCommand()'s per-test/argv name: every e2e test that logs in
  * currently re-records an identical login sequence under its own recording,
  * even though the e2e suite reuses one fixed credential per deployment type
  * (see test/e2e/utils/TestConfig.js).
  *
- * Deliberately NOT keyed by host: no recording name anywhere in this file
- * encodes hostname, and matching already ignores it (see
+ * Keyed by deployment *type*, never by host: no recording name anywhere in
+ * this file encodes hostname, and matching already ignores it (see
  * authenticationMatchRequestsBy()'s hostname: false) -- this project's own
  * convention is that a recording made against one PingOne AIC dev tenant
  * (e.g. volker-dev) replays fine against another (e.g. frodo-dev), since
- * different developers use different tenants day to day. Keying this by
- * host would silently break that. Only call this for hosts isCloudHost()
- * returns true for.
+ * different developers use different tenants day to day. Deployment type is
+ * not a per-developer choice, so it is safe to key on. Returns undefined for
+ * types that don't have a shared cassette (yet).
  */
-const SHARED_AUTH_RECORDING_NAME = 'shared/auth';
+function getSharedAuthRecordingName(
+  deploymentType: string | undefined
+): string | undefined {
+  return deploymentType && SHARED_AUTH_DEPLOYMENT_TYPES.includes(deploymentType)
+    ? `${SHARED_AUTH_RECORDING_BASE_NAME}/${deploymentType}`
+    : undefined;
+}
 
 // returns a delayed promise
 async function delay(ms) {
@@ -363,12 +396,15 @@ export function setupPollyForFrodoLib({
       const dedicatedAuth = !!process.env.FRODO_MOCK_DEDICATED_AUTH;
       const regularRecordingPass =
         mode === MODES.RECORD && !process.env.FRODO_MOCK_REFRESH_SHARED_AUTH;
+      const sharedAuthCassette = getSharedAuthRecordingName(
+        getMockDeploymentType(host)
+      );
       const sharedAuthName =
-        isCloudHost(host) && !dedicatedAuth && !regularRecordingPass
-          ? SHARED_AUTH_RECORDING_NAME
+        sharedAuthCassette && !dedicatedAuth && !regularRecordingPass
+          ? sharedAuthCassette
           : undefined;
       const liveNoPersistAuth =
-        isCloudHost(host) && !dedicatedAuth && regularRecordingPass;
+        !!sharedAuthCassette && !dedicatedAuth && regularRecordingPass;
 
       polly.server
         .any('/am/oauth2/*')
