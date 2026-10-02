@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+- Bulk SAML2 entity provider import (`importSaml2Providers`) now applies the extended remote provider configuration after creation, matching single provider import. Previously, remote providers imported via bulk import (including `frodo config-manager` import/push) lost their extended configuration on first import.
+- Failed SAML2 provider imports now report both the create and the update error instead of only the update error.
+
 ## [v4.9.3] - 2026-09-30
 
 ### Added

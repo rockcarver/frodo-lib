@@ -6148,24 +6148,282 @@ exports[`Saml2Ops importSaml2Providers() 1: Import providers 1`] = `
     },
   },
   {
+    "_id": "aHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzExZmZhOWMtNTk3Mi00NzEzLWFjZTMtNjg4Yzk3MzI2MTRhLw",
+    "_rev": "-859975283",
+    "entityId": "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/",
+    "identityProvider": {
+      "assertionContent": {
+        "basicAuthentication": {},
+        "nameIdFormat": {},
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {},
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "services": {
+        "serviceAttributes": {
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://login.microsoftonline.com/711ffa9c-5972-4713-ace3-688c9732614a/saml2",
+            },
+          ],
+          "singleSignOnService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://login.microsoftonline.com/711ffa9c-5972-4713-ace3-688c9732614a/saml2",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://login.microsoftonline.com/711ffa9c-5972-4713-ace3-688c9732614a/saml2",
+            },
+          ],
+        },
+      },
+    },
     "importedEntities": [
       "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/",
     ],
   },
   {
+    "_id": "aWRw",
+    "_rev": "41055057",
+    "entityId": "idp",
+    "identityProvider": {
+      "assertionContent": {
+        "basicAuthentication": {},
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {
+            "authenticationRequest": false,
+          },
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "services": {
+        "nameIdMapping": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://openam-admin-fed.forgeblocks.com/am/NIMSoap/metaAlias/alpha/idp",
+          },
+        ],
+        "serviceAttributes": {
+          "artifactResolutionService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/ArtifactResolver/metaAlias/alpha/idp",
+            },
+          ],
+          "nameIdService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/IDPMniPOST/metaAlias/alpha/idp",
+              "responseLocation": "https://openam-admin-fed.forgeblocks.com/am/IDPMniPOST/metaAlias/alpha/idp",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/IDPMniRedirect/metaAlias/alpha/idp",
+              "responseLocation": "https://openam-admin-fed.forgeblocks.com/am/IDPMniRedirect/metaAlias/alpha/idp",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/IDPMniSoap/metaAlias/alpha/idp",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/IDPSloRedirect/metaAlias/alpha/idp",
+              "responseLocation": "https://openam-admin-fed.forgeblocks.com/am/IDPSloRedirect/metaAlias/alpha/idp",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/IDPSloPOST/metaAlias/alpha/idp",
+              "responseLocation": "https://openam-admin-fed.forgeblocks.com/am/IDPSloPOST/metaAlias/alpha/idp",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/IDPSloSoap/metaAlias/alpha/idp",
+            },
+          ],
+          "singleSignOnService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/SSOPOST/metaAlias/alpha/idp",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/SSORedirect/metaAlias/alpha/idp",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/SSOSoap/metaAlias/alpha/idp",
+            },
+          ],
+        },
+      },
+    },
     "importedEntities": [
       "idp",
     ],
   },
   {
+    "_id": "dXJuOmZlZGVyYXRpb246TWljcm9zb2Z0T25saW5l",
+    "_rev": "317057337",
+    "entityId": "urn:federation:MicrosoftOnline",
     "importedEntities": [
       "urn:federation:MicrosoftOnline",
     ],
+    "serviceProvider": {
+      "advanced": {
+        "idpProxy": {},
+        "saeConfiguration": {},
+      },
+      "assertionContent": {
+        "basicAuthentication": {},
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "urn:mace:shibboleth:1.0:nameIdentifier",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {
+            "assertion": true,
+          },
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "assertionProcessing": {
+        "attributeMapper": {
+          "attributeMap": [
+            {
+              "binary": false,
+              "localAttribute": "mail",
+              "samlAttribute": "IDPEmail",
+            },
+            {
+              "binary": false,
+              "localAttribute": "UOPClassID",
+              "samlAttribute": "UOPClassID",
+            },
+          ],
+        },
+        "responseArtifactMessageEncoding": {
+          "encoding": "URI",
+        },
+      },
+      "services": {
+        "serviceAttributes": {
+          "assertionConsumerService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "index": 0,
+              "isDefault": true,
+              "location": "https://login.microsoftonline.com/login.srf",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST-SimpleSign",
+              "index": 1,
+              "isDefault": false,
+              "location": "https://login.microsoftonline.com/login.srf",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:PAOS",
+              "index": 2,
+              "isDefault": false,
+              "location": "https://login.microsoftonline.com/login.srf",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://login.microsoftonline.com/login.srf",
+            },
+          ],
+        },
+      },
+    },
   },
   {
+    "_id": "aHR0cHM6Ly9zYW1sLm15dGVzdHJ1bi5jb20vc3A",
+    "_rev": "-1375425000",
+    "entityId": "https://saml.mytestrun.com/sp",
     "importedEntities": [
       "https://saml.mytestrun.com/sp",
     ],
+    "serviceProvider": {
+      "advanced": {
+        "idpProxy": {},
+        "saeConfiguration": {},
+      },
+      "assertionContent": {
+        "basicAuthentication": {
+          "enabled": false,
+        },
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {
+            "assertion": false,
+            "authenticationRequest": false,
+          },
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "assertionProcessing": {
+        "attributeMapper": {},
+        "responseArtifactMessageEncoding": {},
+      },
+      "services": {
+        "serviceAttributes": {
+          "assertionConsumerService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "index": 0,
+              "isDefault": true,
+              "location": "https://saml.mytestrun.com:443/sp/fedletapplication",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact",
+              "index": 1,
+              "isDefault": false,
+              "location": "https://saml.mytestrun.com:443/sp/fedletapplication",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://saml.mytestrun.com:443/sp/fedletSloRedirect",
+              "responseLocation": "https://saml.mytestrun.com:443/sp/fedletSloRedirect",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://saml.mytestrun.com:443/sp/fedletSloPOST",
+              "responseLocation": "https://saml.mytestrun.com:443/sp/fedletSloPOST",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://saml.mytestrun.com:443/sp/fedletSloSoap",
+            },
+          ],
+        },
+      },
+    },
   },
 ]
 `;
