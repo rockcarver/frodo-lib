@@ -477,7 +477,7 @@ jobs:
       - name: Unzip build artifact
         run: unzip -o build.zip
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
