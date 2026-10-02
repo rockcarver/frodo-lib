@@ -1007,6 +1007,9 @@ export async function importSaml2Provider({
           metaData,
           state,
         });
+        // remote entity providers are created from standard metadata only, so
+        // the remainder of their configuration must be applied with a
+        // subsequent update
         if (location === 'remote') {
           const updateResponse = await _updateProvider({
             location,
@@ -1015,14 +1018,13 @@ export async function importSaml2Provider({
           });
           response = { ...response, ...updateResponse };
         }
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (createProviderErr) {
         try {
           response = await _updateProvider({ location, providerData, state });
-        } catch (error) {
+        } catch (updateProviderErr) {
           throw new FrodoError(
-            `Error creating ${getCurrentRealmName(state) + ' realm'} saml2 provider`,
-            error
+            `Error creating or updating ${getCurrentRealmName(state) + ' realm'} saml2 provider`,
+            [createProviderErr, updateProviderErr]
           );
         }
       }
@@ -1093,17 +1095,37 @@ export async function importSaml2Providers({
         );
       }
       try {
-        response.push(
-          await _createProvider({ location, providerData, metaData, state })
-        );
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const createResponse = await _createProvider({
+          location,
+          providerData,
+          metaData,
+          state,
+        });
+        // remote entity providers are created from standard metadata only, so
+        // the remainder of their configuration must be applied with a
+        // subsequent update
+        if (location === 'remote') {
+          const updateResponse = await _updateProvider({
+            location,
+            providerData,
+            state,
+          });
+          response.push({ ...createResponse, ...updateResponse });
+        } else {
+          response.push(createResponse);
+        }
       } catch (createProviderErr) {
         try {
           response.push(
             await _updateProvider({ location, providerData, state })
           );
-        } catch (error) {
-          errors.push(error);
+        } catch (updateProviderErr) {
+          errors.push(
+            new FrodoError(
+              `Error creating or updating ${getCurrentRealmName(state) + ' realm'} saml2 provider`,
+              [createProviderErr, updateProviderErr]
+            )
+          );
         }
       }
     }
