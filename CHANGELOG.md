@@ -7,8 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [v4.9.4] - 2026-10-02
+
 ### Fixed
-- Bulk SAML2 entity provider import (`importSaml2Providers`) now applies the extended remote provider configuration after creation, matching single provider import. Previously, remote providers imported via bulk import (including `frodo config-manager` import/push) lost their extended configuration on first import.
+- Bulk SAML2 entity provider import (`importSaml2Providers`) now applies the extended remote provider configuration after creation, matching single provider import. Previously, remote providers imported via bulk import (including `frodo config-manager` import/push) lost their extended configuration on first import. Failed SAML2 provider imports now report both the create and the update error instead of only the update error. (#652)
 - Failed SAML2 provider imports now report both the create and the update error instead of only the update error.
 
 ## [v4.9.3] - 2026-09-30
@@ -2457,6 +2459,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v4.9.4]: https://github.com/rockcarver/frodo-lib/compare/v4.9.3...v4.9.4
 [v4.9.3]: https://github.com/rockcarver/frodo-lib/compare/v4.9.2...v4.9.3
 [v4.9.2]: https://github.com/rockcarver/frodo-lib/compare/v4.9.1...v4.9.2
 [v4.9.1]: https://github.com/rockcarver/frodo-lib/compare/v4.9.0...v4.9.1
