@@ -24,10 +24,11 @@
     "clean-types": "rimraf types",
     "generate-types": "tsc",
     "generate-help": "node scripts/generate-help.mjs",
-    "build": "npm run generate-help && npx tsup && npm run clean-types && npm run generate-types",
+    "build": "npm run generate-help && npx tsdown && npm run clean-types && npm run generate-types",
     "doc": "npx typedoc",
     "prettier:fix": "npm run prettier write",
-    "dev": "npx tsup --watch src --onSuccess 'npx tsup --dts-only'"
+    "dev": "npx tsdown --watch src --onSuccess 'npx tsdown --dts-only'",
+    "postinstall": "node scripts/patch-axios-types.cjs"
   },
   "description": "A library to manage ForgeRock Identity Cloud tenants, ForgeOps deployments, and classic deployments.",
   "keywords": [
@@ -131,7 +132,7 @@
     "sshpk": "^1.18.0",
     "tinyrainbow": "^3.0.3",
     "ts-jest": "^29.1.2",
-    "tsup": "^8.0.2",
+    "tsdown": "0.23.0",
     "typedoc": "^0.28.16",
     "typedoc-plugin-missing-exports": "^4.1.2",
     "typescript": "5.8",
