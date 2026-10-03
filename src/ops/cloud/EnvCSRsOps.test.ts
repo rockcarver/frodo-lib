@@ -51,12 +51,12 @@
  * in case things don't function as expected
  */
 import * as EnvCSRsApi from '../../api/cloud/EnvCSRsApi';
-import * as EnvCSRsOps from './EnvCSRsOps';
-import { autoSetupPolly } from '../../utils/AutoSetupPolly';
-import { filterRecording } from '../../utils/PollyUtils';
 import { state } from '../../index';
 import { issueSelfSignedCertificate } from '../../test/utils/TestUtils';
+import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 import { stringify } from '../../utils/JsonUtils';
+import { filterRecording } from '../../utils/PollyUtils';
+import * as EnvCSRsOps from './EnvCSRsOps';
 
 const ctx = autoSetupPolly();
 

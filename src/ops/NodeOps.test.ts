@@ -43,13 +43,12 @@
  * in case things don't function as expected
  */
 import { frodo, state } from '../index';
-import * as NodeOps from './NodeOps';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import { filterRecording } from '../utils/PollyUtils';
 import Constants from '../shared/Constants';
-
 import * as TestData from '../test/setup/NodeSetup';
 import { snapshotResultCallback } from '../test/utils/TestUtils';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
+import * as NodeOps from './NodeOps';
 
 const ctx = autoSetupPolly();
 type SnapshotRecord = Record<string, any> & { _id?: string };

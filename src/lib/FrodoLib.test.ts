@@ -1,9 +1,9 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { frodo, frodo as instance0, state as state0 } from '../index';
 import Constants from '../shared/Constants';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import fs from 'fs'
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -75,17 +75,11 @@ describe('FrodoLib', () => {
 
   test(`frodo.createInstanceWithAmsterAccount(): FrodoLib is instantiable using factory helper`, async () => {
     const privateKey1 = fs.readFileSync(
-      path.resolve(
-        __dirname,
-        '../test/mocks/CryptoUtils/pkcs8Rsa.pem'
-      ),
+      path.resolve(__dirname, '../test/mocks/CryptoUtils/pkcs8Rsa.pem'),
       'utf8'
     );
     const privateKey2 = fs.readFileSync(
-      path.resolve(
-        __dirname,
-        '../test/mocks/CryptoUtils/pkcs1Rsa.pem'
-      ),
+      path.resolve(__dirname, '../test/mocks/CryptoUtils/pkcs1Rsa.pem'),
       'utf8'
     );
     const customAmsterService = 'AmsterLogin';
@@ -102,10 +96,14 @@ describe('FrodoLib', () => {
     expect(instance0.state.getHost()).toEqual(host0);
     expect(instance1.state.getHost()).toEqual(host1);
     expect(instance1.state.getAmsterPrivateKey()).toEqual(privateKey1);
-    expect(instance1.state.getAuthenticationService()).toEqual(Constants.DEFAULT_AMSTER_SERVICE);
+    expect(instance1.state.getAuthenticationService()).toEqual(
+      Constants.DEFAULT_AMSTER_SERVICE
+    );
     expect(instance2.state.getHost()).toEqual(host2);
     expect(instance2.state.getAmsterPrivateKey()).toEqual(privateKey2);
-    expect(instance2.state.getAuthenticationService()).toEqual(customAmsterService);
+    expect(instance2.state.getAuthenticationService()).toEqual(
+      customAmsterService
+    );
   });
 
   test(`frodo.createInstanceWithBrowserLogin(): FrodoLib is instantiable using factory helper`, async () => {

@@ -4,7 +4,6 @@
  *        npm run test:only PkceUtils
  */
 import { createHash } from 'crypto';
-
 import { createPkcePair } from './PkceUtils';
 
 describe('PkceUtils', () => {

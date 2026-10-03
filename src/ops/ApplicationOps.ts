@@ -1206,7 +1206,7 @@ export async function deleteApplicationByName({
   options?: { deep: boolean };
   state: State;
 }): Promise<ApplicationGlossarySkeleton> {
-  let applications: ApplicationGlossarySkeleton[] = [];
+  let applications: ApplicationGlossarySkeleton[];
   try {
     applications = await queryApplications({
       filter: `name eq '${applicationName}'`,

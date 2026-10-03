@@ -42,16 +42,18 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import * as EnvSSOCookieConfigApi from './EnvSSOCookieConfigApi';
+import { state } from '../../index';
 import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 import { filterRecording } from '../../utils/PollyUtils';
-import { state } from '../../index';
+import * as EnvSSOCookieConfigApi from './EnvSSOCookieConfigApi';
 import { SSOCookieConfig } from './EnvSSOCookieConfigApi';
 
 const ctx = autoSetupPolly();
 
 describe('EnvSSOCookieConfigApi', () => {
-  const customSSOCookieConfig: SSOCookieConfig = { name: 'myCustomTestCookieName' };
+  const customSSOCookieConfig: SSOCookieConfig = {
+    name: 'myCustomTestCookieName',
+  };
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (

@@ -45,11 +45,11 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { autoSetupPolly, setDefaultState } from "../utils/AutoSetupPolly";
-import { filterRecording } from "../utils/PollyUtils";
-import * as AuthenticationSettingsOps from "./AuthenticationSettingsOps";
-import { state } from "../lib/FrodoLib";
-import Constants from "../shared/Constants";
+import { state } from '../lib/FrodoLib';
+import Constants from '../shared/Constants';
+import { autoSetupPolly, setDefaultState } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
+import * as AuthenticationSettingsOps from './AuthenticationSettingsOps';
 
 const ctx = autoSetupPolly();
 
@@ -74,11 +74,16 @@ describe('AuthenticationSettingsOps', () => {
       });
       describe('createAuthenticationSettingsExportTemplate()', () => {
         test('0: Method is implemented', async () => {
-          expect(AuthenticationSettingsOps.createAuthenticationSettingsExportTemplate).toBeDefined();
+          expect(
+            AuthenticationSettingsOps.createAuthenticationSettingsExportTemplate
+          ).toBeDefined();
         });
 
         test('1: Create AuthenticationSettings Export Template', async () => {
-          const response = AuthenticationSettingsOps.createAuthenticationSettingsExportTemplate({state});
+          const response =
+            AuthenticationSettingsOps.createAuthenticationSettingsExportTemplate(
+              { state }
+            );
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
@@ -87,29 +92,43 @@ describe('AuthenticationSettingsOps', () => {
 
       describe('readAuthenticationSettings()', () => {
         test('0: Method is implemented', async () => {
-          expect(AuthenticationSettingsOps.readAuthenticationSettings).toBeDefined();
+          expect(
+            AuthenticationSettingsOps.readAuthenticationSettings
+          ).toBeDefined();
         });
 
         test('1: Read Realm AuthenticationSettings', async () => {
-          const response = await AuthenticationSettingsOps.readAuthenticationSettings({globalConfig: false, state});
+          const response =
+            await AuthenticationSettingsOps.readAuthenticationSettings({
+              globalConfig: false,
+              state,
+            });
           expect(response).toMatchSnapshot();
         });
       });
 
       describe('updateAuthenticationSettings()', () => {
         test('0: Method is implemented', async () => {
-          expect(AuthenticationSettingsOps.updateAuthenticationSettings).toBeDefined();
+          expect(
+            AuthenticationSettingsOps.updateAuthenticationSettings
+          ).toBeDefined();
         });
         //TODO: create tests (globalConfig = false)
       });
 
       describe('exportAuthenticationSettings()', () => {
         test('0: Method is implemented', async () => {
-          expect(AuthenticationSettingsOps.exportAuthenticationSettings).toBeDefined();
+          expect(
+            AuthenticationSettingsOps.exportAuthenticationSettings
+          ).toBeDefined();
         });
 
         test('1: Export Realm AuthenticationSettings', async () => {
-          const response = await AuthenticationSettingsOps.exportAuthenticationSettings({globalConfig: false, state});
+          const response =
+            await AuthenticationSettingsOps.exportAuthenticationSettings({
+              globalConfig: false,
+              state,
+            });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
@@ -118,7 +137,9 @@ describe('AuthenticationSettingsOps', () => {
 
       describe('importAuthenticationSettings()', () => {
         test('0: Method is implemented', async () => {
-          expect(AuthenticationSettingsOps.importAuthenticationSettings).toBeDefined();
+          expect(
+            AuthenticationSettingsOps.importAuthenticationSettings
+          ).toBeDefined();
         });
         //TODO: create tests (globalConfig = false)
       });
@@ -136,12 +157,20 @@ describe('AuthenticationSettingsOps', () => {
       });
       describe('readAuthenticationSettings()', () => {
         test('2: Read Global AuthenticationSettings', async () => {
-          const response = await AuthenticationSettingsOps.readAuthenticationSettings({globalConfig: true, state });
+          const response =
+            await AuthenticationSettingsOps.readAuthenticationSettings({
+              globalConfig: true,
+              state,
+            });
           expect(response).toMatchSnapshot();
         });
 
         test('3: Read Realm AuthenticationSettings', async () => {
-          const response = await AuthenticationSettingsOps.readAuthenticationSettings({globalConfig: false, state });
+          const response =
+            await AuthenticationSettingsOps.readAuthenticationSettings({
+              globalConfig: false,
+              state,
+            });
           expect(response).toMatchSnapshot();
         });
       });
@@ -152,14 +181,22 @@ describe('AuthenticationSettingsOps', () => {
 
       describe('exportAuthenticationSettings()', () => {
         test('2: Export Global AuthenticationSettings', async () => {
-          const response = await AuthenticationSettingsOps.exportAuthenticationSettings({globalConfig: true, state });
+          const response =
+            await AuthenticationSettingsOps.exportAuthenticationSettings({
+              globalConfig: true,
+              state,
+            });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
         });
 
         test('3: Export Realm AuthenticationSettings', async () => {
-          const response = await AuthenticationSettingsOps.exportAuthenticationSettings({globalConfig: false, state });
+          const response =
+            await AuthenticationSettingsOps.exportAuthenticationSettings({
+              globalConfig: false,
+              state,
+            });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });

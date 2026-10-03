@@ -20,7 +20,9 @@ const loadConnectionProfile = jest.fn(async ({ state }: any): Promise<any> => {
   state.setBrowserLoginScope('fr:am:* fr:idm:*');
   return true;
 });
-const saveConnectionProfile = jest.fn(async (_args?: any): Promise<any> => true);
+const saveConnectionProfile = jest.fn(
+  async (_args?: any): Promise<any> => true
+);
 
 jest.unstable_mockModule('./ConnectionProfileOps', () => ({
   getConnectionProfile,
@@ -51,10 +53,7 @@ async function getUnderlyingError(promise: Promise<unknown>): Promise<Error> {
     // login) does the same — unwrap however many layers exist to reach the
     // actual root cause.
     let current = error;
-    while (
-      current instanceof FrodoError &&
-      current.originalErrors.length > 0
-    ) {
+    while (current instanceof FrodoError && current.originalErrors.length > 0) {
       current = current.originalErrors[0];
     }
     return current as Error;

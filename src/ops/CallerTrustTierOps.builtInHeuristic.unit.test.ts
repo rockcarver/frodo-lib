@@ -125,10 +125,14 @@ describe('determineCallerTrustTier built-in heuristic', () => {
   });
 
   test('9: A readUser() failure (e.g. 404/403/network error) fails closed to delegated rather than throwing', async () => {
-    readUser.mockRejectedValue(new Error('Request failed with status code 403'));
+    readUser.mockRejectedValue(
+      new Error('Request failed with status code 403')
+    );
     const state = interactiveStateWithUsername('vscheuber@gmail.com');
 
-    await expect(determineCallerTrustTier({ state })).resolves.toBe('delegated');
+    await expect(determineCallerTrustTier({ state })).resolves.toBe(
+      'delegated'
+    );
   });
 
   test("10: Looks up the identity scoped to the root realm ('/'), and restores the caller's original active realm afterward", async () => {

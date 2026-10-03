@@ -22,10 +22,10 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import * as EnvReleaseApi from './EnvReleaseApi';
+import { state } from '../../index';
 import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 import { filterRecording } from '../../utils/PollyUtils';
-import { state } from '../../index';
+import * as EnvReleaseApi from './EnvReleaseApi';
 
 const ctx = autoSetupPolly();
 

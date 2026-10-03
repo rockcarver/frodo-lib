@@ -35,7 +35,6 @@ import * as EmailTemplateOps from './EmailTemplateOps';
 import { EmailTemplateExportInterface } from './EmailTemplateOps';
 
 describe('EmailTemplateOps', () => {
-
   TestData.setup();
 
   describe('readEmailTemplate()', () => {
@@ -58,12 +57,18 @@ describe('EmailTemplateOps', () => {
     });
 
     test('1: Read all email templates', async () => {
-      const response = await EmailTemplateOps.readEmailTemplates({ includeDefault: false, state });
+      const response = await EmailTemplateOps.readEmailTemplates({
+        includeDefault: false,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test('2: Read all email templates including defaults', async () => {
-      const response = await EmailTemplateOps.readEmailTemplates({ includeDefault: true, state });
+      const response = await EmailTemplateOps.readEmailTemplates({
+        includeDefault: true,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
@@ -74,16 +79,22 @@ describe('EmailTemplateOps', () => {
     });
 
     test('1: Export email templates', async () => {
-      const response = await EmailTemplateOps.exportEmailTemplates({ includeDefault: false, state });
+      const response = await EmailTemplateOps.exportEmailTemplates({
+        includeDefault: false,
+        state,
+      });
       expect(response).toMatchSnapshot({
-        meta: expect.any(Object)
+        meta: expect.any(Object),
       });
     });
 
     test('2: Export email templates with default templates', async () => {
-      const response = await EmailTemplateOps.exportEmailTemplates({ includeDefault: true, state });
+      const response = await EmailTemplateOps.exportEmailTemplates({
+        includeDefault: true,
+        state,
+      });
       expect(response).toMatchSnapshot({
-        meta: expect.any(Object)
+        meta: expect.any(Object),
       });
     });
   });
@@ -113,12 +124,12 @@ describe('EmailTemplateOps', () => {
         emailTemplate: {
           [TestData.template1._id]: TestData.template1,
           [TestData.template2._id]: TestData.template2,
-          [TestData.template3._id]: TestData.template3
-        }
-      }
+          [TestData.template3._id]: TestData.template3,
+        },
+      };
       const response = await EmailTemplateOps.importEmailTemplates({
         importData,
-        state
+        state,
       });
       expect(response).toMatchSnapshot();
     });

@@ -5,18 +5,16 @@
 // shared, see RECORD_REPLAY.md at the root of this repository -- and keep that
 // guide in sync when changing this file.
 import path from 'path';
-
 import { EXPIRY_STRATEGY, Polly } from '@pollyjs/core';
 import FSPersister from '@pollyjs/persister-fs';
 import { MODES } from '@pollyjs/utils';
 import { LogLevelDesc } from 'loglevel';
-
 import { State } from '../shared/State';
 import { debugMessage, printMessage } from './Console';
 import { FrodoNodeHttpAdapter } from './FrodoNodeHttpAdapter';
 import {
-  orderedMatchRequestsBy,
   filterRecording,
+  orderedMatchRequestsBy,
   Recording,
 } from './PollyUtils';
 
@@ -244,7 +242,7 @@ argv:
 ]
 */
 function getFrodoCommand({ state }: { state: State }) {
-  let cmd = 'unknown';
+  let cmd;
   try {
     if (mode !== MODES.RECORD)
       debugMessage({

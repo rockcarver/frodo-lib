@@ -6,14 +6,14 @@ import {
 import {
   countManagedObjects as _countManagedObjects,
   createManagedObject as _createManagedObject,
-  DEFAULT_PAGE_SIZE,
   deleteManagedObject as _deleteManagedObject,
   getManagedObject as _getManagedObject,
   patchManagedObject as _patchManagedObject,
   putManagedObject as _putManagedObject,
-  queryAllManagedObjectsByType,
   queryManagedObjects as _queryManagedObjects,
   queryRelatedManagedObjects as _queryRelatedManagedObjects,
+  DEFAULT_PAGE_SIZE,
+  queryAllManagedObjectsByType,
 } from '../api/ManagedObjectApi';
 import { getManagedSystemObject as _getManagedSystemObject } from '../api/ManagedSystemObjectApi';
 import Constants from '../shared/Constants';

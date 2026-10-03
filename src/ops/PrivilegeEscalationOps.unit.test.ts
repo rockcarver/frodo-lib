@@ -17,9 +17,8 @@ jest.unstable_mockModule('./UserOps', () => ({
   readUser,
 }));
 
-const { classifyCredentialTier, pickNextEscalationCandidate } = await import(
-  './PrivilegeEscalationOps'
-);
+const { classifyCredentialTier, pickNextEscalationCandidate } =
+  await import('./PrivilegeEscalationOps');
 const { default: StateImpl } = await import('../shared/State');
 
 describe('classifyCredentialTier', () => {
@@ -45,7 +44,9 @@ describe('classifyCredentialTier', () => {
   });
 
   test('classifies no recognized group as unknown', async () => {
-    readUser.mockResolvedValue({ isMemberOf: ['cn=some-other-group,ou=groups,o=root,ou=identities'] });
+    readUser.mockResolvedValue({
+      isMemberOf: ['cn=some-other-group,ou=groups,o=root,ou=identities'],
+    });
     const state = StateImpl({ host: 'https://openam-example.com/am' });
 
     const tier = await classifyCredentialTier({ username: 'someone', state });
@@ -125,7 +126,7 @@ describe('pickNextEscalationCandidate', () => {
     expect(picked).toEqual({ source: 'user', tier: 'unknown' });
   });
 
-  test("theme-admin ranks below tenant-auditor, which ranks below tenant-admin, which ranks below super-admin, for browser sessions", () => {
+  test('theme-admin ranks below tenant-auditor, which ranks below tenant-admin, which ranks below super-admin, for browser sessions', () => {
     const order: { source: 'browser'; tier: any }[] = [
       { source: 'browser', tier: 'theme-admin' },
       { source: 'browser', tier: 'tenant-auditor' },

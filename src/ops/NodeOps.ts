@@ -1,27 +1,26 @@
 import { v4 as uuidv4 } from 'uuid';
-
 import {
-  createCustomNode,
   createNode as _createNode,
-  CustomNodeSkeleton,
-  CustomNodeUsage,
   deleteCustomNode as _deleteCustomNode,
   deleteNode as _deleteNode,
-  getCustomNode,
-  getCustomNodes,
+  getCustomNodeSchema as _getCustomNodeSchema,
   getCustomNodeUsage as _getCustomNodeUsage,
   getNode as _getNode,
   getNodes as _getNodes,
   getNodesByType as _getNodesByType,
-  getNodeTypes as _getNodeTypes,
+  getNodeSchema as _getNodeSchema,
   getNodeType as _getNodeType,
+  getNodeTypes as _getNodeTypes,
+  putNode as _putNode,
+  createCustomNode,
+  CustomNodeSkeleton,
+  CustomNodeUsage,
+  getCustomNode,
+  getCustomNodes,
+  putCustomNode,
+  requireVersion,
   type NodeSkeleton,
   type NodeTypeSkeleton,
-  putCustomNode,
-  putNode as _putNode,
-  getNodeSchema as _getNodeSchema,
-  getCustomNodeSchema as _getCustomNodeSchema,
-  requireVersion,
 } from '../api/NodeApi';
 import { getTrees } from '../api/TreeApi';
 import Constants from '../shared/Constants';
@@ -1286,7 +1285,7 @@ export async function updateCustomNode({
   state: State;
 }): Promise<CustomNodeSkeleton> {
   nodeId = getCustomNodeId(nodeId);
-  let result = null;
+  let result;
   try {
     if (Array.isArray(nodeData.script)) {
       nodeData.script = nodeData.script.join('\n');
@@ -1520,7 +1519,7 @@ export async function findOrphanedNodes({
   const allNodes = [];
   const allNodeMap = new Map<string, NodeSkeleton>();
   const orphanedNodes = [];
-  let types: NodeTypeSkeleton[] = [];
+  let types: NodeTypeSkeleton[];
   const allJourneys = (await getTrees({ state })).result;
   let errorMessage = '';
   const errorTypes = [];
@@ -2158,7 +2157,7 @@ export function isDeprecatedNode({
   nodeType: string;
   state: State;
 }): boolean {
-  let deprecatedNodeTypes = [];
+  let deprecatedNodeTypes;
   switch (state.getAmVersion()) {
     case '8.0.0':
       deprecatedNodeTypes = DEPRECATED_NODE_TYPES_8.slice(0);
@@ -2207,7 +2206,7 @@ export function isCustomNode({
   nodeType: string;
   state: State;
 }): boolean {
-  let ootbNodeTypes = [];
+  let ootbNodeTypes;
   switch (state.getAmVersion()) {
     case '8.0.0':
       ootbNodeTypes = OOTB_NODE_TYPES_8.slice(0);

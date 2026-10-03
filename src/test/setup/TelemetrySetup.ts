@@ -1,14 +1,14 @@
+import {
+  OtlpExporterSkeleton,
+  SplunkExporterSkeleton,
+} from '../../api/cloud/TelemetryApi';
 import { state } from '../../index';
+import * as TelemetryOps from '../../ops/cloud/TelemetryOps';
 import {
   autoSetupPolly,
   setupPollyRecordingContext,
 } from '../../utils/AutoSetupPolly';
 import { orderedMatchRequestsBy } from '../../utils/PollyUtils';
-import * as TelemetryOps from '../../ops/cloud/TelemetryOps';
-import {
-  OtlpExporterSkeleton,
-  SplunkExporterSkeleton,
-} from '../../api/cloud/TelemetryApi';
 
 export const otlpExporter1: OtlpExporterSkeleton = {
   id: 'frodo-test-otlp-1',

@@ -9,12 +9,12 @@
  *
  *        FRODO_DEBUG=1 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am FRODO_USERNAME=volker.scheuber@forgerock.com FRODO_PASSWORD='S3cr3!S@uc3' npm run test:record_noauth AuthenticateOps
  *
- *    You must also do the same when testing a classic deployment. Additionally, 
- *    if recording any tests involving the Amster private key in the pkcs8.pem 
- *    file, you must add the corresponding public key from pkcs8.pub into your 
+ *    You must also do the same when testing a classic deployment. Additionally,
+ *    if recording any tests involving the Amster private key in the pkcs8.pem
+ *    file, you must add the corresponding public key from pkcs8.pub into your
  *    authorized_keys file in /path/to/am/security/keys/amster/authorized_keys,
  *    otherwise the key will not be recognized by AM and you will get a 401 error.
- * 
+ *
  * 2. Update CJS snapshots
  *
  *    After recording, the ESM snapshots will already be updated as that happens
@@ -32,13 +32,13 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { FrodoError } from '../index';
-import { isNotFoundError } from './FrodoError';
-import { autoSetupPolly, setDefaultState } from '../utils/AutoSetupPolly';
-import { defaultMatchRequestsBy, filterRecording } from '../utils/PollyUtils';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import axios, { AxiosError, AxiosHeaders } from 'axios';
+import { FrodoError } from '../index';
+import { autoSetupPolly, setDefaultState } from '../utils/AutoSetupPolly';
+import { defaultMatchRequestsBy, filterRecording } from '../utils/PollyUtils';
+import { isNotFoundError } from './FrodoError';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -50,9 +50,9 @@ matchConfig.order = true; // since we instruct Polly not to match the body, we n
 const ctx = autoSetupPolly(matchConfig);
 
 // create AxiosErrors to be used in tests
-const axiosConfig1 = { 
-  url: 'https://api.example.com/data', 
-  headers: new AxiosHeaders() 
+const axiosConfig1 = {
+  url: 'https://api.example.com/data',
+  headers: new AxiosHeaders(),
 };
 
 const axiosRequest1 = { path: '/data' };
@@ -63,11 +63,12 @@ const axiosResponse1 = {
   config: axiosConfig1,
   headers: new AxiosHeaders({ 'content-type': 'application/json' }),
   data: {
-    message: "Invalid credentials",
-    error: "Access Denied",
-    reason: "INSUFFICIENT_PERMISSIONS",
+    message: 'Invalid credentials',
+    error: 'Access Denied',
+    reason: 'INSUFFICIENT_PERMISSIONS',
     detail: "User 'jdoe_99' does not have the 'REPORTS_EXPORT' scope enabled.",
-    error_description: "The requested action requires administrative privileges. Please contact your workspace owner.",
+    error_description:
+      'The requested action requires administrative privileges. Please contact your workspace owner.',
   },
 };
 
@@ -80,9 +81,9 @@ const axiosError1: AxiosError = new AxiosError(
   axiosResponse1
 );
 
-const axiosConfig2 = { 
-  url: 'https://api.example.com/api/users/98765', 
-  headers: new AxiosHeaders() 
+const axiosConfig2 = {
+  url: 'https://api.example.com/api/users/98765',
+  headers: new AxiosHeaders(),
 };
 
 const axiosRequest2 = { path: '/api/users/98765' };
@@ -93,11 +94,12 @@ const axiosResponse2 = {
   config: axiosConfig2,
   headers: new AxiosHeaders({ 'content-type': 'application/json' }),
   data: {
-    message: "The specified user does not exist.",
-    error: "Resource Not Found",
-    reason: "OBJECT_MISSING",
+    message: 'The specified user does not exist.',
+    error: 'Resource Not Found',
+    reason: 'OBJECT_MISSING',
     detail: "No record found with ID: 'user_98765'.",
-    error_description: "The requested user profile may have been deleted or the URL is incorrect.",
+    error_description:
+      'The requested user profile may have been deleted or the URL is incorrect.',
   },
 };
 
@@ -212,7 +214,8 @@ describe('FrodoError', () => {
     test('4: Wrapped AxiosError', async () => {
       const wrappedError = new FrodoError('error1', axiosError1);
       expect(wrappedError).toBeTruthy();
-      expect(wrappedError.getCombinedMessage()).toEqual('\
+      expect(wrappedError.getCombinedMessage()).toEqual(
+        "\
 error1\n\
   Network error:\n\
     URL: https://api.example.com/data\n\
@@ -221,10 +224,12 @@ error1\n\
     Error: Access Denied\n\
     Reason: INSUFFICIENT_PERMISSIONS\n\
     Message: Invalid credentials\n\
-    Detail: User \'jdoe_99\' does not have the \'REPORTS_EXPORT\' scope enabled.\n\
+    Detail: User 'jdoe_99' does not have the 'REPORTS_EXPORT' scope enabled.\n\
     Description: The requested action requires administrative privileges. Please contact your workspace owner.\
-');
-      expect(wrappedError.toString()).toEqual('\
+"
+      );
+      expect(wrappedError.toString()).toEqual(
+        "\
 error1\n\
   Network error:\n\
     URL: https://api.example.com/data\n\
@@ -233,9 +238,10 @@ error1\n\
     Error: Access Denied\n\
     Reason: INSUFFICIENT_PERMISSIONS\n\
     Message: Invalid credentials\n\
-    Detail: User \'jdoe_99\' does not have the \'REPORTS_EXPORT\' scope enabled.\n\
+    Detail: User 'jdoe_99' does not have the 'REPORTS_EXPORT' scope enabled.\n\
     Description: The requested action requires administrative privileges. Please contact your workspace owner.\
-');
+"
+      );
     });
 
     test('5: Wrapped AxiosError (thrown and caught)', async () => {
@@ -243,7 +249,8 @@ error1\n\
         throw new FrodoError('error1', axiosError1);
       } catch (wrappedError) {
         expect(wrappedError).toBeTruthy();
-      expect(wrappedError.getCombinedMessage()).toEqual('\
+        expect(wrappedError.getCombinedMessage()).toEqual(
+          "\
 error1\n\
   Network error:\n\
     URL: https://api.example.com/data\n\
@@ -252,10 +259,12 @@ error1\n\
     Error: Access Denied\n\
     Reason: INSUFFICIENT_PERMISSIONS\n\
     Message: Invalid credentials\n\
-    Detail: User \'jdoe_99\' does not have the \'REPORTS_EXPORT\' scope enabled.\n\
+    Detail: User 'jdoe_99' does not have the 'REPORTS_EXPORT' scope enabled.\n\
     Description: The requested action requires administrative privileges. Please contact your workspace owner.\
-');
-      expect(wrappedError.toString()).toEqual('\
+"
+        );
+        expect(wrappedError.toString()).toEqual(
+          "\
 error1\n\
   Network error:\n\
     URL: https://api.example.com/data\n\
@@ -264,16 +273,18 @@ error1\n\
     Error: Access Denied\n\
     Reason: INSUFFICIENT_PERMISSIONS\n\
     Message: Invalid credentials\n\
-    Detail: User \'jdoe_99\' does not have the \'REPORTS_EXPORT\' scope enabled.\n\
+    Detail: User 'jdoe_99' does not have the 'REPORTS_EXPORT' scope enabled.\n\
     Description: The requested action requires administrative privileges. Please contact your workspace owner.\
-');
+"
+        );
       }
     });
 
     test('6: Wrapped array of AxiosErrors', async () => {
       const wrappedError = new FrodoError('error1', [axiosError1, axiosError2]);
       expect(wrappedError).toBeTruthy();
-      expect(wrappedError.getCombinedMessage()).toEqual('\
+      expect(wrappedError.getCombinedMessage()).toEqual(
+        "\
 error1\n\
   Network error:\n\
     URL: https://api.example.com/data\n\
@@ -282,7 +293,7 @@ error1\n\
     Error: Access Denied\n\
     Reason: INSUFFICIENT_PERMISSIONS\n\
     Message: Invalid credentials\n\
-    Detail: User \'jdoe_99\' does not have the \'REPORTS_EXPORT\' scope enabled.\n\
+    Detail: User 'jdoe_99' does not have the 'REPORTS_EXPORT' scope enabled.\n\
     Description: The requested action requires administrative privileges. Please contact your workspace owner.\n\
   Network error:\n\
     URL: https://api.example.com/api/users/98765\n\
@@ -291,10 +302,12 @@ error1\n\
     Error: Resource Not Found\n\
     Reason: OBJECT_MISSING\n\
     Message: The specified user does not exist.\n\
-    Detail: No record found with ID: \'user_98765\'.\n\
+    Detail: No record found with ID: 'user_98765'.\n\
     Description: The requested user profile may have been deleted or the URL is incorrect.\
-');
-      expect(wrappedError.toString()).toEqual('\
+"
+      );
+      expect(wrappedError.toString()).toEqual(
+        "\
 error1\n\
   Network error:\n\
     URL: https://api.example.com/data\n\
@@ -303,7 +316,7 @@ error1\n\
     Error: Access Denied\n\
     Reason: INSUFFICIENT_PERMISSIONS\n\
     Message: Invalid credentials\n\
-    Detail: User \'jdoe_99\' does not have the \'REPORTS_EXPORT\' scope enabled.\n\
+    Detail: User 'jdoe_99' does not have the 'REPORTS_EXPORT' scope enabled.\n\
     Description: The requested action requires administrative privileges. Please contact your workspace owner.\n\
   Network error:\n\
     URL: https://api.example.com/api/users/98765\n\
@@ -312,9 +325,10 @@ error1\n\
     Error: Resource Not Found\n\
     Reason: OBJECT_MISSING\n\
     Message: The specified user does not exist.\n\
-    Detail: No record found with ID: \'user_98765\'.\n\
+    Detail: No record found with ID: 'user_98765'.\n\
     Description: The requested user profile may have been deleted or the URL is incorrect.\
-');
+"
+      );
     });
 
     test('7: Wrapped array of AxiosErrors (thrown and caught)', async () => {
@@ -322,7 +336,8 @@ error1\n\
         throw new FrodoError('error1', [axiosError1, axiosError2]);
       } catch (wrappedError) {
         expect(wrappedError).toBeTruthy();
-      expect(wrappedError.getCombinedMessage()).toEqual('\
+        expect(wrappedError.getCombinedMessage()).toEqual(
+          "\
 error1\n\
   Network error:\n\
     URL: https://api.example.com/data\n\
@@ -331,7 +346,7 @@ error1\n\
     Error: Access Denied\n\
     Reason: INSUFFICIENT_PERMISSIONS\n\
     Message: Invalid credentials\n\
-    Detail: User \'jdoe_99\' does not have the \'REPORTS_EXPORT\' scope enabled.\n\
+    Detail: User 'jdoe_99' does not have the 'REPORTS_EXPORT' scope enabled.\n\
     Description: The requested action requires administrative privileges. Please contact your workspace owner.\n\
   Network error:\n\
     URL: https://api.example.com/api/users/98765\n\
@@ -340,10 +355,12 @@ error1\n\
     Error: Resource Not Found\n\
     Reason: OBJECT_MISSING\n\
     Message: The specified user does not exist.\n\
-    Detail: No record found with ID: \'user_98765\'.\n\
+    Detail: No record found with ID: 'user_98765'.\n\
     Description: The requested user profile may have been deleted or the URL is incorrect.\
-');
-      expect(wrappedError.toString()).toEqual('\
+"
+        );
+        expect(wrappedError.toString()).toEqual(
+          "\
 error1\n\
   Network error:\n\
     URL: https://api.example.com/data\n\
@@ -352,7 +369,7 @@ error1\n\
     Error: Access Denied\n\
     Reason: INSUFFICIENT_PERMISSIONS\n\
     Message: Invalid credentials\n\
-    Detail: User \'jdoe_99\' does not have the \'REPORTS_EXPORT\' scope enabled.\n\
+    Detail: User 'jdoe_99' does not have the 'REPORTS_EXPORT' scope enabled.\n\
     Description: The requested action requires administrative privileges. Please contact your workspace owner.\n\
   Network error:\n\
     URL: https://api.example.com/api/users/98765\n\
@@ -361,53 +378,77 @@ error1\n\
     Error: Resource Not Found\n\
     Reason: OBJECT_MISSING\n\
     Message: The specified user does not exist.\n\
-    Detail: No record found with ID: \'user_98765\'.\n\
+    Detail: No record found with ID: 'user_98765'.\n\
     Description: The requested user profile may have been deleted or the URL is incorrect.\
-');
+"
+        );
       }
     });
   });
 
   describe('Double Wrapped Error', () => {
-
     test('0: Double Wrapped FrodoError', async () => {
-      const error = new FrodoError('error2', new FrodoError('error1', new FrodoError('error0')));
+      const error = new FrodoError(
+        'error2',
+        new FrodoError('error1', new FrodoError('error0'))
+      );
       expect(error).toBeTruthy();
-      expect(error.getCombinedMessage()).toEqual('error2\n  error1\n    error0');
+      expect(error.getCombinedMessage()).toEqual(
+        'error2\n  error1\n    error0'
+      );
       expect(error.toString()).toEqual('error2\n  error1\n    error0');
     });
 
     test('1: Double Wrapped FrodoError (thrown and caught)', async () => {
       try {
-        throw new FrodoError('error2', new FrodoError('error1', new FrodoError('error0')));
+        throw new FrodoError(
+          'error2',
+          new FrodoError('error1', new FrodoError('error0'))
+        );
       } catch (error) {
         expect(error).toBeTruthy();
-        expect(error.getCombinedMessage()).toEqual('error2\n  error1\n    error0');
+        expect(error.getCombinedMessage()).toEqual(
+          'error2\n  error1\n    error0'
+        );
         expect(error.toString()).toEqual('error2\n  error1\n    error0');
       }
     });
 
     test('2: Double Wrapped Error', async () => {
-      const error = new FrodoError('error2', new FrodoError('error1', new Error('error0')));
+      const error = new FrodoError(
+        'error2',
+        new FrodoError('error1', new Error('error0'))
+      );
       expect(error).toBeTruthy();
-      expect(error.getCombinedMessage()).toEqual('error2\n  error1\n    error0');
+      expect(error.getCombinedMessage()).toEqual(
+        'error2\n  error1\n    error0'
+      );
       expect(error.toString()).toEqual('error2\n  error1\n    error0');
     });
 
     test('3: Double Wrapped Error (thrown and caught)', async () => {
       try {
-        throw new FrodoError('error2', new FrodoError('error1', new Error('error0')));
+        throw new FrodoError(
+          'error2',
+          new FrodoError('error1', new Error('error0'))
+        );
       } catch (error) {
         expect(error).toBeTruthy();
-        expect(error.getCombinedMessage()).toEqual('error2\n  error1\n    error0');
+        expect(error.getCombinedMessage()).toEqual(
+          'error2\n  error1\n    error0'
+        );
         expect(error.toString()).toEqual('error2\n  error1\n    error0');
       }
     });
 
     test('4: Double Wrapped AxiosError', async () => {
-      const error = new FrodoError('error2', new FrodoError('error1', axiosError1));
+      const error = new FrodoError(
+        'error2',
+        new FrodoError('error1', axiosError1)
+      );
       expect(error).toBeTruthy();
-      expect(error.getCombinedMessage()).toEqual('\
+      expect(error.getCombinedMessage()).toEqual(
+        "\
 error2\n\
   error1\n\
     Network error:\n\
@@ -417,10 +458,12 @@ error2\n\
       Error: Access Denied\n\
       Reason: INSUFFICIENT_PERMISSIONS\n\
       Message: Invalid credentials\n\
-      Detail: User \'jdoe_99\' does not have the \'REPORTS_EXPORT\' scope enabled.\n\
+      Detail: User 'jdoe_99' does not have the 'REPORTS_EXPORT' scope enabled.\n\
       Description: The requested action requires administrative privileges. Please contact your workspace owner.\
-');
-      expect(error.toString()).toEqual('\
+"
+      );
+      expect(error.toString()).toEqual(
+        "\
 error2\n\
   error1\n\
     Network error:\n\
@@ -430,9 +473,10 @@ error2\n\
       Error: Access Denied\n\
       Reason: INSUFFICIENT_PERMISSIONS\n\
       Message: Invalid credentials\n\
-      Detail: User \'jdoe_99\' does not have the \'REPORTS_EXPORT\' scope enabled.\n\
+      Detail: User 'jdoe_99' does not have the 'REPORTS_EXPORT' scope enabled.\n\
       Description: The requested action requires administrative privileges. Please contact your workspace owner.\
-');
+"
+      );
     });
 
     test('5: Double Wrapped AxiosError (thrown and caught)', async () => {
@@ -440,7 +484,8 @@ error2\n\
         throw new FrodoError('error2', new FrodoError('error1', axiosError1));
       } catch (error) {
         expect(error).toBeTruthy();
-        expect(error.getCombinedMessage()).toEqual('\
+        expect(error.getCombinedMessage()).toEqual(
+          "\
 error2\n\
   error1\n\
     Network error:\n\
@@ -450,10 +495,12 @@ error2\n\
       Error: Access Denied\n\
       Reason: INSUFFICIENT_PERMISSIONS\n\
       Message: Invalid credentials\n\
-      Detail: User \'jdoe_99\' does not have the \'REPORTS_EXPORT\' scope enabled.\n\
+      Detail: User 'jdoe_99' does not have the 'REPORTS_EXPORT' scope enabled.\n\
       Description: The requested action requires administrative privileges. Please contact your workspace owner.\
-');
-        expect(error.toString()).toEqual('\
+"
+        );
+        expect(error.toString()).toEqual(
+          "\
 error2\n\
   error1\n\
     Network error:\n\
@@ -463,53 +510,94 @@ error2\n\
       Error: Access Denied\n\
       Reason: INSUFFICIENT_PERMISSIONS\n\
       Message: Invalid credentials\n\
-      Detail: User \'jdoe_99\' does not have the \'REPORTS_EXPORT\' scope enabled.\n\
+      Detail: User 'jdoe_99' does not have the 'REPORTS_EXPORT' scope enabled.\n\
       Description: The requested action requires administrative privileges. Please contact your workspace owner.\
-');
+"
+        );
       }
     });
   });
 
   describe('Triple Wrapped Error', () => {
-
     test('0: Triple Wrapped FrodoError', async () => {
-      const error = new FrodoError('error3', new FrodoError('error2', new FrodoError('error1', new FrodoError('error0'))));
+      const error = new FrodoError(
+        'error3',
+        new FrodoError(
+          'error2',
+          new FrodoError('error1', new FrodoError('error0'))
+        )
+      );
       expect(error).toBeTruthy();
-      expect(error.getCombinedMessage()).toEqual('error3\n  error2\n    error1\n      error0');
-      expect(error.toString()).toEqual('error3\n  error2\n    error1\n      error0');
+      expect(error.getCombinedMessage()).toEqual(
+        'error3\n  error2\n    error1\n      error0'
+      );
+      expect(error.toString()).toEqual(
+        'error3\n  error2\n    error1\n      error0'
+      );
     });
 
     test('1: Triple Wrapped FrodoError (thrown and caught)', async () => {
       try {
-        throw new FrodoError('error3', new FrodoError('error2', new FrodoError('error1', new FrodoError('error0'))));
+        throw new FrodoError(
+          'error3',
+          new FrodoError(
+            'error2',
+            new FrodoError('error1', new FrodoError('error0'))
+          )
+        );
       } catch (error) {
         expect(error).toBeTruthy();
-        expect(error.getCombinedMessage()).toEqual('error3\n  error2\n    error1\n      error0');
-        expect(error.toString()).toEqual('error3\n  error2\n    error1\n      error0');
+        expect(error.getCombinedMessage()).toEqual(
+          'error3\n  error2\n    error1\n      error0'
+        );
+        expect(error.toString()).toEqual(
+          'error3\n  error2\n    error1\n      error0'
+        );
       }
     });
 
     test('2: Triple Wrapped Error', async () => {
-      const error = new FrodoError('error3', new FrodoError('error2', new FrodoError('error1', new Error('error0'))));
+      const error = new FrodoError(
+        'error3',
+        new FrodoError('error2', new FrodoError('error1', new Error('error0')))
+      );
       expect(error).toBeTruthy();
-      expect(error.getCombinedMessage()).toEqual('error3\n  error2\n    error1\n      error0');
-      expect(error.toString()).toEqual('error3\n  error2\n    error1\n      error0');
+      expect(error.getCombinedMessage()).toEqual(
+        'error3\n  error2\n    error1\n      error0'
+      );
+      expect(error.toString()).toEqual(
+        'error3\n  error2\n    error1\n      error0'
+      );
     });
 
     test('3: Triple Wrapped Error (thrown and caught)', async () => {
       try {
-        throw new FrodoError('error3', new FrodoError('error2', new FrodoError('error1', new Error('error0'))));
+        throw new FrodoError(
+          'error3',
+          new FrodoError(
+            'error2',
+            new FrodoError('error1', new Error('error0'))
+          )
+        );
       } catch (error) {
         expect(error).toBeTruthy();
-        expect(error.getCombinedMessage()).toEqual('error3\n  error2\n    error1\n      error0');
-        expect(error.toString()).toEqual('error3\n  error2\n    error1\n      error0');
+        expect(error.getCombinedMessage()).toEqual(
+          'error3\n  error2\n    error1\n      error0'
+        );
+        expect(error.toString()).toEqual(
+          'error3\n  error2\n    error1\n      error0'
+        );
       }
     });
 
     test('4: Triple Wrapped AxiosError', async () => {
-      const error = new FrodoError('error3', new FrodoError('error2', new FrodoError('error1', axiosError1)));
+      const error = new FrodoError(
+        'error3',
+        new FrodoError('error2', new FrodoError('error1', axiosError1))
+      );
       expect(error).toBeTruthy();
-      expect(error.getCombinedMessage()).toEqual('\
+      expect(error.getCombinedMessage()).toEqual(
+        "\
 error3\n\
   error2\n\
     error1\n\
@@ -520,10 +608,12 @@ error3\n\
         Error: Access Denied\n\
         Reason: INSUFFICIENT_PERMISSIONS\n\
         Message: Invalid credentials\n\
-        Detail: User \'jdoe_99\' does not have the \'REPORTS_EXPORT\' scope enabled.\n\
+        Detail: User 'jdoe_99' does not have the 'REPORTS_EXPORT' scope enabled.\n\
         Description: The requested action requires administrative privileges. Please contact your workspace owner.\
-');
-      expect(error.toString()).toEqual('\
+"
+      );
+      expect(error.toString()).toEqual(
+        "\
 error3\n\
   error2\n\
     error1\n\
@@ -534,17 +624,22 @@ error3\n\
         Error: Access Denied\n\
         Reason: INSUFFICIENT_PERMISSIONS\n\
         Message: Invalid credentials\n\
-        Detail: User \'jdoe_99\' does not have the \'REPORTS_EXPORT\' scope enabled.\n\
+        Detail: User 'jdoe_99' does not have the 'REPORTS_EXPORT' scope enabled.\n\
         Description: The requested action requires administrative privileges. Please contact your workspace owner.\
-');
+"
+      );
     });
 
     test('5: Triple Wrapped AxiosError (thrown and caught)', async () => {
       try {
-        throw new FrodoError('error3', new FrodoError('error2', new FrodoError('error1', axiosError1)));
+        throw new FrodoError(
+          'error3',
+          new FrodoError('error2', new FrodoError('error1', axiosError1))
+        );
       } catch (error) {
         expect(error).toBeTruthy();
-      expect(error.getCombinedMessage()).toEqual('\
+        expect(error.getCombinedMessage()).toEqual(
+          "\
 error3\n\
   error2\n\
     error1\n\
@@ -555,10 +650,12 @@ error3\n\
         Error: Access Denied\n\
         Reason: INSUFFICIENT_PERMISSIONS\n\
         Message: Invalid credentials\n\
-        Detail: User \'jdoe_99\' does not have the \'REPORTS_EXPORT\' scope enabled.\n\
+        Detail: User 'jdoe_99' does not have the 'REPORTS_EXPORT' scope enabled.\n\
         Description: The requested action requires administrative privileges. Please contact your workspace owner.\
-');
-      expect(error.toString()).toEqual('\
+"
+        );
+        expect(error.toString()).toEqual(
+          "\
 error3\n\
   error2\n\
     error1\n\
@@ -569,9 +666,10 @@ error3\n\
         Error: Access Denied\n\
         Reason: INSUFFICIENT_PERMISSIONS\n\
         Message: Invalid credentials\n\
-        Detail: User \'jdoe_99\' does not have the \'REPORTS_EXPORT\' scope enabled.\n\
+        Detail: User 'jdoe_99' does not have the 'REPORTS_EXPORT' scope enabled.\n\
         Description: The requested action requires administrative privileges. Please contact your workspace owner.\
-');
+"
+        );
       }
     });
   });
@@ -604,9 +702,9 @@ describe('isNotFoundError', () => {
   });
 
   test('false for a FrodoError wrapping a network/timeout error with no response', () => {
-    expect(
-      isNotFoundError(new FrodoError('error1', axiosTimeoutError))
-    ).toBe(false);
+    expect(isNotFoundError(new FrodoError('error1', axiosTimeoutError))).toBe(
+      false
+    );
   });
 
   test('true for a double-wrapped 404 (recurses through a nested FrodoError with its own null httpStatus)', () => {
@@ -628,7 +726,10 @@ describe('isNotFoundError', () => {
   });
 
   test('false for a double-wrapped 401 (never a false positive just from nesting)', () => {
-    const error = new FrodoError('error2', new FrodoError('error1', axiosError1));
+    const error = new FrodoError(
+      'error2',
+      new FrodoError('error1', axiosError1)
+    );
     expect(isNotFoundError(error)).toBe(false);
   });
 

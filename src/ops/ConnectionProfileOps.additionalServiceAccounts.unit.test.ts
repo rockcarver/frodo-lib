@@ -15,11 +15,11 @@
  */
 import fs from 'fs';
 import { resolve } from 'path';
-
 // Forces the full, correctly-ordered module graph (via the package barrel)
 // to initialize before touching ConnectionProfileOps.ts directly below —
 // see ConnectionProfileOps.test.ts's identical import order.
 import '../index';
+import StateImpl from '../shared/State';
 import {
   addAdditionalServiceAccount,
   getAdditionalServiceAccount,
@@ -27,7 +27,6 @@ import {
   removeAdditionalServiceAccount,
   saveConnectionProfile,
 } from './ConnectionProfileOps';
-import StateImpl from '../shared/State';
 import { FrodoError } from './FrodoError';
 
 const TMP_DIR = resolve(
@@ -49,10 +48,7 @@ async function getUnderlyingError(promise: Promise<unknown>): Promise<Error> {
     await promise;
   } catch (error) {
     let current = error;
-    while (
-      current instanceof FrodoError &&
-      current.originalErrors.length > 0
-    ) {
+    while (current instanceof FrodoError && current.originalErrors.length > 0) {
       current = current.originalErrors[0];
     }
     return current as Error;
@@ -99,7 +95,11 @@ describe('Additional service accounts on a connection profile', () => {
 
     const listed = listAdditionalServiceAccounts({ host, state });
     expect(listed).toEqual([
-      { name: 'readonly-sa', svcacctId: 'sa-id-1', svcacctScope: 'fr:idm:read' },
+      {
+        name: 'readonly-sa',
+        svcacctId: 'sa-id-1',
+        svcacctScope: 'fr:idm:read',
+      },
     ]);
     // list() never decrypts/exposes the JWK.
     expect(listed[0]).not.toHaveProperty('svcacctJwk');

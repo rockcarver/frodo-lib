@@ -43,29 +43,29 @@
  * in case things don't function as expected
  */
 import { state } from '../../../index';
-import * as IgaRequestFormOps from './IgaRequestFormOps';
 import * as TestData from '../../../test/setup/IgaRequestFormSetup';
 import * as RequestTypeTestData from '../../../test/setup/IgaRequestTypeSetup';
 import { snapshotResultCallback } from '../../../test/utils/TestUtils';
+import * as IgaRequestFormOps from './IgaRequestFormOps';
 
 describe('IgaRequestFormOps', () => {
-
   TestData.setup();
-  
+
   // Phase 1
   if (
     !process.env.FRODO_POLLY_MODE ||
     (process.env.FRODO_POLLY_MODE === 'record' &&
       process.env.FRODO_RECORD_PHASE === '1')
   ) {
-
     describe('createRequestFormExportTemplate()', () => {
       test('0: Method is implemented', async () => {
         expect(IgaRequestFormOps.createRequestFormExportTemplate).toBeDefined();
       });
 
       test('1: Create Request Form Export Template', async () => {
-        const response = IgaRequestFormOps.createRequestFormExportTemplate({ state });
+        const response = IgaRequestFormOps.createRequestFormExportTemplate({
+          state,
+        });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });
@@ -84,13 +84,15 @@ describe('IgaRequestFormOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Read non-existing request form', async () => {
         const unknownId = '11111111-1111-1111-1111-111111111111';
-        await expect(IgaRequestFormOps.readRequestForm({
-          formId: unknownId,
-          state,
-        })).rejects.toThrow('Error reading request form ' + unknownId);
+        await expect(
+          IgaRequestFormOps.readRequestForm({
+            formId: unknownId,
+            state,
+          })
+        ).rejects.toThrow('Error reading request form ' + unknownId);
       });
     });
 
@@ -106,13 +108,15 @@ describe('IgaRequestFormOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Read non-existing request form with unknown name', async () => {
         const unknownName = 'unknownName';
-        await expect(IgaRequestFormOps.readRequestFormByName({
-          formName: unknownName,
-          state,
-        })).rejects.toThrow('Error reading request form ' + unknownName);
+        await expect(
+          IgaRequestFormOps.readRequestFormByName({
+            formName: unknownName,
+            state,
+          })
+        ).rejects.toThrow('Error reading request form ' + unknownName);
       });
     });
 
@@ -144,14 +148,16 @@ describe('IgaRequestFormOps', () => {
           meta: expect.any(Object),
         });
       });
-  
+
       test('2: Export non-existing request form', async () => {
         const unknownId = '11111111-1111-1111-1111-111111111111';
-        await expect(IgaRequestFormOps.exportRequestForm({
-          formId: unknownId,
-          options: { deps: false, useStringArrays: false },
-          state,
-        })).rejects.toThrow('Error exporting request form ' + unknownId);
+        await expect(
+          IgaRequestFormOps.exportRequestForm({
+            formId: unknownId,
+            options: { deps: false, useStringArrays: false },
+            state,
+          })
+        ).rejects.toThrow('Error exporting request form ' + unknownId);
       });
     });
 
@@ -170,14 +176,16 @@ describe('IgaRequestFormOps', () => {
           meta: expect.any(Object),
         });
       });
-  
+
       test('2: Export non-existing request form with unknown name', async () => {
         const unknownName = 'unknownName';
-        await expect(IgaRequestFormOps.exportRequestFormByName({
-          formName: unknownName,
-          options: { deps: false, useStringArrays: false },
-          state,
-        })).rejects.toThrow('Error exporting request form ' + unknownName);
+        await expect(
+          IgaRequestFormOps.exportRequestFormByName({
+            formName: unknownName,
+            options: { deps: false, useStringArrays: false },
+            state,
+          })
+        ).rejects.toThrow('Error exporting request form ' + unknownName);
       });
     });
 
@@ -223,15 +231,17 @@ describe('IgaRequestFormOps', () => {
     });
 
     describe('importRequestForms()', () => {
-      const importData = IgaRequestFormOps.createRequestFormExportTemplate({ state });
+      const importData = IgaRequestFormOps.createRequestFormExportTemplate({
+        state,
+      });
       importData.requestForm = {
         [TestData.requestForm2.id]: TestData.requestForm2,
         [TestData.requestForm3.id]: TestData.requestForm3,
         [TestData.requestForm4.id]: TestData.requestForm4,
-      }
+      };
       importData.requestType = {
-        [RequestTypeTestData.requestType1.id]: RequestTypeTestData.requestType1
-      }
+        [RequestTypeTestData.requestType1.id]: RequestTypeTestData.requestType1,
+      };
 
       test('0: Method is implemented', async () => {
         expect(IgaRequestFormOps.importRequestForms).toBeDefined();
@@ -239,9 +249,11 @@ describe('IgaRequestFormOps', () => {
 
       test('1: Import None', async () => {
         const response = await IgaRequestFormOps.importRequestForms({
-          importData: IgaRequestFormOps.createRequestFormExportTemplate({ state }),
+          importData: IgaRequestFormOps.createRequestFormExportTemplate({
+            state,
+          }),
           options: {
-            deps: false
+            deps: false,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -254,7 +266,7 @@ describe('IgaRequestFormOps', () => {
           formId: TestData.requestForm2.id,
           importData,
           options: {
-            deps: false
+            deps: false,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -267,7 +279,7 @@ describe('IgaRequestFormOps', () => {
           formName: TestData.requestForm2.name,
           importData,
           options: {
-            deps: true
+            deps: true,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -279,7 +291,7 @@ describe('IgaRequestFormOps', () => {
         const response = await IgaRequestFormOps.importRequestForms({
           importData,
           options: {
-            deps: true
+            deps: true,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -300,13 +312,15 @@ describe('IgaRequestFormOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Delete non-existing request form by id', async () => {
         const unknownId = '11111111-1111-1111-1111-111111111111';
-        await expect(IgaRequestFormOps.deleteRequestForm({
-          formId: unknownId,
-          state,
-        })).rejects.toThrow('Error deleting request form ' + unknownId);
+        await expect(
+          IgaRequestFormOps.deleteRequestForm({
+            formId: unknownId,
+            state,
+          })
+        ).rejects.toThrow('Error deleting request form ' + unknownId);
       });
     });
 
@@ -322,51 +336,61 @@ describe('IgaRequestFormOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Delete non-existing request form by name', async () => {
         const unknownName = 'unknownName';
-        await expect(IgaRequestFormOps.deleteRequestFormByName({
-          formName: unknownName,
-          state,
-        })).rejects.toThrow('Error deleting request form ' + unknownName);
+        await expect(
+          IgaRequestFormOps.deleteRequestFormByName({
+            formName: unknownName,
+            state,
+          })
+        ).rejects.toThrow('Error deleting request form ' + unknownName);
       });
     });
 
     describe('deleteOrphanedRequestFormAssignments()', () => {
       test('0: Method is implemented', async () => {
-        expect(IgaRequestFormOps.deleteOrphanedRequestFormAssignments).toBeDefined();
+        expect(
+          IgaRequestFormOps.deleteOrphanedRequestFormAssignments
+        ).toBeDefined();
       });
 
       test(`1: Delete orphaned form assignments by id`, async () => {
-        const response = await IgaRequestFormOps.deleteOrphanedRequestFormAssignments({
-          applicationId: TestData.requestFormAssignment2.objectId.split('/')[1],
-          workflowId: TestData.requestFormAssignment3.objectId.split('/')[1],
-          requestTypeId: TestData.requestFormAssignment4.objectId.split('/')[1],
-          state,
-        });
+        const response =
+          await IgaRequestFormOps.deleteOrphanedRequestFormAssignments({
+            applicationId:
+              TestData.requestFormAssignment2.objectId.split('/')[1],
+            workflowId: TestData.requestFormAssignment3.objectId.split('/')[1],
+            requestTypeId:
+              TestData.requestFormAssignment4.objectId.split('/')[1],
+            state,
+          });
         expect(response).toMatchSnapshot();
       });
 
       test(`2: Delete orphaned form assignments by form id`, async () => {
-        const response = await IgaRequestFormOps.deleteOrphanedRequestFormAssignments({
-          formId: TestData.requestFormAssignment6.formId,
-          state,
-        });
+        const response =
+          await IgaRequestFormOps.deleteOrphanedRequestFormAssignments({
+            formId: TestData.requestFormAssignment6.formId,
+            state,
+          });
         expect(response).toMatchSnapshot();
       });
 
       test(`3: Delete orphaned workflow form assignments`, async () => {
-        const response = await IgaRequestFormOps.deleteOrphanedRequestFormAssignments({
-          onlyWorkflow: true,
-          state,
-        });
+        const response =
+          await IgaRequestFormOps.deleteOrphanedRequestFormAssignments({
+            onlyWorkflow: true,
+            state,
+          });
         expect(response).toMatchSnapshot();
       });
 
       test(`4: Delete all other orphaned form assignments`, async () => {
-        const response = await IgaRequestFormOps.deleteOrphanedRequestFormAssignments({
-          state,
-        });
+        const response =
+          await IgaRequestFormOps.deleteOrphanedRequestFormAssignments({
+            state,
+          });
         expect(response).toMatchSnapshot();
       });
     });

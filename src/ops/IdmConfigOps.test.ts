@@ -29,13 +29,13 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { state } from '../index';
+import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import * as IdmConfigApi from '../api/IdmConfigApi';
-import * as IdmConfigOps from './IdmConfigOps';
+import { state } from '../index';
+import { snapshotResultCallback } from '../test/utils/TestUtils';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
-import { IdObjectSkeletonInterface } from '../api/ApiTypes';
-import { snapshotResultCallback } from '../test/utils/TestUtils';
+import * as IdmConfigOps from './IdmConfigOps';
 
 const ctx = autoSetupPolly();
 
@@ -261,15 +261,21 @@ describe('IdmConfigOps', () => {
     });
 
     test('1: Export config entities', async () => {
-      const response = await IdmConfigOps.exportConfigEntity({ entityId: configEntity1.id, state });
+      const response = await IdmConfigOps.exportConfigEntity({
+        entityId: configEntity1.id,
+        state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
     });
 
     test('2: Export config entities with env replacement', async () => {
-      state.setEnv('english', 'en')
-      const response = await IdmConfigOps.exportConfigEntity({ entityId: configEntity1.id, state });
+      state.setEnv('english', 'en');
+      const response = await IdmConfigOps.exportConfigEntity({
+        entityId: configEntity1.id,
+        state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
@@ -282,7 +288,10 @@ describe('IdmConfigOps', () => {
     });
 
     test('1: Export config entities', async () => {
-      const response = await IdmConfigOps.exportConfigEntities({ resultCallback: snapshotResultCallback, state });
+      const response = await IdmConfigOps.exportConfigEntities({
+        resultCallback: snapshotResultCallback,
+        state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
@@ -390,14 +399,11 @@ describe('IdmConfigOps', () => {
           [configEntity3.id]: configEntity3,
         },
       };
-      state.setEnv( 'en', 'english')
+      state.setEnv('en', 'english');
       const response = await IdmConfigOps.importConfigEntities({
         importData,
         options: {
-          entitiesToImport: [
-            configEntity1.id,
-            configEntity2.id
-          ],
+          entitiesToImport: [configEntity1.id, configEntity2.id],
           validate: false,
         },
         resultCallback: snapshotResultCallback,

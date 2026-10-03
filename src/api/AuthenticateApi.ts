@@ -1,7 +1,5 @@
 import util from 'util';
-
 import { AxiosRequestConfig } from 'axios';
-
 import { Callback } from '../ops/CallbackOps';
 import { State } from '../shared/State';
 import { getRealmPath } from '../utils/ForgeRockUtils';

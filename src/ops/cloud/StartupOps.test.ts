@@ -16,14 +16,14 @@
  *    Because destructive tests interfere with the recording of non-destructive
  *    tests and also interfere among themselves, they have to be run in groups
  *    of non-interfering tests.
- * 
+ *
  *    To record and update ESM snapshots, you must call the test:record
  *    script and override all the connection state variables required
  *    to connect to the env to record from and also indicate the phase:
  *
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=1 FRODO_HOST=frodo-dev npm run test:record StartupOps
  *
- *    THESE TESTS ARE DESTRUCTIVE!!! 
+ *    THESE TESTS ARE DESTRUCTIVE!!!
  *
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=2 FRODO_HOST=frodo-dev npm run test:record StartupOps
  *
@@ -47,10 +47,10 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
+import { RestartStatus } from '../../api/cloud/StartupApi';
 import { state } from '../../index';
 import * as TestData from '../../test/setup/StartupSetup';
 import * as StartupOps from './StartupOps';
-import { RestartStatus } from '../../api/cloud/StartupApi';
 
 describe('StartupOps', () => {
   TestData.setup();

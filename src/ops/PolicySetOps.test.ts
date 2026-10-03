@@ -35,13 +35,13 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { FrodoError, state } from '../index';
 import * as PolicySetApi from '../api/PolicySetApi';
-import * as PolicySetOps from './PolicySetOps';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import { filterRecording } from '../utils/PollyUtils';
 import { type PolicySetSkeleton } from '../api/PolicySetApi';
+import { FrodoError, state } from '../index';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { cloneDeep } from '../utils/JsonUtils';
+import { filterRecording } from '../utils/PollyUtils';
+import * as PolicySetOps from './PolicySetOps';
 import { PolicySetExportInterface } from './PolicySetOps';
 
 const ctx = autoSetupPolly();
@@ -360,11 +360,11 @@ describe('PolicySetOps', () => {
         });
         expect(response).toBeNull();
         response = await PolicySetOps.updatePolicySet({
-          policySetData: {...set4, description: 'test new description'},
+          policySetData: { ...set4, description: 'test new description' },
           state,
         });
         expect(response).not.toBeNull();
-        expect(response.description).toBe("test new description");
+        expect(response.description).toBe('test new description');
         expect(response).toMatchSnapshot();
       });
     });
@@ -478,21 +478,25 @@ describe('PolicySetOps', () => {
         state.setForceUpdate(false);
         let response = await PolicySetOps.importPolicySet({
           policySetName: set5.name,
-          importData: { policyset: {[set5.name]: set5 }} as PolicySetExportInterface,
+          importData: {
+            policyset: { [set5.name]: set5 },
+          } as PolicySetExportInterface,
           options: { deps: false, prereqs: false },
           state,
         });
         expect(response).toBeNull();
         const set = cloneDeep(set5);
-        set.description = "test new description"
+        set.description = 'test new description';
         response = await PolicySetOps.importPolicySet({
           policySetName: set.name,
-          importData: { policyset: {[set.name]: set }} as PolicySetExportInterface,
+          importData: {
+            policyset: { [set.name]: set },
+          } as PolicySetExportInterface,
           options: { deps: false, prereqs: false },
           state,
         });
         expect(response).not.toBeNull();
-        expect(response.description).toBe("test new description");
+        expect(response.description).toBe('test new description');
         expect(response).toMatchSnapshot();
       });
     });
@@ -517,20 +521,24 @@ describe('PolicySetOps', () => {
       test(`2: Do not import first policy set with no changes`, async () => {
         state.setForceUpdate(false);
         let response = await PolicySetOps.importFirstPolicySet({
-          importData: { policyset: {[set7.name]: set7 }} as PolicySetExportInterface,
+          importData: {
+            policyset: { [set7.name]: set7 },
+          } as PolicySetExportInterface,
           options: { deps: false, prereqs: false },
           state,
         });
         expect(response).toBeNull();
         const set = cloneDeep(set7);
-        set.description = "test new description"
+        set.description = 'test new description';
         response = await PolicySetOps.importFirstPolicySet({
-          importData: { policyset: {[set.name]: set }} as PolicySetExportInterface,
+          importData: {
+            policyset: { [set.name]: set },
+          } as PolicySetExportInterface,
           options: { deps: false, prereqs: false },
           state,
         });
         expect(response).not.toBeNull();
-        expect(response.description).toBe("test new description");
+        expect(response.description).toBe('test new description');
         expect(response).toMatchSnapshot();
       });
     });
@@ -555,20 +563,24 @@ describe('PolicySetOps', () => {
       test(`2: Import all changed policy sets`, async () => {
         state.setForceUpdate(false);
         let response = await PolicySetOps.importPolicySets({
-          importData: { policyset: {[set9.name]: set9 }} as PolicySetExportInterface,
+          importData: {
+            policyset: { [set9.name]: set9 },
+          } as PolicySetExportInterface,
           options: { deps: false, prereqs: false },
           state,
         });
         expect(response.length).toBe(0);
         const set = cloneDeep(set9);
-        set.description = "test new description";
+        set.description = 'test new description';
         response = await PolicySetOps.importPolicySets({
-          importData: { policyset: {[set.name]: set }} as PolicySetExportInterface,
+          importData: {
+            policyset: { [set.name]: set },
+          } as PolicySetExportInterface,
           options: { deps: false, prereqs: false },
           state,
         });
         expect(response.length).not.toBe(0);
-        expect(response[0].description).toBe("test new description");
+        expect(response[0].description).toBe('test new description');
         expect(response).toMatchSnapshot();
       });
     });

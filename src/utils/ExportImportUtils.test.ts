@@ -1,16 +1,17 @@
-import { state } from '../index';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
-import { rmSync, existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { state } from '../index';
 import {
-  convertTextArrayToBase64,
   convertBase64TextToArray,
-  saveToFile,
-  validateImport,
+  convertTextArrayToBase64,
+  escapePlaceholders,
   readJsonFile,
   replaceEnvSpecificValues,
-  escapePlaceholders,
+  saveToFile,
   unescapePlaceholders,
+  validateImport,
 } from './ExportImportUtils';
+
 // Warning! implimentation file contains non determinisitc functions which are either; not reasonable to test or imposible
 // Cause: date based non overidable functions
 // Not tested: getCurrentTimestamp
@@ -62,7 +63,7 @@ test('readJsonFile reads and parses a JSON file', () => {
   writeFileSync(PATH_TO_ARTIFACT, JSON.stringify(content));
 
   // Act
-  const result = readJsonFile({filePath: PATH_TO_ARTIFACT, state} );
+  const result = readJsonFile({ filePath: PATH_TO_ARTIFACT, state });
 
   // Assert
   expect(result).toEqual(content);
@@ -74,33 +75,35 @@ test('readJsonFile reads and replaces environment variables in a JSON file', () 
     mkdirSync(FS_TMP_DIR, { recursive: true });
   }
 
-  state.setEnv('TEST_VALUE_ONE', 'frodo')
-  state.setEnv('TEST_VALUE_TWO', 'sam')
-  state.setEnv('TEST_VALUE_ESCAPED', 'gollum')
-  state.setEnv('TEST_VALUE_BASE64', Buffer.from('ring bearer').toString('base64'))
+  state.setEnv('TEST_VALUE_ONE', 'frodo');
+  state.setEnv('TEST_VALUE_TWO', 'sam');
+  state.setEnv('TEST_VALUE_ESCAPED', 'gollum');
+  state.setEnv(
+    'TEST_VALUE_BASE64',
+    Buffer.from('ring bearer').toString('base64')
+  );
 
   const content = {
     first: '${TEST_VALUE_ONE}',
     second: '${TEST_VALUE_TWO}',
     escaped: '\\${TEST_VALUE_ESCAPED}',
-    encoded: '${BASE64:TEST_VALUE_BASE64}'
-  }
+    encoded: '${BASE64:TEST_VALUE_BASE64}',
+  };
 
   const expected = {
     first: 'frodo',
     second: 'sam',
     escaped: '${TEST_VALUE_ESCAPED}',
-    encoded: 'ring bearer'
-  }
+    encoded: 'ring bearer',
+  };
 
-  writeFileSync(PATH_TO_ARTIFACT, JSON.stringify(content))
+  writeFileSync(PATH_TO_ARTIFACT, JSON.stringify(content));
 
   // Act
-  const result = readJsonFile({filePath: PATH_TO_ARTIFACT, state})
+  const result = readJsonFile({ filePath: PATH_TO_ARTIFACT, state });
 
   // Assert
-  expect(result).toEqual(expected)
-
+  expect(result).toEqual(expected);
 });
 
 test('readJsonFile reads and ignores environment variables in a JSON file', () => {
@@ -109,30 +112,35 @@ test('readJsonFile reads and ignores environment variables in a JSON file', () =
     mkdirSync(FS_TMP_DIR, { recursive: true });
   }
 
-  state.setEnv('TEST_VALUE_ONE', 'frodo')
-  state.setEnv('TEST_VALUE_TWO', 'sam')
-  state.setEnv('TEST_VALUE_ESCAPED', 'gollum')
-  state.setEnv('TEST_VALUE_BASE64', Buffer.from('ring bearer').toString('base64'))
+  state.setEnv('TEST_VALUE_ONE', 'frodo');
+  state.setEnv('TEST_VALUE_TWO', 'sam');
+  state.setEnv('TEST_VALUE_ESCAPED', 'gollum');
+  state.setEnv(
+    'TEST_VALUE_BASE64',
+    Buffer.from('ring bearer').toString('base64')
+  );
 
   const content = {
     first: '${TEST_VALUE_ONE}',
     second: '${TEST_VALUE_TWO}',
     escaped: '\\${TEST_VALUE_ESCAPED}',
-    encoded: '${BASE64:TEST_VALUE_BASE64}'
-  }
+    encoded: '${BASE64:TEST_VALUE_BASE64}',
+  };
 
-  const expected = content
+  const expected = content;
 
-  writeFileSync(PATH_TO_ARTIFACT, JSON.stringify(content))
+  writeFileSync(PATH_TO_ARTIFACT, JSON.stringify(content));
 
   // Act
-  const result = readJsonFile({filePath: PATH_TO_ARTIFACT, resolvePlaceholders: false, state})
+  const result = readJsonFile({
+    filePath: PATH_TO_ARTIFACT,
+    resolvePlaceholders: false,
+    state,
+  });
 
   // Assert
-  expect(result).toEqual(expected)
-
+  expect(result).toEqual(expected);
 });
-
 
 test('readJsonFile throws an error for an unknown placeholder', () => {
   // Arrange
@@ -144,7 +152,7 @@ test('readJsonFile throws an error for an unknown placeholder', () => {
   writeFileSync(PATH_TO_ARTIFACT, JSON.stringify(content));
 
   // Act
-  const readFile = () => readJsonFile({filePath: PATH_TO_ARTIFACT, state});
+  const readFile = () => readJsonFile({ filePath: PATH_TO_ARTIFACT, state });
 
   // Assert
   expect(readFile).toThrow('No value found for placeholder "UNKNOWN"');
@@ -156,7 +164,7 @@ test('replaceEnvSpecificValues replaces environment placeholders', () => {
   const content = '{"value":"${TEST_VALUE}"}';
 
   // Act
-  const result = replaceEnvSpecificValues({content, state});
+  const result = replaceEnvSpecificValues({ content, state });
 
   // Assert
   expect(result).toEqual('{"value":"frodo"}');

@@ -43,12 +43,12 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import * as AgentApi from './AgentApi';
 import { state } from '../index';
+import Constants from '../shared/Constants';
 import { getAgent } from '../test/mocks/ForgeRockApiMockEngine';
 import { autoSetupPolly, setDefaultState } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
-import Constants from '../shared/Constants';
+import * as AgentApi from './AgentApi';
 
 const ctx = autoSetupPolly();
 

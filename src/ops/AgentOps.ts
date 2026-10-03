@@ -1,17 +1,17 @@
 import {
-  type AgentGroupSkeleton,
-  type AgentSkeleton,
-  type AgentType,
+  AgentTypeItem as _AgentTypeItem,
   deleteAgentByTypeAndId as _deleteAgentByTypeAndId,
   findAgentByTypeAndId as _findAgentByTypeAndId,
   getAgentByTypeAndId as _getAgentByTypeAndId,
   getAgentGroups as _getAgentGroups,
   getAgents as _getAgents,
   getAgentsByType as _getAgentsByType,
+  getAgentTypes as _getAgentTypes,
   putAgentByTypeAndId as _putAgentByTypeAndId,
   putAgentGroupByTypeAndId as _putAgentGroupByTypeAndId,
-  getAgentTypes as _getAgentTypes,
-  AgentTypeItem as _AgentTypeItem,
+  type AgentGroupSkeleton,
+  type AgentSkeleton,
+  type AgentType,
 } from '../api/AgentApi';
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import Constants from '../shared/Constants';
@@ -857,7 +857,7 @@ export async function readAgent({
   globalConfig: boolean;
   state: State;
 }): Promise<AgentSkeleton> {
-  let agents: AgentSkeleton[] = [];
+  let agents: AgentSkeleton[];
   try {
     debugMessage({ message: `AgentOps.readAgent: start`, state });
     agents = (await readAgents({ globalConfig, state })).filter(

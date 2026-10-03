@@ -1,10 +1,10 @@
 import {
-  type CircleOfTrustSkeleton,
   createCircleOfTrust as _createCircleOfTrust,
   deleteCircleOfTrust as _deleteCircleOfTrust,
   getCircleOfTrust as _getCircleOfTrust,
   getCirclesOfTrust as _getCirclesOfTrust,
   updateCircleOfTrust as _updateCircleOfTrust,
+  type CircleOfTrustSkeleton,
 } from '../api/CirclesOfTrustApi';
 import { type Saml2ProviderSkeleton } from '../api/Saml2Api';
 import { type ScriptSkeleton } from '../api/ScriptApi';

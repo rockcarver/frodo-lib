@@ -1,5 +1,4 @@
 import { createHash, randomBytes } from 'crypto';
-
 import { encodeBase64Url } from './Base64Utils';
 
 export type PkcePair = {

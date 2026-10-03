@@ -49,13 +49,12 @@
  * in case things don't function as expected
  */
 import { state } from '../index';
-import * as JourneyOps from './JourneyOps';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import { filterRecording } from '../utils/PollyUtils';
 import Constants from '../shared/Constants';
-
 import * as TestData from '../test/setup/JourneySetup';
 import { snapshotResultCallback } from '../test/utils/TestUtils';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
+import * as JourneyOps from './JourneyOps';
 
 const ctx = autoSetupPolly();
 const pollyMode = process.env.FRODO_POLLY_MODE;
@@ -248,7 +247,9 @@ describe('JourneyOps', () => {
             },
           },
         });
-        expect(Object.keys(response.trees)).toStrictEqual([TestData.journey3.tree._id]);
+        expect(Object.keys(response.trees)).toStrictEqual([
+          TestData.journey3.tree._id,
+        ]);
       });
 
       test(`2: Export journey '${TestData.journey3.tree._id}' w/ dependencies`, async () => {

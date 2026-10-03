@@ -1,18 +1,18 @@
 import {
+  deleteTelemetryExporter,
   getTelemetryExporters,
-  TelemetryExporters,
   LogExporterSkeleton,
   putTelemetryExporter,
-  deleteTelemetryExporter,
   TelemetryExporterCategory,
+  TelemetryExporters,
 } from '../../api/cloud/TelemetryApi';
+import { State } from '../../shared/State';
 import {
   createProgressIndicator,
+  debugMessage,
   stopProgressIndicator,
   updateProgressIndicator,
-  debugMessage,
 } from '../../utils/Console';
-import { State } from '../../shared/State';
 import { getMetadata } from '../../utils/ExportImportUtils';
 import { FrodoError } from '../FrodoError';
 import { ExportMetaData } from '../OpsTypes';

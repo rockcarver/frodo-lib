@@ -1,22 +1,26 @@
 import { jest } from '@jest/globals';
 
-const fetch = jest.fn(async (_args?: any): Promise<any> => ({
-  result: [],
-  resultCount: 0,
-  pagedResultsCookie: null,
-  totalPagedResultsPolicy: 'NONE',
-  totalPagedResults: -1,
-  remainingPagedResults: -1,
-}));
+const fetch = jest.fn(
+  async (_args?: any): Promise<any> => ({
+    result: [],
+    resultCount: 0,
+    pagedResultsCookie: null,
+    totalPagedResultsPolicy: 'NONE',
+    totalPagedResults: -1,
+    remainingPagedResults: -1,
+  })
+);
 
-const tailMock = jest.fn(async (_args?: any): Promise<any> => ({
-  result: [],
-  resultCount: 0,
-  pagedResultsCookie: null,
-  totalPagedResultsPolicy: 'NONE',
-  totalPagedResults: -1,
-  remainingPagedResults: -1,
-}));
+const tailMock = jest.fn(
+  async (_args?: any): Promise<any> => ({
+    result: [],
+    resultCount: 0,
+    pagedResultsCookie: null,
+    totalPagedResultsPolicy: 'NONE',
+    totalPagedResults: -1,
+    remainingPagedResults: -1,
+  })
+);
 
 jest.unstable_mockModule('../../api/cloud/LogApi', () => ({
   createLogApiKey: jest.fn(),
@@ -217,8 +221,18 @@ describe('searchEvents', () => {
   test('keeps events with no transaction id (e.g. debug-source raw log lines) rather than collapsing them together', async () => {
     fetch.mockResolvedValue({
       result: [
-        { payload: 'raw debug line 1', timestamp: 't', type: 'text/plain', source: 'am-core' },
-        { payload: 'raw debug line 2', timestamp: 't', type: 'text/plain', source: 'am-core' },
+        {
+          payload: 'raw debug line 1',
+          timestamp: 't',
+          type: 'text/plain',
+          source: 'am-core',
+        },
+        {
+          payload: 'raw debug line 2',
+          timestamp: 't',
+          type: 'text/plain',
+          source: 'am-core',
+        },
       ],
       resultCount: 2,
       pagedResultsCookie: null,

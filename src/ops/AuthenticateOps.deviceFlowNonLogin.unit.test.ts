@@ -19,8 +19,12 @@
 import { jest } from '@jest/globals';
 
 const getConnectionProfile = jest.fn(async (_args?: any): Promise<any> => ({}));
-const loadConnectionProfile = jest.fn(async (_args?: any): Promise<any> => false);
-const saveConnectionProfile = jest.fn(async (_args?: any): Promise<any> => true);
+const loadConnectionProfile = jest.fn(
+  async (_args?: any): Promise<any> => false
+);
+const saveConnectionProfile = jest.fn(
+  async (_args?: any): Promise<any> => true
+);
 
 jest.unstable_mockModule('./ConnectionProfileOps', () => ({
   getConnectionProfile,
@@ -28,12 +32,16 @@ jest.unstable_mockModule('./ConnectionProfileOps', () => ({
   saveConnectionProfile,
 }));
 
-const runInteractiveAuthorizationCodeFlow = jest.fn(async (_args?: any): Promise<any> => {
-  throw new Error('runInteractiveAuthorizationCodeFlow mock not configured');
-});
-const startDeviceAuthorizationFlow = jest.fn(async (_args?: any): Promise<any> => {
-  throw new Error('startDeviceAuthorizationFlow mock not configured');
-});
+const runInteractiveAuthorizationCodeFlow = jest.fn(
+  async (_args?: any): Promise<any> => {
+    throw new Error('runInteractiveAuthorizationCodeFlow mock not configured');
+  }
+);
+const startDeviceAuthorizationFlow = jest.fn(
+  async (_args?: any): Promise<any> => {
+    throw new Error('startDeviceAuthorizationFlow mock not configured');
+  }
+);
 const refreshBrowserBearerToken = jest.fn(async (_args?: any): Promise<any> => {
   throw new Error('refreshBrowserBearerToken mock not configured');
 });

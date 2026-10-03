@@ -53,7 +53,7 @@ npm run dev
 Before you submit a PR, make sure your code follows the frodo code formatting conventions and all the existing and your new unit tests are passing.
 
 ```console
-npm run lint
+npm run check
 npm test
 ```
 

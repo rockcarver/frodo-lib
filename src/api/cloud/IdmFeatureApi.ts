@@ -1,5 +1,4 @@
 import util from 'util';
-
 import { IdObjectSkeletonInterface } from '../../api/ApiTypes';
 import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';

@@ -32,10 +32,10 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { autoSetupPolly } from "../utils/AutoSetupPolly";
-import { filterRecording } from "../utils/PollyUtils";
-import * as ServiceOps from "./ServiceOps";
-import {state} from "../lib/FrodoLib";
+import { state } from '../lib/FrodoLib';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
+import * as ServiceOps from './ServiceOps';
 
 const ctx = autoSetupPolly();
 
@@ -67,12 +67,18 @@ describe('ServiceOps', () => {
     });
 
     test('1: Get List of Global Services', async () => {
-      const response = await ServiceOps.getListOfServices({ globalConfig: true, state });
+      const response = await ServiceOps.getListOfServices({
+        globalConfig: true,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test('2: Get List of Realm Services', async () => {
-      const response = await ServiceOps.getListOfServices({ globalConfig: false, state });
+      const response = await ServiceOps.getListOfServices({
+        globalConfig: false,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
@@ -83,12 +89,18 @@ describe('ServiceOps', () => {
     });
 
     test('1: Get full Global Services', async () => {
-      const response = await ServiceOps.getFullServices({ globalConfig: true, state });
+      const response = await ServiceOps.getFullServices({
+        globalConfig: true,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test('2: Get full Realm Services', async () => {
-      const response = await ServiceOps.getFullServices({ globalConfig: false, state });
+      const response = await ServiceOps.getFullServices({
+        globalConfig: false,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
@@ -134,14 +146,20 @@ describe('ServiceOps', () => {
     });
 
     test('1: Export Global Services', async () => {
-      const response = await ServiceOps.exportServices({ globalConfig: true, state });
+      const response = await ServiceOps.exportServices({
+        globalConfig: true,
+        state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
     });
 
     test('2: Export Realm Services', async () => {
-      const response = await ServiceOps.exportServices({ globalConfig: false, state });
+      const response = await ServiceOps.exportServices({
+        globalConfig: false,
+        state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });

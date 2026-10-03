@@ -6,10 +6,10 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { convertPrivateKeyToPem } from './CryptoUtils';
-import fs from 'fs'
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { convertPrivateKeyToPem } from './CryptoUtils';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -21,21 +21,20 @@ describe('CryptoUtils', () => {
 
     function testSuccess(filename: string, usePassphrase = false) {
       const key = fs.readFileSync(
-        path.resolve(
-          __dirname,
-          `../test/mocks/CryptoUtils/${filename}`
-        ),
+        path.resolve(__dirname, `../test/mocks/CryptoUtils/${filename}`),
         'utf8'
       );
       const pem = convertPrivateKeyToPem({
-        key, 
-        passphrase: usePassphrase ? 'test' : undefined
+        key,
+        passphrase: usePassphrase ? 'test' : undefined,
       });
       expect(pem).toMatchSnapshot();
     }
 
     test('1: Test not providing a key', () => {
-      expect(() => convertPrivateKeyToPem({ key: '' })).toThrow('Private key not provided.');
+      expect(() => convertPrivateKeyToPem({ key: '' })).toThrow(
+        'Private key not provided.'
+      );
     });
 
     test('2: PEM PKCS#1 RSA', () => {

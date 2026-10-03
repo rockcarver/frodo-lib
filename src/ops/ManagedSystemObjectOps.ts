@@ -6,7 +6,6 @@ import {
 import {
   countManagedSystemObjects as _countManagedSystemObjects,
   createManagedSystemObject as _createManagedSystemObject,
-  DEFAULT_PAGE_SIZE,
   deleteManagedSystemObject as _deleteManagedSystemObject,
   getManagedSystemObject as _getManagedSystemObject,
   patchManagedSystemObject as _patchManagedSystemObject,
@@ -14,6 +13,7 @@ import {
   queryAllManagedSystemObjectsByType as _queryAllManagedSystemObjectsByType,
   queryManagedSystemObjects as _queryManagedSystemObjects,
   queryRelatedManagedSystemObjects as _queryRelatedManagedSystemObjects,
+  DEFAULT_PAGE_SIZE,
 } from '../api/ManagedSystemObjectApi';
 import { State } from '../shared/State';
 import { FrodoError } from './FrodoError';

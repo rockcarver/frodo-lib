@@ -1,12 +1,10 @@
 import fs from 'fs';
-
 import axios, { AxiosError } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-
 import {
-  type CircleOfTrustSkeleton,
   createCircleOfTrust,
   updateCircleOfTrust,
+  type CircleOfTrustSkeleton,
 } from '../api/CirclesOfTrustApi';
 import { VariableSkeleton } from '../api/cloud/VariablesApi';
 import {
@@ -21,16 +19,16 @@ import {
   getProvider,
   getProviderMetadata,
   queryProviderStubs,
-  type Saml2ProviderSkeleton,
   updateProvider,
+  type Saml2ProviderSkeleton,
 } from '../api/Saml2Api';
 import { type ScriptSkeleton } from '../api/ScriptApi';
 import { type SocialIdpSkeleton } from '../api/SocialIdentityProvidersApi';
 import {
   deleteTree,
   getTree,
-  getTreesCount,
   getTrees,
+  getTreesCount,
   putTree,
   type TreeSkeleton,
 } from '../api/TreeApi';
@@ -66,9 +64,9 @@ import { findInArray } from '../utils/JsonUtils';
 import { readCirclesOfTrust } from './CirclesOfTrustOps';
 import { resolveVariable, updateVariable } from './cloud/VariablesOps';
 import {
-  type EmailTemplateSkeleton,
   readEmailTemplate,
   updateEmailTemplate,
+  type EmailTemplateSkeleton,
 } from './EmailTemplateOps';
 import { FrodoError, isNotFoundError } from './FrodoError';
 import {
@@ -77,6 +75,7 @@ import {
 } from './IdpOps';
 import {
   CustomNodeExportInterface,
+  deleteNode,
   importCustomNodes,
   isCloudOnlyNode,
   isCustomNode,
@@ -85,9 +84,8 @@ import {
   readNode,
   readNodes,
   updateNode,
-  deleteNode,
 } from './NodeOps';
-import { type ExportMetaData, ResultCallback } from './OpsTypes';
+import { ResultCallback, type ExportMetaData } from './OpsTypes';
 import { readSaml2ProviderStubs } from './Saml2Ops';
 import {
   getLibraryScriptNames,
@@ -95,7 +93,7 @@ import {
   readScriptByName,
   updateScript,
 } from './ScriptOps';
-import { readThemes, type ThemeSkeleton, updateThemes } from './ThemeOps';
+import { readThemes, updateThemes, type ThemeSkeleton } from './ThemeOps';
 
 export type Journey = {
   /**
@@ -2658,7 +2656,6 @@ export async function resolveInnerTreeDependencies({
   resolvedJourneys: string[];
 }> {
   let before = -1;
-  let after = index;
   if (index !== -1) {
     before = index;
   }
@@ -2691,7 +2688,7 @@ export async function resolveInnerTreeDependencies({
       }
     }
   }
-  after = Object.keys(unresolvedJourneys).length;
+  const after = Object.keys(unresolvedJourneys).length;
   if (index !== -1 && after === before) {
     // This is the end, no progress was made since the last recursion
     return {
@@ -2725,7 +2722,6 @@ export async function resolveDependencies(
   index = -1
 ) {
   let before = -1;
-  let after = index;
   if (index !== -1) {
     before = index;
   }
@@ -2767,7 +2763,7 @@ export async function resolveDependencies(
       }
     }
   }
-  after = Object.keys(unresolvedJourneys).length;
+  const after = Object.keys(unresolvedJourneys).length;
   if (index !== -1 && after === before) {
     // This is the end, no progress was made since the last recursion
     // printMessage(

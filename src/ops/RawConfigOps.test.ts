@@ -30,13 +30,13 @@
  * in case things don't function as expected
  */
 import { state } from '../index';
-import { customNode1, customNode2 } from '../test/setup/NodeSetup';
 import { template1, template2 } from '../test/setup/EmailTemplateSetup';
-import { variable1, variable2 } from '../test/setup/VariablesSetup';
+import { customNode1, customNode2 } from '../test/setup/NodeSetup';
 import * as TestData from '../test/setup/RawConfigSetup';
-import * as RawConfigOps from './RawConfigOps';
-import { EMAIL_TEMPLATE_TYPE } from './EmailTemplateOps';
+import { variable1, variable2 } from '../test/setup/VariablesSetup';
 import { encode } from '../utils/Base64Utils';
+import { EMAIL_TEMPLATE_TYPE } from './EmailTemplateOps';
+import * as RawConfigOps from './RawConfigOps';
 
 describe('RawConfigOps', () => {
   TestData.setup();

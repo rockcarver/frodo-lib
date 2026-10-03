@@ -1,16 +1,13 @@
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
-
 import {
   accessToken as _accessToken,
-  type AccessTokenResponseType,
   authorize as _authorize,
   clientCredentialsGrant as _clientCredentialsGrant,
   deviceAuthorizationRequest as _deviceAuthorizationRequest,
   getTokenInfo as _getTokenInfo,
-} from '../api/OAuth2OIDCApi';
-import {
   DeviceAuthorizationResponseType,
   TokenInfoResponseType,
+  type AccessTokenResponseType,
 } from '../api/OAuth2OIDCApi';
 import { State } from '../shared/State';
 import { mergeDeep } from '../utils/JsonUtils';

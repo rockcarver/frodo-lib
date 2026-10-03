@@ -43,29 +43,28 @@
  * in case things don't function as expected
  */
 import { state } from '../../../index';
-import * as IgaRequestTypeOps from './IgaRequestTypeOps';
-
 import * as TestData from '../../../test/setup/IgaRequestTypeSetup';
 import { snapshotResultCallback } from '../../../test/utils/TestUtils';
+import * as IgaRequestTypeOps from './IgaRequestTypeOps';
 
 describe('IgaRequestTypeOps', () => {
-
   TestData.setup();
-  
+
   // Phase 1
   if (
     !process.env.FRODO_POLLY_MODE ||
     (process.env.FRODO_POLLY_MODE === 'record' &&
       process.env.FRODO_RECORD_PHASE === '1')
   ) {
-
     describe('createRequestTypeExportTemplate()', () => {
       test('0: Method is implemented', async () => {
         expect(IgaRequestTypeOps.createRequestTypeExportTemplate).toBeDefined();
       });
 
       test('1: Create Request Type Export Template', async () => {
-        const response = IgaRequestTypeOps.createRequestTypeExportTemplate({ state });
+        const response = IgaRequestTypeOps.createRequestTypeExportTemplate({
+          state,
+        });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });
@@ -78,7 +77,10 @@ describe('IgaRequestTypeOps', () => {
       });
 
       test('1: Create Glossary Schema Export Template', async () => {
-        const response = await IgaRequestTypeOps.createRequestType({ typeData: TestData.requestType1, state });
+        const response = await IgaRequestTypeOps.createRequestType({
+          typeData: TestData.requestType1,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
@@ -95,13 +97,15 @@ describe('IgaRequestTypeOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Read non-existing request type', async () => {
         const unknownId = '11111111-1111-1111-1111-111111111111';
-        await expect(IgaRequestTypeOps.readRequestType({
-          typeId: unknownId,
-          state,
-        })).rejects.toThrow('Error reading request type ' + unknownId);
+        await expect(
+          IgaRequestTypeOps.readRequestType({
+            typeId: unknownId,
+            state,
+          })
+        ).rejects.toThrow('Error reading request type ' + unknownId);
       });
     });
 
@@ -117,13 +121,15 @@ describe('IgaRequestTypeOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Read non-existing request type with unknown name', async () => {
         const unknownName = 'unknownName';
-        await expect(IgaRequestTypeOps.readRequestTypeByName({
-          typeName: unknownName,
-          state,
-        })).rejects.toThrow('Error reading request type ' + unknownName);
+        await expect(
+          IgaRequestTypeOps.readRequestTypeByName({
+            typeName: unknownName,
+            state,
+          })
+        ).rejects.toThrow('Error reading request type ' + unknownName);
       });
     });
 
@@ -155,14 +161,16 @@ describe('IgaRequestTypeOps', () => {
           meta: expect.any(Object),
         });
       });
-  
+
       test('2: Export non-existing request type', async () => {
         const unknownId = '11111111-1111-1111-1111-111111111111';
-        await expect(IgaRequestTypeOps.exportRequestType({
-          typeId: unknownId,
-          options: { onlyCustom: false, useStringArrays: false },
-          state,
-        })).rejects.toThrow('Error exporting request type ' + unknownId);
+        await expect(
+          IgaRequestTypeOps.exportRequestType({
+            typeId: unknownId,
+            options: { onlyCustom: false, useStringArrays: false },
+            state,
+          })
+        ).rejects.toThrow('Error exporting request type ' + unknownId);
       });
     });
 
@@ -181,14 +189,16 @@ describe('IgaRequestTypeOps', () => {
           meta: expect.any(Object),
         });
       });
-  
+
       test('2: Export non-existing request type with unknown name', async () => {
         const unknownName = 'unknownName';
-        await expect(IgaRequestTypeOps.exportRequestTypeByName({
-          typeName: unknownName,
-          options: { onlyCustom: true, useStringArrays: false },
-          state,
-        })).rejects.toThrow('Error exporting request type ' + unknownName);
+        await expect(
+          IgaRequestTypeOps.exportRequestTypeByName({
+            typeName: unknownName,
+            options: { onlyCustom: true, useStringArrays: false },
+            state,
+          })
+        ).rejects.toThrow('Error exporting request type ' + unknownName);
       });
     });
 
@@ -234,21 +244,25 @@ describe('IgaRequestTypeOps', () => {
 
       test(`2: Update non-existing request type`, async () => {
         const unknownId = '11111111-1111-1111-1111-111111111111';
-        await expect(IgaRequestTypeOps.updateRequestType({
-          typeId: unknownId,
-          typeData: {...TestData.requestType2, id: unknownId },
-          state,
-        })).rejects.toThrow(`Error updating request type '${unknownId}'`);
+        await expect(
+          IgaRequestTypeOps.updateRequestType({
+            typeId: unknownId,
+            typeData: { ...TestData.requestType2, id: unknownId },
+            state,
+          })
+        ).rejects.toThrow(`Error updating request type '${unknownId}'`);
       });
     });
 
     describe('importRequestTypes()', () => {
-      const importData = IgaRequestTypeOps.createRequestTypeExportTemplate({ state });
+      const importData = IgaRequestTypeOps.createRequestTypeExportTemplate({
+        state,
+      });
       importData.requestType = {
         [TestData.requestType2.id]: TestData.requestType2,
         [TestData.requestType3.id]: TestData.requestType3,
         [TestData.requestType4.id]: TestData.requestType4,
-      }
+      };
 
       test('0: Method is implemented', async () => {
         expect(IgaRequestTypeOps.importRequestTypes).toBeDefined();
@@ -256,7 +270,9 @@ describe('IgaRequestTypeOps', () => {
 
       test('1: Import None', async () => {
         const response = await IgaRequestTypeOps.importRequestTypes({
-          importData: IgaRequestTypeOps.createRequestTypeExportTemplate({ state }),
+          importData: IgaRequestTypeOps.createRequestTypeExportTemplate({
+            state,
+          }),
           options: {
             onlyCustom: false,
           },
@@ -329,13 +345,15 @@ describe('IgaRequestTypeOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Delete non-existing request type by id', async () => {
         const unknownId = '11111111-1111-1111-1111-111111111111';
-        await expect(IgaRequestTypeOps.deleteRequestType({
-          typeId: unknownId,
-          state,
-        })).rejects.toThrow('Error deleting request type ' + unknownId);
+        await expect(
+          IgaRequestTypeOps.deleteRequestType({
+            typeId: unknownId,
+            state,
+          })
+        ).rejects.toThrow('Error deleting request type ' + unknownId);
       });
     });
 
@@ -351,13 +369,15 @@ describe('IgaRequestTypeOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Delete non-existing request type by name', async () => {
         const unknownName = 'unknownName';
-        await expect(IgaRequestTypeOps.deleteRequestTypeByName({
-          typeName: unknownName,
-          state,
-        })).rejects.toThrow('Error deleting request type ' + unknownName);
+        await expect(
+          IgaRequestTypeOps.deleteRequestTypeByName({
+            typeName: unknownName,
+            state,
+          })
+        ).rejects.toThrow('Error deleting request type ' + unknownName);
       });
     });
   }

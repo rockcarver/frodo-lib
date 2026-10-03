@@ -1,13 +1,13 @@
 import {
-  type AmServiceSkeleton,
+  getListOfServices as _getListOfServices,
   deleteService,
   deleteServiceNextDescendent,
-  type FullService,
-  getListOfServices as _getListOfServices,
   getService,
   getServiceDescendents,
   putService,
   putServiceNextDescendent,
+  type AmServiceSkeleton,
+  type FullService,
 } from '../api/ServiceApi';
 import { State } from '../shared/State';
 import {
@@ -440,7 +440,7 @@ export async function putFullService({
           message: `ServiceOps.putFullService: descendentId=${descendentId}`,
           state,
         });
-        let result = undefined;
+        let result;
         try {
           result = await putServiceNextDescendent({
             serviceId,

@@ -1,20 +1,18 @@
+import { createPrivateKey, createPublicKey, webcrypto } from 'crypto';
 import http from 'http';
 import https from 'https';
 import net, { AddressInfo } from 'net';
-import { createPrivateKey, createPublicKey, webcrypto } from 'crypto';
-
 import 'reflect-metadata';
 import {
   BasicConstraintsExtension,
+  GeneralName,
   KeyUsagesExtension,
   SubjectAlternativeNameExtension,
-  GeneralName,
   X509CertificateGenerator,
 } from '@peculiar/x509';
-
-import { generateAmApi } from './BaseApi';
 import StateImpl from '../shared/State';
 import { getPrivateKey, getPublicKey } from '../test/utils/TestUtils';
+import { generateAmApi } from './BaseApi';
 
 async function createExpiredCertificate(): Promise<{
   key: string;

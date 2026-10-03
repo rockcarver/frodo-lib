@@ -1,8 +1,8 @@
-import { state } from '../index';
 import fs from 'fs';
 import path from 'path';
-import { getBuildTimestamp, getVersion } from './VersionUtils';
 import { fileURLToPath } from 'url';
+import { state } from '../index';
+import { getBuildTimestamp, getVersion } from './VersionUtils';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

@@ -1,9 +1,7 @@
 import fs from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-
 import { jest } from '@jest/globals';
-
 import Constants from '../shared/Constants';
 import StateImpl from '../shared/State';
 
@@ -45,9 +43,8 @@ jest.unstable_mockModule('./FrodoUtils', () => ({
   default: () => ({ getFrodoHome: () => getFrodoHomeMock() }),
   getFrodoHome: getFrodoHomeMock,
 }));
-const { default: DataProtection, secureMasterKeyFile } = await import(
-  './DataProtection'
-);
+const { default: DataProtection, secureMasterKeyFile } =
+  await import('./DataProtection');
 
 function cleanupEnv() {
   if (savedMasterKey === undefined)

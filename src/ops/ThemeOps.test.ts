@@ -47,12 +47,12 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { FrodoError, state } from '../index';
 import * as IdmConfigApi from '../api/IdmConfigApi';
-import * as ThemeOps from './ThemeOps';
+import { FrodoError, state } from '../index';
 import { getConfigEntity } from '../test/mocks/ForgeRockApiMockEngine';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
+import * as ThemeOps from './ThemeOps';
 
 const ctx = autoSetupPolly();
 

@@ -10,9 +10,8 @@
  * is configured, and per-session caching.
  */
 import { jest } from '@jest/globals';
-
-import { determineCallerTrustTier } from './CallerTrustTierOps';
 import StateImpl from '../shared/State';
+import { determineCallerTrustTier } from './CallerTrustTierOps';
 
 describe('determineCallerTrustTier', () => {
   test('1: Short-circuits to full-trust for a non-interactive (e.g. admin-account) session, without consulting a resolver', async () => {

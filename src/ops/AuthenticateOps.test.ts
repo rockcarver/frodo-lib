@@ -9,12 +9,12 @@
  *
  *        FRODO_DEBUG=1 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am FRODO_USERNAME=volker.scheuber@forgerock.com FRODO_PASSWORD='S3cr3!S@uc3' npm run test:record_noauth AuthenticateOps
  *
- *    You must also do the same when testing a classic deployment. Additionally, 
- *    if recording any tests involving the Amster private key in the pkcs8.pem 
- *    file, you must add the corresponding public key from pkcs8.pub into your 
+ *    You must also do the same when testing a classic deployment. Additionally,
+ *    if recording any tests involving the Amster private key in the pkcs8.pem
+ *    file, you must add the corresponding public key from pkcs8.pub into your
  *    authorized_keys file in /path/to/am/security/keys/amster/authorized_keys,
  *    otherwise the key will not be recognized by AM and you will get a 401 error.
- * 
+ *
  * 2. Update CJS snapshots
  *
  *    After recording, the ESM snapshots will already be updated as that happens
@@ -32,14 +32,14 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { state } from '../index';
-import * as AuthenticateOps from './AuthenticateOps';
-import { autoSetupPolly, setDefaultState } from '../utils/AutoSetupPolly';
-import { defaultMatchRequestsBy, filterRecording } from '../utils/PollyUtils';
-import Constants from '../shared/Constants';
-import fs from 'fs'
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { state } from '../index';
+import Constants from '../shared/Constants';
+import { autoSetupPolly, setDefaultState } from '../utils/AutoSetupPolly';
+import { defaultMatchRequestsBy, filterRecording } from '../utils/PollyUtils';
+import * as AuthenticateOps from './AuthenticateOps';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -74,20 +74,22 @@ describe('AuthenticateOps', () => {
         test('0: Method is implemented', async () => {
           expect(AuthenticateOps.getTokens).toBeDefined();
         });
-    
+
         test.skip('1: Authenticate successfully as user', async () => {
           state.setDeploymentType(undefined);
           state.setUsername(process.env.FRODO_USERNAME || 'mockUser');
           state.setPassword(process.env.FRODO_PASSWORD || 'mockPassword');
           const result = await AuthenticateOps.getTokens({ state });
           expect(result).toBeTruthy();
-          expect(result.subject).toEqual("user " + state.getUsername());
+          expect(result.subject).toEqual('user ' + state.getUsername());
           expect(result.userSessionToken.tokenId).toBeTruthy();
           expect(result.userSessionToken.expires).toBeTruthy();
           expect(result).toMatchSnapshot({
-            subject: expect.any(String)
+            subject: expect.any(String),
           });
-          expect(state.getDeploymentType()).toEqual(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
+          expect(state.getDeploymentType()).toEqual(
+            Constants.CLOUD_DEPLOYMENT_TYPE_KEY
+          );
           expect(state.getCookieName()).toBeTruthy();
           expect(state.getCookieValue()).toBeTruthy();
           expect(state.getBearerToken()).toBeTruthy();
@@ -96,11 +98,11 @@ describe('AuthenticateOps', () => {
           expect(state.getBearerToken()).toMatchSnapshot();
         });
 
-        test.todo("2: Authenticate successfully as service account");
+        test.todo('2: Authenticate successfully as service account');
       });
     });
   }
-  
+
   // Phase 2
   if (
     !process.env.FRODO_POLLY_MODE ||
@@ -113,53 +115,98 @@ describe('AuthenticateOps', () => {
       });
       describe('createPayload', () => {
         test('0: default to port 80', async () => {
-          state.setHost("http://trivirsample.com")
-          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
-          expect(payload.aud).toBe("http://trivirsample.com:80/oauth2/access_token")
+          state.setHost('http://trivirsample.com');
+          const payload = AuthenticateOps.createPayload(
+            'serviceAcctID',
+            state.getHost()
+          );
+          expect(payload.aud).toBe(
+            'http://trivirsample.com:80/oauth2/access_token'
+          );
         });
         test('1: default to port 443', async () => {
-          state.setHost("https://trivirsample.com")
-          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
-          expect(payload.aud).toBe("https://trivirsample.com:443/oauth2/access_token")
+          state.setHost('https://trivirsample.com');
+          const payload = AuthenticateOps.createPayload(
+            'serviceAcctID',
+            state.getHost()
+          );
+          expect(payload.aud).toBe(
+            'https://trivirsample.com:443/oauth2/access_token'
+          );
         });
         test('2: avoid dup port 80', async () => {
-          state.setHost("http://trivirsample.com:80")
-          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
-          expect(payload.aud).toBe("http://trivirsample.com:80/oauth2/access_token")
+          state.setHost('http://trivirsample.com:80');
+          const payload = AuthenticateOps.createPayload(
+            'serviceAcctID',
+            state.getHost()
+          );
+          expect(payload.aud).toBe(
+            'http://trivirsample.com:80/oauth2/access_token'
+          );
         });
         test('3: avoid dup port 443', async () => {
-          state.setHost("https://trivirsample.com:443")
-          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
-          expect(payload.aud).toBe("https://trivirsample.com:443/oauth2/access_token")
+          state.setHost('https://trivirsample.com:443');
+          const payload = AuthenticateOps.createPayload(
+            'serviceAcctID',
+            state.getHost()
+          );
+          expect(payload.aud).toBe(
+            'https://trivirsample.com:443/oauth2/access_token'
+          );
         });
         test('4: avoid port 443, if one is already present', async () => {
-          state.setHost("https://trivirsample.com:1234")
-          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
-          expect(payload.aud).toBe("https://trivirsample.com:1234/oauth2/access_token")
+          state.setHost('https://trivirsample.com:1234');
+          const payload = AuthenticateOps.createPayload(
+            'serviceAcctID',
+            state.getHost()
+          );
+          expect(payload.aud).toBe(
+            'https://trivirsample.com:1234/oauth2/access_token'
+          );
         });
         test('5: /am is provided, only', async () => {
-          state.setHost("https://trivirsample.com/am")
-          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
-          expect(payload.aud).toBe("https://trivirsample.com:443/am/oauth2/access_token")
+          state.setHost('https://trivirsample.com/am');
+          const payload = AuthenticateOps.createPayload(
+            'serviceAcctID',
+            state.getHost()
+          );
+          expect(payload.aud).toBe(
+            'https://trivirsample.com:443/am/oauth2/access_token'
+          );
         });
         test('6: /am plus port is provided', async () => {
-          state.setHost("https://trivirsample.com:9876/am")
-          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
-          expect(payload.aud).toBe("https://trivirsample.com:9876/am/oauth2/access_token")
+          state.setHost('https://trivirsample.com:9876/am');
+          const payload = AuthenticateOps.createPayload(
+            'serviceAcctID',
+            state.getHost()
+          );
+          expect(payload.aud).toBe(
+            'https://trivirsample.com:9876/am/oauth2/access_token'
+          );
         });
         test('7: /am is not provided', async () => {
-          state.setHost("https://trivirsample.com")
-          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
-          expect(payload.aud).toBe("https://trivirsample.com:443/oauth2/access_token")
+          state.setHost('https://trivirsample.com');
+          const payload = AuthenticateOps.createPayload(
+            'serviceAcctID',
+            state.getHost()
+          );
+          expect(payload.aud).toBe(
+            'https://trivirsample.com:443/oauth2/access_token'
+          );
         });
         test('7: /am is not provided + port', async () => {
-          state.setHost("https://trivirsample.com:8765")
-          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
-          expect(payload.aud).toBe("https://trivirsample.com:8765/oauth2/access_token")
+          state.setHost('https://trivirsample.com:8765');
+          const payload = AuthenticateOps.createPayload(
+            'serviceAcctID',
+            state.getHost()
+          );
+          expect(payload.aud).toBe(
+            'https://trivirsample.com:8765/oauth2/access_token'
+          );
         });
       });
 
-      describe('getTokens()', () => {  
+      describe('getTokens()', () => {
         test('0: Authenticate successfully as user', async () => {
           // override and reset service account credentials from environment variables in CI/CD pipeline
           state.setServiceAccountId(undefined);
@@ -168,15 +215,20 @@ describe('AuthenticateOps', () => {
           state.setDeploymentType(undefined);
           state.setUsername(process.env.FRODO_USERNAME || 'mockUser');
           state.setPassword(process.env.FRODO_PASSWORD || 'mockPassword');
-          const result = await AuthenticateOps.getTokens({ autoRefresh: false, state });
+          const result = await AuthenticateOps.getTokens({
+            autoRefresh: false,
+            state,
+          });
           expect(result).toBeTruthy();
-          expect(result.subject).toEqual("user " + state.getUsername());
+          expect(result.subject).toEqual('user ' + state.getUsername());
           expect(result.userSessionToken.tokenId).toBeTruthy();
           expect(result.userSessionToken.expires).toBeTruthy();
           expect(result).toMatchSnapshot({
-            subject: expect.any(String)
+            subject: expect.any(String),
           });
-          expect(state.getDeploymentType()).toEqual(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY);
+          expect(state.getDeploymentType()).toEqual(
+            Constants.CLASSIC_DEPLOYMENT_TYPE_KEY
+          );
           expect(state.getCookieName()).toBeTruthy();
           expect(state.getCookieValue()).toBeTruthy();
           expect(state.getCookieName()).toMatchSnapshot();
@@ -188,27 +240,38 @@ describe('AuthenticateOps', () => {
           state.setServiceAccountId(undefined);
           state.setServiceAccountJwk(undefined);
 
-          const privateKey = process.env.FRODO_AMSTER_PRIVATE_KEY || fs.readFileSync(
-            path.resolve(
-              __dirname,
-              '../test/mocks/AuthenticateOps/pkcs8.pem'
-            ),
-            'utf8'
-          );
+          const privateKey =
+            process.env.FRODO_AMSTER_PRIVATE_KEY ||
+            fs.readFileSync(
+              path.resolve(
+                __dirname,
+                '../test/mocks/AuthenticateOps/pkcs8.pem'
+              ),
+              'utf8'
+            );
           state.setDeploymentType(undefined);
-          state.setAmsterPrivateKey(privateKey);;
-          const result = await AuthenticateOps.getTokens({ autoRefresh: false, state });
+          state.setAmsterPrivateKey(privateKey);
+          const result = await AuthenticateOps.getTokens({
+            autoRefresh: false,
+            state,
+          });
           expect(result).toBeTruthy();
-          expect(result.subject).toEqual("user " + state.getUsername());
+          expect(result.subject).toEqual('user ' + state.getUsername());
           expect(result.userSessionToken.tokenId).toBeTruthy();
           expect(result.userSessionToken.expires).toBeTruthy();
           expect(result).toMatchSnapshot({
             subject: expect.any(String),
           });
-          expect(state.getDeploymentType()).toEqual(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY);
+          expect(state.getDeploymentType()).toEqual(
+            Constants.CLASSIC_DEPLOYMENT_TYPE_KEY
+          );
           expect(state.getAmsterPrivateKey()).toEqual(privateKey);
-          expect(state.getAuthenticationService()).toEqual(Constants.DEFAULT_AMSTER_SERVICE);
-          expect(state.getUsername()).toEqual(Constants.DEFAULT_CLASSIC_USERNAME);
+          expect(state.getAuthenticationService()).toEqual(
+            Constants.DEFAULT_AMSTER_SERVICE
+          );
+          expect(state.getUsername()).toEqual(
+            Constants.DEFAULT_CLASSIC_USERNAME
+          );
           expect(state.getCookieName()).toBeTruthy();
           expect(state.getCookieValue()).toBeTruthy();
           expect(state.getCookieName()).toMatchSnapshot();
@@ -219,31 +282,41 @@ describe('AuthenticateOps', () => {
           // override and reset service account credentials from environment variables in CI/CD pipeline
           state.setServiceAccountId(undefined);
           state.setServiceAccountJwk(undefined);
-          
-          const privateKey = process.env.FRODO_AMSTER_PRIVATE_KEY || fs.readFileSync(
-            path.resolve(
-              __dirname,
-              '../test/mocks/AuthenticateOps/pkcs8.pem'
-            ),
-            'utf8'
-          );
-          const authenticationService = process.env.FRODO_AUTHENTICATION_SERVICE || 'MockAmsterService';
+
+          const privateKey =
+            process.env.FRODO_AMSTER_PRIVATE_KEY ||
+            fs.readFileSync(
+              path.resolve(
+                __dirname,
+                '../test/mocks/AuthenticateOps/pkcs8.pem'
+              ),
+              'utf8'
+            );
+          const authenticationService =
+            process.env.FRODO_AUTHENTICATION_SERVICE || 'MockAmsterService';
           const username = process.env.FRODO_USERNAME || 'MockUser';
           state.setAuthenticationService(authenticationService);
           state.setUsername(username);
           state.setDeploymentType(undefined);
           state.setAmsterPrivateKey(privateKey);
-          const result = await AuthenticateOps.getTokens({ autoRefresh: false, state });
+          const result = await AuthenticateOps.getTokens({
+            autoRefresh: false,
+            state,
+          });
           expect(result).toBeTruthy();
-          expect(result.subject).toEqual("user " + state.getUsername());
+          expect(result.subject).toEqual('user ' + state.getUsername());
           expect(result.userSessionToken.tokenId).toBeTruthy();
           expect(result.userSessionToken.expires).toBeTruthy();
           expect(result).toMatchSnapshot({
-            subject: expect.any(String)
+            subject: expect.any(String),
           });
-          expect(state.getDeploymentType()).toEqual(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY);
+          expect(state.getDeploymentType()).toEqual(
+            Constants.CLASSIC_DEPLOYMENT_TYPE_KEY
+          );
           expect(state.getAmsterPrivateKey()).toEqual(privateKey);
-          expect(state.getAuthenticationService()).toEqual(authenticationService);
+          expect(state.getAuthenticationService()).toEqual(
+            authenticationService
+          );
           expect(state.getUsername()).toEqual(username);
           expect(state.getCookieName()).toBeTruthy();
           expect(state.getCookieValue()).toBeTruthy();

@@ -12,12 +12,6 @@
 import fs from 'fs';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
-
-import {
-  ensureDirectoryForFile,
-  saveJsonToFile,
-  saveTextToFile,
-} from './ExportImportUtils';
 import { state } from '../index';
 import {
   deleteConnectionProfile,
@@ -25,6 +19,11 @@ import {
   setConnectionProfileAlias,
 } from '../ops/ConnectionProfileOps';
 import { saveUserSessionToken } from '../ops/TokenCacheOps';
+import {
+  ensureDirectoryForFile,
+  saveJsonToFile,
+  saveTextToFile,
+} from './ExportImportUtils';
 
 let baseTmp: string;
 let nonce: string;
@@ -61,9 +60,7 @@ describe('saveTextToFile (shared chokepoint)', () => {
     const blockingFile = join(baseTmp, 'blocking-file');
     fs.writeFileSync(blockingFile, 'not a directory');
     const filename = join(blockingFile, 'sub', 'out.txt');
-    expect(() =>
-      saveTextToFile({ data: 'x', filename, state })
-    ).not.toThrow();
+    expect(() => saveTextToFile({ data: 'x', filename, state })).not.toThrow();
     expect(fs.existsSync(filename)).toBe(false);
   });
 });
@@ -270,7 +267,8 @@ describe('saveUserSessionToken (token cache writers)', () => {
       const cache = JSON.parse(fs.readFileSync(filename, 'utf8'));
       expect(Object.keys(cache).length).toBeGreaterThan(0);
     } finally {
-      if (prevCachePath === undefined) delete process.env.FRODO_TOKEN_CACHE_PATH;
+      if (prevCachePath === undefined)
+        delete process.env.FRODO_TOKEN_CACHE_PATH;
       else process.env.FRODO_TOKEN_CACHE_PATH = prevCachePath ?? '';
     }
   }, 30000);

@@ -3,8 +3,8 @@ import {
   deleteOAuth2TrustedJwtIssuer as _deleteOAuth2TrustedJwtIssuer,
   getOAuth2TrustedJwtIssuer as _getOAuth2TrustedJwtIssuer,
   getOAuth2TrustedJwtIssuers as _getOAuth2TrustedJwtIssuers,
-  type OAuth2TrustedJwtIssuerSkeleton,
   putOAuth2TrustedJwtIssuer as _putOAuth2TrustedJwtIssuer,
+  type OAuth2TrustedJwtIssuerSkeleton,
 } from '../api/OAuth2TrustedJwtIssuerApi';
 import { State } from '../shared/State';
 import { debugMessage, printMessage } from '../utils/Console';

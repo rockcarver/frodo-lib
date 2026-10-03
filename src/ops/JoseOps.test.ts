@@ -6,11 +6,11 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import * as Jose from './JoseOps';
-import { parseUrl } from '../utils/ExportImportUtils';
 import { v4 } from 'uuid';
-import { isEqualJson } from '../utils/JsonUtils';
 import { decode } from '../utils/Base64Utils';
+import { parseUrl } from '../utils/ExportImportUtils';
+import { isEqualJson } from '../utils/JsonUtils';
+import * as Jose from './JoseOps';
 
 describe('JoseOps - createJWK()', () => {
   test('createJWK() 0: Method is implemented', async () => {

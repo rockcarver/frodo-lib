@@ -108,7 +108,10 @@ const FORGEOPS_CLASSIC_FULL_TRUST_ROLE = 'ui-global-admin';
  */
 export const CLOUD_SUPER_ADMIN_GROUP = 'super-admins';
 export const CLOUD_TENANT_ADMIN_GROUP = 'tenant-admins';
-const CLOUD_FULL_TRUST_GROUPS = [CLOUD_SUPER_ADMIN_GROUP, CLOUD_TENANT_ADMIN_GROUP];
+const CLOUD_FULL_TRUST_GROUPS = [
+  CLOUD_SUPER_ADMIN_GROUP,
+  CLOUD_TENANT_ADMIN_GROUP,
+];
 
 /**
  * Cloud groups confirmed live this session to exist and be genuinely

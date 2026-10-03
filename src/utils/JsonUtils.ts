@@ -242,7 +242,6 @@ export function put(obj: any, value: any, path: string[]): any {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     i < path.length - 1 ? (ref = ref[element]) : (ref[element] = value);
   }
-  ref = value;
   return obj;
 }
 

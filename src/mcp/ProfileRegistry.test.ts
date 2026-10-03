@@ -2,7 +2,7 @@
  * Verifies profile registry coverage and subtree mapping completeness.
  */
 
-import { frodo, buildCapabilityInventory } from '../index';
+import { buildCapabilityInventory, frodo } from '../index';
 import {
   capabilityMatchesAnyProfile,
   capabilityMatchesDisabled,

@@ -1,5 +1,4 @@
 import util from 'util';
-
 import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import {

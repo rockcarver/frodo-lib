@@ -1,9 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
 import MockAdapter from 'axios-mock-adapter';
-
 import { SingleTreeExportInterface } from '../../ops/JourneyOps';
 import { getTypedFilename } from '../../utils/ExportImportUtils';
 

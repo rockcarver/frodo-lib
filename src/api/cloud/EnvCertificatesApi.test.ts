@@ -45,18 +45,18 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import * as EnvCertificatesApi from './EnvCertificatesApi';
-import * as EnvCertificatesOps from '../../ops/cloud/EnvCertificatesOps';
-import { autoSetupPolly } from '../../utils/AutoSetupPolly';
-import { filterRecording } from '../../utils/PollyUtils';
 import { state } from '../../index';
-import { encode } from '../../utils/Base64Utils';
-import { stringify } from '../../utils/JsonUtils';
+import * as EnvCertificatesOps from '../../ops/cloud/EnvCertificatesOps';
 import {
   createSelfSignedCertificate,
   getPrivateKey,
   printError,
 } from '../../test/utils/TestUtils';
+import { autoSetupPolly } from '../../utils/AutoSetupPolly';
+import { encode } from '../../utils/Base64Utils';
+import { stringify } from '../../utils/JsonUtils';
+import { filterRecording } from '../../utils/PollyUtils';
+import * as EnvCertificatesApi from './EnvCertificatesApi';
 import { CSR } from './EnvCSRsApi';
 
 const ctx = autoSetupPolly();

@@ -78,6 +78,8 @@ Build does the following:
 - Uses deep checkout with tags (`fetch-depth: 0`, `fetch-tags: true`)
 - Computes next version with `vscheuber/version-bump-action@v1` (manual release runs)
 - Updates manifests with `vscheuber/manifest-version-update-action@v1` (manual release runs)
+- Runs `npm run check` (ESLint 10 + Prettier, including import order) and a
+  critical-level security audit
 - Builds library + docs and uploads `build.zip`
 
 ### Test

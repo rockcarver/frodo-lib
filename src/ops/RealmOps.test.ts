@@ -32,10 +32,10 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { autoSetupPolly } from "../utils/AutoSetupPolly";
-import { filterRecording } from "../utils/PollyUtils";
-import * as RealmOps from "./RealmOps";
-import {state} from "../lib/FrodoLib";
+import { state } from '../lib/FrodoLib';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
+import * as RealmOps from './RealmOps';
 
 const ctx = autoSetupPolly();
 

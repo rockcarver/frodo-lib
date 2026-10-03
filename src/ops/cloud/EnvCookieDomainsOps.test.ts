@@ -41,11 +41,11 @@
  * in case things don't function as expected
  */
 import * as EnvCookieDomainsApi from '../../api/cloud/EnvCookieDomainsApi';
-import * as EnvCookieDomainsOps from './EnvCookieDomainsOps';
+import { CookieDomains } from '../../api/cloud/EnvCookieDomainsApi';
+import { state } from '../../index';
 import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 import { filterRecording } from '../../utils/PollyUtils';
-import { state } from '../../index';
-import { CookieDomains } from '../../api/cloud/EnvCookieDomainsApi';
+import * as EnvCookieDomainsOps from './EnvCookieDomainsOps';
 
 const ctx = autoSetupPolly();
 

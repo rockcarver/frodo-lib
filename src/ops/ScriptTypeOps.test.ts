@@ -32,10 +32,10 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { autoSetupPolly } from "../utils/AutoSetupPolly";
-import { filterRecording } from "../utils/PollyUtils";
-import * as ScriptTypeOps from "./ScriptTypeOps";
-import { state } from "../lib/FrodoLib";
+import { state } from '../lib/FrodoLib';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
+import * as ScriptTypeOps from './ScriptTypeOps';
 
 const ctx = autoSetupPolly();
 
@@ -121,5 +121,4 @@ describe('ScriptTypeOps', () => {
     });
     //TODO: create tests
   });
-
 });

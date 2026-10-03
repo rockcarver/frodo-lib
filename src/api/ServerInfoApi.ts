@@ -1,5 +1,4 @@
 import util from 'util';
-
 import { State } from '../shared/State';
 import { getIdmBaseUrl } from '../utils/ForgeRockUtils';
 import { generateAmAuthApi, generateIdmApi } from './BaseApi';

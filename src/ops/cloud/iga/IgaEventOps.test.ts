@@ -44,14 +44,13 @@
  * in case things don't function as expected
  */
 import { state } from '../../../index';
-import * as IgaEventOps from './IgaEventOps';
+import { template1 } from '../../../test/setup/EmailTemplateSetup';
 import * as TestData from '../../../test/setup/IgaEventSetup';
 import { snapshotResultCallback } from '../../../test/utils/TestUtils';
 import { debugMessage } from '../../../utils/Console';
-import { template1 } from '../../../test/setup/EmailTemplateSetup';
+import * as IgaEventOps from './IgaEventOps';
 
 describe('IgaEventOps', () => {
-  
   TestData.setup();
 
   // Phase 1
@@ -68,7 +67,7 @@ describe('IgaEventOps', () => {
       test('1: Create Event Export Template', async () => {
         const response = IgaEventOps.createEventExportTemplate({ state });
         expect(response).toMatchSnapshot({
-          meta: expect.any(Object)
+          meta: expect.any(Object),
         });
       });
     });
@@ -99,13 +98,15 @@ describe('IgaEventOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Read non-existing event', async () => {
         const unknownId = '11111111-1111-1111-1111-111111111111';
-        await expect(IgaEventOps.readEvent({
-          eventId: unknownId,
-          state,
-        })).rejects.toThrow('Error reading event ' + unknownId);
+        await expect(
+          IgaEventOps.readEvent({
+            eventId: unknownId,
+            state,
+          })
+        ).rejects.toThrow('Error reading event ' + unknownId);
       });
     });
 
@@ -121,13 +122,15 @@ describe('IgaEventOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Read non-existing event with unknown name', async () => {
         const unknownName = 'unknownName';
-        await expect(IgaEventOps.readEventByName({
-          eventName: unknownName,
-          state,
-        })).rejects.toThrow('Error reading event ' + unknownName);
+        await expect(
+          IgaEventOps.readEventByName({
+            eventName: unknownName,
+            state,
+          })
+        ).rejects.toThrow('Error reading event ' + unknownName);
       });
     });
 
@@ -159,14 +162,16 @@ describe('IgaEventOps', () => {
           meta: expect.any(Object),
         });
       });
-  
+
       test('2: Export non-existing event', async () => {
         const unknownId = '11111111-1111-1111-1111-111111111111';
-        await expect(IgaEventOps.exportEvent({
-          eventId: unknownId,
-          options: { deps: true },
-          state,
-        })).rejects.toThrow('Error exporting event ' + unknownId);
+        await expect(
+          IgaEventOps.exportEvent({
+            eventId: unknownId,
+            options: { deps: true },
+            state,
+          })
+        ).rejects.toThrow('Error exporting event ' + unknownId);
       });
     });
 
@@ -188,11 +193,13 @@ describe('IgaEventOps', () => {
 
       test('2: Export non-existing event with unknown name', async () => {
         const unknownName = 'unknownName';
-        await expect(IgaEventOps.exportEventByName({
-          eventName: unknownName,
-          options: { deps: false },
-          state,
-        })).rejects.toThrow('Error exporting event ' + unknownName);
+        await expect(
+          IgaEventOps.exportEventByName({
+            eventName: unknownName,
+            options: { deps: false },
+            state,
+          })
+        ).rejects.toThrow('Error exporting event ' + unknownName);
       });
     });
 
@@ -243,11 +250,11 @@ describe('IgaEventOps', () => {
         [TestData.event3.id]: TestData.event3,
         [TestData.event4.id]: TestData.event4,
         [TestData.event5.id]: TestData.event5,
-      }
+      };
       importData.emailTemplate = {
-        [template1._id]: template1
-      }
-      
+        [template1._id]: template1,
+      };
+
       test('0: Method is implemented', async () => {
         expect(IgaEventOps.importEvents).toBeDefined();
       });
@@ -256,7 +263,7 @@ describe('IgaEventOps', () => {
         const response = await IgaEventOps.importEvents({
           importData: IgaEventOps.createEventExportTemplate({ state }),
           options: {
-            deps: true
+            deps: true,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -266,12 +273,15 @@ describe('IgaEventOps', () => {
 
       test('2: Import by ID with deps', async () => {
         await TestData.stageEvent(TestData.event3);
-        debugMessage({message: `importData = ${JSON.stringify(importData)}`, state });
+        debugMessage({
+          message: `importData = ${JSON.stringify(importData)}`,
+          state,
+        });
         const response = await IgaEventOps.importEvents({
           eventId: TestData.event3.id,
           importData,
           options: {
-            deps: true
+            deps: true,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -285,7 +295,7 @@ describe('IgaEventOps', () => {
           eventName: TestData.event3.name,
           importData,
           options: {
-            deps: false
+            deps: false,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -298,7 +308,7 @@ describe('IgaEventOps', () => {
         const response = await IgaEventOps.importEvents({
           importData,
           options: {
-            deps: true
+            deps: true,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -319,13 +329,15 @@ describe('IgaEventOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Delete non-existing event by id', async () => {
         const unknownId = '11111111-1111-1111-1111-111111111111';
-        await expect(IgaEventOps.deleteEvent({
-          eventId: unknownId,
-          state,
-        })).rejects.toThrow('Error deleting event ' + unknownId);
+        await expect(
+          IgaEventOps.deleteEvent({
+            eventId: unknownId,
+            state,
+          })
+        ).rejects.toThrow('Error deleting event ' + unknownId);
       });
     });
 
@@ -341,13 +353,15 @@ describe('IgaEventOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Delete non-existing event by name', async () => {
         const unknownName = 'unknownName';
-        await expect(IgaEventOps.deleteEventByName({
-          eventName: unknownName,
-          state,
-        })).rejects.toThrow('Error deleting event ' + unknownName);
+        await expect(
+          IgaEventOps.deleteEventByName({
+            eventName: unknownName,
+            state,
+          })
+        ).rejects.toThrow('Error deleting event ' + unknownName);
       });
     });
   }

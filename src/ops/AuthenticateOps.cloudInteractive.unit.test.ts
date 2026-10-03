@@ -26,12 +26,16 @@
  */
 import { jest } from '@jest/globals';
 
-const runInteractiveAuthorizationCodeFlow = jest.fn(async (_args?: any): Promise<any> => {
-  throw new Error('runInteractiveAuthorizationCodeFlow mock not configured');
-});
-const startDeviceAuthorizationFlow = jest.fn(async (_args?: any): Promise<any> => {
-  throw new Error('startDeviceAuthorizationFlow mock not configured');
-});
+const runInteractiveAuthorizationCodeFlow = jest.fn(
+  async (_args?: any): Promise<any> => {
+    throw new Error('runInteractiveAuthorizationCodeFlow mock not configured');
+  }
+);
+const startDeviceAuthorizationFlow = jest.fn(
+  async (_args?: any): Promise<any> => {
+    throw new Error('startDeviceAuthorizationFlow mock not configured');
+  }
+);
 const refreshBrowserBearerToken = jest.fn(async (_args?: any): Promise<any> => {
   throw new Error('refreshBrowserBearerToken mock not configured');
 });
@@ -74,10 +78,12 @@ jest.unstable_mockModule('./OAuth2OidcOps', () => ({
 // always falls through to resolveIdentity() here — mocked so that path
 // stays hermetic instead of attempting a real network call against this
 // test's fake host.
-const resolveIdentity = jest.fn(async (_args?: any): Promise<any> => ({
-  id: 'jdoe',
-  kind: 'unknown',
-}));
+const resolveIdentity = jest.fn(
+  async (_args?: any): Promise<any> => ({
+    id: 'jdoe',
+    kind: 'unknown',
+  })
+);
 
 jest.unstable_mockModule('./ManagedObjectOps', () => ({
   resolveIdentity,
@@ -102,10 +108,7 @@ async function getUnderlyingError(promise: Promise<unknown>): Promise<Error> {
     await promise;
   } catch (error) {
     let current = error;
-    while (
-      current instanceof FrodoError &&
-      current.originalErrors.length > 0
-    ) {
+    while (current instanceof FrodoError && current.originalErrors.length > 0) {
       current = current.originalErrors[0];
     }
     return current as Error;
@@ -191,7 +194,9 @@ describe('Cloud browser login (getTokensInteractive)', () => {
       })
     );
 
-    expect(error.message).toMatch(/not supported with cloud's built-in OAuth2 client/);
+    expect(error.message).toMatch(
+      /not supported with cloud's built-in OAuth2 client/
+    );
     expect(runInteractiveAuthorizationCodeFlow).not.toHaveBeenCalled();
   });
 
@@ -248,7 +253,7 @@ describe('Cloud browser login (getTokensInteractive)', () => {
     expect(call.redirectUri).toBeUndefined();
   });
 
-  test('6: --login-redirect-uri is shared with the non-interactive synthetic flow\'s state field (state.getAdminClientRedirectUri())', async () => {
+  test("6: --login-redirect-uri is shared with the non-interactive synthetic flow's state field (state.getAdminClientRedirectUri())", async () => {
     const state = freshState();
     // Simulates --login-redirect-uri already having been resolved onto
     // state by FrodoCommand.ts's stateMap, exactly like --login-client-id
@@ -387,7 +392,9 @@ describe('Cloud browser login (getTokensInteractive)', () => {
       expires_in: 1800,
       expires: Date.now() + 1_800_000,
     });
-    getTokenInfo.mockRejectedValueOnce(new Error('tokeninfo endpoint unreachable'));
+    getTokenInfo.mockRejectedValueOnce(
+      new Error('tokeninfo endpoint unreachable')
+    );
 
     const tokens = await getTokensInteractive({
       deploymentType: 'cloud',

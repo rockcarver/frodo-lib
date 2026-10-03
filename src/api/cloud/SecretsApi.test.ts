@@ -29,10 +29,10 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import * as SecretsApi from './SecretsApi';
+import { state } from '../../index';
 import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 import { filterRecording } from '../../utils/PollyUtils';
-import { state } from '../../index';
+import * as SecretsApi from './SecretsApi';
 
 const ctx = autoSetupPolly();
 
@@ -371,7 +371,8 @@ describe('SecretsApi', () => {
       try {
         await SecretsApi.createNewVersionOfSecret({
           secretId: 'esv-does-not-exist',
-          value: 'RnJvZG8gTm9uLUV4aXN0aW5nIFRlc3QgU2VjcmV0IFZhbHVlIFZlcnNpb24gMg==', // base64 encoded 'Frodo Non-Existing Test Secret Value Version 2',
+          value:
+            'RnJvZG8gTm9uLUV4aXN0aW5nIFRlc3QgU2VjcmV0IFZhbHVlIFZlcnNpb24gMg==', // base64 encoded 'Frodo Non-Existing Test Secret Value Version 2',
           state,
         });
       } catch (error) {
@@ -387,7 +388,6 @@ describe('SecretsApi', () => {
       });
       expect(response).toMatchSnapshot();
     });
-
   });
 
   describe('setStatusOfVersionOfSecret()', () => {

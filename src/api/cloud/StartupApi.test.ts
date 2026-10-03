@@ -6,13 +6,13 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import axios from 'axios';
-import MockAdapter from 'axios-mock-adapter';
-import * as StartupApi from './StartupApi';
-import { state } from '../../index';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import axios from 'axios';
+import MockAdapter from 'axios-mock-adapter';
+import { state } from '../../index';
+import * as StartupApi from './StartupApi';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

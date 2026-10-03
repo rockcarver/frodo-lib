@@ -1,10 +1,8 @@
 import { URL } from 'url';
-
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { importPKCS8 } from 'jose';
 import sshpk from 'sshpk';
 import { v4 } from 'uuid';
-
 import {
   AuthenticateStep,
   AuthenticateSuccessResponse,
@@ -35,14 +33,8 @@ import {
 } from './CallbackOps';
 import { lookupCallerPrivilegeGroups } from './CallerTrustTierOps';
 import {
-  classifyCredentialTier,
-  type CredentialSource,
-  type EscalationCandidate,
-  pickNextEscalationCandidate,
-} from './PrivilegeEscalationOps';
-import {
-  readServiceAccountScopes,
   flattenScopes,
+  readServiceAccountScopes,
 } from './cloud/EnvServiceAccountScopesOps';
 import {
   getServiceAccount,
@@ -58,25 +50,31 @@ import { createSignedJwtToken, JwkRsa } from './JoseOps';
 import { resolveIdentity } from './ManagedObjectOps';
 import {
   accessToken,
-  type AccessTokenMetaType,
   authorize,
   getTokenInfo,
+  type AccessTokenMetaType,
 } from './OAuth2OidcOps';
+import {
+  classifyCredentialTier,
+  pickNextEscalationCandidate,
+  type CredentialSource,
+  type EscalationCandidate,
+} from './PrivilegeEscalationOps';
 import { resolveAvailableScope } from './RequiredScopesOps';
 import { getSessionInfo } from './SessionOps';
 import {
   getRecordedSubject,
-  hasToken,
-  readToken,
-  saveToken,
   hasSaBearerToken,
+  hasToken,
   hasUserBearerToken,
   hasUserSessionToken,
   readSaBearerToken,
+  readToken,
   readUserBearerToken,
   readUserSessionToken,
-  saveSaBearerToken,
   saveToken as saveCachedToken,
+  saveSaBearerToken,
+  saveToken,
   saveUserBearerToken,
   saveUserSessionToken,
 } from './TokenCacheOps';
@@ -288,7 +286,7 @@ function checkAndHandle2FA({
   state: State;
 }): MFAResult {
   debugMessage({ message: `AuthenticateOps.checkAndHandle2FA: start`, state });
-  for (let callback of payload.callbacks) {
+  for (const callback of payload.callbacks) {
     // select localAuthentication if Admin Federation is enabled
     if (callback.type === 'SelectIdPCallback') {
       debugMessage({
@@ -344,7 +342,9 @@ function checkAndHandle2FA({
           throw new FrodoError(
             `2fa required but no otpCallback function provided.`
           );
-        callback = otpCallbackHandler(callback);
+        // the handler fills the callback in place (its return value was
+        // never read here); invoking it is what prompts for the OTP
+        otpCallbackHandler(callback);
         debugMessage({
           message: `AuthenticateOps.checkAndHandle2FA: end [need2fa=true, skippable=false, factor=Code]`,
           state,
@@ -2307,7 +2307,7 @@ export async function probeAmBearerTokenAcceptance({
   if (cached !== undefined) {
     return cached;
   }
-  let accepted = false;
+  let accepted;
   try {
     await getAuthenticationSettings({ state, globalConfig: true });
     accepted = true;

@@ -8,13 +8,11 @@ import {
   gzipSync,
   inflateSync,
 } from 'zlib';
-
 import { Polly } from '@pollyjs/core';
 import FSPersister from '@pollyjs/persister-fs';
 import { MODES } from '@pollyjs/utils';
 import { LogLevelDesc } from 'loglevel';
 import pollyJest from 'setup-polly-jest';
-
 import { FrodoError, state } from '../index';
 import { getTokens } from '../ops/AuthenticateOps';
 import Constants from '../shared/Constants';

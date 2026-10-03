@@ -45,12 +45,12 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { autoSetupPolly, setDefaultState } from "../utils/AutoSetupPolly";
-import { filterRecording } from "../utils/PollyUtils";
-import * as AmConfigOps from "./AmConfigOps";
-import { state } from "../lib/FrodoLib";
-import Constants from "../shared/Constants";
-import { snapshotResultCallback } from "../test/utils/TestUtils";
+import { state } from '../lib/FrodoLib';
+import Constants from '../shared/Constants';
+import { snapshotResultCallback } from '../test/utils/TestUtils';
+import { autoSetupPolly, setDefaultState } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
+import * as AmConfigOps from './AmConfigOps';
 
 const ctx = autoSetupPolly();
 
@@ -79,14 +79,19 @@ describe('AmConfigOps', () => {
         });
 
         test('1: Create AM Config Export Template', async () => {
-          const response = await AmConfigOps.createConfigEntityExportTemplate({realms: ['alpha', 'bravo'], state});
+          const response = await AmConfigOps.createConfigEntityExportTemplate({
+            realms: ['alpha', 'bravo'],
+            state,
+          });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
         });
 
         test('2: Create AM Config Export Template without provided realms', async () => {
-          const response = await AmConfigOps.createConfigEntityExportTemplate({state});
+          const response = await AmConfigOps.createConfigEntityExportTemplate({
+            state,
+          });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
@@ -99,28 +104,52 @@ describe('AmConfigOps', () => {
         });
 
         test('1: Export AM Config Entities', async () => {
-          const response = await AmConfigOps.exportAmConfigEntities({ includeReadOnly: true, onlyRealm: false, onlyGlobal: false, resultCallback: snapshotResultCallback, state });
+          const response = await AmConfigOps.exportAmConfigEntities({
+            includeReadOnly: true,
+            onlyRealm: false,
+            onlyGlobal: false,
+            resultCallback: snapshotResultCallback,
+            state,
+          });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
         });
 
         test('2: Export importable AM Config Entities', async () => {
-          const response = await AmConfigOps.exportAmConfigEntities({ includeReadOnly: false, onlyRealm: false, onlyGlobal: false, resultCallback: snapshotResultCallback, state });
+          const response = await AmConfigOps.exportAmConfigEntities({
+            includeReadOnly: false,
+            onlyRealm: false,
+            onlyGlobal: false,
+            resultCallback: snapshotResultCallback,
+            state,
+          });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
         });
 
         test('3: Export alpha realm AM Config Entities', async () => {
-          const response = await AmConfigOps.exportAmConfigEntities({ includeReadOnly: true, onlyRealm: true, onlyGlobal: false, resultCallback: snapshotResultCallback, state });
+          const response = await AmConfigOps.exportAmConfigEntities({
+            includeReadOnly: true,
+            onlyRealm: true,
+            onlyGlobal: false,
+            resultCallback: snapshotResultCallback,
+            state,
+          });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
         });
 
         test('4: Export global AM Config Entities', async () => {
-          const response = await AmConfigOps.exportAmConfigEntities({ includeReadOnly: true, onlyRealm: false, onlyGlobal: true, resultCallback: snapshotResultCallback, state });
+          const response = await AmConfigOps.exportAmConfigEntities({
+            includeReadOnly: true,
+            onlyRealm: false,
+            onlyGlobal: true,
+            resultCallback: snapshotResultCallback,
+            state,
+          });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
@@ -150,28 +179,52 @@ describe('AmConfigOps', () => {
 
       describe('exportAmConfigEntities()', () => {
         test('5: Export AM Config Entities', async () => {
-          const response = await AmConfigOps.exportAmConfigEntities({ includeReadOnly: true, onlyRealm: false, onlyGlobal: false, resultCallback: snapshotResultCallback, state });
+          const response = await AmConfigOps.exportAmConfigEntities({
+            includeReadOnly: true,
+            onlyRealm: false,
+            onlyGlobal: false,
+            resultCallback: snapshotResultCallback,
+            state,
+          });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
         });
 
         test('6: Export importable AM Config Entities', async () => {
-          const response = await AmConfigOps.exportAmConfigEntities({ includeReadOnly: false, onlyRealm: false, onlyGlobal: false, resultCallback: snapshotResultCallback, state });
+          const response = await AmConfigOps.exportAmConfigEntities({
+            includeReadOnly: false,
+            onlyRealm: false,
+            onlyGlobal: false,
+            resultCallback: snapshotResultCallback,
+            state,
+          });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
         });
 
         test('7: Export root realm AM Config Entities', async () => {
-          const response = await AmConfigOps.exportAmConfigEntities({ includeReadOnly: true, onlyRealm: true, onlyGlobal: false, resultCallback: snapshotResultCallback, state });
+          const response = await AmConfigOps.exportAmConfigEntities({
+            includeReadOnly: true,
+            onlyRealm: true,
+            onlyGlobal: false,
+            resultCallback: snapshotResultCallback,
+            state,
+          });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
         });
 
         test('8: Export global AM Config Entities', async () => {
-          const response = await AmConfigOps.exportAmConfigEntities({ includeReadOnly: true, onlyRealm: false, onlyGlobal: true, resultCallback: snapshotResultCallback, state });
+          const response = await AmConfigOps.exportAmConfigEntities({
+            includeReadOnly: true,
+            onlyRealm: false,
+            onlyGlobal: true,
+            resultCallback: snapshotResultCallback,
+            state,
+          });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });

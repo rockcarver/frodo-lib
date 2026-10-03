@@ -2,9 +2,7 @@ import { randomBytes, timingSafeEqual } from 'crypto';
 import http, { IncomingMessage, ServerResponse } from 'http';
 import { AddressInfo } from 'net';
 import { URL } from 'url';
-
 import { AxiosError } from 'axios';
-
 import { DeviceAuthorizationResponseType } from '../api/OAuth2OIDCApi';
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
@@ -13,8 +11,8 @@ import { createPkcePair } from '../utils/PkceUtils';
 import { FrodoError } from './FrodoError';
 import {
   accessToken,
-  type AccessTokenMetaType,
   deviceAuthorizationRequest,
+  type AccessTokenMetaType,
 } from './OAuth2OidcOps';
 
 /**

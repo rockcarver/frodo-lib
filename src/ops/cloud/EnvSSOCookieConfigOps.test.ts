@@ -43,16 +43,18 @@
  * in case things don't function as expected
  */
 import * as EnvSSOCookieConfigApi from '../../api/cloud/EnvSSOCookieConfigApi';
-import * as EnvSSOCookieConfigOps from './EnvSSOCookieConfigOps';
+import { SSOCookieConfig } from '../../api/cloud/EnvSSOCookieConfigApi';
+import { state } from '../../index';
 import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 import { filterRecording } from '../../utils/PollyUtils';
-import { state } from '../../index';
-import { SSOCookieConfig } from '../../api/cloud/EnvSSOCookieConfigApi';
+import * as EnvSSOCookieConfigOps from './EnvSSOCookieConfigOps';
 
 const ctx = autoSetupPolly();
 
 describe('EnvSSOCookieConfigOps', () => {
-  const customSSOCookieConfig: SSOCookieConfig = { name: 'myCustomTestCookieName' };
+  const customSSOCookieConfig: SSOCookieConfig = {
+    name: 'myCustomTestCookieName',
+  };
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (

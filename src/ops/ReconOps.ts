@@ -2,10 +2,10 @@ import {
   cancelRecon as _cancelRecon,
   getRecon as _getRecon,
   getRecons as _getRecons,
-  ReconStatusType,
-  ReconType,
   startRecon as _startRecon,
   startReconById as _startReconById,
+  ReconStatusType,
+  ReconType,
 } from '../api/ReconApi';
 import { State } from '../shared/State';
 

@@ -449,7 +449,7 @@ export async function deleteInternalRoleByName({
   roleName: string;
   state: State;
 }): Promise<InternalRoleSkeleton> {
-  let roles: InternalRoleSkeleton[] = [];
+  let roles: InternalRoleSkeleton[];
   try {
     roles = await queryInternalRoles({
       filter: `name eq '${roleName}'`,

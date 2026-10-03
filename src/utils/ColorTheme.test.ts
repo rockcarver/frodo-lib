@@ -4,9 +4,7 @@
  *        npm run test:only ColorTheme
  */
 import c from 'tinyrainbow';
-
 import { State } from '../shared/State';
-import { ALL_ANSI_COLOR_NAMES, TerminalContrastFilter } from './TerminalContrast';
 import {
   FRODO_COLOR_THEME_ENV_KEY,
   Intent,
@@ -15,6 +13,10 @@ import {
   theme,
   themeForMode,
 } from './ColorTheme';
+import {
+  ALL_ANSI_COLOR_NAMES,
+  TerminalContrastFilter,
+} from './TerminalContrast';
 
 function mockState(colorTheme: 'dark' | 'light' | undefined): State {
   let current = colorTheme;

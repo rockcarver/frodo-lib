@@ -1,5 +1,4 @@
 import { jest } from '@jest/globals';
-
 import type { ScriptContext } from '../api/ScriptApi';
 
 const deleteScriptApiMock: any = jest.fn();
@@ -32,7 +31,7 @@ const state = {
   getStopProgressHandler: () => undefined,
   getUpdateProgressHandler: () => undefined,
   getUsername: () => 'tester',
-  getForceUpdate: () => true
+  getForceUpdate: () => true,
 } as any;
 
 const encodeScript = (lines: string[]) =>

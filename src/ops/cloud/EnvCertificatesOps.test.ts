@@ -71,20 +71,20 @@
  * in case things don't function as expected
  */
 import * as EnvCertificatesApi from '../../api/cloud/EnvCertificatesApi';
-import * as EnvCertificatesOps from './EnvCertificatesOps';
-import { autoSetupPolly } from '../../utils/AutoSetupPolly';
-import {
-  defaultMatchRequestsBy,
-  filterRecording,
-} from '../../utils/PollyUtils';
+import { CSR } from '../../api/cloud/EnvCSRsApi';
 import { state } from '../../index';
-import { stringify } from '../../utils/JsonUtils';
 import {
   createSelfSignedCertificate,
   getPrivateKey,
   printError,
 } from '../../test/utils/TestUtils';
-import { CSR } from '../../api/cloud/EnvCSRsApi';
+import { autoSetupPolly } from '../../utils/AutoSetupPolly';
+import { stringify } from '../../utils/JsonUtils';
+import {
+  defaultMatchRequestsBy,
+  filterRecording,
+} from '../../utils/PollyUtils';
+import * as EnvCertificatesOps from './EnvCertificatesOps';
 
 const matchRequestsBy = defaultMatchRequestsBy(true);
 matchRequestsBy.order = true;

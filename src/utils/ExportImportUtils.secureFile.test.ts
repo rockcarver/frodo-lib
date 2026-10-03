@@ -20,15 +20,14 @@
 import fs from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-
+import { state } from '../index';
+import { initConnectionProfiles } from '../ops/ConnectionProfileOps';
 import {
   ensureSecureDirectoryForFile,
   secureExistingFileSync,
   writeSecureFile,
   writeSecureFileSync,
 } from './ExportImportUtils';
-import { state } from '../index';
-import { initConnectionProfiles } from '../ops/ConnectionProfileOps';
 
 const isWindows = process.platform === 'win32';
 const OWNER_ONLY_FILE = 0o600;

@@ -4,7 +4,6 @@ import {
   IAxiosRetryConfig,
   isNetworkOrIdempotentRequestError,
 } from 'axios-retry';
-
 import { RetryStrategy } from '../api/BaseApi';
 import { FeatureInterface } from '../api/cloud/FeatureApi';
 import { UserSessionMetaType } from '../ops/AuthenticateOps';
@@ -13,12 +12,12 @@ import { FrodoError } from '../ops/FrodoError';
 import { JwkRsa } from '../ops/JoseOps';
 import { AccessTokenMetaType } from '../ops/OAuth2OidcOps';
 import Constants from '../shared/Constants';
+import { dedupeAsync } from '../utils/AsyncUtils';
 import { resolveThemeModeFromSetting, themeForMode } from '../utils/ColorTheme';
 import {
   ProgressIndicatorStatusType,
   ProgressIndicatorType,
 } from '../utils/Console';
-import { dedupeAsync } from '../utils/AsyncUtils';
 import { convertPrivateKeyToPem } from '../utils/CryptoUtils';
 import { cloneDeep, mergeDeep } from '../utils/JsonUtils';
 import { getPackageVersion } from './Version';
@@ -886,7 +885,7 @@ export default (initialState: StateInterface): State => {
       globalState.axiosRetryConfig = axiosRetryConfig;
     },
     setAxiosRetryStrategy(strategy: RetryStrategy): void {
-      let axiosRetryConfig = {};
+      let axiosRetryConfig;
       switch (strategy) {
         case Constants.RETRY_EVERYTHING_KEY:
           axiosRetryConfig = {

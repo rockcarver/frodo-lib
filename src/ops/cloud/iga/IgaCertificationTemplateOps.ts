@@ -1,8 +1,8 @@
 import {
-  CertificationTemplateDeleteSkeleton,
-  CertificationTemplateSkeleton,
   createCertificationTemplate as _createCertificationTemplate,
   deleteCertificationTemplate as _deleteCertificationTemplate,
+  CertificationTemplateDeleteSkeleton,
+  CertificationTemplateSkeleton,
   getCertificationTemplate,
   putCertificationTemplate,
   queryCertificationTemplates,

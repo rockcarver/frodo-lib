@@ -13,7 +13,6 @@ import crypto from 'crypto';
 import fs, { promises as fsp } from 'fs';
 import path from 'path';
 import { promisify } from 'util';
-
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { printMessage } from './Console';
@@ -83,7 +82,8 @@ class DataProtection {
               await writeSecureFile(masterKeyPath(), masterKey);
             } catch (writeError) {
               throw new Error(
-                `Unable to create master key file ${masterKeyPath()}: ${writeError.message}`
+                `Unable to create master key file ${masterKeyPath()}: ${writeError.message}`,
+                { cause: writeError }
               );
             }
           } else {

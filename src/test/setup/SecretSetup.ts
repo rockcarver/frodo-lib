@@ -1,16 +1,16 @@
+import {
+  deleteVersionOfSecret,
+  SecretEncodingType,
+  SecretSkeleton,
+  VersionOfSecretStatus,
+} from '../../api/cloud/SecretsApi';
+import { FrodoError, state } from '../../index';
+import * as SecretsOps from '../../ops/cloud/SecretsOps';
 import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 import {
   filterRecording,
   orderedMatchRequestsBy,
 } from '../../utils/PollyUtils';
-import { FrodoError, state } from '../../index';
-import * as SecretsOps from '../../ops/cloud/SecretsOps';
-import {
-  SecretSkeleton,
-  SecretEncodingType,
-  VersionOfSecretStatus,
-  deleteVersionOfSecret,
-} from '../../api/cloud/SecretsApi';
 
 type TestSecret = SecretSkeleton & {
   value: string;

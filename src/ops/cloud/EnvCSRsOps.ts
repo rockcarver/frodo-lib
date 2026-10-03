@@ -1,11 +1,11 @@
 import {
   createCSR as _createCSR,
-  type CSR,
-  type CSRResponse,
   deleteCSR as _deleteCSR,
   getCSR as _getCSR,
   getCSRs as _getCSRs,
   updateCSR as _updateCSR,
+  type CSR,
+  type CSRResponse,
 } from '../../api/cloud/EnvCSRsApi';
 import { State } from '../../shared/State';
 import { debugMessage } from '../../utils/Console';

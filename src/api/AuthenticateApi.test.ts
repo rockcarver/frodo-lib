@@ -32,11 +32,11 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import * as AuthenticateApi from './AuthenticateApi';
 import { state } from '../index';
+import { fillCallbacks } from '../ops/CallbackOps';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { defaultMatchRequestsBy, filterRecording } from '../utils/PollyUtils';
-import { fillCallbacks } from '../ops/CallbackOps';
+import * as AuthenticateApi from './AuthenticateApi';
 import { AuthenticateStep } from './AuthenticateApi';
 
 // need to modify the default matching rules to allow the mocking to work for an authentication flow.

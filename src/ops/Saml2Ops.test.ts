@@ -1,6 +1,6 @@
 /**
  * To record and update snapshots, you must perform 3 steps in order:
- * 
+ *
  * 1. Record API responses
  *
  *    This step breaks down into 5 phases:
@@ -46,17 +46,18 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { state } from '../index';
-import * as Saml2Ops from './Saml2Ops';
-import Constants from '../shared/Constants';
 import { Saml2ProiderLocation } from '../api/Saml2Api';
+import { state } from '../index';
+import Constants from '../shared/Constants';
 import {
   getSaml2ProviderImportData,
   getSaml2ProvidersImportData,
 } from '../test/mocks/ForgeRockApiMockEngine';
-import { encodeBase64Url } from '../utils/Base64Utils';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { encodeBase64Url } from '../utils/Base64Utils';
 import { filterRecording } from '../utils/PollyUtils';
+import * as Saml2Ops from './Saml2Ops';
+
 const ctx = autoSetupPolly();
 
 state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
@@ -80,7 +81,7 @@ async function stageProvider(provider: { entityId: string }, create = true) {
           entityId: provider.entityId,
           importData: getSaml2ProviderImportData(provider.entityId),
           options: {
-            deps: true
+            deps: true,
           },
           state,
         });
@@ -264,11 +265,7 @@ describe('Saml2Ops', () => {
           entityId: provider3.entityId,
           state,
         });
-        expect(response).toMatch(
-          new RegExp(
-            `^${state.getHost()}`
-          )
-        );
+        expect(response).toMatch(new RegExp(`^${state.getHost()}`));
         const url = new URL(response);
         expect(url.pathname).toMatch('/am/saml2/jsp/exportmetadata.jsp');
         const searchParams = new URLSearchParams(url.search);
@@ -280,11 +277,7 @@ describe('Saml2Ops', () => {
           entityId: provider4.entityId,
           state,
         });
-        expect(response).toMatch(
-          new RegExp(
-            `^${state.getHost()}`
-          )
-        );
+        expect(response).toMatch(new RegExp(`^${state.getHost()}`));
         const url = new URL(response);
         expect(url.pathname).toMatch('/am/saml2/jsp/exportmetadata.jsp');
         const searchParams = new URLSearchParams(url.search);
@@ -428,7 +421,6 @@ describe('Saml2Ops', () => {
           meta: expect.any(Object),
         });
       });
-
     });
 
     describe('exportSaml2Providers()', () => {
@@ -437,14 +429,20 @@ describe('Saml2Ops', () => {
       });
 
       test('1: Export saml2 entity providers w/o dependencies', async () => {
-        const response = await Saml2Ops.exportSaml2Providers({ options: { deps: false },state });
+        const response = await Saml2Ops.exportSaml2Providers({
+          options: { deps: false },
+          state,
+        });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });
       });
 
       test('1: Export saml2 entity providers w/ dependencies', async () => {
-        const response = await Saml2Ops.exportSaml2Providers({ options: { deps: true },state });
+        const response = await Saml2Ops.exportSaml2Providers({
+          options: { deps: true },
+          state,
+        });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });
@@ -462,7 +460,7 @@ describe('Saml2Ops', () => {
           entityId: provider5.entityId,
           importData: getSaml2ProviderImportData(provider5.entityId),
           options: {
-            deps: true
+            deps: true,
           },
           state,
         });
@@ -476,7 +474,7 @@ describe('Saml2Ops', () => {
           entityId: provider6.entityId,
           importData: getSaml2ProviderImportData(provider6.entityId),
           options: {
-            deps: false
+            deps: false,
           },
           state,
         });
@@ -490,7 +488,7 @@ describe('Saml2Ops', () => {
           entityId: provider7.entityId,
           importData: getSaml2ProviderImportData(provider7.entityId),
           options: {
-            deps: true
+            deps: true,
           },
           state,
         });
@@ -516,7 +514,7 @@ describe('Saml2Ops', () => {
         const response = await Saml2Ops.importSaml2Providers({
           importData: getSaml2ProvidersImportData(),
           options: {
-            deps: true
+            deps: true,
           },
           state,
         });
@@ -529,7 +527,7 @@ describe('Saml2Ops', () => {
         const response = await Saml2Ops.importSaml2Providers({
           importData: getSaml2ProvidersImportData(),
           options: {
-            deps: false
+            deps: false,
           },
           state,
         });

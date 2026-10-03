@@ -1,5 +1,4 @@
 import { distance } from 'fastest-levenshtein';
-
 import { normalizeSemanticIdentifier } from './SemanticIdentifiers';
 
 export const MCP_SEMANTIC_OBJECT_SYNONYMS: Readonly<Record<string, string>> = {

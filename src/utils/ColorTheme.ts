@@ -1,5 +1,4 @@
 import c from 'tinyrainbow';
-
 import { State } from '../shared/State';
 
 /**

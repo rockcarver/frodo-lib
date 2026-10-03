@@ -23,7 +23,7 @@ TypeScript sources (src/)
   │
   ├─ typedoc .............. docs/ (GitHub Pages on release)
   │
-  └─ eslint + prettier .... lint & format (ESLint 9 FlatCompat; a planned migration will move to ESLint 10 with Prettier owning import order)
+  └─ eslint + prettier .... lint & format (ESLint 10 native flat config; Prettier owns import order via the ianvs sort-imports plugin)
 
 Dependency/replacement history (2026-10):
   esprima->acorn, jwk-to-pem->node:crypto, replaceall->String.replaceAll,
@@ -128,22 +128,38 @@ members.
 
 ---
 
-## 5. Lint and format (today, and where we are taking it)
+## 5. Lint and format (since 2026-10)
 
-**Today**: ESLint 9.39 FlatCompat (`eslint.config.js`), plugins
-`@typescript-eslint`, `prettier` (as a lint rule — ~38 s of the ~43 s lint),
-`jest`, `import`. Prettier 3.8 with `importOrder` configured (the ianvs
-plugin options are present in `.prettierrc` but the plugin is NOT in
-`plugins:` — dead config, import order is enforced by `import/order` in
-ESLint, which `lint:fix` does fix here). `eslint-plugin-import` (dead
-upstream) crashes on ESLint 10.
+**ESLint 10** with native flat config in `eslint.config.js`
+(`typescript-eslint` 8.x, no `FlatCompat` — 10 has no compat layer).
+Plugins: `@typescript-eslint` (type-checked rules on `src/**/*.ts` via
+`parserOptions.project`), `eslint-plugin-import-x` (successor of the
+unmaintained `eslint-plugin-import`). `@eslint/js` recommended as the base.
 
-**Planned migration**: ESLint 10 native flat config, `eslint-plugin-import-x`,
-activate the ianvs Prettier plugin so **Prettier owns import order**, drop
-`eslint-plugin-prettier` and `import/order`, scripts `fix = eslint --fix &&
-prettier --write` (prettier last) and `check`. ~25 new ESLint 10 findings
-get fixed in the migration PR. Pin Prettier exactly (a minor bump reformats
-40 of 363 files). One reformat commit in `.git-blame-ignore-revs`.
+**Prettier owns import order.** `@ianvs/prettier-plugin-sort-imports` runs as
+a Prettier plugin (`plugins` in `.prettierrc`), with
+`importOrder: ["^node:", "<BUILTIN_MODULES>", "<THIRD_PARTY_MODULES>", "^[./]"]`.
+ESLint no longer checks import order (`import-x/first`, `import-x/no-duplicates`
+and `import-x/newline-after-import` are the only import rules) — the sorter
+and the linter can no longer disagree. Note: in plugin ≥4.7 the old
+`importOrderSeparation` / `importOrderSortSpecifiers` options no longer exist;
+group separation and specifier sorting are always on.
+
+**Removed plugins**: `eslint-plugin-prettier` (running Prettier as an ESLint
+rule made lint slow and turned formatting errors into lint errors),
+`eslint-plugin-simple-import-sort`, `eslint-plugin-jest`, `eslint-plugin-import`,
+and the standalone `@typescript-eslint/eslint-plugin`/`parser` packages
+(`typescript-eslint` provides them). Prettier is pinned exactly — a minor
+bump reformats dozens of files.
+
+**Scripts**: `npm run fix` = `eslint --fix && prettier --write "src/**/*.ts"`
+(prettier last, so it wins), `npm run check` = `eslint && prettier --check`,
+and `lint` / `lint:fix` alias them. CI runs `npm run check`.
+
+**ESLint 10 findings fixed in the migration** (~25): dead initializers on
+`let` declarations (`no-useless-assignment`), `preserve-caught-error`
+(rethrown errors now carry `{ cause }`), and unused eslint-disable
+directives.
 
 ---
 
@@ -215,4 +231,5 @@ whose required checks never run could never merge.
 | 2026-10-03 | Dependabot auto-merge workflow | #675 |
 | 2026-10-03 | TypeScript 5.8→5.9 | #668 |
 | 2026-10-03 | npm `files` allowlist | this PR |
-| planned | ESLint 10 + Prettier-owns-imports; Polly→nock | — |
+| 2026-10-03 | ESLint 9→10 (native flat config), Prettier-owns-imports via `@ianvs/prettier-plugin-sort-imports`; `eslint-plugin-prettier`, `simple-import-sort`, `jest`, `import` plugins removed; scripts `fix`/`check`; ~25 dead initializers + 1 `preserve-caught-error` fixed | this PR |
+| planned | Polly→nock | — |

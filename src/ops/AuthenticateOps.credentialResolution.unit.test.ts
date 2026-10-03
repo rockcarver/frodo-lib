@@ -1,8 +1,12 @@
 import { jest } from '@jest/globals';
 
 const getConnectionProfile = jest.fn(async (_args?: any): Promise<any> => ({}));
-const loadConnectionProfile = jest.fn(async (_args?: any): Promise<any> => false);
-const saveConnectionProfile = jest.fn(async (_args?: any): Promise<any> => true);
+const loadConnectionProfile = jest.fn(
+  async (_args?: any): Promise<any> => false
+);
+const saveConnectionProfile = jest.fn(
+  async (_args?: any): Promise<any> => true
+);
 
 jest.unstable_mockModule('./ConnectionProfileOps', () => ({
   getConnectionProfile,
