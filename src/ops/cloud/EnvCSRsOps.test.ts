@@ -93,7 +93,7 @@ async function stageCSR(csr: TestCSR, create = true, issue = false) {
         csr._stagingId = newCsr.id;
         // issue the certificate
         if (issue) {
-          const certificate = issueSelfSignedCertificate(newCsr.request);
+          const certificate = await issueSelfSignedCertificate(newCsr.request);
           csr._stagingCertificate = certificate;
         }
       } catch (error) {

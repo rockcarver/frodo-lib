@@ -1,37 +1,64 @@
 import http from 'http';
 import https from 'https';
 import net, { AddressInfo } from 'net';
+import { createPrivateKey, createPublicKey, webcrypto } from 'crypto';
 
-import forge from 'node-forge';
+import 'reflect-metadata';
+import {
+  BasicConstraintsExtension,
+  KeyUsagesExtension,
+  SubjectAlternativeNameExtension,
+  GeneralName,
+  X509CertificateGenerator,
+} from '@peculiar/x509';
 
 import { generateAmApi } from './BaseApi';
 import StateImpl from '../shared/State';
 import { getPrivateKey, getPublicKey } from '../test/utils/TestUtils';
 
-function createExpiredCertificate(): { key: string; cert: string } {
-  const pki = forge.pki;
-  const cert = pki.createCertificate();
-  cert.publicKey = pki.publicKeyFromPem(getPublicKey());
-  cert.serialNumber = '01';
+async function createExpiredCertificate(): Promise<{
+  key: string;
+  cert: string;
+}> {
+  // The signing keys are the fixed test PEMs from TestUtils. @peculiar/x509
+  // signs with WebCrypto CryptoKeys, so import the PEMs as PKCS#8/SPKI DER.
+  const nodePrivateKey = createPrivateKey(getPrivateKey());
+  const nodePublicKey = createPublicKey(getPublicKey());
+  const alg = { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' };
+  const signingKey = await webcrypto.subtle.importKey(
+    'pkcs8',
+    nodePrivateKey.export({ type: 'pkcs8', format: 'der' }),
+    alg,
+    true,
+    ['sign']
+  );
+  const publicKey = await webcrypto.subtle.importKey(
+    'spki',
+    nodePublicKey.export({ type: 'spki', format: 'der' }),
+    alg,
+    true,
+    ['verify']
+  );
 
-  cert.validity.notBefore = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
-  cert.validity.notAfter = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-  const attrs = [{ name: 'commonName', value: '127.0.0.1' }];
-  cert.setSubject(attrs);
-  cert.setIssuer(attrs);
-  cert.setExtensions([
-    {
-      name: 'subjectAltName',
-      altNames: [{ type: 7, ip: '127.0.0.1' }],
-    },
-  ]);
-
-  cert.sign(pki.privateKeyFromPem(getPrivateKey()));
+  const cert = await X509CertificateGenerator.create({
+    serialNumber: '01',
+    subject: 'CN=127.0.0.1',
+    issuer: 'CN=127.0.0.1',
+    notBefore: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+    notAfter: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    publicKey,
+    signingKey,
+    signingAlgorithm: 'RSASSA-PKCS1-v1_5',
+    extensions: [
+      new SubjectAlternativeNameExtension([new GeneralName('ip', '127.0.0.1')]),
+      new BasicConstraintsExtension(false, undefined, true),
+      new KeyUsagesExtension(0x80, true), // digitalSignature
+    ],
+  });
 
   return {
     key: getPrivateKey(),
-    cert: pki.certificateToPem(cert),
+    cert: cert.toString('pem'),
   };
 }
 
@@ -66,7 +93,7 @@ describe('BaseApi expired TLS certificate handling', () => {
   const priorNoProxy = process.env.NO_PROXY;
 
   beforeAll(async () => {
-    const { key, cert } = createExpiredCertificate();
+    const { key, cert } = await createExpiredCertificate();
     server = https.createServer({ key, cert }, (_req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok' }));
@@ -151,7 +178,7 @@ describe('BaseApi expired TLS certificate handling - via HTTPS proxy', () => {
   const savedEnv: Record<string, string | undefined> = {};
 
   beforeAll(async () => {
-    const { key, cert } = createExpiredCertificate();
+    const { key, cert } = await createExpiredCertificate();
     targetServer = https.createServer({ key, cert }, (_req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok' }));
