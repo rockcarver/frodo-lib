@@ -3,7 +3,6 @@ import { chmod, lstat, readdir, readFile, writeFile } from 'fs/promises';
 import { dirname, join } from 'path';
 
 import { Reader } from 'properties-reader';
-import replaceall from 'replaceall';
 import slugify from 'slugify';
 
 import { SearchResult, SearchTargetFilterOperation } from '../api/ApiTypes';
@@ -815,14 +814,18 @@ export function unescapePlaceholders(content: string): string {
 
 export function substituteEnvParams(input: string, reader: Reader): string {
   Object.entries(reader).forEach(([key, value]) => {
-    input = replaceall(value, `\${${key}}`, input);
+    // replaceall(value, `${key}`, input) semantics: on export, the env VALUE
+    // is replaced by its `${KEY}` placeholder.
+    input = input.replaceAll(value, `\${${key}}`);
   });
   return input;
 }
 
 export function unSubstituteEnvParams(input: string, reader: Reader): string {
   Object.entries(reader).forEach(([key, value]) => {
-    input = replaceall(`\${${key}}`, value, input);
+    // replaceall(`${key}`, value, input) semantics: on import, the `${KEY}`
+    // placeholder is replaced by the env VALUE.
+    input = input.replaceAll(`\${${key}}`, value);
   });
   return input;
 }

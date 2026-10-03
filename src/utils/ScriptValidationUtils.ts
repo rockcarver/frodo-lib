@@ -1,4 +1,4 @@
-import { parseScript } from 'esprima';
+import { parse } from 'acorn';
 
 import { type ScriptSkeleton } from '../api/ScriptApi';
 import { State } from '../shared/State';
@@ -92,7 +92,9 @@ export function validateScript({
 }
 
 export function validateJs({ javascriptSource }: { javascriptSource: string }) {
-  parseScript(javascriptSource);
+  // ecmaVersion: 'latest' + 'script' sourceType matches esprima's parseScript
+  // behavior (scripts, not modules, since ForgeRock script hooks are scripts).
+  parse(javascriptSource, { ecmaVersion: 'latest', sourceType: 'script' });
   return true;
 }
 
@@ -147,7 +149,7 @@ export function isValidJs({
   state: State;
 }) {
   try {
-    parseScript(javascriptSource);
+    parse(javascriptSource, { ecmaVersion: 'latest', sourceType: 'script' });
     return true;
   } catch (e) {
     printMessage({

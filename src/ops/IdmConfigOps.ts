@@ -1,5 +1,3 @@
-import replaceall from 'replaceall';
-
 import {
   IdObjectSkeletonInterface,
   NoIdObjectSkeletonInterface,
@@ -1051,7 +1049,9 @@ function substituteEntityWithEnv(
   }
   let configEntityString = stringify(entity);
   envReplaceParams.forEach(([key, value]) => {
-    configEntityString = replaceall(value, `\${${key}}`, configEntityString);
+    // replaceall(value, `${key}`, configEntityString) semantics: on export,
+    // the env VALUE is replaced by its `${KEY}` placeholder.
+    configEntityString = configEntityString.replaceAll(value, `\${${key}}`);
   });
   return JSON.parse(configEntityString);
 }
@@ -1066,7 +1066,9 @@ function unSubstituteEntityWithEnv(
   }
   let configEntityString = stringify(entity);
   envReplaceParams.forEach(([key, value]) => {
-    configEntityString = replaceall(`\${${key}}`, value, configEntityString);
+    // replaceall(`${key}`, value, configEntityString) semantics: on import,
+    // the `${KEY}` placeholder is replaced by the env VALUE.
+    configEntityString = configEntityString.replaceAll(`\${${key}}`, value);
   });
   return JSON.parse(configEntityString);
 }
