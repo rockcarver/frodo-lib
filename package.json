@@ -107,7 +107,7 @@
     "axios": "^1.13.4",
     "axios-mock-adapter": "^2.1.0",
     "axios-retry": "^4.4.0",
-    "eslint": "^9.39.2",
+    "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-import": "^2.28.0",
     "eslint-plugin-jest": "^29.12.1",
