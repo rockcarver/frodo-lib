@@ -1,7 +1,7 @@
 import { URL } from 'url';
 
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
-import jose from 'node-jose';
+import { importPKCS8 } from 'jose';
 import sshpk from 'sshpk';
 import { v4 } from 'uuid';
 
@@ -2104,7 +2104,16 @@ export async function getTokens({
               `Expected a single HiddenValueCallback for Amster authentication, but got a ${callback.type}`
             );
           }
-          const key = await jose.JWK.asKey(state.getAmsterPrivateKey(), 'pem');
+          // Normalize the amster private key (PEM in any of the supported
+          // formats) to PKCS#8 via sshpk, then import it as a jose key.
+          const key = await importPKCS8(
+            sshpk
+              .parsePrivateKey(state.getAmsterPrivateKey(), 'auto', {
+                filename: 'amster-private-key',
+              })
+              .toString('pkcs8'),
+            'RS256'
+          );
           const payload = {
             sub: state.getUsername(),
             nonce: getCallbackValue('value', callback.output),
