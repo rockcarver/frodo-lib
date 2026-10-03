@@ -157,10 +157,9 @@ oAvMT/ns1zeE0trk
 
 exports[`CryptoUtils convertPrivateKeyToPem() 14: JWK ECDSA 1`] = `
 "-----BEGIN PRIVATE KEY-----
-MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQg9BFuyjbx1c8yaaCN
-FejA3x7835+7nvdGjoLqnnlz3jugCgYIKoZIzj0DAQehRANCAAR7H/hmaujipb66
-kq9Z4LoAsou2es4hb7C3Lh2BHfpKoZYAcrz8KDbkG5kmp36u/TcEEtjUlvpRKd/A
-pN91QJe8
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg9BFuyjbx1c8yaaCN
+FejA3x7835+7nvdGjoLqnnlz3juhRANCAAR7H/hmaujipb66kq9Z4LoAsou2es4h
+b7C3Lh2BHfpKoZYAcrz8KDbkG5kmp36u/TcEEtjUlvpRKd/ApN91QJe8
 -----END PRIVATE KEY-----
 "
 `;

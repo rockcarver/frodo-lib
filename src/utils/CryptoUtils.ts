@@ -1,4 +1,5 @@
-import jwkToPem from 'jwk-to-pem';
+import { createPrivateKey } from 'crypto';
+
 import sshpk from 'sshpk';
 
 import { FrodoError } from '../ops/FrodoError';
@@ -59,11 +60,14 @@ export function convertPrivateKeyToPem({
   if (!key) {
     throw new FrodoError(`Private key${name ? ` ${name}` : ''} not provided.`);
   }
-  // Try converting JWK to PEM PKCS#8 format.
+  // Try converting JWK to PEM PKCS#8 format using Node's native JWK support
+  // (replaces the jwk-to-pem dependency).
   try {
     const jwk = JSON.parse(key);
-    // Need true flag to get the full private key
-    return jwkToPem(jwk, { private: true });
+    return createPrivateKey({ key: jwk, format: 'jwk' }).export({
+      type: 'pkcs8',
+      format: 'pem',
+    }) as string;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     /* Ignore error since private key may still be a supported format */

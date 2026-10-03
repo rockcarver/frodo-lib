@@ -20,7 +20,6 @@ export default defineConfig({
   external: [
     // list all the dev dependencies, which do NOT need to be bundled as indicated in package.json (_devDependencies)
     '@jest/globals',
-    '@types/esprima',
     '@types/fs-extra',
     '@types/jest',
     '@types/lodash',
