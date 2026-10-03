@@ -93,7 +93,7 @@ async function stageCertificate(cert: TestCertificate, create = true) {
     // ignore
   } finally {
     if (!cert._stagingCertificate)
-      cert._stagingCertificate = createSelfSignedCertificate(cert.csr);
+      cert._stagingCertificate = await createSelfSignedCertificate(cert.csr);
     if (create) {
       try {
         const certificate = await EnvCertificatesApi.createCertificate({

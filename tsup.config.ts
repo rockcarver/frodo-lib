@@ -26,7 +26,6 @@ const baseConfig = {
     '@types/lodash',
     '@types/mock-fs',
     '@types/node',
-    '@types/node-forge',
     '@types/properties-reader',
     '@types/uuid',
     '@typescript-eslint/eslint-plugin',

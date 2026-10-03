@@ -1,12 +1,21 @@
 /* eslint-disable no-console */
+import { createPrivateKey, createPublicKey, webcrypto } from 'crypto';
 import { isIP } from 'net';
 
-import forge from 'node-forge';
+import 'reflect-metadata';
+import {
+  BasicConstraintsExtension,
+  ExtendedKeyUsageExtension,
+  GeneralName,
+  KeyUsagesExtension,
+  Pkcs10CertificateRequest,
+  SubjectAlternativeNameExtension,
+  SubjectKeyIdentifierExtension,
+  X509CertificateGenerator,
+} from '@peculiar/x509';
 
 import { CSR } from '../../api/cloud/EnvCSRsApi';
 import { FrodoError } from '../../ops/FrodoError';
-
-const pki = forge.pki;
 
 const privateKey =
   '-----BEGIN RSA PRIVATE KEY-----\r\n' +
@@ -47,6 +56,42 @@ const publicKey =
   'HwIDAQAB\r\n' +
   '-----END PUBLIC KEY-----\r\n';
 
+// WebCrypto key pair imported from the fixed PEM keys above, created once
+// (the PKCS#1 private key is converted to PKCS#8 DER via node:crypto first,
+// since WebCrypto only imports PKCS#8).
+let webCryptoKeys: {
+  publicKey: webcrypto.CryptoKey;
+  privateKey: webcrypto.CryptoKey;
+} | null = null;
+
+async function getWebCryptoKeys(): Promise<{
+  publicKey: webcrypto.CryptoKey;
+  privateKey: webcrypto.CryptoKey;
+}> {
+  if (!webCryptoKeys) {
+    const nodePrivateKey = createPrivateKey(privateKey);
+    const nodePublicKey = createPublicKey(publicKey);
+    const alg = { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' };
+    webCryptoKeys = {
+      privateKey: await webcrypto.subtle.importKey(
+        'pkcs8',
+        nodePrivateKey.export({ type: 'pkcs8', format: 'der' }),
+        alg,
+        true,
+        ['sign']
+      ),
+      publicKey: await webcrypto.subtle.importKey(
+        'spki',
+        nodePublicKey.export({ type: 'spki', format: 'der' }),
+        alg,
+        true,
+        ['verify']
+      ),
+    };
+  }
+  return webCryptoKeys;
+}
+
 export function getPrivateKey(): string {
   return privateKey;
 }
@@ -55,152 +100,97 @@ export function getPublicKey(): string {
   return publicKey;
 }
 
-export function createSelfSignedCertificate(csr: CSR): string {
-  const cert = forge.pki.createCertificate();
-  cert.publicKey = pki.publicKeyFromPem(publicKey);
-  cert.serialNumber = csr.serialNumber || '01';
-  cert.validity.notBefore = new Date();
-  cert.validity.notAfter = new Date();
-  cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);
-  const attrs = [
-    {
-      name: 'commonName',
-      value: csr.commonName,
-    },
-    {
-      name: 'countryName',
-      value: csr.country,
-    },
-    {
-      shortName: 'ST',
-      value: csr.state,
-    },
-    {
-      name: 'localityName',
-      value: csr.city,
-    },
-    {
-      name: 'organizationName',
-      value: csr.organization,
-    },
-    {
-      shortName: 'OU',
-      value: csr.organizationalUnit,
-    },
-  ];
-  cert.setSubject(attrs);
-  cert.setIssuer(attrs);
-  const ext: any[] = [
-    {
-      name: 'basicConstraints',
-      cA: true /*,
-    pathLenConstraint: 4*/,
-    },
-    {
-      name: 'keyUsage',
-      keyCertSign: true,
-      digitalSignature: true,
-      nonRepudiation: true,
-      keyEncipherment: true,
-      dataEncipherment: true,
-    },
-    {
-      name: 'extKeyUsage',
-      serverAuth: true,
-      clientAuth: true,
-      codeSigning: true,
-      emailProtection: true,
-      timeStamping: true,
-    },
-    {
-      name: 'nsCertType',
-      client: true,
-      server: true,
-      email: true,
-      objsign: true,
-      sslCA: true,
-      emailCA: true,
-      objCA: true,
-    },
-    {
-      name: 'subjectKeyIdentifier',
-    },
-  ];
-  const altNames = [];
-  for (const subjectAlternativeName of csr.subjectAlternativeNames) {
-    if (isIP(subjectAlternativeName)) {
-      altNames.push({
-        type: 7, // IP
-        ip: subjectAlternativeName,
-      });
-    } else {
-      altNames.push({
-        type: 6, // URI
-        value: subjectAlternativeName,
-      });
-    }
-  }
-  ext.push({
-    name: 'subjectAltName',
-    altNames,
-  });
-  cert.setExtensions(ext);
-  // FIXME: add authorityKeyIdentifier extension
-
-  // self-sign certificate
-  cert.sign(pki.privateKeyFromPem(privateKey));
-
-  // PEM-format keys and cert
-  const pem = forge.pki.certificateToPem(cert);
-
-  return pem;
+/**
+ * Builds the RFC 4514 subject string from a CSR, matching the attribute set
+ * the forge-based implementation produced (commonName, countryName, state,
+ * locality, organization, organizationalUnit).
+ */
+function csrToSubjectString(csr: CSR): string {
+  const attrs: string[] = [];
+  if (csr.commonName) attrs.push(`CN=${csr.commonName}`);
+  if (csr.country) attrs.push(`C=${csr.country}`);
+  if (csr.state) attrs.push(`ST=${csr.state}`);
+  if (csr.city) attrs.push(`L=${csr.city}`);
+  if (csr.organization) attrs.push(`O=${csr.organization}`);
+  if (csr.organizationalUnit) attrs.push(`OU=${csr.organizationalUnit}`);
+  return attrs.join(', ');
 }
 
-export function issueSelfSignedCertificate(csrpem: string): string {
-  const csr = pki.certificationRequestFromPem(csrpem);
-  // console.debug(`subject attributes:`, csr.subject);
+/**
+ * Maps the CSR's subjectAlternativeNames to GeneralNames. IP addresses use
+ * the "ip" type, everything else is treated as a DNS/URI-style name.
+ */
+function sanExtensionsFromCsr(csr: CSR): SubjectAlternativeNameExtension[] {
+  if (!csr.subjectAlternativeNames?.length) return [];
+  return [
+    new SubjectAlternativeNameExtension(
+      csr.subjectAlternativeNames.map((san) =>
+        isIP(san) ? new GeneralName('ip', san) : new GeneralName('dns', san)
+      )
+    ),
+  ];
+}
 
-  const cert = pki.createCertificate();
-  cert.publicKey = csr.publicKey;
+export async function createSelfSignedCertificate(csr: CSR): Promise<string> {
+  const keys = (await getWebCryptoKeys()) as unknown as CryptoKeyPair;
+  const signingAlgorithm = { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' };
+  const cert = await X509CertificateGenerator.createSelfSigned({
+    serialNumber: csr.serialNumber || '01',
+    name: csrToSubjectString(csr),
+    notBefore: new Date(),
+    notAfter: new Date(
+      new Date().setFullYear(new Date().getFullYear() + 1)
+    ),
+    keys,
+    signingAlgorithm,
+    extensions: [
+      new BasicConstraintsExtension(true, undefined, true),
+      new KeyUsagesExtension(
+        // keyCertSign | digitalSignature | nonRepudiation | keyEncipherment |
+        // dataEncipherment
+        0x01 | 0x80 | 0x40 | 0x20 | 0x10,
+        true
+      ),
+      new ExtendedKeyUsageExtension([
+        '1.3.6.1.5.5.7.3.1', // serverAuth
+        '1.3.6.1.5.5.7.3.2', // clientAuth
+        '1.3.6.1.5.5.7.3.3', // codeSigning
+        '1.3.6.1.5.5.7.3.4', // emailProtection
+        '1.3.6.1.5.5.7.3.8', // timeStamping
+      ]),
+      await SubjectKeyIdentifierExtension.create(keys.publicKey),
+      ...sanExtensionsFromCsr(csr),
+    ],
+  });
+  return cert.toString('pem');
+}
 
-  // serial number from csr
-  cert.serialNumber = csr.subject.getField({ name: 'serialNumber' }).value;
-
-  cert.validity.notBefore = new Date();
-  cert.validity.notAfter = new Date();
-  cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);
-
-  // set subject and issuer from a csr
-  cert.setSubject(csr.subject.attributes);
-  cert.setIssuer(csr.subject.attributes);
-
-  // set extensions from csr
-  const extensions = csr.getAttribute({ name: 'extensionRequest' }).extensions;
-
-  // optionally add more extensions
-  extensions.push.apply(extensions, [
-    {
-      name: 'basicConstraints',
-      cA: true,
-    },
-    {
-      name: 'keyUsage',
-      keyCertSign: true,
-      digitalSignature: true,
-      nonRepudiation: true,
-      keyEncipherment: true,
-      dataEncipherment: true,
-    },
-  ]);
-  cert.setExtensions(extensions);
-
-  // self-sign certificate
-  cert.sign(pki.privateKeyFromPem(privateKey));
-
-  // convert a Forge certificate to PEM
-  const certpem = pki.certificateToPem(cert);
-
-  return certpem;
+export async function issueSelfSignedCertificate(
+  csrpem: string
+): Promise<string> {
+  const csr = new Pkcs10CertificateRequest(csrpem);
+  const keys = await getWebCryptoKeys();
+  const cert = await X509CertificateGenerator.create({
+    serialNumber: '01',
+    subject: csr.subject.toString(),
+    issuer: csr.subject.toString(),
+    notBefore: new Date(),
+    notAfter: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+    publicKey: csr.publicKey,
+    signingKey: keys.privateKey as unknown as CryptoKey,
+    signingAlgorithm: { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    extensions: [
+      ...csr.extensions,
+      new BasicConstraintsExtension(true, undefined, true),
+      new KeyUsagesExtension(
+        // keyCertSign | digitalSignature | nonRepudiation | keyEncipherment |
+        // dataEncipherment
+        0x01 | 0x80 | 0x40 | 0x20 | 0x10,
+        true
+      ),
+    ],
+  });
+  return cert.toString('pem');
 }
 
 /**
