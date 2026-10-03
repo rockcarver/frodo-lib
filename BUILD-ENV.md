@@ -6,7 +6,7 @@ is the companion to [PIPELINE.md](PIPELINE.md); the CLI keeps its own copy
 (`docs/BUILD-ENV.md` there) for the pieces that differ (binary packaging,
 SEA, Homebrew).
 
-_Last updated: 2026-10-03 (tooling modernization, phases 0-6)._
+_Last updated: 2026-10-03 (tooling modernization)._
 
 ---
 
@@ -23,7 +23,7 @@ TypeScript sources (src/)
   │
   ├─ typedoc .............. docs/ (GitHub Pages on release)
   │
-  └─ eslint + prettier .... lint & format (ESLint 9 FlatCompat; Phase 5 migrates to 10 + Prettier-owns-imports)
+  └─ eslint + prettier .... lint & format (ESLint 9 FlatCompat; a planned migration will move to ESLint 10 with Prettier owning import order)
 
 Dependency/replacement history (2026-10):
   esprima->acorn, jwk-to-pem->node:crypto, replaceall->String.replaceAll,
@@ -123,12 +123,12 @@ members.
   test suites that build certificates import it explicitly.
 - Full suite: 153 suites / 2,433 tests / 927 snapshots (~3 min).
 - NOTE (2026-10): the Polly stack is unmaintained (2023); nock migration is
-  planned (Phase 4d), no longer security-driven (the `qs` advisory closed:
+  planned, no longer security-driven (the `qs` advisory closed:
   Polly's tree now resolves patched `qs@6.16.0`).
 
 ---
 
-## 5. Lint and format (today, and the Phase 5 plan)
+## 5. Lint and format (today, and where we are taking it)
 
 **Today**: ESLint 9.39 FlatCompat (`eslint.config.js`), plugins
 `@typescript-eslint`, `prettier` (as a lint rule — ~38 s of the ~43 s lint),
@@ -138,7 +138,7 @@ plugin options are present in `.prettierrc` but the plugin is NOT in
 ESLint, which `lint:fix` does fix here). `eslint-plugin-import` (dead
 upstream) crashes on ESLint 10.
 
-**Phase 5 (planned)**: ESLint 10 native flat config, `eslint-plugin-import-x`,
+**Planned migration**: ESLint 10 native flat config, `eslint-plugin-import-x`,
 activate the ianvs Prettier plugin so **Prettier owns import order**, drop
 `eslint-plugin-prettier` and `import/order`, scripts `fix = eslint --fix &&
 prettier --write` (prettier last) and `check`. ~25 new ESLint 10 findings
@@ -215,4 +215,4 @@ whose required checks never run could never merge.
 | 2026-10-03 | Dependabot auto-merge workflow | #675 |
 | 2026-10-03 | TypeScript 5.8→5.9 | #668 |
 | 2026-10-03 | npm `files` allowlist | this PR |
-| planned | ESLint 10 + Prettier-owns-imports (Phase 5); Polly→nock (Phase 4d) | — |
+| planned | ESLint 10 + Prettier-owns-imports; Polly→nock | — |
