@@ -13,7 +13,14 @@ import {
   VersionOfSecretSkeleton,
   deleteVersionOfSecret,
 } from '../../api/cloud/SecretsApi';
-import FrodoLib from '../../lib/FrodoLib';
+// FrodoLib is imported lazily (dynamic import inside the *External* functions
+// below) instead of statically. SecretsOps is one of the modules that
+// FrodoLib's factory composes itself from, so a static import here creates a
+// module-evaluation cycle: FrodoLib.ts calls SecretsOps(state) while its own
+// module (and therefore FrodoLib's binding in this module) is still
+// initializing, which jest >= 30.5 correctly reports as "Cannot access
+// 'SecretsOps' before initialization". All four call sites are inside async
+// functions, so a deferred import is behavior-preserving.
 import { State } from '../../shared/State';
 import { decode, encode, isBase64Encoded } from '../../utils/Base64Utils';
 import {
@@ -577,7 +584,9 @@ async function decryptExternalValue({
     message: `SecretsOps.decryptExternalValue: start [source=${source}]`,
     state,
   });
-  const external = FrodoLib({ host: source });
+  const external = (await import('../../lib/FrodoLib')).default({
+    host: source,
+  });
   external.state.setDebug(state.getDebug());
   external.state.setVerbose(state.getVerbose());
   external.state.setCurlirize(state.getCurlirize());
@@ -609,7 +618,10 @@ async function decryptExternalMap({
     message: `SecretsOps.decryptExternalMap: start [source=${source}]`,
     state,
   });
-  const external = FrodoLib({ host: source, debug: true });
+  const external = (await import('../../lib/FrodoLib')).default({
+    host: source,
+    debug: true,
+  });
   external.state.setDebug(state.getDebug());
   external.state.setVerbose(state.getVerbose());
   external.state.setCurlirize(state.getCurlirize());
@@ -634,7 +646,10 @@ async function encryptExternalValue({
     message: `SecretsOps.encryptExternalValue: start [target=${target}]`,
     state,
   });
-  const external = FrodoLib({ host: target, debug: true });
+  const external = (await import('../../lib/FrodoLib')).default({
+    host: target,
+    debug: true,
+  });
   external.state.setDebug(state.getDebug());
   external.state.setVerbose(state.getVerbose());
   external.state.setCurlirize(state.getCurlirize());
@@ -666,7 +681,10 @@ async function encryptExternalMap({
     message: `SecretsOps.encryptExternalMap: start [target=${target}]`,
     state,
   });
-  const external = FrodoLib({ host: target, debug: true });
+  const external = (await import('../../lib/FrodoLib')).default({
+    host: target,
+    debug: true,
+  });
   external.state.setDebug(state.getDebug());
   external.state.setVerbose(state.getVerbose());
   external.state.setCurlirize(state.getCurlirize());
