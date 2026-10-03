@@ -1,4 +1,12 @@
-import jose from 'node-jose';
+import {
+  CompactSign,
+  createLocalJWKSet,
+  SignJWT,
+  exportJWK,
+  generateKeyPair,
+  importJWK,
+  jwtVerify,
+} from 'jose';
 
 import { State } from '../shared/State';
 
@@ -97,15 +105,43 @@ export interface ExternalJwksDocument {
 }
 
 export async function createJwkRsa(): Promise<JwkRsa> {
-  const jwk = await jose.JWK.createKey('RSA', 4096, { alg: 'RS256' });
+  const { privateKey } = await generateKeyPair('RS256', {
+    modulusLength: 4096,
+    extractable: true,
+  });
+  const jwk = (await exportJWK(privateKey)) as unknown as JwkRsa;
+  // Reproduce the shape node-jose produced (kty/alg/use/kid) — tests and
+  // possibly external consumers rely on it.
+  jwk.kty = 'RSA';
+  jwk.alg = 'RS256';
+  jwk.use = 'sig';
+  jwk.kid = jwk.n.slice(0, 16);
   // include the private key
-  return jwk.toJSON(true) as JwkRsa;
+  return jwk;
 }
 
 export async function getJwkRsaPublic(jwkJson: JwkRsa): Promise<JwkRsaPublic> {
-  const jwk = await jose.JWK.asKey(jwkJson);
+  // extractable: true is required to export the key back to JWK form below
+  // (private-key imports default to non-extractable CryptoKeys).
+  const key = await importJWK(
+    jwkJson as unknown as Parameters<typeof importJWK>[0],
+    'RS256',
+    { extractable: true }
+  );
+  const publicJwk = (await exportJWK(key)) as unknown as JwkRsaPublic;
+  publicJwk.kty = jwkJson.kty;
+  publicJwk.alg = jwkJson.alg ?? 'RS256';
+  publicJwk.use = jwkJson.use ?? 'sig';
+  if (jwkJson.kid) publicJwk.kid = jwkJson.kid;
   // do not include the private key
-  return jwk.toJSON(false) as JwkRsaPublic;
+  const publicOnly = publicJwk as unknown as Record<string, unknown>;
+  delete publicOnly.d;
+  delete publicOnly.p;
+  delete publicOnly.q;
+  delete publicOnly.dp;
+  delete publicOnly.dq;
+  delete publicOnly.qi;
+  return publicJwk;
 }
 
 export function createJwks(...keys: JwkInterface[]): JwksInterface {
@@ -116,35 +152,55 @@ export function createJwks(...keys: JwkInterface[]): JwksInterface {
 
 export async function createSignedJwtToken(
   payload: string | object,
-  jwkJson: JwkRsa,
+  // Accepts either a JWK JSON (imported here) or an already-imported
+  // CryptoKey (e.g. from importPKCS8 in AuthenticateOps' amster flow).
+  jwkJson: JwkRsa | CryptoKey | Uint8Array,
   header: object = {}
 ) {
-  const key = await jose.JWK.asKey(jwkJson);
+  const key =
+    typeof jwkJson === 'object' && 'kty' in (jwkJson as JwkRsa)
+      ? await importJWK(
+          jwkJson as unknown as Parameters<typeof importJWK>[0],
+          'RS256'
+        )
+      : (jwkJson as CryptoKey | Uint8Array);
+  const protectedHeader = { alg: 'RS256', typ: 'JWT', ...header };
   if (typeof payload === 'object') {
-    payload = JSON.stringify(payload);
+    // node-jose serialized object payloads to JSON; SignJWT does the same and
+    // additionally base64url-encodes it into the compact JWT body.
+    return new SignJWT(payload as Record<string, unknown>)
+      .setProtectedHeader(protectedHeader)
+      .sign(key);
   }
-  const jwt = await jose.JWS.createSign(
-    { alg: 'RS256', compact: true, fields: header },
-    // https://github.com/cisco/node-jose/issues/253
-    { key, reference: false }
-  )
-    .update(payload)
-    .final();
-  return jwt;
+  // Raw string payloads are signed verbatim as the JWT body (node-jose's
+  // .update(String) behavior) via the generic compact-signing path.
+  return new CompactSign(new TextEncoder().encode(payload))
+    .setProtectedHeader(protectedHeader)
+    .sign(key);
 }
 
 export async function verifySignedJwtToken(jwt: string, jwkJson: JwkRsaPublic) {
-  const jwk = await jose.JWK.asKey(jwkJson);
-  const verifyResult = await jose.JWS.createVerify(jwk).verify(jwt);
-  return verifyResult;
+  const key = await importJWK(
+    jwkJson as unknown as Parameters<typeof importJWK>[0],
+    'RS256'
+  );
+  const verifyResult = await jwtVerify(jwt, key);
+  // node-jose returned an envelope with key, header, and payload (as Buffer);
+  // callers use the payload, so return a compatible-ish shape with the
+  // decoded payload string.
+  return {
+    payload: Buffer.from(JSON.stringify(verifyResult.payload), 'utf8'),
+    key,
+    header: verifyResult.protectedHeader,
+  };
 }
 
 /**
  * Verifies a JWT's signature against an arbitrary JWKS document (e.g. a
- * third-party OIDC provider's published key set — `node-jose`'s keystore
- * selects the right key by the token's own `kid` header) and returns its
- * decoded payload. Pure signature verification only — issuer, audience,
- * and expiry are the caller's responsibility.
+ * third-party OIDC provider's published key set — the keystore selects the
+ * right key by the token's own `kid` header) and returns its decoded payload.
+ * Pure signature verification only — issuer, audience, and expiry are the
+ * caller's responsibility.
  * @throws if the signature does not verify against any key in the JWKS,
  * or the payload is not valid JSON.
  */
@@ -152,9 +208,6 @@ export async function verifyJwtAgainstJwks(
   jwt: string,
   jwks: ExternalJwksDocument
 ): Promise<Record<string, unknown>> {
-  const keystore = await jose.JWK.asKeyStore(
-    jwks as unknown as Parameters<typeof jose.JWK.asKeyStore>[0]
-  );
-  const verifyResult = await jose.JWS.createVerify(keystore).verify(jwt);
-  return JSON.parse(verifyResult.payload.toString('utf8'));
+  const { payload } = await jwtVerify(jwt, createLocalJWKSet(jwks));
+  return payload as Record<string, unknown>;
 }

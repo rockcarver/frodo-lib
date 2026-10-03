@@ -1,10 +1,11 @@
 import { defineConfig } from 'tsup';
 
-export default defineConfig({
+const baseConfig = {
   entry: ['src/index.ts'], //include all files under src
-  format: ['esm', 'cjs'], // generate cjs and esm files
+  // target: es2022 keeps class fields native through the whole pipeline.
+  // The engines floor is >=20, which fully supports it.
+  target: 'es2022',
   dts: true, // generate dts files
-  splitting: true,
   sourcemap: true,
   clean: true,
   bundle: true,
@@ -51,4 +52,25 @@ export default defineConfig({
     'typedoc-plugin-missing-exports',
     'typescript',
   ],
-});
+};
+
+// CJS build: no code splitting. With splitting enabled, tsup builds CJS from
+// ESM output and converts it with sucrase, whose imports-transform lowers
+// class fields into __init* helpers and mangles comma-sequenced constructor
+// bodies (jose's error classes) into syntactically invalid JavaScript
+// ("Unexpected token ','" at require() time). Without splitting, esbuild
+// emits CJS directly and the sucrase step never runs. The ESM build keeps
+// splitting enabled via its own config below.
+const cjsConfig = {
+  ...baseConfig,
+  format: ['cjs'],
+  splitting: false,
+};
+
+const esmConfig = {
+  ...baseConfig,
+  format: ['esm'],
+  splitting: true,
+};
+
+export default [esmConfig, cjsConfig];
