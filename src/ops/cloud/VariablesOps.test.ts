@@ -33,15 +33,14 @@
  * in case things don't function as expected
  */
 
-import { state } from '../../index';
-import * as VariablesOps from './VariablesOps';
 import { VariableExpressionType } from '../../api/cloud/VariablesApi';
-import { FrodoError } from '../FrodoError';
+import { state } from '../../index';
+import * as TestData from '../../test/setup/VariablesSetup';
 import { encode } from '../../utils/Base64Utils';
-import * as TestData from '../../test/setup/VariablesSetup'
+import { FrodoError } from '../FrodoError';
+import * as VariablesOps from './VariablesOps';
 
 describe('VariablesOps', () => {
-
   TestData.setup();
 
   describe('createVariablesExportTemplate()', () => {
@@ -236,11 +235,13 @@ describe('VariablesOps', () => {
       });
       expect(response).toBeNull();
       response = await VariablesOps.importVariable({
-        importData: TestData.createTestVariableExport([{...TestData.variable20, value: "test new value" }]),
+        importData: TestData.createTestVariableExport([
+          { ...TestData.variable20, value: 'test new value' },
+        ]),
         state: state,
       });
       expect(response.length).not.toBeNull();
-      expect(response.valueBase64).toBe(encode("test new value"));
+      expect(response.valueBase64).toBe(encode('test new value'));
       expect(response).toMatchSnapshot();
     });
   });
@@ -252,7 +253,10 @@ describe('VariablesOps', () => {
 
     test('1: Import all variables', async () => {
       const response = await VariablesOps.importVariables({
-        importData: TestData.createTestVariableExport([TestData.variable8, TestData.variable9]),
+        importData: TestData.createTestVariableExport([
+          TestData.variable8,
+          TestData.variable9,
+        ]),
         state: state,
       });
       expect(response).toMatchSnapshot();
@@ -260,7 +264,10 @@ describe('VariablesOps', () => {
 
     test('2: Import all variables (decoded)', async () => {
       const response = await VariablesOps.importVariables({
-        importData: TestData.createTestVariableExport([TestData.variable10, TestData.variable11]),
+        importData: TestData.createTestVariableExport([
+          TestData.variable10,
+          TestData.variable11,
+        ]),
         state: state,
       });
       expect(response).toMatchSnapshot();
@@ -274,11 +281,13 @@ describe('VariablesOps', () => {
       });
       expect(response.length).toBe(0);
       response = await VariablesOps.importVariables({
-        importData: TestData.createTestVariableExport([{...TestData.variable2, value: "45" }]),
+        importData: TestData.createTestVariableExport([
+          { ...TestData.variable2, value: '45' },
+        ]),
         state: state,
       });
       expect(response.length).not.toBe(0);
-      expect(response[0].valueBase64).toBe(encode("45"));
+      expect(response[0].valueBase64).toBe(encode('45'));
       expect(response).toMatchSnapshot();
     });
   });
@@ -293,7 +302,8 @@ describe('VariablesOps', () => {
         variableId: TestData.variable12._id,
         value: encode(TestData.variable12.value),
         description: TestData.variable12.description,
-        expressionType: TestData.variable12.expressionType as VariableExpressionType,
+        expressionType: TestData.variable12
+          .expressionType as VariableExpressionType,
         noEncode: true,
         state: state,
       });
@@ -305,7 +315,8 @@ describe('VariablesOps', () => {
         variableId: TestData.variable13._id,
         value: TestData.variable13.value,
         description: TestData.variable13.description,
-        expressionType: TestData.variable13.expressionType as VariableExpressionType,
+        expressionType: TestData.variable13
+          .expressionType as VariableExpressionType,
         noEncode: false,
         state: state,
       });
@@ -323,7 +334,8 @@ describe('VariablesOps', () => {
         variableId: TestData.variable14._id,
         value: encode(TestData.variable14.value),
         description: TestData.variable14.description,
-        expressionType: TestData.variable14.expressionType as VariableExpressionType,
+        expressionType: TestData.variable14
+          .expressionType as VariableExpressionType,
         noEncode: true,
         state: state,
       });
@@ -335,7 +347,8 @@ describe('VariablesOps', () => {
         variableId: TestData.variable15._id,
         value: TestData.variable15.value,
         description: TestData.variable15.description,
-        expressionType: TestData.variable15.expressionType as VariableExpressionType,
+        expressionType: TestData.variable15
+          .expressionType as VariableExpressionType,
         noEncode: false,
         state: state,
       });
@@ -347,7 +360,8 @@ describe('VariablesOps', () => {
         variableId: TestData.variable16._id,
         value: encode(TestData.variable16.value),
         description: TestData.variable16.description,
-        expressionType: TestData.variable16.expressionType as VariableExpressionType,
+        expressionType: TestData.variable16
+          .expressionType as VariableExpressionType,
         noEncode: true,
         state: state,
       });
@@ -359,7 +373,8 @@ describe('VariablesOps', () => {
         variableId: TestData.variable17._id,
         value: TestData.variable17.value,
         description: TestData.variable17.description,
-        expressionType: TestData.variable17.expressionType as VariableExpressionType,
+        expressionType: TestData.variable17
+          .expressionType as VariableExpressionType,
         noEncode: false,
         state: state,
       });
@@ -371,7 +386,8 @@ describe('VariablesOps', () => {
       let response = await VariablesOps.updateVariable({
         variableId: TestData.variable1._id,
         description: TestData.variable1.description,
-        expressionType: TestData.variable1.expressionType as VariableExpressionType,
+        expressionType: TestData.variable1
+          .expressionType as VariableExpressionType,
         value: TestData.variable1.value,
         noEncode: false,
         state: state,
@@ -380,13 +396,14 @@ describe('VariablesOps', () => {
       response = await VariablesOps.updateVariable({
         variableId: TestData.variable1._id,
         description: TestData.variable1.description,
-        expressionType: TestData.variable1.expressionType as VariableExpressionType,
-        value: "test new value",
+        expressionType: TestData.variable1
+          .expressionType as VariableExpressionType,
+        value: 'test new value',
         noEncode: false,
         state: state,
       });
       expect(response).not.toBeNull();
-      expect(response.valueBase64).toBe(encode("test new value"));
+      expect(response.valueBase64).toBe(encode('test new value'));
       expect(response).toMatchSnapshot();
     });
   });
@@ -415,11 +432,11 @@ describe('VariablesOps', () => {
       expect(response).toBeNull();
       response = await VariablesOps.updateVariableDescription({
         variableId: TestData.variable21._id,
-        description: "test new description",
+        description: 'test new description',
         state: state,
       });
       expect(response).not.toBeNull();
-      expect(response.description).toBe("test new description");
+      expect(response.description).toBe('test new description');
       expect(response).toMatchSnapshot();
     });
   });

@@ -13,14 +13,19 @@
  * the established Frodo factory helpers (`createInstance*`).
  */
 
+import * as ManagedObjectApi from '../api/ManagedObjectApi';
+import { getIdmServerVersionInfo } from '../api/ServerInfoApi';
 import { Frodo, frodo } from '../lib/FrodoLib';
 import { getSemanticVersion } from '../ops/AuthenticateOps';
 import type { BrowserLoginPromptHandler } from '../ops/BrowserAuthenticateOps';
 import { determineCallerTrustTier } from '../ops/CallerTrustTierOps';
 import { FrodoError } from '../ops/FrodoError';
-import * as ManagedObjectApi from '../api/ManagedObjectApi';
-import { getIdmServerVersionInfo } from '../api/ServerInfoApi';
 import { StateInterface } from '../shared/State';
+import {
+  describeCapabilityRouting,
+  McpCapabilityRoutingStatus,
+  rankCapabilitiesForDeployment,
+} from './CapabilityRouting';
 import {
   McpCapabilityDescriptor,
   McpCapabilityOperationType,
@@ -28,21 +33,11 @@ import {
   McpCapabilityParameterSchema,
   McpDeploymentType,
 } from './CapabilityTypes';
+import { resolveDocsContext } from './DocsContext';
+import { matchSemanticIdentifiers } from './SemanticIdentifiers';
 import {
-  McpCatalogHydrationStatus,
-  McpDiscoveryEntry,
-  McpGenericTool,
-  McpManagedObjectHydrationStatus,
-  McpToolManifest,
-} from './ToolManifest';
-import {
-  describeCapabilityRouting,
-  McpCapabilityRoutingStatus,
-  rankCapabilitiesForDeployment,
-} from './CapabilityRouting';
-import {
-  discoverManagedObjectFamilies,
   descriptorPatternsSupportFamily,
+  discoverManagedObjectFamilies,
   matchManagedObjectFamily,
   MCP_AMBIGUOUS_OBJECT_CONCEPTS,
   MCP_SEMANTIC_OBJECT_SYNONYMS,
@@ -51,8 +46,13 @@ import {
   normalizeSemanticObjectFamily,
   resolveSemanticObjectFamily,
 } from './SemanticObjectFamilies';
-import { matchSemanticIdentifiers } from './SemanticIdentifiers';
-import { resolveDocsContext } from './DocsContext';
+import {
+  McpCatalogHydrationStatus,
+  McpDiscoveryEntry,
+  McpGenericTool,
+  McpManagedObjectHydrationStatus,
+  McpToolManifest,
+} from './ToolManifest';
 
 const FIND_SKILLS_TOOL_NAME = 'frodo_find_skills';
 const DESCRIBE_SKILL_TOOL_NAME = 'frodo_describe_skill';

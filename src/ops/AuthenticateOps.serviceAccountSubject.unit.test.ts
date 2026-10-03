@@ -25,7 +25,9 @@ jest.unstable_mockModule('./cloud/ServiceAccountOps', () => ({
   SERVICE_ACCOUNT_DEFAULT_SCOPES: ['fr:idm:*'],
 }));
 
-const createSignedJwtToken = jest.fn(async (_payload?: any, _jwk?: any): Promise<string> => 'fake.jwt.token');
+const createSignedJwtToken = jest.fn(
+  async (_payload?: any, _jwk?: any): Promise<string> => 'fake.jwt.token'
+);
 
 jest.unstable_mockModule('./JoseOps', () => ({
   createSignedJwtToken,
@@ -56,9 +58,11 @@ const authorize = jest.fn(async (_args?: any): Promise<any> => {
 // Not exercised by this test's code path, but BrowserAuthenticateOps.ts
 // (transitively imported via AuthenticateOps.ts) imports this from the
 // same module, so the mock must still provide it.
-const deviceAuthorizationRequest = jest.fn(async (_args?: any): Promise<any> => {
-  throw new Error('deviceAuthorizationRequest mock not configured');
-});
+const deviceAuthorizationRequest = jest.fn(
+  async (_args?: any): Promise<any> => {
+    throw new Error('deviceAuthorizationRequest mock not configured');
+  }
+);
 // Not exercised by this test's code path (only called from
 // getTokensInteractive()'s cloud fresh-login case), but AuthenticateOps.ts
 // imports it at module load time, so the mock must still provide it.
@@ -126,9 +130,9 @@ describe("getSaBearerToken()'s subject resolution", () => {
     expect(getServiceAccount).toHaveBeenCalledWith(
       expect.objectContaining({ serviceAccountId: 'svc-account-uuid' })
     );
-    expect(
-      getRecordedSubject({ tokenType: 'saBearer' as any, state })
-    ).toBe('my-service-account');
+    expect(getRecordedSubject({ tokenType: 'saBearer' as any, state })).toBe(
+      'my-service-account'
+    );
   });
 
   test('2: Falls back to the raw service account id when the IDM lookup fails, rather than recording nothing', async () => {
@@ -139,9 +143,9 @@ describe("getSaBearerToken()'s subject resolution", () => {
 
     await getSaBearerToken({ state });
 
-    expect(
-      getRecordedSubject({ tokenType: 'saBearer' as any, state })
-    ).toBe('svc-account-uuid');
+    expect(getRecordedSubject({ tokenType: 'saBearer' as any, state })).toBe(
+      'svc-account-uuid'
+    );
   });
 
   test('3: A cache-hit re-save does not repeat the IDM lookup', async () => {
@@ -158,8 +162,8 @@ describe("getSaBearerToken()'s subject resolution", () => {
     await getSaBearerToken({ state });
 
     expect(getServiceAccount).toHaveBeenCalledTimes(1);
-    expect(
-      getRecordedSubject({ tokenType: 'saBearer' as any, state })
-    ).toBe('my-service-account');
+    expect(getRecordedSubject({ tokenType: 'saBearer' as any, state })).toBe(
+      'my-service-account'
+    );
   });
 });

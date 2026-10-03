@@ -12,14 +12,20 @@
  * the connection profile (not mocked) — only the network-facing
  * browser-login primitives are mocked.
  */
+import fs from 'fs';
+import { resolve } from 'path';
 import { jest } from '@jest/globals';
 
-const runInteractiveAuthorizationCodeFlow = jest.fn(async (_args?: any): Promise<any> => {
-  throw new Error('runInteractiveAuthorizationCodeFlow mock not configured');
-});
-const startDeviceAuthorizationFlow = jest.fn(async (_args?: any): Promise<any> => {
-  throw new Error('startDeviceAuthorizationFlow mock not configured');
-});
+const runInteractiveAuthorizationCodeFlow = jest.fn(
+  async (_args?: any): Promise<any> => {
+    throw new Error('runInteractiveAuthorizationCodeFlow mock not configured');
+  }
+);
+const startDeviceAuthorizationFlow = jest.fn(
+  async (_args?: any): Promise<any> => {
+    throw new Error('startDeviceAuthorizationFlow mock not configured');
+  }
+);
 const refreshBrowserBearerToken = jest.fn(async (_args?: any): Promise<any> => {
   throw new Error('refreshBrowserBearerToken mock not configured');
 });
@@ -35,17 +41,23 @@ jest.unstable_mockModule('./BrowserAuthenticateOps', () => ({
   readMayActClientId: () => undefined,
 }));
 
-const getAuthenticationSettings = jest.fn(async (_args?: any): Promise<any> => ({}));
-const putAuthenticationSettings = jest.fn(async (_args?: any): Promise<any> => ({}));
+const getAuthenticationSettings = jest.fn(
+  async (_args?: any): Promise<any> => ({})
+);
+const putAuthenticationSettings = jest.fn(
+  async (_args?: any): Promise<any> => ({})
+);
 
 jest.unstable_mockModule('../api/AuthenticationSettingsApi', () => ({
   getAuthenticationSettings,
   putAuthenticationSettings,
 }));
 
-const getServerInfo = jest.fn(async (_args?: any): Promise<any> => ({
-  cookieName: 'iPlanetDirectoryPro',
-}));
+const getServerInfo = jest.fn(
+  async (_args?: any): Promise<any> => ({
+    cookieName: 'iPlanetDirectoryPro',
+  })
+);
 const getServerVersionInfo = jest.fn(async (_args?: any): Promise<any> => ({}));
 
 jest.unstable_mockModule('../api/ServerInfoApi', () => ({
@@ -62,9 +74,6 @@ const readUser = jest.fn(async (_args?: any): Promise<any> => ({}));
 jest.unstable_mockModule('./UserOps', () => ({
   readUser,
 }));
-
-import fs from 'fs';
-import { resolve } from 'path';
 
 // ConnectionProfileOps.ts is deliberately NOT mocked here — this test needs
 // the real save/load round trip and the real alias/substring matching in
@@ -161,7 +170,9 @@ describe('getTokensInteractive() resolves a non-URL host before use', () => {
       promptHandler,
     });
 
-    expect(tokens.host).toBe('https://openam-unrelated-host.forgeblocks.com/am');
+    expect(tokens.host).toBe(
+      'https://openam-unrelated-host.forgeblocks.com/am'
+    );
   });
 
   test('3: a non-URL host with no matching saved profile still fails clearly, not with "Invalid URL"', async () => {
@@ -188,7 +199,7 @@ describe('getTokensInteractive() resolves a non-URL host before use', () => {
     );
   });
 
-  test('4: a saved profile\'s deploymentType is used when the invocation supplies none — no --type needed for a known alias', async () => {
+  test("4: a saved profile's deploymentType is used when the invocation supplies none — no --type needed for a known alias", async () => {
     const saveState = StateImpl({ host });
     saveState.setConnectionProfilesPath(connectionProfilesPath);
     saveState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
@@ -221,7 +232,7 @@ describe('getTokensInteractive() resolves a non-URL host before use', () => {
     expect(invocationState.getDeploymentType()).toBe('cloud');
   });
 
-  test('5: an explicit deploymentType always wins over a saved profile\'s own value', async () => {
+  test("5: an explicit deploymentType always wins over a saved profile's own value", async () => {
     // Saved profile says 'forgeops' (a materially different flow — session
     // capture, not OAuth2 authorization-code); the invocation explicitly
     // says 'cloud'. Only cloud's flow is mocked below, so this only passes

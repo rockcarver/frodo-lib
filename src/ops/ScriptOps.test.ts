@@ -29,13 +29,13 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { state } from '../index';
-import * as ScriptOps from './ScriptOps';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import { filterRecording } from '../utils/PollyUtils';
 import { ScriptSkeleton } from '../api/ScriptApi';
+import { state } from '../index';
 import { snapshotResultCallback } from '../test/utils/TestUtils';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { cloneDeep } from '../utils/JsonUtils';
+import { filterRecording } from '../utils/PollyUtils';
+import * as ScriptOps from './ScriptOps';
 
 const ctx = autoSetupPolly();
 
@@ -259,7 +259,11 @@ describe('ScriptOps', () => {
       lastModifiedDate: 0,
     } as ScriptSkeleton,
   };
-  const import1: { id: string; name: string; data: ScriptOps.ScriptExportInterface } = {
+  const import1: {
+    id: string;
+    name: string;
+    data: ScriptOps.ScriptExportInterface;
+  } = {
     id: '5b3e4dd2-8060-4029-9ec1-6867932ab939',
     name: 'FrodoTestScript5',
     data: {
@@ -310,7 +314,11 @@ describe('ScriptOps', () => {
       },
     },
   };
-  const import2: { id: string; name: string; data: ScriptOps.ScriptExportInterface } = {
+  const import2: {
+    id: string;
+    name: string;
+    data: ScriptOps.ScriptExportInterface;
+  } = {
     id: '01e1a3c0-038b-4c16-956a-6c9d89328cff',
     name: 'Authentication Tree Decision Node Script',
     data: {
@@ -453,11 +461,11 @@ describe('ScriptOps', () => {
       expect(response).toBeNull();
       response = await ScriptOps.updateScript({
         scriptId: script2.id,
-        scriptData: {...script2.data, description: "test new description"},
+        scriptData: { ...script2.data, description: 'test new description' },
         state,
       });
       expect(response).not.toBeNull();
-      expect(response.description).toBe("test new description");
+      expect(response.description).toBe('test new description');
       expect(response).toMatchSnapshot();
     });
   });
@@ -598,7 +606,7 @@ describe('ScriptOps', () => {
       let response = await ScriptOps.importScripts({
         scriptId: '',
         scriptName: '',
-        importData: { script: { [script4.id]: script4.data}  },
+        importData: { script: { [script4.id]: script4.data } },
         options: {
           deps: true,
           reUuid: false,
@@ -609,11 +617,11 @@ describe('ScriptOps', () => {
       });
       expect(response.length).toBe(0);
       const script = cloneDeep(script4);
-      script.data.description = "test new description";
+      script.data.description = 'test new description';
       response = await ScriptOps.importScripts({
         scriptId: '',
         scriptName: '',
-        importData: { script: { [script.id]: script.data }  },
+        importData: { script: { [script.id]: script.data } },
         options: {
           deps: true,
           reUuid: false,
@@ -623,7 +631,7 @@ describe('ScriptOps', () => {
         state,
       });
       expect(response.length).not.toBe(0);
-      expect(response[0].description).toBe("test new description");
+      expect(response[0].description).toBe('test new description');
       expect(response).toMatchSnapshot();
     });
   });
@@ -668,7 +676,7 @@ describe('ScriptOps', () => {
       expect.assertions(1);
       const outcome = await ScriptOps.deleteScripts({
         resultCallback: snapshotResultCallback,
-        state 
+        state,
       });
       expect(outcome).toBeTruthy();
     });

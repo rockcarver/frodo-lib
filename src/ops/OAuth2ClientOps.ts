@@ -3,8 +3,8 @@ import {
   deleteOAuth2Client as _deleteOAuth2Client,
   getOAuth2Client as _getOAuth2Client,
   getOAuth2Clients as _getOAuth2Clients,
-  type OAuth2ClientSkeleton,
   putOAuth2Client as _putOAuth2Client,
+  type OAuth2ClientSkeleton,
 } from '../api/OAuth2ClientApi';
 import { type ScriptSkeleton } from '../api/ScriptApi';
 import { State } from '../shared/State';

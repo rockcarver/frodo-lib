@@ -18,13 +18,8 @@
  */
 import fs from 'fs';
 import { resolve } from 'path';
-
-import {
-  readToken,
-  saveToken,
-  type tokenType,
-} from './TokenCacheOps';
 import StateImpl from '../shared/State';
+import { readToken, saveToken, type tokenType } from './TokenCacheOps';
 
 const TMP_DIR = resolve('.', 'test', 'fs_tmp', 'TokenCacheOps.browserToken');
 
@@ -110,7 +105,9 @@ describe('TokenCacheOps browser-login cache-entry key derivation', () => {
       tokenType: 'browserUserBearer',
       state: readerState,
     });
-    expect((read as any).access_token).toBe(fakeAccessTokenJwtWithSub('user-a'));
+    expect((read as any).access_token).toBe(
+      fakeAccessTokenJwtWithSub('user-a')
+    );
   });
 
   test('2b: A second browser-login identity against the SAME host shares the one cache slot, by design', async () => {
@@ -152,8 +149,13 @@ describe('TokenCacheOps browser-login cache-entry key derivation', () => {
       state: stateB,
     });
 
-    const read = await readToken({ tokenType: 'browserUserBearer', state: stateA });
-    expect((read as any).access_token).toBe(fakeAccessTokenJwtWithSub('user-b'));
+    const read = await readToken({
+      tokenType: 'browserUserBearer',
+      state: stateA,
+    });
+    expect((read as any).access_token).toBe(
+      fakeAccessTokenJwtWithSub('user-b')
+    );
   });
 
   test('2c: Different HOSTS still get fully isolated cache entries', async () => {
@@ -190,10 +192,20 @@ describe('TokenCacheOps browser-login cache-entry key derivation', () => {
       state: stateB,
     });
 
-    const readA = await readToken({ tokenType: 'browserUserBearer', state: stateA });
-    const readB = await readToken({ tokenType: 'browserUserBearer', state: stateB });
-    expect((readA as any).access_token).toBe(fakeAccessTokenJwtWithSub('user-a'));
-    expect((readB as any).access_token).toBe(fakeAccessTokenJwtWithSub('user-b'));
+    const readA = await readToken({
+      tokenType: 'browserUserBearer',
+      state: stateA,
+    });
+    const readB = await readToken({
+      tokenType: 'browserUserBearer',
+      state: stateB,
+    });
+    expect((readA as any).access_token).toBe(
+      fakeAccessTokenJwtWithSub('user-a')
+    );
+    expect((readB as any).access_token).toBe(
+      fakeAccessTokenJwtWithSub('user-b')
+    );
   });
 
   test('3: A browser bearer token with no refresh token is still cacheable (master-key-only key derivation)', async () => {
@@ -281,16 +293,13 @@ describe('TokenCacheOps browser-login cache-entry key derivation', () => {
     expect(read).toEqual(userSessionMeta);
   });
 
-  test('6: The very first save against a not-yet-existing master key file still round-trips (regression: DataProtection\'s own auto-generate fallback used raw file content as the key, while every later call wraps it with uuidv5 — a mismatch that broke exactly this first-save case)', async () => {
+  test("6: The very first save against a not-yet-existing master key file still round-trips (regression: DataProtection's own auto-generate fallback used raw file content as the key, while every later call wraps it with uuidv5 — a mismatch that broke exactly this first-save case)", async () => {
     // Deliberately NOT reusing freshState()'s shared, beforeAll-pre-written
     // TMP_DIR/masterkey.key — this test needs a master key path that does
     // not exist yet when the first save runs, which is exactly the
     // scenario that was broken. Two separate State instances, mirroring
     // test 4's real cross-process shape.
-    const isolatedDir = resolve(
-      TMP_DIR,
-      `first-save-race-${Math.random()}`
-    );
+    const isolatedDir = resolve(TMP_DIR, `first-save-race-${Math.random()}`);
     const masterKeyPath = resolve(isolatedDir, 'masterkey.key');
     const cachePath = resolve(isolatedDir, 'TokenCache.json');
     expect(fs.existsSync(masterKeyPath)).toBe(false);

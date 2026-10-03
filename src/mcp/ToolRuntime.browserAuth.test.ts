@@ -3,7 +3,6 @@
  * 'browser'`) into the MCP tool runtime.
  */
 import { jest } from '@jest/globals';
-
 import type { Frodo } from '../lib/FrodoLib';
 import StateImpl from '../shared/State';
 import type { McpCapabilityDescriptor } from './CapabilityTypes';

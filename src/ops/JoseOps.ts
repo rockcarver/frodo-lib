@@ -1,13 +1,12 @@
 import {
   CompactSign,
   createLocalJWKSet,
-  SignJWT,
   exportJWK,
   generateKeyPair,
   importJWK,
   jwtVerify,
+  SignJWT,
 } from 'jose';
-
 import { State } from '../shared/State';
 
 export type Jose = {

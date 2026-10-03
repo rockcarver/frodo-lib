@@ -111,7 +111,7 @@ jobs:
           npm run doc
 
       - name: Lint
-        run: npm run lint:fix
+        run: npm run check
 
       - name: Security Audit
         run: npm audit fix --audit-level critical

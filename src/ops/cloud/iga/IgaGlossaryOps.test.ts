@@ -43,29 +43,28 @@
  * in case things don't function as expected
  */
 import { state } from '../../../index';
-import * as IgaGlossaryOps from './IgaGlossaryOps';
-
 import * as TestData from '../../../test/setup/IgaGlossarySetup';
 import { snapshotResultCallback } from '../../../test/utils/TestUtils';
+import * as IgaGlossaryOps from './IgaGlossaryOps';
 
 describe('IgaGlossaryOps', () => {
-
   TestData.setup();
-  
+
   // Phase 1
   if (
     !process.env.FRODO_POLLY_MODE ||
     (process.env.FRODO_POLLY_MODE === 'record' &&
       process.env.FRODO_RECORD_PHASE === '1')
   ) {
-
     describe('createGlossarySchemaExportTemplate()', () => {
       test('0: Method is implemented', async () => {
         expect(IgaGlossaryOps.createGlossarySchemaExportTemplate).toBeDefined();
       });
 
       test('1: Create Glossary Schema Export Template', async () => {
-        const response = IgaGlossaryOps.createGlossarySchemaExportTemplate({ state });
+        const response = IgaGlossaryOps.createGlossarySchemaExportTemplate({
+          state,
+        });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });
@@ -78,7 +77,10 @@ describe('IgaGlossaryOps', () => {
       });
 
       test('1: Create Glossary Schema Export Template', async () => {
-        const response = await IgaGlossaryOps.createGlossarySchema({ glossarySchemaData: TestData.glossary7, state });
+        const response = await IgaGlossaryOps.createGlossarySchema({
+          glossarySchemaData: TestData.glossary7,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
@@ -95,47 +97,58 @@ describe('IgaGlossaryOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Read non-existing glossary schema', async () => {
         const unknownId = '11111111-1111-1111-1111-111111111111';
-        await expect(IgaGlossaryOps.readGlossarySchema({
-          glossaryId: unknownId,
-          state,
-        })).rejects.toThrow('Error reading glossary schema ' + unknownId);
+        await expect(
+          IgaGlossaryOps.readGlossarySchema({
+            glossaryId: unknownId,
+            state,
+          })
+        ).rejects.toThrow('Error reading glossary schema ' + unknownId);
       });
     });
 
     describe('readGlossarySchemaByNameAndObjectType()', () => {
       test('0: Method is implemented', async () => {
-        expect(IgaGlossaryOps.readGlossarySchemaByNameAndObjectType).toBeDefined();
+        expect(
+          IgaGlossaryOps.readGlossarySchemaByNameAndObjectType
+        ).toBeDefined();
       });
 
       test(`1: Read existing glossary schema by name and objectype`, async () => {
-        const response = await IgaGlossaryOps.readGlossarySchemaByNameAndObjectType({
-          glossaryName: TestData.glossary1.name,
-          objectType: TestData.glossary1.objectType,
-          state,
-        });
+        const response =
+          await IgaGlossaryOps.readGlossarySchemaByNameAndObjectType({
+            glossaryName: TestData.glossary1.name,
+            objectType: TestData.glossary1.objectType,
+            state,
+          });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Read non-existing glossary schema with unknown name', async () => {
         const unknownName = 'unknownName';
-        await expect(IgaGlossaryOps.readGlossarySchemaByNameAndObjectType({
-          glossaryName: unknownName,
-          objectType: TestData.glossary1.objectType,
-          state,
-        })).rejects.toThrow('Error reading glossary schema ' + unknownName);
+        await expect(
+          IgaGlossaryOps.readGlossarySchemaByNameAndObjectType({
+            glossaryName: unknownName,
+            objectType: TestData.glossary1.objectType,
+            state,
+          })
+        ).rejects.toThrow('Error reading glossary schema ' + unknownName);
       });
 
       test('3: Read non-existing glossary schema with unknown object type', async () => {
         const unknownObjectType = 'unknownObjectType';
-        await expect(IgaGlossaryOps.readGlossarySchemaByNameAndObjectType({
-          glossaryName: TestData.glossary1.name,
-          // @ts-expect-error since we are doing an unknown object type
-          objectType: unknownObjectType,
-          state,
-        })).rejects.toThrow('Error reading glossary schema ' + TestData.glossary1.name);
+        await expect(
+          IgaGlossaryOps.readGlossarySchemaByNameAndObjectType({
+            glossaryName: TestData.glossary1.name,
+            // @ts-expect-error since we are doing an unknown object type
+            objectType: unknownObjectType,
+            state,
+          })
+        ).rejects.toThrow(
+          'Error reading glossary schema ' + TestData.glossary1.name
+        );
       });
     });
 
@@ -166,49 +179,60 @@ describe('IgaGlossaryOps', () => {
           meta: expect.any(Object),
         });
       });
-  
+
       test('2: Export non-existing glossary schema', async () => {
         const unknownId = '11111111-1111-1111-1111-111111111111';
-        await expect(IgaGlossaryOps.exportGlossarySchema({
-          glossaryId: unknownId,
-          state,
-        })).rejects.toThrow('Error exporting glossary schema ' + unknownId);
+        await expect(
+          IgaGlossaryOps.exportGlossarySchema({
+            glossaryId: unknownId,
+            state,
+          })
+        ).rejects.toThrow('Error exporting glossary schema ' + unknownId);
       });
     });
 
     describe('exportGlossarySchemaByNameAndObjectType()', () => {
       test('0: Method is implemented', async () => {
-        expect(IgaGlossaryOps.exportGlossarySchemaByNameAndObjectType).toBeDefined();
+        expect(
+          IgaGlossaryOps.exportGlossarySchemaByNameAndObjectType
+        ).toBeDefined();
       });
 
       test(`1: Export existing glossary schema by name and objectype`, async () => {
-        const response = await IgaGlossaryOps.exportGlossarySchemaByNameAndObjectType({
-          glossaryName: TestData.glossary1.name,
-          objectType: TestData.glossary1.objectType,
-          state,
-        });
+        const response =
+          await IgaGlossaryOps.exportGlossarySchemaByNameAndObjectType({
+            glossaryName: TestData.glossary1.name,
+            objectType: TestData.glossary1.objectType,
+            state,
+          });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });
       });
-  
+
       test('2: Export non-existing glossary schema with unknown name', async () => {
         const unknownName = 'unknownName';
-        await expect(IgaGlossaryOps.exportGlossarySchemaByNameAndObjectType({
-          glossaryName: unknownName,
-          objectType: TestData.glossary1.objectType,
-          state,
-        })).rejects.toThrow('Error exporting glossary schema ' + unknownName);
+        await expect(
+          IgaGlossaryOps.exportGlossarySchemaByNameAndObjectType({
+            glossaryName: unknownName,
+            objectType: TestData.glossary1.objectType,
+            state,
+          })
+        ).rejects.toThrow('Error exporting glossary schema ' + unknownName);
       });
 
       test('3: Export non-existing glossary schema with unknown object type', async () => {
         const unknownObjectType = 'unknownObjectType';
-        await expect(IgaGlossaryOps.exportGlossarySchemaByNameAndObjectType({
-          glossaryName: TestData.glossary1.name,
-          // @ts-expect-error since we are doing an unknown object type
-          objectType: unknownObjectType,
-          state,
-        })).rejects.toThrow('Error exporting glossary schema ' + TestData.glossary1.name);
+        await expect(
+          IgaGlossaryOps.exportGlossarySchemaByNameAndObjectType({
+            glossaryName: TestData.glossary1.name,
+            // @ts-expect-error since we are doing an unknown object type
+            objectType: unknownObjectType,
+            state,
+          })
+        ).rejects.toThrow(
+          'Error exporting glossary schema ' + TestData.glossary1.name
+        );
       });
     });
 
@@ -254,21 +278,25 @@ describe('IgaGlossaryOps', () => {
 
       test(`2: Update non-existing glossary schema`, async () => {
         const unknownId = '11111111-1111-1111-1111-111111111111';
-        await expect(IgaGlossaryOps.updateGlossarySchema({
-          glossaryId: unknownId,
-          glossarySchemaData: TestData.glossary2,
-          state,
-        })).rejects.toThrow(`Error updating glossary schema '${unknownId}'`);
+        await expect(
+          IgaGlossaryOps.updateGlossarySchema({
+            glossaryId: unknownId,
+            glossarySchemaData: TestData.glossary2,
+            state,
+          })
+        ).rejects.toThrow(`Error updating glossary schema '${unknownId}'`);
       });
     });
 
     describe('importGlossarySchemas()', () => {
-      const importData = IgaGlossaryOps.createGlossarySchemaExportTemplate({ state });
+      const importData = IgaGlossaryOps.createGlossarySchemaExportTemplate({
+        state,
+      });
       importData.glossarySchema = {
         [TestData.glossary2.id]: TestData.glossary2,
         [TestData.glossary3.id]: TestData.glossary3,
         [TestData.glossary4.id]: TestData.glossary4,
-      }
+      };
 
       test('0: Method is implemented', async () => {
         expect(IgaGlossaryOps.importGlossarySchemas).toBeDefined();
@@ -276,9 +304,11 @@ describe('IgaGlossaryOps', () => {
 
       test('1: Import None', async () => {
         const response = await IgaGlossaryOps.importGlossarySchemas({
-          importData: IgaGlossaryOps.createGlossarySchemaExportTemplate({ state }),
+          importData: IgaGlossaryOps.createGlossarySchemaExportTemplate({
+            state,
+          }),
           options: {
-            includeInternal: false
+            includeInternal: false,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -291,7 +321,7 @@ describe('IgaGlossaryOps', () => {
           glossaryId: TestData.glossary3.id,
           importData,
           options: {
-            includeInternal: false
+            includeInternal: false,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -305,7 +335,7 @@ describe('IgaGlossaryOps', () => {
           objectType: TestData.glossary3.objectType,
           importData,
           options: {
-            includeInternal: false
+            includeInternal: false,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -317,7 +347,7 @@ describe('IgaGlossaryOps', () => {
         const response = await IgaGlossaryOps.importGlossarySchemas({
           importData,
           options: {
-            includeInternal: false
+            includeInternal: false,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -340,47 +370,58 @@ describe('IgaGlossaryOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Delete non-existing glossary by id', async () => {
         const unknownId = '11111111-1111-1111-1111-111111111111';
-        await expect(IgaGlossaryOps.deleteGlossarySchema({
-          glossaryId: unknownId,
-          state,
-        })).rejects.toThrow('Error deleting glossary schema ' + unknownId);
+        await expect(
+          IgaGlossaryOps.deleteGlossarySchema({
+            glossaryId: unknownId,
+            state,
+          })
+        ).rejects.toThrow('Error deleting glossary schema ' + unknownId);
       });
     });
 
     describe('deleteGlossarySchemaByNameAndObjectType()', () => {
       test('0: Method is implemented', async () => {
-        expect(IgaGlossaryOps.deleteGlossarySchemaByNameAndObjectType).toBeDefined();
+        expect(
+          IgaGlossaryOps.deleteGlossarySchemaByNameAndObjectType
+        ).toBeDefined();
       });
 
       test(`1: Delete existing glossary schema by name`, async () => {
-        const response = await IgaGlossaryOps.deleteGlossarySchemaByNameAndObjectType({
-          glossaryName: TestData.glossary6.name,
-          objectType: TestData.glossary6.objectType,
-          state,
-        });
+        const response =
+          await IgaGlossaryOps.deleteGlossarySchemaByNameAndObjectType({
+            glossaryName: TestData.glossary6.name,
+            objectType: TestData.glossary6.objectType,
+            state,
+          });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Delete non-existing glossary by unknown name', async () => {
         const unknownName = 'unknownName';
-        await expect(IgaGlossaryOps.deleteGlossarySchemaByNameAndObjectType({
-          glossaryName: unknownName,
-          objectType: TestData.glossary1.objectType,
-          state,
-        })).rejects.toThrow('Error deleting glossary schema ' + unknownName);
+        await expect(
+          IgaGlossaryOps.deleteGlossarySchemaByNameAndObjectType({
+            glossaryName: unknownName,
+            objectType: TestData.glossary1.objectType,
+            state,
+          })
+        ).rejects.toThrow('Error deleting glossary schema ' + unknownName);
       });
 
       test('3: Delete non-existing glossary by unknown object type', async () => {
         const unknownObjectType = 'unknownObjectType';
-        await expect(IgaGlossaryOps.deleteGlossarySchemaByNameAndObjectType({
-          glossaryName: TestData.glossary1.name,
-          // @ts-expect-error
-          objectType: unknownObjectType,
-          state,
-        })).rejects.toThrow('Error deleting glossary schema ' + TestData.glossary1.name);
+        await expect(
+          IgaGlossaryOps.deleteGlossarySchemaByNameAndObjectType({
+            glossaryName: TestData.glossary1.name,
+            // @ts-expect-error
+            objectType: unknownObjectType,
+            state,
+          })
+        ).rejects.toThrow(
+          'Error deleting glossary schema ' + TestData.glossary1.name
+        );
       });
     });
   }

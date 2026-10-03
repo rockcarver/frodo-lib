@@ -1,16 +1,15 @@
 import { v4 as uuidv4 } from 'uuid';
-
 import {
   deleteScript as _deleteScript,
   deleteScriptByName as _deleteScriptByName,
-  getLibraryScriptConfigByName,
   getScript as _getScript,
   getScriptByName as _getScriptByName,
   getScripts as _getScripts,
   putScript as _putScript,
+  getLibraryScriptConfigByName,
   type ScriptSkeleton,
 } from '../api/ScriptApi';
-import { type ExportMetaData, ResultCallback } from '../ops/OpsTypes';
+import { ResultCallback, type ExportMetaData } from '../ops/OpsTypes';
 import { State } from '../shared/State';
 import { decode, encode, isBase64Encoded } from '../utils/Base64Utils';
 import {
@@ -700,7 +699,7 @@ export async function updateScript({
   scriptData: ScriptSkeleton;
   state: State;
 }): Promise<ScriptSkeleton | null> {
-  let result = null;
+  let result;
   try {
     if (Array.isArray(scriptData.script)) {
       scriptData.script = convertTextArrayToBase64(scriptData.script);

@@ -1,9 +1,9 @@
 import {
   abortDirectConfigurationSession as _abortDirectConfigurationSession,
   applyDirectConfigurationSession as _applyDirectConfigurationSession,
-  DirectConfigurationSessionState,
   getDirectConfigurationSessionState as _getDirectConfigurationSessionState,
   initDirectConfigurationSession as _initDirectConfigurationSession,
+  DirectConfigurationSessionState,
 } from '../../api/cloud/EnvDirectConfigurationSessionApi';
 import { State } from '../../shared/State';
 import { FrodoError } from '../FrodoError';

@@ -11,12 +11,16 @@
  */
 import { jest } from '@jest/globals';
 
-const runInteractiveAuthorizationCodeFlow = jest.fn(async (_args?: any): Promise<any> => {
-  throw new Error('runInteractiveAuthorizationCodeFlow mock not configured');
-});
-const startDeviceAuthorizationFlow = jest.fn(async (_args?: any): Promise<any> => {
-  throw new Error('startDeviceAuthorizationFlow mock not configured');
-});
+const runInteractiveAuthorizationCodeFlow = jest.fn(
+  async (_args?: any): Promise<any> => {
+    throw new Error('runInteractiveAuthorizationCodeFlow mock not configured');
+  }
+);
+const startDeviceAuthorizationFlow = jest.fn(
+  async (_args?: any): Promise<any> => {
+    throw new Error('startDeviceAuthorizationFlow mock not configured');
+  }
+);
 const refreshBrowserBearerToken = jest.fn(async (_args?: any): Promise<any> => {
   throw new Error('refreshBrowserBearerToken mock not configured');
 });
@@ -48,9 +52,11 @@ jest.unstable_mockModule('../api/AuthenticationSettingsApi', () => ({
   getAuthenticationSettings,
 }));
 
-const getServerInfo = jest.fn(async (_args?: any): Promise<any> => ({
-  cookieName: 'iPlanetDirectoryPro',
-}));
+const getServerInfo = jest.fn(
+  async (_args?: any): Promise<any> => ({
+    cookieName: 'iPlanetDirectoryPro',
+  })
+);
 const getServerVersionInfo = jest.fn(async (_args?: any): Promise<any> => ({}));
 
 jest.unstable_mockModule('../api/ServerInfoApi', () => ({
@@ -77,10 +83,7 @@ async function getUnderlyingError(promise: Promise<unknown>): Promise<Error> {
     await promise;
   } catch (error) {
     let current = error;
-    while (
-      current instanceof FrodoError &&
-      current.originalErrors.length > 0
-    ) {
+    while (current instanceof FrodoError && current.originalErrors.length > 0) {
       current = current.originalErrors[0];
     }
     return current as Error;
@@ -162,8 +165,12 @@ describe('Classic browser login (getTokensInteractive)', () => {
       universalId: 'id=amadmin,ou=user,ou=am-config',
       realm: '/',
       latestAccessTime: new Date().toISOString(),
-      maxIdleExpirationTime: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-      maxSessionExpirationTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+      maxIdleExpirationTime: new Date(
+        Date.now() + 30 * 60 * 1000
+      ).toISOString(),
+      maxSessionExpirationTime: new Date(
+        Date.now() + 2 * 60 * 60 * 1000
+      ).toISOString(),
       properties: { AMCtxId: 'ctx-1' },
     });
 

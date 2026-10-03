@@ -33,12 +33,12 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { state } from '../index';
-import * as IdmSystemOps from './IdmSystemOps';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import { filterRecording } from '../utils/PollyUtils';
 import { SystemObjectPatchOperationInterface } from '../api/IdmSystemApi';
+import { state } from '../index';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { decode } from '../utils/Base64Utils';
+import { filterRecording } from '../utils/PollyUtils';
+import * as IdmSystemOps from './IdmSystemOps';
 
 const ctx = autoSetupPolly();
 

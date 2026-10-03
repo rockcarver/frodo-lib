@@ -17,10 +17,7 @@ export {
   type McpDeploymentType,
   type McpToolAnnotations,
 } from './CapabilityTypes';
-export {
-  MCP_POLICY_PRESETS,
-  applyCapabilityPolicy,
-} from './CapabilityPolicy';
+export { MCP_POLICY_PRESETS, applyCapabilityPolicy } from './CapabilityPolicy';
 export {
   type McpCapabilityRouting,
   type McpCapabilityRoutingStatus,

@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import Constants from '../shared/Constants';
 import { CredentialType, State } from '../shared/State';
@@ -13,6 +12,7 @@ import {
   writeSecureFileSync,
 } from '../utils/ExportImportUtils';
 import { getFrodoHome } from '../utils/FrodoUtils';
+import { mergeDeep } from '../utils/JsonUtils';
 import { readServiceAccountScopes } from './cloud/EnvServiceAccountScopesOps';
 import {
   createServiceAccount,
@@ -21,7 +21,6 @@ import {
 } from './cloud/ServiceAccountOps';
 import { FrodoError } from './FrodoError';
 import { createJwkRsa, createJwks, getJwkRsaPublic, JwkRsa } from './JoseOps';
-import { mergeDeep } from '../utils/JsonUtils';
 
 export type ConnectionProfile = {
   /**
@@ -1019,12 +1018,11 @@ export function setConnectionProfileAlias({
   state: State;
 }) {
   const filename = getConnectionProfilesPath({ state });
-  let connectionsData: ConnectionsFileInterface = {};
   if (!fs.statSync(filename, { throwIfNoEntry: false })) {
     throw new FrodoError(`Connection profiles file ${filename} not found`);
   }
   const data = fs.readFileSync(filename, 'utf8');
-  connectionsData = JSON.parse(data);
+  const connectionsData: ConnectionsFileInterface = JSON.parse(data);
   const profiles = findConnectionProfiles({
     connectionProfiles: connectionsData,
     host,
@@ -1119,12 +1117,11 @@ export function deleteConnectionProfile({
   state: State;
 }) {
   const filename = getConnectionProfilesPath({ state });
-  let connectionsData: ConnectionsFileInterface = {};
   if (!fs.statSync(filename, { throwIfNoEntry: false })) {
     throw new FrodoError(`Connection profiles file ${filename} not found`);
   }
   const data = fs.readFileSync(filename, 'utf8');
-  connectionsData = JSON.parse(data);
+  const connectionsData: ConnectionsFileInterface = JSON.parse(data);
   const profiles = findConnectionProfiles({
     connectionProfiles: connectionsData,
     host,

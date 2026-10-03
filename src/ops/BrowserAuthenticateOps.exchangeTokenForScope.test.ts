@@ -8,9 +8,13 @@ import { jest } from '@jest/globals';
 const accessToken = jest.fn(async (_args?: any): Promise<any> => {
   throw new Error('accessToken mock not configured for this call');
 });
-const deviceAuthorizationRequest = jest.fn(async (_args?: any): Promise<any> => {
-  throw new Error('deviceAuthorizationRequest mock not configured for this call');
-});
+const deviceAuthorizationRequest = jest.fn(
+  async (_args?: any): Promise<any> => {
+    throw new Error(
+      'deviceAuthorizationRequest mock not configured for this call'
+    );
+  }
+);
 
 jest.unstable_mockModule('./OAuth2OidcOps', () => ({
   accessToken,
@@ -42,7 +46,7 @@ describe('BrowserAuthenticateOps.exchangeTokenForScope', () => {
     expect(exchangeTokenForScope).toBeDefined();
   });
 
-  test('1: Reads the exchange client id from the subject token\'s may_act claim when not explicitly supplied', async () => {
+  test("1: Reads the exchange client id from the subject token's may_act claim when not explicitly supplied", async () => {
     accessToken.mockResolvedValueOnce({
       access_token: 'exchanged-token',
       token_type: 'Bearer',
@@ -63,12 +67,17 @@ describe('BrowserAuthenticateOps.exchangeTokenForScope', () => {
 
     expect(token.access_token).toBe('exchanged-token');
     expect(accessToken).toHaveBeenCalledTimes(1);
-    const call = accessToken.mock.calls[0][0] as { amBaseUrl: string; data: string };
+    const call = accessToken.mock.calls[0][0] as {
+      amBaseUrl: string;
+      data: string;
+    };
     expect(call.amBaseUrl).toBe('https://openam-example.forgeblocks.com/am');
     expect(call.data).toContain(
       'grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange'
     );
-    expect(call.data).toContain(`subject_token=${encodeURIComponent(subjectToken)}`);
+    expect(call.data).toContain(
+      `subject_token=${encodeURIComponent(subjectToken)}`
+    );
     expect(call.data).toContain('scope=fr%3Aam%3A*');
     expect(call.data).toContain('client_id=AICMCPExchangeClient');
   });
@@ -105,7 +114,11 @@ describe('BrowserAuthenticateOps.exchangeTokenForScope', () => {
 
   test('4: A malformed subject token is treated the same as a missing may_act claim, not a crash', async () => {
     await expect(
-      exchangeTokenForScope({ subjectToken: 'not-a-jwt', scope: 'fr:am:*', state })
+      exchangeTokenForScope({
+        subjectToken: 'not-a-jwt',
+        scope: 'fr:am:*',
+        state,
+      })
     ).rejects.toThrow(/no exchangeClientId was provided/);
   });
 });

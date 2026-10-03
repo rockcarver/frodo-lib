@@ -1,8 +1,6 @@
 import { URL } from 'url';
 import util from 'util';
-
 import { v4 as uuidv4 } from 'uuid';
-
 import { step } from '../api/AuthenticateApi';
 import { type OAuth2ClientSkeleton } from '../api/OAuth2ClientApi';
 import { AccessTokenResponseType } from '../api/OAuth2OIDCApi';

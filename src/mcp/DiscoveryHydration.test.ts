@@ -1,5 +1,4 @@
 import { jest } from '@jest/globals';
-
 import { hydrateMcpDiscoveryContext } from '../index';
 
 describe('MCP discovery hydration', () => {

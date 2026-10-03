@@ -1,7 +1,7 @@
 import {
-  CookieDomains,
   getCookieDomains as _getCookieDomains,
   setCookieDomains as _setCookieDomains,
+  CookieDomains,
 } from '../../api/cloud/EnvCookieDomainsApi';
 import { State } from '../../shared/State';
 import { FrodoError } from '../FrodoError';

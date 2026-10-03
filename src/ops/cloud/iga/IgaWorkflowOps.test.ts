@@ -43,23 +43,21 @@
  * in case things don't function as expected
  */
 import { state } from '../../../index';
-import * as IgaWorkflowOps from './IgaWorkflowOps';
-import * as TestData from '../../../test/setup/IgaWorkflowSetup';
 import * as EmailTemplateTestData from '../../../test/setup/EmailTemplateSetup';
+import * as TestData from '../../../test/setup/IgaWorkflowSetup';
 import { snapshotResultCallback } from '../../../test/utils/TestUtils';
 import { EMAIL_TEMPLATE_TYPE } from '../../EmailTemplateOps';
+import * as IgaWorkflowOps from './IgaWorkflowOps';
 
 describe('IgaWorkflowOps', () => {
-
   TestData.setup();
-  
+
   // Phase 1
   if (
     !process.env.FRODO_POLLY_MODE ||
     (process.env.FRODO_POLLY_MODE === 'record' &&
       process.env.FRODO_RECORD_PHASE === '1')
   ) {
-
     describe('createWorkflowExportTemplate()', () => {
       test('0: Method is implemented', async () => {
         expect(IgaWorkflowOps.createWorkflowExportTemplate).toBeDefined();
@@ -87,10 +85,14 @@ describe('IgaWorkflowOps', () => {
       });
 
       test('2: Publish non-existing draft workflow', async () => {
-        await expect(IgaWorkflowOps.publishWorkflow({
-          workflowId: TestData.workflow4.id,
-          state,
-        })).rejects.toThrow('Error publishing draft workflow ' + TestData.workflow4.id);
+        await expect(
+          IgaWorkflowOps.publishWorkflow({
+            workflowId: TestData.workflow4.id,
+            state,
+          })
+        ).rejects.toThrow(
+          'Error publishing draft workflow ' + TestData.workflow4.id
+        );
       });
     });
 
@@ -106,12 +108,16 @@ describe('IgaWorkflowOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Read non-existing draft workflow', async () => {
-        await expect(IgaWorkflowOps.readDraftWorkflow({
-          workflowId: TestData.workflow4.id,
-          state,
-        })).rejects.toThrow('Error reading draft workflow ' + TestData.workflow4.id);
+        await expect(
+          IgaWorkflowOps.readDraftWorkflow({
+            workflowId: TestData.workflow4.id,
+            state,
+          })
+        ).rejects.toThrow(
+          'Error reading draft workflow ' + TestData.workflow4.id
+        );
       });
     });
 
@@ -127,12 +133,16 @@ describe('IgaWorkflowOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Read non-existing published workflow', async () => {
-        await expect(IgaWorkflowOps.readPublishedWorkflow({
-          workflowId: TestData.workflow3.id,
-          state,
-        })).rejects.toThrow('Error reading published workflow ' + TestData.workflow3.id);
+        await expect(
+          IgaWorkflowOps.readPublishedWorkflow({
+            workflowId: TestData.workflow3.id,
+            state,
+          })
+        ).rejects.toThrow(
+          'Error reading published workflow ' + TestData.workflow3.id
+        );
       });
     });
 
@@ -148,7 +158,7 @@ describe('IgaWorkflowOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Read non-existing workflow', async () => {
         const response = await IgaWorkflowOps.readWorkflowGroup({
           workflowId: TestData.workflow3.id,
@@ -193,7 +203,12 @@ describe('IgaWorkflowOps', () => {
       test(`1: Export existing workflow by ID with coordinates, string arrays, dependencies, and readonly config`, async () => {
         const response = await IgaWorkflowOps.exportWorkflow({
           workflowId: TestData.workflow1.id,
-          options: { deps: true, useStringArrays: true, coords: true, includeReadOnly: true },
+          options: {
+            deps: true,
+            useStringArrays: true,
+            coords: true,
+            includeReadOnly: true,
+          },
           state,
         });
         expect(response).toMatchSnapshot({
@@ -204,21 +219,33 @@ describe('IgaWorkflowOps', () => {
       test(`2: Export existing workflow by ID without coordinates, string arrays, dependencies, and readonly config`, async () => {
         const response = await IgaWorkflowOps.exportWorkflow({
           workflowId: TestData.workflow2.id,
-          options: { deps: false, useStringArrays: false, coords: false, includeReadOnly: false },
+          options: {
+            deps: false,
+            useStringArrays: false,
+            coords: false,
+            includeReadOnly: false,
+          },
           state,
         });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });
       });
-  
+
       test('3: Export non-existing workflow', async () => {
         const unknownId = '11111111-1111-1111-1111-111111111111';
-        await expect(IgaWorkflowOps.exportWorkflow({
-          workflowId: unknownId,
-          options: { deps: false, useStringArrays: false, coords: false, includeReadOnly: false },
-          state,
-        })).rejects.toThrow(`Workflow '${unknownId}' not found.`);
+        await expect(
+          IgaWorkflowOps.exportWorkflow({
+            workflowId: unknownId,
+            options: {
+              deps: false,
+              useStringArrays: false,
+              coords: false,
+              includeReadOnly: false,
+            },
+            state,
+          })
+        ).rejects.toThrow(`Workflow '${unknownId}' not found.`);
       });
     });
 
@@ -229,7 +256,12 @@ describe('IgaWorkflowOps', () => {
 
       test(`1: Export existing workflows with coordinates, string arrays, dependencies, and readonly config`, async () => {
         const response = await IgaWorkflowOps.exportWorkflows({
-          options: { deps: true, coords: true, useStringArrays: true, includeReadOnly: true },
+          options: {
+            deps: true,
+            coords: true,
+            useStringArrays: true,
+            includeReadOnly: true,
+          },
           resultCallback: snapshotResultCallback,
           state,
         });
@@ -240,7 +272,12 @@ describe('IgaWorkflowOps', () => {
 
       test(`2: Export existing workflows without coordinates, string arrays, dependencies, and readonly config`, async () => {
         const response = await IgaWorkflowOps.exportWorkflows({
-          options: { deps: false, coords: false, useStringArrays: false, includeReadOnly: false },
+          options: {
+            deps: false,
+            coords: false,
+            useStringArrays: false,
+            includeReadOnly: false,
+          },
           resultCallback: snapshotResultCallback,
           state,
         });
@@ -279,7 +316,7 @@ describe('IgaWorkflowOps', () => {
       importData.workflow = {
         [TestData.workflow1.id]: {
           draft: TestData.workflow1,
-          published: TestData.workflow2
+          published: TestData.workflow2,
         },
         [TestData.workflow3.id]: {
           draft: TestData.workflow3,
@@ -289,25 +326,37 @@ describe('IgaWorkflowOps', () => {
         },
       };
       importData.emailTemplate = {
-        [EmailTemplateTestData.template1._id]: {...EmailTemplateTestData.template1, _id: `${EMAIL_TEMPLATE_TYPE}/${EmailTemplateTestData.template1._id}`},
-        [EmailTemplateTestData.template2._id]: {...EmailTemplateTestData.template2, _id: `${EMAIL_TEMPLATE_TYPE}/${EmailTemplateTestData.template2._id}`},
-        [EmailTemplateTestData.template3._id]: {...EmailTemplateTestData.template3, _id: `${EMAIL_TEMPLATE_TYPE}/${EmailTemplateTestData.template3._id}`},
-        [EmailTemplateTestData.template4._id]: {...EmailTemplateTestData.template4, _id: `${EMAIL_TEMPLATE_TYPE}/${EmailTemplateTestData.template4._id}`},
+        [EmailTemplateTestData.template1._id]: {
+          ...EmailTemplateTestData.template1,
+          _id: `${EMAIL_TEMPLATE_TYPE}/${EmailTemplateTestData.template1._id}`,
+        },
+        [EmailTemplateTestData.template2._id]: {
+          ...EmailTemplateTestData.template2,
+          _id: `${EMAIL_TEMPLATE_TYPE}/${EmailTemplateTestData.template2._id}`,
+        },
+        [EmailTemplateTestData.template3._id]: {
+          ...EmailTemplateTestData.template3,
+          _id: `${EMAIL_TEMPLATE_TYPE}/${EmailTemplateTestData.template3._id}`,
+        },
+        [EmailTemplateTestData.template4._id]: {
+          ...EmailTemplateTestData.template4,
+          _id: `${EMAIL_TEMPLATE_TYPE}/${EmailTemplateTestData.template4._id}`,
+        },
       };
       importData.event = {
         [TestData.workflowEvent1.id]: TestData.workflowEvent1,
         [TestData.workflowEvent2.id]: TestData.workflowEvent2,
-      }
+      };
       importData.requestForm = {
         [TestData.workflowRequestForm1.id]: TestData.workflowRequestForm1,
         [TestData.workflowRequestForm2.id]: TestData.workflowRequestForm2,
-      }
+      };
       importData.requestType = {
         [TestData.workflowRequestType1.id]: TestData.workflowRequestType1,
         [TestData.workflowRequestType2.id]: TestData.workflowRequestType2,
         [TestData.workflowRequestType3.id]: TestData.workflowRequestType3,
         [TestData.workflowRequestType5.id]: TestData.workflowRequestType5,
-      }
+      };
 
       test('0: Method is implemented', async () => {
         expect(IgaWorkflowOps.importWorkflows).toBeDefined();
@@ -317,7 +366,7 @@ describe('IgaWorkflowOps', () => {
         const response = await IgaWorkflowOps.importWorkflows({
           importData: IgaWorkflowOps.createWorkflowExportTemplate({ state }),
           options: {
-            deps: false
+            deps: false,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -330,7 +379,7 @@ describe('IgaWorkflowOps', () => {
           workflowId: TestData.workflow1.id,
           importData,
           options: {
-            deps: false
+            deps: false,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -342,7 +391,7 @@ describe('IgaWorkflowOps', () => {
         const response = await IgaWorkflowOps.importWorkflows({
           importData,
           options: {
-            deps: true
+            deps: true,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -364,13 +413,17 @@ describe('IgaWorkflowOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Delete non-existing draft workflow by id', async () => {
-        await expect(IgaWorkflowOps.deleteDraftWorkflow({
-          workflowId: TestData.workflow6.id,
-          options: { force: false },
-          state,
-        })).rejects.toThrow('Error deleting draft workflow ' + TestData.workflow6.id);
+        await expect(
+          IgaWorkflowOps.deleteDraftWorkflow({
+            workflowId: TestData.workflow6.id,
+            options: { force: false },
+            state,
+          })
+        ).rejects.toThrow(
+          'Error deleting draft workflow ' + TestData.workflow6.id
+        );
       });
     });
 
@@ -387,13 +440,17 @@ describe('IgaWorkflowOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Delete non-existing published workflow by id', async () => {
-        await expect(IgaWorkflowOps.deletePublishedWorkflow({
-          workflowId: TestData.workflow5.id,
-          options: { force: false },
-          state,
-        })).rejects.toThrow('Error deleting published workflow ' + TestData.workflow6.id);
+        await expect(
+          IgaWorkflowOps.deletePublishedWorkflow({
+            workflowId: TestData.workflow5.id,
+            options: { force: false },
+            state,
+          })
+        ).rejects.toThrow(
+          'Error deleting published workflow ' + TestData.workflow6.id
+        );
       });
     });
 
@@ -413,10 +470,10 @@ describe('IgaWorkflowOps', () => {
         expect(response.draft).toBeFalsy();
         expect(response.published).toBeFalsy();
       });
-  
+
       test('2: Delete non-existent workflow', async () => {
         const response = await IgaWorkflowOps.deleteWorkflow({
-          workflowId: "unknownWorkflow",
+          workflowId: 'unknownWorkflow',
           deleteDraft: true,
           deletePublished: true,
           options: { force: false },

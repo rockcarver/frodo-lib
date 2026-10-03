@@ -1,8 +1,8 @@
 import {
-  CustomDomains,
   getCustomDomains as _getCustomDomains,
   setCustomDomains as _setCustomDomains,
   verifyCNAME as _verifyCNAME,
+  CustomDomains,
 } from '../../api/cloud/EnvCustomDomainsApi';
 import { State } from '../../shared/State';
 import { FrodoError } from '../FrodoError';

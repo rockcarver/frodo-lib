@@ -1,7 +1,6 @@
 /* eslint-disable no-console */
 import { createPrivateKey, createPublicKey, webcrypto } from 'crypto';
 import { isIP } from 'net';
-
 import 'reflect-metadata';
 import {
   BasicConstraintsExtension,
@@ -13,7 +12,6 @@ import {
   SubjectKeyIdentifierExtension,
   X509CertificateGenerator,
 } from '@peculiar/x509';
-
 import { CSR } from '../../api/cloud/EnvCSRsApi';
 import { FrodoError } from '../../ops/FrodoError';
 
@@ -138,9 +136,7 @@ export async function createSelfSignedCertificate(csr: CSR): Promise<string> {
     serialNumber: csr.serialNumber || '01',
     name: csrToSubjectString(csr),
     notBefore: new Date(),
-    notAfter: new Date(
-      new Date().setFullYear(new Date().getFullYear() + 1)
-    ),
+    notAfter: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
     keys,
     signingAlgorithm,
     extensions: [

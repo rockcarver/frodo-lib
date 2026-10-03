@@ -43,17 +43,17 @@
  * in case things don't function as expected
  */
 import { state } from '../index';
-import * as CirclesOfTrustOps from './CirclesOfTrustOps';
-import * as Saml2Ops from './Saml2Ops';
 import Constants from '../shared/Constants';
 import {
+  getCircleOfTrustImportData,
   getCircleOfTrustRawData,
   getCirclesOfTrustImportData,
   getSaml2ProvidersImportData,
 } from '../test/mocks/ForgeRockApiMockEngine';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
-import { getCircleOfTrustImportData } from '../test/mocks/ForgeRockApiMockEngine';
+import * as CirclesOfTrustOps from './CirclesOfTrustOps';
+import * as Saml2Ops from './Saml2Ops';
 
 const ctx = autoSetupPolly();
 

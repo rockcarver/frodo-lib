@@ -3,13 +3,12 @@
  */
 
 import { jest } from '@jest/globals';
-
 import {
+  createToolRuntime,
   McpCapabilityDescriptor,
   McpToolExecutionResult,
-  McpToolRuntimeTraceEvent,
   McpToolManifest,
-  createToolRuntime,
+  McpToolRuntimeTraceEvent,
 } from '../index';
 
 function makeDescriptor(
@@ -275,7 +274,10 @@ describe('MCP hybrid runtime', () => {
     const result = await runtime.executeTool({
       toolName: 'frodo_discover',
       context: {
-        auth: { mode: 'state-config', config: { host: 'https://example.test/am' } },
+        auth: {
+          mode: 'state-config',
+          config: { host: 'https://example.test/am' },
+        },
       },
     });
     const data = result.data as { docsContext: Record<string, unknown> };
@@ -306,7 +308,10 @@ describe('MCP hybrid runtime', () => {
     const result = await runtime.executeTool({
       toolName: 'frodo_discover',
       context: {
-        auth: { mode: 'state-config', config: { host: 'https://example.test/am' } },
+        auth: {
+          mode: 'state-config',
+          config: { host: 'https://example.test/am' },
+        },
       },
     });
     const data = result.data as { docsContext: Record<string, unknown> };
@@ -656,16 +661,20 @@ describe('MCP hybrid runtime', () => {
       identitySurface: 'managed',
       objectTypePatterns: ['*'],
     });
-    const runtime = createToolRuntime(makeManifest([descriptor]), [descriptor], {
-      managedObjectTypes: ['alpha_user', 'bravo_user'],
-      managedObjectHydrationStatus: 'available',
-      executeRecommendedByDefault: true,
-      resolveFrodoForRequest: () =>
-        ({
-          login: { getTokens: jest.fn(async () => {}) },
-          idm: { managed: { countManagedObjects } },
-        }) as any,
-    });
+    const runtime = createToolRuntime(
+      makeManifest([descriptor]),
+      [descriptor],
+      {
+        managedObjectTypes: ['alpha_user', 'bravo_user'],
+        managedObjectHydrationStatus: 'available',
+        executeRecommendedByDefault: true,
+        resolveFrodoForRequest: () =>
+          ({
+            login: { getTokens: jest.fn(async () => {}) },
+            idm: { managed: { countManagedObjects } },
+          }) as any,
+      }
+    );
 
     const result = await runtime.executeTool({
       toolName: 'frodo_find_skills',
@@ -760,8 +769,7 @@ describe('MCP hybrid runtime', () => {
       domain: 'session',
       objectType: 'SessionInfo',
       modulePath: ['session'],
-      notes:
-        'Reports the authenticated identity behind the current session.',
+      notes: 'Reports the authenticated identity behind the current session.',
     });
     const noiseDescriptors = ['a', 'b', 'c', 'd'].map((suffix) =>
       makeDescriptor({
@@ -1074,7 +1082,10 @@ describe('MCP hybrid runtime', () => {
       semanticAliases: ['authenticated identity'],
       notes: 'Reports the authenticated identity behind the current session.',
     });
-    const descriptors = [preferredButBarelyRelevant, compatibleButHighlyRelevant];
+    const descriptors = [
+      preferredButBarelyRelevant,
+      compatibleButHighlyRelevant,
+    ];
     const runtime = createToolRuntime(makeManifest(descriptors), descriptors);
 
     const result = await runtime.executeTool({
@@ -1870,7 +1881,10 @@ describe('MCP hybrid runtime', () => {
     // inherit the missing credentials from the root before the credential
     // gate runs, or every realm-overridden request against such a profile
     // would fail despite the profile being fully configured.
-    const scopedLogApi = { key: undefined as string | undefined, secret: undefined as string | undefined };
+    const scopedLogApi = {
+      key: undefined as string | undefined,
+      secret: undefined as string | undefined,
+    };
     const scopedSetLogApiKey = jest.fn((key: string) => {
       scopedLogApi.key = key;
     });

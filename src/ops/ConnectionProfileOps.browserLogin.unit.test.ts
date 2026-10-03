@@ -15,7 +15,6 @@
  */
 import fs from 'fs';
 import { resolve } from 'path';
-
 // Forces the full, correctly-ordered module graph (via the package barrel)
 // to initialize before touching ConnectionProfileOps.ts directly below —
 // see ConnectionProfileOps.test.ts's identical import order. Without this,
@@ -23,11 +22,11 @@ import { resolve } from 'path';
 // cloud/ServiceAccountOps.ts (both import SERVICE_ACCOUNT_DEFAULT_SCOPES-
 // adjacent modules) hits a TDZ error when this file is imported first.
 import '../index';
+import StateImpl from '../shared/State';
 import {
   loadConnectionProfileByHost,
   saveConnectionProfile,
 } from './ConnectionProfileOps';
-import StateImpl from '../shared/State';
 
 const TMP_DIR = resolve(
   '.',
@@ -95,9 +94,7 @@ describe('Browser-login connection profile round trip', () => {
       expect(freshProcessState.getBrowserLoginClientId()).toBe(
         'my-browser-client'
       );
-      expect(freshProcessState.getBrowserLoginScope()).toBe(
-        'openid fr:idm:*'
-      );
+      expect(freshProcessState.getBrowserLoginScope()).toBe('openid fr:idm:*');
       expect(freshProcessState.getAdminClientRedirectUri()).toBe(
         'http://127.0.0.1:51737/callback'
       );

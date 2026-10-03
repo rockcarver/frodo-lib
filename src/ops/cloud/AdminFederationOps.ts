@@ -1,8 +1,8 @@
 import {
-  type AdminFederationConfigSkeleton,
   deleteProviderByTypeAndId as _deleteProviderByTypeAndId,
   getAdminFederationProviders as _getAdminFederationProviders,
   putProviderByTypeAndId as _putProviderByTypeAndId,
+  type AdminFederationConfigSkeleton,
 } from '../../api/cloud/AdminFederationProvidersApi';
 import { getConfigEntity, putConfigEntity } from '../../api/IdmConfigApi';
 import { SocialIdpSkeleton } from '../../api/SocialIdentityProvidersApi';

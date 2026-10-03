@@ -8,18 +8,21 @@ import { jest } from '@jest/globals';
 const accessToken = jest.fn(async (_args?: any): Promise<any> => {
   throw new Error('accessToken mock not configured for this call');
 });
-const deviceAuthorizationRequest = jest.fn(async (_args?: any): Promise<any> => {
-  throw new Error('deviceAuthorizationRequest mock not configured for this call');
-});
+const deviceAuthorizationRequest = jest.fn(
+  async (_args?: any): Promise<any> => {
+    throw new Error(
+      'deviceAuthorizationRequest mock not configured for this call'
+    );
+  }
+);
 
 jest.unstable_mockModule('./OAuth2OidcOps', () => ({
   accessToken,
   deviceAuthorizationRequest,
 }));
 
-const { runInteractiveAuthorizationCodeFlow } = await import(
-  './BrowserAuthenticateOps'
-);
+const { runInteractiveAuthorizationCodeFlow } =
+  await import('./BrowserAuthenticateOps');
 const { default: StateImpl } = await import('../shared/State');
 
 describe('BrowserAuthenticateOps.runInteractiveAuthorizationCodeFlow', () => {

@@ -1,5 +1,4 @@
 import { parse } from 'acorn';
-
 import { type ScriptSkeleton } from '../api/ScriptApi';
 import { State } from '../shared/State';
 import { decode, isBase64Encoded } from './Base64Utils';

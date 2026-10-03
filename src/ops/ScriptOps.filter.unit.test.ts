@@ -1,5 +1,4 @@
 import { jest } from '@jest/globals';
-
 import type { ScriptContext } from '../api/ScriptApi';
 
 const deleteScriptApiMock: any = jest.fn();
@@ -32,10 +31,11 @@ const state = {
   getStopProgressHandler: () => undefined,
   getUpdateProgressHandler: () => undefined,
   getUsername: () => 'tester',
-  getForceUpdate: () => true
+  getForceUpdate: () => true,
 } as any;
 
-const encodeScript = (lines: string[]) => Buffer.from(lines.join('\n')).toString('base64');
+const encodeScript = (lines: string[]) =>
+  Buffer.from(lines.join('\n')).toString('base64');
 
 const makeScript = ({
   id,
@@ -71,10 +71,14 @@ beforeEach(() => {
   getLibraryScriptConfigByNameMock.mockResolvedValue({ result: [] });
   getScriptApiMock.mockResolvedValue(undefined);
   getScriptByNameApiMock.mockResolvedValue({ result: [] });
-  putScriptMock.mockImplementation(async ({ scriptData }: { scriptData: any }) => scriptData);
-  deleteScriptApiMock.mockImplementation(async ({ scriptId }: { scriptId: string }) => ({
-    _id: scriptId,
-  }));
+  putScriptMock.mockImplementation(
+    async ({ scriptData }: { scriptData: any }) => scriptData
+  );
+  deleteScriptApiMock.mockImplementation(
+    async ({ scriptId }: { scriptId: string }) => ({
+      _id: scriptId,
+    })
+  );
 });
 
 describe('ScriptOps filter support unit coverage', () => {
@@ -159,10 +163,11 @@ describe('ScriptOps filter support unit coverage', () => {
       state,
     });
 
-    expect(Object.values(result.script).map((script: any) => script._id).sort()).toEqual([
-      'journey-js',
-      'oauth-groovy',
-    ]);
+    expect(
+      Object.values(result.script)
+        .map((script: any) => script._id)
+        .sort()
+    ).toEqual(['journey-js', 'oauth-groovy']);
   });
 
   test('importScripts respects optional filters', async () => {

@@ -7,13 +7,13 @@
  */
 
 import {
-  MCP_POLICY_PRESETS,
   applyCapabilityPolicy,
   buildCapabilityInventory,
   frodo,
   inferObjectType,
   inferOperationType,
   inferRiskClass,
+  MCP_POLICY_PRESETS,
 } from '../index';
 import { getHelpMetadataByMethod } from '../utils/HelpUtils';
 import { CAPABILITY_META, resolveCapabilityMeta } from './CapabilityMetadata';

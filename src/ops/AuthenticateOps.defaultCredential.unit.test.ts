@@ -43,9 +43,11 @@ const accessToken = jest.fn(async (_args?: any): Promise<any> => {
 const authorize = jest.fn(async (_args?: any): Promise<any> => {
   throw new Error('authorize mock not configured');
 });
-const deviceAuthorizationRequest = jest.fn(async (_args?: any): Promise<any> => {
-  throw new Error('deviceAuthorizationRequest mock not configured');
-});
+const deviceAuthorizationRequest = jest.fn(
+  async (_args?: any): Promise<any> => {
+    throw new Error('deviceAuthorizationRequest mock not configured');
+  }
+);
 const getTokenInfo = jest.fn(async (_args?: any): Promise<any> => {
   throw new Error('getTokenInfo mock not configured');
 });
@@ -68,9 +70,11 @@ jest.unstable_mockModule('../api/AuthenticateApi', () => ({
   step,
 }));
 
-const getServerInfo = jest.fn(async (_args?: any): Promise<any> => ({
-  cookieName: 'iPlanetDirectoryPro',
-}));
+const getServerInfo = jest.fn(
+  async (_args?: any): Promise<any> => ({
+    cookieName: 'iPlanetDirectoryPro',
+  })
+);
 const getServerVersionInfo = jest.fn(async (_args?: any): Promise<any> => ({}));
 
 jest.unstable_mockModule('../api/ServerInfoApi', () => ({
@@ -136,10 +140,7 @@ async function getUnderlyingError(promise: Promise<unknown>): Promise<Error> {
     await promise;
   } catch (error) {
     let current = error;
-    while (
-      current instanceof FrodoError &&
-      current.originalErrors.length > 0
-    ) {
+    while (current instanceof FrodoError && current.originalErrors.length > 0) {
       current = current.originalErrors[0];
     }
     return current as Error;
@@ -148,7 +149,9 @@ async function getUnderlyingError(promise: Promise<unknown>): Promise<Error> {
 }
 
 function stateWithAllThreeCredentials() {
-  const state = StateImpl({ host: 'https://openam-example.forgeblocks.com/am' });
+  const state = StateImpl({
+    host: 'https://openam-example.forgeblocks.com/am',
+  });
   state.setServiceAccountId('sa-id');
   state.setServiceAccountJwk({ kty: 'RSA' } as any);
   state.setAmsterPrivateKey('fake-amster-key');
@@ -298,7 +301,9 @@ describe('AuthenticateOps defaultCredential resolution', () => {
   });
 
   test("10: credentialOverride 'svcacct' on a profile with no service account configured fails clearly instead of silently falling through to amster/user", async () => {
-    const state = StateImpl({ host: 'https://openam-example.forgeblocks.com/am' });
+    const state = StateImpl({
+      host: 'https://openam-example.forgeblocks.com/am',
+    });
     state.setAmsterPrivateKey('fake-amster-key');
     state.setUsername('plain-user');
     state.setPassword('plain-password');

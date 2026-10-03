@@ -9,20 +9,20 @@
  */
 
 import { Frodo, frodo } from '../lib/FrodoLib';
+import { applyCapabilityPolicy, MCP_POLICY_PRESETS } from './CapabilityPolicy';
+import { buildCapabilityInventory } from './CapabilityRegistry';
 import {
   McpCapabilityDescriptor,
   McpCapabilityInventoryOptions,
   McpCapabilityPolicy,
   McpCapabilityPolicyPresetName,
 } from './CapabilityTypes';
-import { MCP_POLICY_PRESETS, applyCapabilityPolicy } from './CapabilityPolicy';
-import { buildCapabilityInventory } from './CapabilityRegistry';
+import { McpProfileName, resolveMcpProfileSelection } from './ProfileRegistry';
 import {
   buildToolManifest,
   McpDiscoveryContext,
   McpToolManifest,
 } from './ToolManifest';
-import { McpProfileName, resolveMcpProfileSelection } from './ProfileRegistry';
 import {
   createToolRuntime,
   McpToolExecutionRequest,

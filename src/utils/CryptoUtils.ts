@@ -1,7 +1,5 @@
 import { createPrivateKey } from 'crypto';
-
 import sshpk from 'sshpk';
-
 import { FrodoError } from '../ops/FrodoError';
 
 export type FrodoCrypto = {

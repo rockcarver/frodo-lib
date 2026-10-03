@@ -29,11 +29,11 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import * as VariablesApi from './VariablesApi';
-import { autoSetupPolly } from '../../utils/AutoSetupPolly';
-import { filterRecording } from '../../utils/PollyUtils';
 import { state } from '../../index';
+import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 import { encode } from '../../utils/Base64Utils';
+import { filterRecording } from '../../utils/PollyUtils';
+import * as VariablesApi from './VariablesApi';
 
 const ctx = autoSetupPolly();
 

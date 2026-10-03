@@ -29,13 +29,11 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import * as NodeApi from './NodeApi';
-import { frodo } from '../index';
-import { state } from '../index';
+import { frodo, state } from '../index';
+import * as TestData from '../test/setup/NodeSetup';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
-
-import * as TestData from '../test/setup/NodeSetup';
+import * as NodeApi from './NodeApi';
 
 const ctx = autoSetupPolly();
 

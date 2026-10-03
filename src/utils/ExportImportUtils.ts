@@ -1,12 +1,12 @@
 import fs from 'fs';
 import { chmod, lstat, readdir, readFile, writeFile } from 'fs/promises';
 import { dirname, join } from 'path';
-
 import { Reader } from 'properties-reader';
 import slugify from 'slugify';
-
 import { SearchResult, SearchTargetFilterOperation } from '../api/ApiTypes';
 import { generateGovernanceApi } from '../api/BaseApi';
+import { VariableSkeleton } from '../api/cloud/VariablesApi';
+import { resolveVariable } from '../ops/cloud/VariablesOps';
 import {
   EmailTemplateSkeleton,
   readEmailTemplate,
@@ -29,8 +29,6 @@ import {
   verboseMessage,
 } from './Console';
 import { deleteDeepByKeys, isEqualJson, stringify } from './JsonUtils';
-import { resolveVariable } from '../ops/cloud/VariablesOps';
-import { VariableSkeleton } from '../api/cloud/VariablesApi';
 
 export type ExportImport = {
   getMetadata(): ExportMetaData;
@@ -302,19 +300,15 @@ export function getRealmString({ state }: { state: State }) {
 }
 
 export function convertBase64TextToArray(b64text: string) {
-  let arrayOut = [];
   let plainText = decode(b64text);
   plainText = plainText.replace(/\t/g, '    ');
-  arrayOut = plainText.split('\n');
-  return arrayOut;
+  return plainText.split('\n');
 }
 
 export function convertBase64UrlTextToArray(b64UTF8Text: string) {
-  let arrayOut = [];
   let plainText = decodeBase64Url(b64UTF8Text);
   plainText = plainText.replace(/\t/g, '    ');
-  arrayOut = plainText.split('\n');
-  return arrayOut;
+  return plainText.split('\n');
 }
 
 export function convertTextArrayToBase64(textArray: string[]) {

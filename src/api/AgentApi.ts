@@ -1,5 +1,4 @@
 import util from 'util';
-
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
@@ -10,10 +9,10 @@ import {
 } from '../utils/ForgeRockUtils';
 import { deleteDeepByKey } from '../utils/JsonUtils';
 import {
-  type AmConfigEntityInterface,
   EntityType,
   PagedResult,
   QueryResult,
+  type AmConfigEntityInterface,
 } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
 

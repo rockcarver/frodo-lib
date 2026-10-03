@@ -34,13 +34,12 @@
  */
 
 import { state } from '../../index';
-import * as SecretsOps from './SecretsOps';
-import { FrodoError } from '../FrodoError';
-import * as TestData from '../../test/setup/SecretSetup'
+import * as TestData from '../../test/setup/SecretSetup';
 import { snapshotResultCallback } from '../../test/utils/TestUtils';
+import { FrodoError } from '../FrodoError';
+import * as SecretsOps from './SecretsOps';
 
 describe('SecretsOps', () => {
-
   TestData.setup();
 
   describe('createSecretsExportTemplate()', () => {
@@ -109,7 +108,10 @@ describe('SecretsOps', () => {
     test('3: Export secret3 (non-existent)', async () => {
       expect.assertions(2);
       try {
-        await SecretsOps.exportSecret({ secretId: TestData.secret3._id, state: state });
+        await SecretsOps.exportSecret({
+          secretId: TestData.secret3._id,
+          state: state,
+        });
       } catch (error) {
         expect(error.name).toEqual('FrodoError');
         expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
@@ -156,22 +158,22 @@ describe('SecretsOps', () => {
       // Test updating only description
       response = await SecretsOps.updateSecret({
         secretId: TestData.secret1._id,
-        description: "test new description",
+        description: 'test new description',
         value: TestData.secret1.value,
         state: state,
       });
       expect(response).not.toBeNull();
-      expect(response.description).toBe("test new description");
+      expect(response.description).toBe('test new description');
       expect(response).toMatchSnapshot();
-      // Test updating only value 
+      // Test updating only value
       response = await SecretsOps.updateSecret({
         secretId: TestData.secret1._id,
-        description: "test new description",
-        value: "test new value",
+        description: 'test new description',
+        value: 'test new value',
         state: state,
       });
       expect(response).not.toBeNull();
-      expect(response.description).toBe("test new description");
+      expect(response.description).toBe('test new description');
       expect(response).toMatchSnapshot();
     });
   });
@@ -216,7 +218,7 @@ describe('SecretsOps', () => {
         secretId: TestData.secret2._id,
         importData: TestData.createTestSecretExport([TestData.secret2]),
         options: {
-          includeActiveValues: true
+          includeActiveValues: true,
         },
         state: state,
       });
@@ -224,26 +226,34 @@ describe('SecretsOps', () => {
       // Test updating only description
       response = await SecretsOps.importSecret({
         secretId: TestData.secret2._id,
-        importData: TestData.createTestSecretExport([{...TestData.secret2, description: "test new description"}]),
+        importData: TestData.createTestSecretExport([
+          { ...TestData.secret2, description: 'test new description' },
+        ]),
         options: {
-          includeActiveValues: true
+          includeActiveValues: true,
         },
         state: state,
       });
       expect(response).not.toBeNull();
-      expect(response.description).toBe("test new description");
+      expect(response.description).toBe('test new description');
       expect(response).toMatchSnapshot();
-      // Test updating only value 
+      // Test updating only value
       response = await SecretsOps.importSecret({
         secretId: TestData.secret2._id,
-        importData: TestData.createTestSecretExport([{...TestData.secret2, description: "test new description", activeValue: "test new value" }]),
+        importData: TestData.createTestSecretExport([
+          {
+            ...TestData.secret2,
+            description: 'test new description',
+            activeValue: 'test new value',
+          },
+        ]),
         options: {
-          includeActiveValues: true
+          includeActiveValues: true,
         },
         state: state,
       });
       expect(response).not.toBeNull();
-      expect(response.description).toBe("test new description");
+      expect(response.description).toBe('test new description');
       expect(response).toMatchSnapshot();
     });
   });
@@ -275,32 +285,40 @@ describe('SecretsOps', () => {
       let response = await SecretsOps.importSecrets({
         importData: TestData.createTestSecretExport([TestData.secret16]),
         options: {
-          includeActiveValues: true
+          includeActiveValues: true,
         },
         state: state,
       });
       expect(response.length).toBe(0);
       // Test updating only description
       response = await SecretsOps.importSecrets({
-        importData: TestData.createTestSecretExport([{...TestData.secret16, description: "test new description"}]),
+        importData: TestData.createTestSecretExport([
+          { ...TestData.secret16, description: 'test new description' },
+        ]),
         options: {
-          includeActiveValues: true
+          includeActiveValues: true,
         },
         state: state,
       });
       expect(response.length).not.toBe(0);
-      expect(response[0].description).toBe("test new description");
+      expect(response[0].description).toBe('test new description');
       expect(response).toMatchSnapshot();
-      // Test updating only value 
+      // Test updating only value
       response = await SecretsOps.importSecrets({
-        importData: TestData.createTestSecretExport([{...TestData.secret16, description: "test new description", activeValue: "test new value" }]),
+        importData: TestData.createTestSecretExport([
+          {
+            ...TestData.secret16,
+            description: 'test new description',
+            activeValue: 'test new value',
+          },
+        ]),
         options: {
-          includeActiveValues: true
+          includeActiveValues: true,
         },
         state: state,
       });
       expect(response.length).not.toBe(0);
-      expect(response[0].description).toBe("test new description");
+      expect(response[0].description).toBe('test new description');
       expect(response).toMatchSnapshot();
     });
   });
@@ -380,11 +398,11 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
       expect(response).toBeNull();
       response = await SecretsOps.updateSecretDescription({
         secretId: TestData.secret17._id,
-        description: "test new description",
+        description: 'test new description',
         state: state,
       });
       expect(response).not.toBeNull();
-      expect(response.description).toBe("test new description");
+      expect(response.description).toBe('test new description');
       expect(response).toMatchSnapshot();
     });
   });
@@ -395,26 +413,50 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
     });
 
     test('1: Prune all versions of secret', async () => {
-      const response = await SecretsOps.pruneVersionsOfSecret({ secretId: TestData.secret12._id, keepLoaded: false, keepDeactivated: false, resultCallback: snapshotResultCallback, state });
+      const response = await SecretsOps.pruneVersionsOfSecret({
+        secretId: TestData.secret12._id,
+        keepLoaded: false,
+        keepDeactivated: false,
+        resultCallback: snapshotResultCallback,
+        state,
+      });
       expect(response).toMatchSnapshot();
       expect(response.length).toBe(4);
     });
 
     test('2: Prune all versions except loaded of secret', async () => {
-      const response = await SecretsOps.pruneVersionsOfSecret({ secretId: TestData.secret13._id, keepLoaded: true, keepDeactivated: false, resultCallback: snapshotResultCallback, state });
+      const response = await SecretsOps.pruneVersionsOfSecret({
+        secretId: TestData.secret13._id,
+        keepLoaded: true,
+        keepDeactivated: false,
+        resultCallback: snapshotResultCallback,
+        state,
+      });
       expect(response).toMatchSnapshot();
       // Still 4 like previous test since loaded version is the active version
       expect(response.length).toBe(4);
     });
 
     test('3: Prune all versions except deactivated of secret', async () => {
-      const response = await SecretsOps.pruneVersionsOfSecret({ secretId: TestData.secret14._id, keepLoaded: false, keepDeactivated: true, resultCallback: snapshotResultCallback, state });
+      const response = await SecretsOps.pruneVersionsOfSecret({
+        secretId: TestData.secret14._id,
+        keepLoaded: false,
+        keepDeactivated: true,
+        resultCallback: snapshotResultCallback,
+        state,
+      });
       expect(response).toMatchSnapshot();
       expect(response.length).toBe(2);
     });
 
     test('3: Prune all versions except loaded and deactivated of secret', async () => {
-      const response = await SecretsOps.pruneVersionsOfSecret({ secretId: TestData.secret15._id, keepLoaded: true, keepDeactivated: true, resultCallback: snapshotResultCallback, state });
+      const response = await SecretsOps.pruneVersionsOfSecret({
+        secretId: TestData.secret15._id,
+        keepLoaded: true,
+        keepDeactivated: true,
+        resultCallback: snapshotResultCallback,
+        state,
+      });
       expect(response).toMatchSnapshot();
       // Still 2 like previous test since loaded version is the active version
       expect(response.length).toBe(2);

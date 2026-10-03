@@ -13,7 +13,7 @@ import {
 } from './DocsContext';
 
 describe('parseAmDocsVersion', () => {
-  test('extracts major.minor from state.getAmVersion()\'s clean semantic version string', () => {
+  test("extracts major.minor from state.getAmVersion()'s clean semantic version string", () => {
     expect(parseAmDocsVersion('7.5.0')).toBe('7.5');
     expect(parseAmDocsVersion('8.1.2')).toBe('8.1');
   });
@@ -30,7 +30,7 @@ describe('parseAmDocsVersion', () => {
 });
 
 describe('parseIdmDocsVersion', () => {
-  test('extracts major.minor from state.getIdmVersion()\'s clean semantic version string', () => {
+  test("extracts major.minor from state.getIdmVersion()'s clean semantic version string", () => {
     expect(parseIdmDocsVersion('8.1.0')).toBe('8.1');
   });
 
@@ -129,11 +129,10 @@ describe('resolveDocsContext', () => {
   });
 
   test('forgeops leaves am or idm individually unresolved when their version is unavailable, without failing the whole result', () => {
-    const result = resolveDocsContext(
-      'forgeops',
-      '7.5.0',
-      undefined
-    ) as { am: unknown; idm: unknown };
+    const result = resolveDocsContext('forgeops', '7.5.0', undefined) as {
+      am: unknown;
+      idm: unknown;
+    };
     expect(result.am).toMatchObject({ product: 'pingam', version: '7.5' });
     expect(result.idm).toEqual({
       product: null,

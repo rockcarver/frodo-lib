@@ -7,10 +7,10 @@ import {
   getLogApiKeys as _getLogApiKeys,
   getSources as _getSources,
   isLogApiKeyValid as _isLogApiKeyValid,
+  tail as _tail,
   type LogApiKey,
   type LogEventPayloadSkeleton,
   type LogEventSkeleton,
-  tail as _tail,
 } from '../../api/cloud/LogApi';
 import { State } from '../../shared/State';
 import { FrodoError } from '../FrodoError';

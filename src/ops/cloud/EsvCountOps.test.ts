@@ -33,13 +33,13 @@
  * in case things don't function as expected
  */
 
+import { VariableExpressionType } from '../../api/cloud/VariablesApi';
+import { state } from '../../index';
 import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 import { filterRecording } from '../../utils/PollyUtils';
-import { state } from '../../index';
 import * as EsvCountOps from './EsvCountOps';
 import * as SecretsOps from './SecretsOps';
 import * as VariablesOps from './VariablesOps';
-import { VariableExpressionType } from '../../api/cloud/VariablesApi';
 
 const ctx = autoSetupPolly();
 

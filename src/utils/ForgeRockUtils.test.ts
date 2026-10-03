@@ -6,11 +6,11 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import * as ForgeRockUtils from './ForgeRockUtils';
-import { autoSetupPolly, setDefaultState } from "../utils/AutoSetupPolly";
-import { filterRecording } from "../utils/PollyUtils";
 import { state } from '../index';
 import Constants from '../shared/Constants';
+import { autoSetupPolly, setDefaultState } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
+import * as ForgeRockUtils from './ForgeRockUtils';
 
 const ctx = autoSetupPolly();
 
@@ -59,7 +59,7 @@ describe('ForgeRockUtils', () => {
       const testString = ForgeRockUtils.getRealmUsingExportFormat(realm);
       expect(testString).toBe('/alpha-test');
     });
-    
+
     test('Should handle nested hyphenated names in realms', () => {
       const realm = 'root-alpha--test-bravo--test-charlie--test';
       const testString = ForgeRockUtils.getRealmUsingExportFormat(realm);
@@ -77,7 +77,6 @@ describe('ForgeRockUtils', () => {
       const testString = ForgeRockUtils.getRealmUsingExportFormat(realm);
       expect(testString).toBe('/alpha---test');
     });
-  
   });
 
   describe('getConfigPath()', () => {

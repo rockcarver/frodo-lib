@@ -66,16 +66,24 @@ const makeDescendent = (overrides: Record<string, unknown> = {}) =>
 beforeEach(() => {
   jest.clearAllMocks();
   deleteServiceMock.mockImplementation(
-    async ({ serviceId }: { serviceId: string }) => makeService({ _id: serviceId })
+    async ({ serviceId }: { serviceId: string }) =>
+      makeService({ _id: serviceId })
   );
   deleteServiceNextDescendentMock.mockResolvedValue(undefined);
   getListOfServicesMock.mockResolvedValue({ result: [] });
   getServiceMock.mockImplementation(
-    async ({ serviceId }: { serviceId: string }) => makeService({ _id: serviceId })
+    async ({ serviceId }: { serviceId: string }) =>
+      makeService({ _id: serviceId })
   );
   getServiceDescendentsMock.mockResolvedValue([]);
   putServiceMock.mockImplementation(
-    async ({ serviceId, serviceData }: { serviceId: string; serviceData: any }) => ({
+    async ({
+      serviceId,
+      serviceData,
+    }: {
+      serviceId: string;
+      serviceData: any;
+    }) => ({
       ...makeService({ _id: serviceId }),
       ...serviceData,
     })
@@ -125,10 +133,18 @@ describe('ServiceOps unit coverage for AM service management', () => {
       globalConfig: false,
       state,
     });
-    expect(putServiceMock.mock.calls[0][0].serviceData).not.toHaveProperty('_rev');
-    expect(putServiceMock.mock.calls[0][0].serviceData).not.toHaveProperty('enabled');
-    expect(putServiceMock.mock.calls[0][0].serviceData).not.toHaveProperty('location');
-    expect(putServiceMock.mock.calls[0][0].serviceData).not.toHaveProperty('nextDescendents');
+    expect(putServiceMock.mock.calls[0][0].serviceData).not.toHaveProperty(
+      '_rev'
+    );
+    expect(putServiceMock.mock.calls[0][0].serviceData).not.toHaveProperty(
+      'enabled'
+    );
+    expect(putServiceMock.mock.calls[0][0].serviceData).not.toHaveProperty(
+      'location'
+    );
+    expect(putServiceMock.mock.calls[0][0].serviceData).not.toHaveProperty(
+      'nextDescendents'
+    );
     expect(putServiceNextDescendentMock).toHaveBeenCalledWith({
       serviceId: 'svc',
       serviceType: 'childType',
@@ -231,7 +247,9 @@ describe('ServiceOps unit coverage for AM service management', () => {
   });
 
   test('exportService returns a single-service export with descendants and location', async () => {
-    getServiceMock.mockResolvedValue(makeService({ _id: 'svc', setting: 'value' }));
+    getServiceMock.mockResolvedValue(
+      makeService({ _id: 'svc', setting: 'value' })
+    );
     getServiceDescendentsMock.mockResolvedValue([makeDescendent()]);
 
     const response = await ServiceOps.exportService({
@@ -338,7 +356,10 @@ describe('ServiceOps unit coverage for AM service management', () => {
         service: {
           globalSvc: makeService({ _id: 'globalSvc', location: 'global' }),
           realmSvc: makeService({ _id: 'realmSvc', location: 'alpha' }),
-          otherRealmSvc: makeService({ _id: 'otherRealmSvc', location: 'bravo' }),
+          otherRealmSvc: makeService({
+            _id: 'otherRealmSvc',
+            location: 'bravo',
+          }),
         },
       },
       options: {
@@ -351,10 +372,18 @@ describe('ServiceOps unit coverage for AM service management', () => {
 
     expect(putServiceMock).toHaveBeenCalledTimes(2);
     expect(putServiceMock).toHaveBeenCalledWith(
-      expect.objectContaining({ serviceId: 'globalSvc', globalConfig: true, state })
+      expect.objectContaining({
+        serviceId: 'globalSvc',
+        globalConfig: true,
+        state,
+      })
     );
     expect(putServiceMock).toHaveBeenCalledWith(
-      expect.objectContaining({ serviceId: 'realmSvc', globalConfig: false, state })
+      expect.objectContaining({
+        serviceId: 'realmSvc',
+        globalConfig: false,
+        state,
+      })
     );
   });
 });

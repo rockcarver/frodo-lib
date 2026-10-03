@@ -38,8 +38,7 @@ export interface PlatformInfoInterface {
 export type PlatformInfo = PlatformInfoInterface & Partial<EnvInfoInterface>;
 
 async function getCloudInfo(state: State): Promise<Partial<EnvInfoInterface>> {
-  let info: Partial<EnvInfoInterface> = {};
-  info = await getEnvInfo({ state });
+  const info: Partial<EnvInfoInterface> = await getEnvInfo({ state });
   delete info.message_box_html;
   delete info.message_box_title;
   delete info.message_variant;

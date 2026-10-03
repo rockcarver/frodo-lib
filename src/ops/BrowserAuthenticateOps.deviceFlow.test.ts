@@ -5,15 +5,17 @@
  */
 import { jest } from '@jest/globals';
 
-const deviceAuthorizationRequest = jest.fn(async (_args?: any): Promise<any> => ({
-  device_code: 'device-code-1',
-  user_code: 'ABCD-EFGH',
-  verification_uri: 'https://openam-example.forgeblocks.com/am/device',
-  verification_uri_complete:
-    'https://openam-example.forgeblocks.com/am/device?user_code=ABCD-EFGH',
-  expires_in: 600,
-  interval: 0.01, // keep the test fast; real servers return whole seconds
-}));
+const deviceAuthorizationRequest = jest.fn(
+  async (_args?: any): Promise<any> => ({
+    device_code: 'device-code-1',
+    user_code: 'ABCD-EFGH',
+    verification_uri: 'https://openam-example.forgeblocks.com/am/device',
+    verification_uri_complete:
+      'https://openam-example.forgeblocks.com/am/device?user_code=ABCD-EFGH',
+    expires_in: 600,
+    interval: 0.01, // keep the test fast; real servers return whole seconds
+  })
+);
 
 const accessToken = jest.fn(async (_args?: any): Promise<any> => {
   throw new Error('accessToken mock not configured for this call');
@@ -24,9 +26,8 @@ jest.unstable_mockModule('./OAuth2OidcOps', () => ({
   accessToken,
 }));
 
-const { startDeviceAuthorizationFlow } = await import(
-  './BrowserAuthenticateOps'
-);
+const { startDeviceAuthorizationFlow } =
+  await import('./BrowserAuthenticateOps');
 const { default: StateImpl } = await import('../shared/State');
 const { FrodoError } = await import('./FrodoError');
 

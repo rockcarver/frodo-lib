@@ -1,10 +1,9 @@
 import util from 'util';
-
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getHostOnlyUrl, getIdmBaseUrl } from '../utils/ForgeRockUtils';
-import { generateAmApi, generateEnvApi, generateIdmApi } from './BaseApi';
 import { IdObjectSkeletonInterface } from './ApiTypes';
+import { generateAmApi, generateEnvApi, generateIdmApi } from './BaseApi';
 
 const amTemplate: string = '%s/%s';
 const idmTemplate: string = '%s/%s';

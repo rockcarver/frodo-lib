@@ -1,7 +1,11 @@
 import { jest } from '@jest/globals';
 
-const getManagedSystemObject = jest.fn(async (_args?: any): Promise<any> => ({}));
-const patchManagedSystemObject = jest.fn(async (_args?: any): Promise<any> => ({}));
+const getManagedSystemObject = jest.fn(
+  async (_args?: any): Promise<any> => ({})
+);
+const patchManagedSystemObject = jest.fn(
+  async (_args?: any): Promise<any> => ({})
+);
 
 jest.unstable_mockModule('../api/ManagedSystemObjectApi', () => ({
   countManagedSystemObjects: jest.fn(),
@@ -17,8 +21,12 @@ jest.unstable_mockModule('../api/ManagedSystemObjectApi', () => ({
   queryRelatedManagedSystemObjects: jest.fn(),
 }));
 
-const { readRelationship, addRelationship, removeRelationship, replaceRelationship } =
-  await import('./ManagedSystemObjectOps');
+const {
+  readRelationship,
+  addRelationship,
+  removeRelationship,
+  replaceRelationship,
+} = await import('./ManagedSystemObjectOps');
 
 const mockState = { getDeploymentType: () => undefined } as any;
 
@@ -79,7 +87,7 @@ describe('ManagedSystemObjectOps relationship helpers', () => {
     );
   });
 
-  test('removeRelationship reads the current value first and removes the exact stored element, bare (not array-wrapped), including IDM\'s own _refProperties', async () => {
+  test("removeRelationship reads the current value first and removes the exact stored element, bare (not array-wrapped), including IDM's own _refProperties", async () => {
     const storedElement = {
       _ref: 'managed/alpha_role/role-1',
       _refResourceCollection: 'managed/alpha_role',
@@ -105,7 +113,7 @@ describe('ManagedSystemObjectOps relationship helpers', () => {
     );
   });
 
-  test('removeRelationship throws rather than silently no-op\'ing when the target is not currently a member', async () => {
+  test("removeRelationship throws rather than silently no-op'ing when the target is not currently a member", async () => {
     getManagedSystemObject.mockResolvedValue({ scopes: [] });
 
     await expect(

@@ -1,8 +1,10 @@
 import { jest } from '@jest/globals';
 
-const getTrees = jest.fn(async (_args?: any): Promise<any> => ({
-  result: [],
-}));
+const getTrees = jest.fn(
+  async (_args?: any): Promise<any> => ({
+    result: [],
+  })
+);
 const readNodesMock = jest.fn(async (_args?: any): Promise<any[]> => []);
 
 jest.unstable_mockModule('../api/TreeApi', () => ({
@@ -48,7 +50,9 @@ describe('findScriptReferences', () => {
   });
 
   test('returns an empty array, not an error, when nothing references the script', async () => {
-    readNodesMock.mockResolvedValue([{ _id: 'node-1', script: 'other-script' }]);
+    readNodesMock.mockResolvedValue([
+      { _id: 'node-1', script: 'other-script' },
+    ]);
     getTrees.mockResolvedValue({
       result: [tree('Login', { 'node-1': nodeRef('ScriptedDecisionNode') })],
     });
@@ -93,8 +97,16 @@ describe('findScriptReferences', () => {
       {
         _id: 'page-node-1',
         nodes: [
-          { _id: 'inner-node-1', displayName: 'Username', nodeType: 'UsernameCollectorNode' },
-          { _id: 'inner-node-2', displayName: 'Check risk', nodeType: 'ScriptedDecisionNode' },
+          {
+            _id: 'inner-node-1',
+            displayName: 'Username',
+            nodeType: 'UsernameCollectorNode',
+          },
+          {
+            _id: 'inner-node-2',
+            displayName: 'Check risk',
+            nodeType: 'ScriptedDecisionNode',
+          },
         ],
       },
       { _id: 'inner-node-2', script: 'target-script' },
@@ -152,7 +164,10 @@ describe('findScriptReferences', () => {
       ),
     });
 
-    await findScriptReferences({ scriptId: 'target-script', state: mockState() });
+    await findScriptReferences({
+      scriptId: 'target-script',
+      state: mockState(),
+    });
 
     expect(readNodesMock).toHaveBeenCalledTimes(1);
     expect(getTrees).toHaveBeenCalledTimes(1);

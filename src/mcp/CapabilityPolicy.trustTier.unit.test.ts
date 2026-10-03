@@ -8,8 +8,8 @@
  * the self-service profile that statically pre-filters full-trust-only
  * capabilities out via resolveMcpProfileSelection().
  */
-import { McpCapabilityDescriptor } from './CapabilityTypes';
 import { applyCapabilityPolicy } from './CapabilityPolicy';
+import { McpCapabilityDescriptor } from './CapabilityTypes';
 import { resolveMcpProfileSelection } from './ProfileRegistry';
 
 function makeDescriptor(
@@ -45,7 +45,10 @@ describe('applyCapabilityPolicy — trust tier filtering', () => {
     id: 'a.fullTrust',
     trustTier: 'full-trust',
   });
-  const delegated = makeDescriptor({ id: 'b.delegated', trustTier: 'delegated' });
+  const delegated = makeDescriptor({
+    id: 'b.delegated',
+    trustTier: 'delegated',
+  });
   const both = makeDescriptor({ id: 'c.both', trustTier: 'both' });
 
   test('denyTrustTiers excludes only the denied tier', () => {

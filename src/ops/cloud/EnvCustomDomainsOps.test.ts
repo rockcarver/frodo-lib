@@ -41,11 +41,11 @@
  * in case things don't function as expected
  */
 import * as EnvCustomDomainsApi from '../../api/cloud/EnvCustomDomainsApi';
-import * as EnvCustomDomainsOps from './EnvCustomDomainsOps';
+import { CustomDomains } from '../../api/cloud/EnvCustomDomainsApi';
+import { state } from '../../index';
 import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 import { filterRecording } from '../../utils/PollyUtils';
-import { state } from '../../index';
-import { CustomDomains } from '../../api/cloud/EnvCustomDomainsApi';
+import * as EnvCustomDomainsOps from './EnvCustomDomainsOps';
 
 const ctx = autoSetupPolly();
 

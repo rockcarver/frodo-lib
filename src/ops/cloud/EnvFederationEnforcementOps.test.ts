@@ -43,11 +43,11 @@
  * in case things don't function as expected
  */
 import * as EnvFederationEnforcementApi from '../../api/cloud/EnvFederationEnforcementApi';
-import * as EnvFederationEnforcementOps from './EnvFederationEnforcementOps';
+import { FederationEnforcement } from '../../api/cloud/EnvFederationEnforcementApi';
+import { state } from '../../index';
 import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 import { filterRecording } from '../../utils/PollyUtils';
-import { state } from '../../index';
-import { FederationEnforcement } from '../../api/cloud/EnvFederationEnforcementApi';
+import * as EnvFederationEnforcementOps from './EnvFederationEnforcementOps';
 
 const ctx = autoSetupPolly();
 

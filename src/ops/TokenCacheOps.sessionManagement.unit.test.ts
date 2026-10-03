@@ -15,7 +15,7 @@
 import fs from 'fs';
 import { resolve } from 'path';
 import { v5 as uuidv5 } from 'uuid';
-
+import StateImpl from '../shared/State';
 import {
   deleteHostTokens,
   getRecordedSubject,
@@ -23,7 +23,6 @@ import {
   saveToken,
   type tokenType,
 } from './TokenCacheOps';
-import StateImpl from '../shared/State';
 
 // Mirrors TokenCacheOps.ts's own uuidv5 namespace/key derivation, so these
 // tests can write a cache file with the exact real, hashed key shape
@@ -180,7 +179,10 @@ describe('listCachedSessions / deleteHostTokens', () => {
 
   test('4: deleteHostTokens returns false when there is nothing to delete for that host', () => {
     const cachePath = resolve(TMP_DIR, `${Math.random()}.TokenCache.json`);
-    const state = freshState('https://openam-never-logged-in.example.com/am', cachePath);
+    const state = freshState(
+      'https://openam-never-logged-in.example.com/am',
+      cachePath
+    );
     const deleted = deleteHostTokens({
       host: 'https://openam-never-logged-in.example.com/am',
       state,
@@ -246,7 +248,9 @@ describe('listCachedSessions / deleteHostTokens', () => {
     await saveToken({
       tokenType: 'browserUserBearer' as tokenType,
       token: {
-        access_token: fakeAccessTokenJwtWithSub('63dce142-2ade-4311-a43f-165d8705c236'),
+        access_token: fakeAccessTokenJwtWithSub(
+          '63dce142-2ade-4311-a43f-165d8705c236'
+        ),
         token_type: 'Bearer',
         scope: 'fr:am:* fr:idm:*',
         expires_in: 1800,
@@ -278,7 +282,13 @@ describe('listCachedSessions / deleteHostTokens', () => {
     const host = 'https://openam-independent-subjects.example.com/am';
     await saveToken({
       tokenType: 'browserUserSession' as tokenType,
-      token: { tokenId: 'AQIC1', successUrl: '', realm: '/', expires: Date.now() + 1_800_000, from_cache: false } as any,
+      token: {
+        tokenId: 'AQIC1',
+        successUrl: '',
+        realm: '/',
+        expires: Date.now() + 1_800_000,
+        from_cache: false,
+      } as any,
       subject: 'jdoe',
       state: freshState(host, cachePath),
     });

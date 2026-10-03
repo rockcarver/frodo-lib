@@ -3,9 +3,9 @@ import {
   getPolicies as _getPolicies,
   getPoliciesByPolicySet as _getPoliciesByPolicySet,
   getPolicy as _getPolicy,
+  putPolicy as _putPolicy,
   type PolicyCondition,
   type PolicySkeleton,
-  putPolicy as _putPolicy,
 } from '../api/PoliciesApi';
 import { type PolicySetSkeleton } from '../api/PolicySetApi';
 import {

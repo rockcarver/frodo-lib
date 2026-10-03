@@ -3,7 +3,10 @@
  *
  *        npm run test:only RequiredScopesOps
  */
-import { assertHasRequiredScope, resolveAvailableScope } from './RequiredScopesOps';
+import {
+  assertHasRequiredScope,
+  resolveAvailableScope,
+} from './RequiredScopesOps';
 
 function mockState(overrides: Record<string, any> = {}) {
   return {
@@ -33,9 +36,9 @@ describe('RequiredScopesOps.resolveAvailableScope', () => {
       getAuthMode: () => 'interactive',
       getDeploymentType: () => 'forgeops',
     });
-    expect(
-      resolveAvailableScope({ requiredScopes: ['fr:am:*'], state })
-    ).toBe('fr:am:*');
+    expect(resolveAvailableScope({ requiredScopes: ['fr:am:*'], state })).toBe(
+      'fr:am:*'
+    );
   });
 
   test('3: Passes required scopes through when they are all within the cloud browser-mode allow-list', () => {

@@ -12,12 +12,16 @@
  */
 import { jest } from '@jest/globals';
 
-const runInteractiveAuthorizationCodeFlow = jest.fn(async (_args?: any): Promise<any> => {
-  throw new Error('runInteractiveAuthorizationCodeFlow mock not configured');
-});
-const startDeviceAuthorizationFlow = jest.fn(async (_args?: any): Promise<any> => {
-  throw new Error('startDeviceAuthorizationFlow mock not configured');
-});
+const runInteractiveAuthorizationCodeFlow = jest.fn(
+  async (_args?: any): Promise<any> => {
+    throw new Error('runInteractiveAuthorizationCodeFlow mock not configured');
+  }
+);
+const startDeviceAuthorizationFlow = jest.fn(
+  async (_args?: any): Promise<any> => {
+    throw new Error('startDeviceAuthorizationFlow mock not configured');
+  }
+);
 const refreshBrowserBearerToken = jest.fn(async (_args?: any): Promise<any> => {
   throw new Error('refreshBrowserBearerToken mock not configured');
 });
@@ -53,18 +57,22 @@ jest.unstable_mockModule('../api/AuthenticationSettingsApi', () => ({
 // resolveBrowserLoginSubject() falls through to resolveIdentity() for
 // ForgeOps — mocked here so that path stays hermetic instead of attempting
 // a real network call against this test's fake host.
-const resolveIdentity = jest.fn(async (_args?: any): Promise<any> => ({
-  id: 'jdoe',
-  kind: 'unknown',
-}));
+const resolveIdentity = jest.fn(
+  async (_args?: any): Promise<any> => ({
+    id: 'jdoe',
+    kind: 'unknown',
+  })
+);
 
 jest.unstable_mockModule('./ManagedObjectOps', () => ({
   resolveIdentity,
 }));
 
-const getServerInfo = jest.fn(async (_args?: any): Promise<any> => ({
-  cookieName: 'iPlanetDirectoryPro',
-}));
+const getServerInfo = jest.fn(
+  async (_args?: any): Promise<any> => ({
+    cookieName: 'iPlanetDirectoryPro',
+  })
+);
 const getServerVersionInfo = jest.fn(async (_args?: any): Promise<any> => ({}));
 
 jest.unstable_mockModule('../api/ServerInfoApi', () => ({
@@ -82,10 +90,8 @@ jest.unstable_mockModule('./UserOps', () => ({
   readUser,
 }));
 
-const {
-  getTokensInteractive,
-  probeAmBearerTokenAcceptance,
-} = await import('./AuthenticateOps');
+const { getTokensInteractive, probeAmBearerTokenAcceptance } =
+  await import('./AuthenticateOps');
 const { default: StateImpl } = await import('../shared/State');
 const { FrodoError } = await import('./FrodoError');
 
@@ -94,10 +100,7 @@ async function getUnderlyingError(promise: Promise<unknown>): Promise<Error> {
     await promise;
   } catch (error) {
     let current = error;
-    while (
-      current instanceof FrodoError &&
-      current.originalErrors.length > 0
-    ) {
+    while (current instanceof FrodoError && current.originalErrors.length > 0) {
       current = current.originalErrors[0];
     }
     return current as Error;
@@ -155,8 +158,12 @@ describe('ForgeOps browser login (getTokensInteractive)', () => {
       universalId: 'id=jdoe,ou=user,o=forgeops',
       realm: '/',
       latestAccessTime: new Date().toISOString(),
-      maxIdleExpirationTime: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-      maxSessionExpirationTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+      maxIdleExpirationTime: new Date(
+        Date.now() + 30 * 60 * 1000
+      ).toISOString(),
+      maxSessionExpirationTime: new Date(
+        Date.now() + 2 * 60 * 60 * 1000
+      ).toISOString(),
       properties: { AMCtxId: 'ctx-1' },
     });
 

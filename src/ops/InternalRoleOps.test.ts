@@ -32,10 +32,10 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { autoSetupPolly } from "../utils/AutoSetupPolly";
-import { filterRecording } from "../utils/PollyUtils";
-import * as InternalRoleOps from "./InternalRoleOps";
-import { state } from "../lib/FrodoLib";
+import { state } from '../lib/FrodoLib';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
+import * as InternalRoleOps from './InternalRoleOps';
 
 const ctx = autoSetupPolly();
 
@@ -54,7 +54,9 @@ describe('InternalRoleOps', () => {
     });
 
     test('1: Create InternalRole Export Template', async () => {
-      const response = InternalRoleOps.createInternalRoleExportTemplate({ state });
+      const response = InternalRoleOps.createInternalRoleExportTemplate({
+        state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });

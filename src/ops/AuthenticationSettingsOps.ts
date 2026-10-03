@@ -1,7 +1,7 @@
 import {
-  type AuthenticationSettingsSkeleton,
   getAuthenticationSettings as _getAuthenticationSettings,
   putAuthenticationSettings as _putAuthenticationSettings,
+  type AuthenticationSettingsSkeleton,
 } from '../api/AuthenticationSettingsApi';
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
@@ -211,7 +211,7 @@ export async function importAuthenticationSettings({
   globalConfig: boolean;
   state: State;
 }): Promise<AuthenticationSettingsSkeleton> {
-  let response = null;
+  let response;
   try {
     response = await updateAuthenticationSettings({
       settings: importData.authentication,

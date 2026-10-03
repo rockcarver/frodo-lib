@@ -37,11 +37,11 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { autoSetupPolly, setDefaultState } from "../../utils/AutoSetupPolly";
-import { filterRecording } from "../../utils/PollyUtils";
-import * as ServerOps from "./ServerOps";
-import { state } from "../../lib/FrodoLib";
-import Constants from "../../shared/Constants";
+import { state } from '../../lib/FrodoLib';
+import Constants from '../../shared/Constants';
+import { autoSetupPolly, setDefaultState } from '../../utils/AutoSetupPolly';
+import { filterRecording } from '../../utils/PollyUtils';
+import * as ServerOps from './ServerOps';
 
 const ctx = autoSetupPolly();
 
@@ -99,14 +99,20 @@ describe('ServerOps', () => {
     });
 
     test('1: Export Servers without default properties', async () => {
-      const response = await ServerOps.exportServers({ options: { includeDefault: false }, state });
+      const response = await ServerOps.exportServers({
+        options: { includeDefault: false },
+        state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
     });
 
     test('2: Export Servers with default properties', async () => {
-      const response = await ServerOps.exportServers({ options: { includeDefault: true }, state });
+      const response = await ServerOps.exportServers({
+        options: { includeDefault: true },
+        state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
@@ -127,12 +133,10 @@ describe('ServerOps', () => {
     //TODO: create tests
   });
 
-
   describe('importServers()', () => {
     test('0: Method is implemented', async () => {
       expect(ServerOps.importServers).toBeDefined();
     });
     //TODO: create tests
   });
-
 });

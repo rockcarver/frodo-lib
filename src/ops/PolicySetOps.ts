@@ -5,10 +5,12 @@ import {
   getPolicySet as _getPolicySet,
   getPolicySets as _getPolicySets,
   updatePolicySet as _updatePolicySet,
+  type PolicySetSkeleton,
 } from '../api/PolicySetApi';
-import { type PolicySetSkeleton } from '../api/PolicySetApi';
-import { getResourceType } from '../api/ResourceTypesApi';
-import { type ResourceTypeSkeleton } from '../api/ResourceTypesApi';
+import {
+  getResourceType,
+  type ResourceTypeSkeleton,
+} from '../api/ResourceTypesApi';
 import { type ScriptSkeleton } from '../api/ScriptApi';
 import { State } from '../shared/State';
 import {

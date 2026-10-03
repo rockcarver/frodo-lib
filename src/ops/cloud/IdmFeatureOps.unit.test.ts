@@ -1,10 +1,14 @@
 import { jest } from '@jest/globals';
 
-const getIdmFeaturesApi = jest.fn(async (_args?: any): Promise<any> => ({
-  result: [],
-}));
+const getIdmFeaturesApi = jest.fn(
+  async (_args?: any): Promise<any> => ({
+    result: [],
+  })
+);
 const getIdmFeatureApi = jest.fn(async (_args?: any): Promise<any> => ({}));
-const validateIdmFeatureApi = jest.fn(async (_args?: any): Promise<any> => ({}));
+const validateIdmFeatureApi = jest.fn(
+  async (_args?: any): Promise<any> => ({})
+);
 const installIdmFeatureApi = jest.fn(async (_args?: any): Promise<any> => ({}));
 
 jest.unstable_mockModule('../../api/cloud/IdmFeatureApi', () => ({
@@ -34,7 +38,9 @@ describe('IdmFeatureOps', () => {
 
   test('readIdmFeatures returns the result array', async () => {
     getIdmFeaturesApi.mockResolvedValue({
-      result: [{ _id: 'groups', installedVersion: '1', availableVersions: ['1'] }],
+      result: [
+        { _id: 'groups', installedVersion: '1', availableVersions: ['1'] },
+      ],
     });
     const features = await readIdmFeatures({ state });
     expect(features).toEqual([

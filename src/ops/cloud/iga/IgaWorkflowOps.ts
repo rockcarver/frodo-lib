@@ -10,11 +10,11 @@ import {
 import {
   deleteDraftWorkflow as _deleteDraftWorkflow,
   deletePublishedWorkflow as _deletePublishedWorkflow,
+  publishWorkflow as _publishWorkflow,
   getDraftWorkflow,
   getPublishedWorkflow,
-  queryWorkflows,
-  publishWorkflow as _publishWorkflow,
   putWorkflow,
+  queryWorkflows,
   WorkflowSkeleton,
 } from '../../../api/cloud/iga/IgaWorkflowApi';
 import { VariableSkeleton } from '../../../api/cloud/VariablesApi';

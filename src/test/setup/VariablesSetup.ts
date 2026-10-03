@@ -1,14 +1,14 @@
+import {
+  VariableExpressionType,
+  VariableSkeleton,
+} from '../../api/cloud/VariablesApi';
+import { state } from '../../index';
+import * as VariablesOps from '../../ops/cloud/VariablesOps';
 import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 import {
   filterRecording,
   orderedMatchRequestsBy,
 } from '../../utils/PollyUtils';
-import { state } from '../../index';
-import * as VariablesOps from '../../ops/cloud/VariablesOps';
-import {
-  VariableExpressionType,
-  VariableSkeleton,
-} from '../../api/cloud/VariablesApi';
 
 export const variable1 = createTestVariable({
   id: 'esv-frodo-test-variable-1',

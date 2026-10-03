@@ -1,9 +1,9 @@
 import {
-  ContentSecurityPolicy,
   getEnforcedContentSecurityPolicy as _getEnforcedContentSecurityPolicy,
   getReportOnlyContentSecurityPolicy as _getReportOnlyContentSecurityPolicy,
   setEnforcedContentSecurityPolicy as _setEnforcedContentSecurityPolicy,
   setReportOnlyContentSecurityPolicy as _setReportOnlyContentSecurityPolicy,
+  ContentSecurityPolicy,
 } from '../../api/cloud/EnvContentSecurityPolicyApi';
 import { State } from '../../shared/State';
 import { FrodoError } from '../FrodoError';

@@ -15,25 +15,25 @@
  * 2. Update CSR test objects (csr1, csr2, csr3, etc)
  *
  *    After successful recording, look for the following console output:
- *  
+ *
  *    ****************************************************************
  *    *** ATTENTION: UPDATE csr test objects before running tests! ***
  *    ****************************************************************
- *    
+ *
  *    csr1.id:          0143d649-0995-49be-9133-ad1763c2ac93
- *    
+ *
  *    csr2.id:          9b1c9774-1caa-4fc0-a640-fb40930f2f33
  *    csr2.certificate: "-----BEGIN CERTIFICATE-----...-----END CERTIFICATE-----\r\n"
- *    
+ *
  *    csr3.id:          387204c1-0f9b-43bb-a832-e226001d7741
- *    
+ *
  *    csr4:             leave as is
- *    
+ *
  *    ****************************************************************
  *
  *    Then find the test objects listed in the output in the code below and
  *    update the respective properties as indicated.
- * 
+ *
  * 3. Test your changes
  *
  *    You are ready to run the tests in replay mode and make sure they
@@ -44,12 +44,12 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import * as EnvCSRsApi from './EnvCSRsApi';
-import { autoSetupPolly } from '../../utils/AutoSetupPolly';
-import { filterRecording } from '../../utils/PollyUtils';
 import { state } from '../../index';
 import { issueSelfSignedCertificate } from '../../test/utils/TestUtils';
+import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 import { stringify } from '../../utils/JsonUtils';
+import { filterRecording } from '../../utils/PollyUtils';
+import * as EnvCSRsApi from './EnvCSRsApi';
 
 const ctx = autoSetupPolly();
 

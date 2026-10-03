@@ -45,12 +45,12 @@
  * in case things don't function as expected
  */
 import * as EnvContentSecurityPolicyApi from '../../api/cloud/EnvContentSecurityPolicyApi';
-import * as EnvContentSecurityPolicyOps from './EnvContentSecurityPolicyOps';
-import { autoSetupPolly } from '../../utils/AutoSetupPolly';
-import { filterRecording } from '../../utils/PollyUtils';
-import { state } from '../../index';
 import { ContentSecurityPolicy } from '../../api/cloud/EnvContentSecurityPolicyApi';
+import { state } from '../../index';
+import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 import { cloneDeep } from '../../utils/JsonUtils';
+import { filterRecording } from '../../utils/PollyUtils';
+import * as EnvContentSecurityPolicyOps from './EnvContentSecurityPolicyOps';
 
 const ctx = autoSetupPolly();
 

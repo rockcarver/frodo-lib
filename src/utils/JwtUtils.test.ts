@@ -23,7 +23,10 @@ describe('JwtUtils', () => {
 
     test('1: Decodes the payload segment of a well-formed JWT', () => {
       const jwt = fakeJwt({ sub: 'abc123', scope: ['fr:am:*'] });
-      expect(decodeJwtPayload(jwt)).toEqual({ sub: 'abc123', scope: ['fr:am:*'] });
+      expect(decodeJwtPayload(jwt)).toEqual({
+        sub: 'abc123',
+        scope: ['fr:am:*'],
+      });
     });
 
     test('2: Decodes a may_act claim', () => {

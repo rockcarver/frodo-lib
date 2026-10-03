@@ -1,5 +1,4 @@
 import util from 'util';
-
 import { State } from '../../shared/State';
 import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import {

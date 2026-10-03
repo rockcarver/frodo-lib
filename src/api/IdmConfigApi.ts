@@ -1,5 +1,4 @@
 import util from 'util';
-
 import { EMAIL_TEMPLATE_TYPE } from '../ops/EmailTemplateOps';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';

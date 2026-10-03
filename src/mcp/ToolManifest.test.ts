@@ -11,12 +11,12 @@
  */
 
 import {
-  MCP_POLICY_PRESETS,
-  McpToolManifest,
   applyCapabilityPolicy,
   buildCapabilityInventory,
   buildToolManifest,
   frodo,
+  MCP_POLICY_PRESETS,
+  McpToolManifest,
 } from '../index';
 
 describe('MCP tool manifest builder', () => {

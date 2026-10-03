@@ -1,5 +1,4 @@
 import { AxiosInstance, AxiosRequestConfig } from 'axios';
-
 import {
   generateAmApi,
   generateEnvApi,

@@ -49,12 +49,12 @@
  * in case things don't function as expected
  */
 
-import { autoSetupPolly, setDefaultState } from "../utils/AutoSetupPolly";
-import { filterRecording } from '../utils/PollyUtils';
-import * as ConfigOps from "./ConfigOps";
-import { state } from "../index";
+import { state } from '../index';
 import Constants from '../shared/Constants';
-import { snapshotResultCallback } from "../test/utils/TestUtils";
+import { snapshotResultCallback } from '../test/utils/TestUtils';
+import { autoSetupPolly, setDefaultState } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
+import * as ConfigOps from './ConfigOps';
 
 const ctx = autoSetupPolly();
 
@@ -93,13 +93,13 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: false,
               onlyGlobal: false,
-              onlyCustom: true
+              onlyCustom: true,
             },
             resultCallback: snapshotResultCallback,
-            state
+            state,
           });
           expect(response).toMatchSnapshot({
-            meta: expect.any(Object)
+            meta: expect.any(Object),
           });
         });
 
@@ -114,13 +114,13 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: false,
               onlyGlobal: false,
-              onlyCustom: true
+              onlyCustom: true,
             },
             resultCallback: snapshotResultCallback,
-            state
+            state,
           });
           expect(response).toMatchSnapshot({
-            meta: expect.any(Object)
+            meta: expect.any(Object),
           });
         });
 
@@ -135,16 +135,16 @@ describe('ConfigOps', () => {
               includeReadOnly: false,
               onlyRealm: false,
               onlyGlobal: false,
-              onlyCustom: true
+              onlyCustom: true,
             },
             resultCallback: snapshotResultCallback,
-            state
+            state,
           });
           expect(response).toMatchSnapshot({
-            meta: expect.any(Object)
+            meta: expect.any(Object),
           });
         });
-  
+
         test('4: Export only alpha realm config with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
           const response = await ConfigOps.exportFullConfiguration({
             options: {
@@ -156,16 +156,16 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: true,
               onlyGlobal: false,
-              onlyCustom: true
+              onlyCustom: true,
             },
             resultCallback: snapshotResultCallback,
-            state
+            state,
           });
           expect(response).toMatchSnapshot({
-            meta: expect.any(Object)
+            meta: expect.any(Object),
           });
         });
-  
+
         test('5: Export only global config with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
           const response = await ConfigOps.exportFullConfiguration({
             options: {
@@ -177,13 +177,13 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: false,
               onlyGlobal: true,
-              onlyCustom: true
+              onlyCustom: true,
             },
             resultCallback: snapshotResultCallback,
-            state
+            state,
           });
           expect(response).toMatchSnapshot({
-            meta: expect.any(Object)
+            meta: expect.any(Object),
           });
         });
       });
@@ -219,13 +219,13 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: false,
               onlyGlobal: false,
-              onlyCustom: true
+              onlyCustom: true,
             },
             resultCallback: snapshotResultCallback,
-            state
+            state,
           });
           expect(response).toMatchSnapshot({
-            meta: expect.any(Object)
+            meta: expect.any(Object),
           });
         });
 
@@ -240,13 +240,13 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: false,
               onlyGlobal: false,
-              onlyCustom: true
+              onlyCustom: true,
             },
             resultCallback: snapshotResultCallback,
-            state
+            state,
           });
           expect(response).toMatchSnapshot({
-            meta: expect.any(Object)
+            meta: expect.any(Object),
           });
         });
 
@@ -261,13 +261,13 @@ describe('ConfigOps', () => {
               includeReadOnly: false,
               onlyRealm: false,
               onlyGlobal: false,
-              onlyCustom: true
+              onlyCustom: true,
             },
             resultCallback: snapshotResultCallback,
-            state
+            state,
           });
           expect(response).toMatchSnapshot({
-            meta: expect.any(Object)
+            meta: expect.any(Object),
           });
         });
 
@@ -282,13 +282,13 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: true,
               onlyGlobal: false,
-              onlyCustom: true
+              onlyCustom: true,
             },
             resultCallback: snapshotResultCallback,
-            state
+            state,
           });
           expect(response).toMatchSnapshot({
-            meta: expect.any(Object)
+            meta: expect.any(Object),
           });
         });
 
@@ -303,13 +303,13 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: false,
               onlyGlobal: true,
-              onlyCustom: true
+              onlyCustom: true,
             },
             resultCallback: snapshotResultCallback,
-            state
+            state,
           });
           expect(response).toMatchSnapshot({
-            meta: expect.any(Object)
+            meta: expect.any(Object),
           });
         });
       });
@@ -343,13 +343,13 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: false,
               onlyGlobal: false,
-              onlyCustom: false
+              onlyCustom: false,
             },
             resultCallback: snapshotResultCallback,
-            state
+            state,
           });
           expect(response).toMatchSnapshot({
-            meta: expect.any(Object)
+            meta: expect.any(Object),
           });
         });
       });

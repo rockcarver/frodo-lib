@@ -22,10 +22,9 @@
  * and returns a canned response.
  */
 import type { AxiosRequestConfig } from 'axios';
-
-import { generateAmApi, generateEnvApi, generateIdmApi } from './BaseApi';
-import StateImpl from '../shared/State';
 import Constants from '../shared/Constants';
+import StateImpl from '../shared/State';
+import { generateAmApi, generateEnvApi, generateIdmApi } from './BaseApi';
 
 function capturingAdapter(capture: { config?: AxiosRequestConfig }): any {
   return async (config: AxiosRequestConfig) => {

@@ -1,9 +1,9 @@
 import {
   getUser,
   getUserConfig,
+  getUserCount,
   getUserGroup,
   getUserGroups,
-  getUserCount,
   getUsers,
   putUser,
   putUserConfig,

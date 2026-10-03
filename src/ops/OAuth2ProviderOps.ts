@@ -2,8 +2,8 @@ import {
   createOAuth2Provider as _createOAuth2Provider,
   deleteOAuth2Provider as _deleteOAuth2Provider,
   getOAuth2Provider as _getOAuth2Provider,
-  OAuth2ProviderSkeleton,
   putOAuth2Provider as _putOAuth2Provider,
+  OAuth2ProviderSkeleton,
 } from '../api/OAuth2ProviderApi';
 import { State } from '../shared/State';
 import { FrodoError } from './FrodoError';

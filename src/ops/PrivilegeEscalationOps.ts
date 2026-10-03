@@ -114,7 +114,5 @@ export function pickNextEscalationCandidate({
   if (untried.length === 0) {
     return undefined;
   }
-  return untried.reduce((lowest, c) =>
-    rank(c) < rank(lowest) ? c : lowest
-  );
+  return untried.reduce((lowest, c) => (rank(c) < rank(lowest) ? c : lowest));
 }

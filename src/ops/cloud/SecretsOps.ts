@@ -7,11 +7,11 @@ import {
   getSecretVersions as _getSecretVersions,
   getVersionOfSecret as _getVersionOfSecret,
   putSecret as _putSecret,
-  SecretSkeleton,
   setSecretDescription as _setSecretDescription,
   setStatusOfVersionOfSecret as _setStatusOfVersionOfSecret,
-  VersionOfSecretSkeleton,
   deleteVersionOfSecret,
+  SecretSkeleton,
+  VersionOfSecretSkeleton,
 } from '../../api/cloud/SecretsApi';
 // FrodoLib is imported lazily (dynamic import inside the *External* functions
 // below) instead of statically. SecretsOps is one of the modules that
@@ -421,7 +421,7 @@ function getEncodedValue(
   encoding: string,
   state: State
 ): string {
-  let finalValue: string = '';
+  let finalValue: string;
   debugMessage({ message: `SecretsOps.getEncodedValue: start`, state });
   if (encoding === 'pem') {
     if (isBase64Encoded(value)) {

@@ -9,8 +9,8 @@
 import fs from 'fs';
 import { homedir } from 'os';
 import { FrodoError, state } from '../index';
-import * as ConnectionProfileOps from './ConnectionProfileOps';
 import Constants from '../shared/Constants';
+import * as ConnectionProfileOps from './ConnectionProfileOps';
 
 const exampleHost = 'https://openam-tenant-name.forgeblocks.com/am';
 const exampleUsername = 'frodo.baggins@shire.me';
@@ -92,7 +92,7 @@ describe('ConnectionProfileOps', () => {
 
   describe('findConnectionProfiles()', () => {
     test('1: Find connection profile by alias', async () => {
-      const tenant = exampleHost
+      const tenant = exampleHost;
       const alias = 'unique-alias';
       const host = alias;
       const connectionProfiles = {
@@ -139,7 +139,7 @@ describe('ConnectionProfileOps', () => {
     });
 
     test('3: Fail to find a match by alias or substring', async () => {
-      const host = 'nonexistent'
+      const host = 'nonexistent';
       const tenant = exampleHost;
       const connectionProfiles = {
         [tenant]: {

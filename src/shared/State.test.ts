@@ -6,14 +6,13 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { jest } from '@jest/globals';
-
-import { state } from '../index';
-import { JwkRsa } from '../ops/JoseOps';
-import Constants from './Constants';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { jest } from '@jest/globals';
+import { state } from '../index';
+import { JwkRsa } from '../ops/JoseOps';
+import Constants from './Constants';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -22,7 +21,7 @@ describe('State', () => {
   const hostEnv = 'https://openam-host-env.forgeblocks.com/am';
 
   beforeEach(() => {
-    state.setEnvs({}, true)
+    state.setEnvs({}, true);
     state.setDeploymentType(undefined);
   });
 
@@ -149,7 +148,7 @@ describe('State', () => {
 
     test("2: axiosRetryConfig value should be undefined if it hasn't been set before or defined if set explicitly", () => {
       const retryConfig = {
-        retries: 3
+        retries: 3,
       };
 
       expect(state.getAxiosRetryConfig()).toBeUndefined();
@@ -178,11 +177,11 @@ describe('State', () => {
       expect(state.getIsIGA()).toBe(false);
       state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
       expect(state.getIsIGA()).toBeUndefined();
-      process.env.FRODO_IGA = "hello";
+      process.env.FRODO_IGA = 'hello';
       expect(state.getIsIGA()).toBeUndefined();
-      process.env.FRODO_IGA = "true";
+      process.env.FRODO_IGA = 'true';
       expect(state.getIsIGA()).toBe(true);
-      process.env.FRODO_IGA = "false";
+      process.env.FRODO_IGA = 'false';
       expect(state.getIsIGA()).toBe(false);
       state.setIsIGA(true);
       expect(state.getIsIGA()).toBe(false);
@@ -210,8 +209,8 @@ describe('State', () => {
   describe('getAuthenticationHeaderOverrides()/setAuthenticationHeaderOverrides()', () => {
     const override: Record<string, string> = {
       host: hostEnv,
-      ["User-Agent"]: 'frodoTestAgent',
-      Connection: 'keep-alive'
+      ['User-Agent']: 'frodoTestAgent',
+      Connection: 'keep-alive',
     };
 
     test('0: Method getAuthenticationHeaderOverrides is implemented', () => {
@@ -242,8 +241,11 @@ describe('State', () => {
     test("2: Authentication service value should be undefined if it hasn't been set before or defined if FRODO_AUTHENTICATION_SERVICE env variable has been set or if set explicitly", () => {
       delete process.env.FRODO_AUTHENTICATION_SERVICE;
       expect(state.getAuthenticationService()).toBeUndefined();
-      process.env.FRODO_AUTHENTICATION_SERVICE = Constants.DEFAULT_AMSTER_SERVICE;
-      expect(state.getAuthenticationService()).toEqual(Constants.DEFAULT_AMSTER_SERVICE);
+      process.env.FRODO_AUTHENTICATION_SERVICE =
+        Constants.DEFAULT_AMSTER_SERVICE;
+      expect(state.getAuthenticationService()).toEqual(
+        Constants.DEFAULT_AMSTER_SERVICE
+      );
       state.setAuthenticationService(loginService);
       expect(state.getAuthenticationService()).toEqual(loginService);
     });
@@ -317,24 +319,15 @@ describe('State', () => {
 
   describe('getAmsterPrivateKey()/setAmsterPrivateKey()', () => {
     const privateKey1 = fs.readFileSync(
-      path.resolve(
-        __dirname,
-        '../test/mocks/CryptoUtils/pkcs8Rsa.pem'
-      ),
+      path.resolve(__dirname, '../test/mocks/CryptoUtils/pkcs8Rsa.pem'),
       'utf8'
     );
     const privateKey2 = fs.readFileSync(
-      path.resolve(
-        __dirname,
-        '../test/mocks/CryptoUtils/pkcs1Rsa.pem'
-      ),
+      path.resolve(__dirname, '../test/mocks/CryptoUtils/pkcs1Rsa.pem'),
       'utf8'
     );
     const privateKey3 = fs.readFileSync(
-      path.resolve(
-        __dirname,
-        '../test/mocks/CryptoUtils/pkcs8Ed25519Enc.pem'
-      ),
+      path.resolve(__dirname, '../test/mocks/CryptoUtils/pkcs8Ed25519Enc.pem'),
       'utf8'
     );
     test('0: Method setAmsterPrivateKey is implemented', () => {
@@ -356,12 +349,14 @@ describe('State', () => {
       expect(state.getAmsterPrivateKey()).toEqual(privateKey2);
     });
 
-    test("3: Amster private key value should be undefined and throw error if FRODO_AMSTER_PRIVATE_KEY is encrypted and FRODO_AMSTER_PASSPHRASE is not provided, or defined if FRODO_AMSTER_PASSPHRASE is provided.", () => {
+    test('3: Amster private key value should be undefined and throw error if FRODO_AMSTER_PRIVATE_KEY is encrypted and FRODO_AMSTER_PASSPHRASE is not provided, or defined if FRODO_AMSTER_PASSPHRASE is provided.', () => {
       delete process.env.FRODO_AMSTER_PRIVATE_KEY;
       delete process.env.FRODO_AMSTER_PASSPHRASE;
       state.setAmsterPrivateKey(undefined);
       process.env.FRODO_AMSTER_PRIVATE_KEY = privateKey3;
-      expect(state.getAmsterPrivateKey).toThrow("The PEM format key (unnamed) is encrypted (password-protected), and no passphrase was provided in `options`");
+      expect(state.getAmsterPrivateKey).toThrow(
+        'The PEM format key (unnamed) is encrypted (password-protected), and no passphrase was provided in `options`'
+      );
       process.env.FRODO_AMSTER_PASSPHRASE = 'test';
       // Should be in PKCS#8 format now instead of OpenSSH
       expect(state.getAmsterPrivateKey()).not.toEqual(privateKey3);
@@ -424,15 +419,15 @@ describe('State', () => {
   describe('getEnv()/setEnv()', () => {
     const envKey = 'TEST_ENV_KEY';
     const envValue = 'test-value';
-  
+
     test('0: Method getEnv is implemented', () => {
       expect(state.getEnv).toBeDefined();
     });
-  
+
     test('1: Method setEnv is implemented', () => {
       expect(state.setEnv).toBeDefined();
     });
-  
+
     test("2: Env value should be undefined if it hasn't been set before or defined if set explicitly", () => {
       expect(state.getEnv(envKey)).toBeUndefined();
       state.setEnv(envKey, envValue);
@@ -444,24 +439,24 @@ describe('State', () => {
     const env = {
       envKey: 'test1',
       envValue: 'test2',
-    }
+    };
     const env2 = {
-      diff: 'diffValue'
-    }
-  
+      diff: 'diffValue',
+    };
+
     test('0: Method getEnvs is implemented', () => {
       expect(state.getEnvs).toBeDefined();
     });
-    
+
     test('1: Method setEnvs is implemented', () => {
       expect(state.setEnvs).toBeDefined();
     });
-  
+
     test("2: Env value should be undefined if it hasn't been set before or defined if set explicitly", () => {
       expect(state.getEnvs()).toEqual({});
-      state.setEnvs(env)
+      state.setEnvs(env);
       expect(state.getEnvs()).toEqual(env);
-      state.setEnvs(env2, true) 
+      state.setEnvs(env2, true);
       expect(state.getEnvs()).toEqual(env2);
     });
   });
@@ -493,7 +488,7 @@ describe('State', () => {
       expect(state.setForceUpdate).toBeDefined();
     });
 
-    test("2: Should get/set forceUpdate", () => {
+    test('2: Should get/set forceUpdate', () => {
       expect(state.getForceUpdate()).toBe(false);
       state.setForceUpdate(true);
       expect(state.getForceUpdate()).toBe(true);

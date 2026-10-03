@@ -35,12 +35,12 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { FrodoError, state } from '../index';
-import * as ResourceTypeOps from './ResourceTypeOps';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import { filterRecording } from '../utils/PollyUtils';
 import { type ResourceTypeSkeleton } from '../api/ResourceTypesApi';
+import { FrodoError, state } from '../index';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { cloneDeep } from '../utils/JsonUtils';
+import { filterRecording } from '../utils/PollyUtils';
+import * as ResourceTypeOps from './ResourceTypeOps';
 
 const ctx = autoSetupPolly();
 
@@ -438,11 +438,11 @@ describe('ResourceTypeOps', () => {
         expect(response).toBeNull();
         response = await await ResourceTypeOps.updateResourceType({
           resourceTypeUuid: type4.uuid,
-          resourceTypeData: {...type4, description: "test new description"},
+          resourceTypeData: { ...type4, description: 'test new description' },
           state,
         });
         expect(response).not.toBeNull();
-        expect(response.description).toBe("test new description");
+        expect(response.description).toBe('test new description');
         expect(response).toMatchSnapshot();
       });
     });
@@ -549,19 +549,23 @@ describe('ResourceTypeOps', () => {
         state.setForceUpdate(false);
         let response = await ResourceTypeOps.importResourceType({
           resourceTypeUuid: type5.uuid,
-          importData: { resourcetype: {[type5.uuid]: type5}} as ResourceTypeOps.ResourceTypeExportInterface,
+          importData: {
+            resourcetype: { [type5.uuid]: type5 },
+          } as ResourceTypeOps.ResourceTypeExportInterface,
           state,
         });
         expect(response).toBeNull();
         const type = cloneDeep(type5);
-        type.description = "test new description";
+        type.description = 'test new description';
         response = await ResourceTypeOps.importResourceType({
           resourceTypeUuid: type.uuid,
-          importData: { resourcetype: {[type.uuid]: type}} as ResourceTypeOps.ResourceTypeExportInterface,
+          importData: {
+            resourcetype: { [type.uuid]: type },
+          } as ResourceTypeOps.ResourceTypeExportInterface,
           state,
         });
         expect(response).not.toBeNull();
-        expect(response.description).toBe("test new description");
+        expect(response.description).toBe('test new description');
         expect(response).toMatchSnapshot();
       });
     });
@@ -599,19 +603,23 @@ describe('ResourceTypeOps', () => {
         state.setForceUpdate(false);
         let response = await ResourceTypeOps.importResourceTypeByName({
           resourceTypeName: type7.name,
-          importData: { resourcetype: {[type7.uuid]: type7}} as ResourceTypeOps.ResourceTypeExportInterface,
+          importData: {
+            resourcetype: { [type7.uuid]: type7 },
+          } as ResourceTypeOps.ResourceTypeExportInterface,
           state,
         });
         expect(response).toBeNull();
         const type = cloneDeep(type7);
-        type.description = "test new description";
+        type.description = 'test new description';
         response = await ResourceTypeOps.importResourceTypeByName({
           resourceTypeName: type.name,
-          importData: { resourcetype: {[type.uuid]: type}} as ResourceTypeOps.ResourceTypeExportInterface,
+          importData: {
+            resourcetype: { [type.uuid]: type },
+          } as ResourceTypeOps.ResourceTypeExportInterface,
           state,
         });
         expect(response).not.toBeNull();
-        expect(response.description).toBe("test new description");
+        expect(response.description).toBe('test new description');
         expect(response).toMatchSnapshot();
       });
     });
@@ -633,18 +641,22 @@ describe('ResourceTypeOps', () => {
       test(`2: Do not import first resource type with no changes`, async () => {
         state.setForceUpdate(false);
         let response = await ResourceTypeOps.importFirstResourceType({
-          importData: { resourcetype: {[type8.uuid]: type8}} as ResourceTypeOps.ResourceTypeExportInterface,
+          importData: {
+            resourcetype: { [type8.uuid]: type8 },
+          } as ResourceTypeOps.ResourceTypeExportInterface,
           state,
         });
         expect(response).toBeNull();
         const type = cloneDeep(type8);
-        type.description = "test new description";
+        type.description = 'test new description';
         response = await ResourceTypeOps.importFirstResourceType({
-          importData: { resourcetype: {[type.uuid]: type}} as ResourceTypeOps.ResourceTypeExportInterface,
+          importData: {
+            resourcetype: { [type.uuid]: type },
+          } as ResourceTypeOps.ResourceTypeExportInterface,
           state,
         });
         expect(response).not.toBeNull();
-        expect(response.description).toBe("test new description");
+        expect(response.description).toBe('test new description');
         expect(response).toMatchSnapshot();
       });
     });
@@ -666,18 +678,22 @@ describe('ResourceTypeOps', () => {
       test(`2: Import all changed resource types`, async () => {
         state.setForceUpdate(false);
         let response = await ResourceTypeOps.importResourceTypes({
-          importData: { resourcetype: {[type9.uuid]: type9}} as ResourceTypeOps.ResourceTypeExportInterface,
+          importData: {
+            resourcetype: { [type9.uuid]: type9 },
+          } as ResourceTypeOps.ResourceTypeExportInterface,
           state,
         });
         expect(response.length).toBe(0);
         const type = cloneDeep(type9);
-        type.description = "test new description";
+        type.description = 'test new description';
         response = await ResourceTypeOps.importResourceTypes({
-          importData: { resourcetype: {[type.uuid]: type}} as ResourceTypeOps.ResourceTypeExportInterface,
+          importData: {
+            resourcetype: { [type.uuid]: type },
+          } as ResourceTypeOps.ResourceTypeExportInterface,
           state,
         });
         expect(response).not.toBe(0);
-        expect(response[0].description).toBe("test new description");
+        expect(response[0].description).toBe('test new description');
         expect(response).toMatchSnapshot();
       });
     });

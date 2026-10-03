@@ -3,9 +3,9 @@ import {
   deleteManagedObjectSchemaProperty as _deleteManagedObjectSchemaProperty,
   getManagedObjectSchema as _getManagedObjectSchema,
   getManagedObjectSchemaProperty as _getManagedObjectSchemaProperty,
+  putManagedObjectSchemaProperty as _putManagedObjectSchemaProperty,
   type ManagedObjectSchema,
   type ManagedObjectSchemaProperty,
-  putManagedObjectSchemaProperty as _putManagedObjectSchemaProperty,
 } from '../api/ManagedObjectApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';

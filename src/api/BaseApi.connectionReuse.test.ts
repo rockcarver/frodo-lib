@@ -24,9 +24,8 @@ import fs from 'fs';
 import http from 'http';
 import { AddressInfo } from 'net';
 import { resolve } from 'path';
-
-import { generateAmApi } from './BaseApi';
 import StateImpl from '../shared/State';
+import { generateAmApi } from './BaseApi';
 
 const REPO_ROOT = resolve('.');
 const TMP_DIR = resolve('.', 'test', 'fs_tmp');

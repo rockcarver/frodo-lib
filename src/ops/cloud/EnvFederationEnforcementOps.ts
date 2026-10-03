@@ -1,7 +1,7 @@
 import {
-  FederationEnforcement,
   getFederationEnforcement as _getFederationEnforcement,
   setFederationEnforcement as _setFederationEnforcement,
+  FederationEnforcement,
 } from '../../api/cloud/EnvFederationEnforcementApi';
 import { State } from '../../shared/State';
 import { FrodoError } from '../FrodoError';

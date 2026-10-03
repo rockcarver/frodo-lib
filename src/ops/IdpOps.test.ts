@@ -29,11 +29,11 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
+import { SocialIdpSkeleton } from '../api/SocialIdentityProvidersApi';
 import { state } from '../index';
-import * as IdpOps from './IdpOps';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
-import { SocialIdpSkeleton } from '../api/SocialIdentityProvidersApi';
+import * as IdpOps from './IdpOps';
 
 const ctx = autoSetupPolly();
 
@@ -1082,7 +1082,7 @@ describe('IdpOps', () => {
         providerId: import1.id,
         importData: import1.data,
         options: {
-          deps: true
+          deps: true,
         },
         state,
       });
@@ -1096,7 +1096,7 @@ describe('IdpOps', () => {
         providerId: import1.id,
         importData: import1.data,
         options: {
-          deps: false
+          deps: false,
         },
         state,
       });
@@ -1115,7 +1115,7 @@ describe('IdpOps', () => {
       const outcome = await IdpOps.importFirstSocialIdentityProvider({
         importData: importData1,
         options: {
-          deps: true
+          deps: true,
         },
         state,
       });
@@ -1128,7 +1128,7 @@ describe('IdpOps', () => {
       const outcome = await IdpOps.importFirstSocialIdentityProvider({
         importData: importData1,
         options: {
-          deps: false
+          deps: false,
         },
         state,
       });
@@ -1148,7 +1148,7 @@ describe('IdpOps', () => {
     const outcome = await IdpOps.importSocialIdentityProviders({
       importData: importData2,
       options: {
-        deps: true
+        deps: true,
       },
       state,
     });
@@ -1161,7 +1161,7 @@ describe('IdpOps', () => {
     const outcome = await IdpOps.importSocialIdentityProviders({
       importData: importData2,
       options: {
-        deps: false
+        deps: false,
       },
       state,
     });

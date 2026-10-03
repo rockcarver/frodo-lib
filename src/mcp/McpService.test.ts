@@ -7,7 +7,6 @@
  */
 
 import { jest } from '@jest/globals';
-
 import {
   composeCapabilityPolicy,
   createMcpService,

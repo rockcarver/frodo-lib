@@ -1,5 +1,4 @@
 import util from 'util';
-
 import { State } from '../shared/State';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { generateAmAuthApi } from './BaseApi';

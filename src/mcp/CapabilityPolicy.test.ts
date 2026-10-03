@@ -7,7 +7,7 @@
  * anyway, because `applyCapabilityPolicy` checked both gates unconditionally.
  */
 
-import { frodo, buildCapabilityInventory } from '../index';
+import { buildCapabilityInventory, frodo } from '../index';
 import { applyCapabilityPolicy, MCP_POLICY_PRESETS } from './CapabilityPolicy';
 
 describe('special-kind capability policy gating', () => {
@@ -22,7 +22,7 @@ describe('special-kind capability policy gating', () => {
     expect(specialCapabilities.length).toBeGreaterThan(0);
   });
 
-  test("read-only excludes every special capability, per its includeSpecial: false", () => {
+  test('read-only excludes every special capability, per its includeSpecial: false', () => {
     const filtered = applyCapabilityPolicy(
       specialCapabilities,
       MCP_POLICY_PRESETS['read-only']
@@ -52,9 +52,7 @@ describe('special-kind capability policy gating', () => {
       expect(filtered.length).toBeGreaterThan(0);
 
       const expectedIds = specialCapabilities
-        .filter(
-          (c) => !preset.denyRiskClasses?.includes(c.riskClass)
-        )
+        .filter((c) => !preset.denyRiskClasses?.includes(c.riskClass))
         .map((c) => c.id)
         .sort();
       expect(filtered.map((c) => c.id).sort()).toEqual(expectedIds);

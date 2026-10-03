@@ -1,10 +1,10 @@
 import {
   getIdmFeature as _getIdmFeature,
   getIdmFeatures as _getIdmFeatures,
-  IdmFeatureActionResult,
-  IdmFeatureInterface,
   installIdmFeature as _installIdmFeature,
   validateIdmFeature as _validateIdmFeature,
+  IdmFeatureActionResult,
+  IdmFeatureInterface,
 } from '../../api/cloud/IdmFeatureApi';
 import { State } from '../../shared/State';
 import { FrodoError } from '../FrodoError';

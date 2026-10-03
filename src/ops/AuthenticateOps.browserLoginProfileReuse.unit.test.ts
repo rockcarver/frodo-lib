@@ -14,14 +14,20 @@
  * isolated file I/O for the connection profile (not mocked) — only the
  * actual network-facing browser-login primitives are mocked.
  */
+import fs from 'fs';
+import { resolve } from 'path';
 import { jest } from '@jest/globals';
 
-const runInteractiveAuthorizationCodeFlow = jest.fn(async (_args?: any): Promise<any> => {
-  throw new Error('runInteractiveAuthorizationCodeFlow mock not configured');
-});
-const startDeviceAuthorizationFlow = jest.fn(async (_args?: any): Promise<any> => {
-  throw new Error('startDeviceAuthorizationFlow mock not configured');
-});
+const runInteractiveAuthorizationCodeFlow = jest.fn(
+  async (_args?: any): Promise<any> => {
+    throw new Error('runInteractiveAuthorizationCodeFlow mock not configured');
+  }
+);
+const startDeviceAuthorizationFlow = jest.fn(
+  async (_args?: any): Promise<any> => {
+    throw new Error('startDeviceAuthorizationFlow mock not configured');
+  }
+);
 const refreshBrowserBearerToken = jest.fn(async (_args?: any): Promise<any> => {
   throw new Error('refreshBrowserBearerToken mock not configured');
 });
@@ -37,17 +43,23 @@ jest.unstable_mockModule('./BrowserAuthenticateOps', () => ({
   readMayActClientId: () => undefined,
 }));
 
-const getAuthenticationSettings = jest.fn(async (_args?: any): Promise<any> => ({}));
-const putAuthenticationSettings = jest.fn(async (_args?: any): Promise<any> => ({}));
+const getAuthenticationSettings = jest.fn(
+  async (_args?: any): Promise<any> => ({})
+);
+const putAuthenticationSettings = jest.fn(
+  async (_args?: any): Promise<any> => ({})
+);
 
 jest.unstable_mockModule('../api/AuthenticationSettingsApi', () => ({
   getAuthenticationSettings,
   putAuthenticationSettings,
 }));
 
-const getServerInfo = jest.fn(async (_args?: any): Promise<any> => ({
-  cookieName: 'iPlanetDirectoryPro',
-}));
+const getServerInfo = jest.fn(
+  async (_args?: any): Promise<any> => ({
+    cookieName: 'iPlanetDirectoryPro',
+  })
+);
 const getServerVersionInfo = jest.fn(async (_args?: any): Promise<any> => ({}));
 
 jest.unstable_mockModule('../api/ServerInfoApi', () => ({
@@ -64,9 +76,6 @@ const readUser = jest.fn(async (_args?: any): Promise<any> => ({}));
 jest.unstable_mockModule('./UserOps', () => ({
   readUser,
 }));
-
-import fs from 'fs';
-import { resolve } from 'path';
 
 // ConnectionProfileOps.ts is deliberately NOT mocked here — this test needs
 // the real save/load round trip.
