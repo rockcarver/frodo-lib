@@ -136,7 +136,7 @@
     "typedoc": "^0.28.16",
     "typedoc-plugin-missing-exports": "^4.1.2",
     "typescript": "5.9",
-    "uuid": "^13.0.0",
+    "uuid": "^14.0.2",
     "winston": "^3.19.0"
   }
 }
