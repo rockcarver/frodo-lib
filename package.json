@@ -11,6 +11,13 @@
       "import": "./dist/index.mjs"
     }
   },
+  "files": [
+    "dist",
+    "scripts/patch-axios-types.cjs",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "test": "npm run test:only",
     "test:only": "NODE_OPTIONS=--experimental-vm-modules npx jest --silent",
