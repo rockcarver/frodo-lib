@@ -568,4 +568,4 @@ If you would like to contribute to frodo, please refer to the [contributing inst
 
 ## Maintaining
 
-If you are a maintainer of this repository, please refer to the [pipeline and release process instructions](https://github.com/rockcarver/frodo-lib/blob/main/PIPELINE.md).
+If you are a maintainer of this repository, please refer to the [pipeline and release process instructions](https://github.com/rockcarver/frodo-lib/blob/main/PIPELINE.md) and the [build environment documentation](https://github.com/rockcarver/frodo-lib/blob/main/BUILD-ENV.md) (toolchain, bundler details, dependency policy).

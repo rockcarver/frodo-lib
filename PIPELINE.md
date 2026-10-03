@@ -2,6 +2,10 @@
 
 The Frodo Library project uses an automated release pipeline defined in [../.github/workflows/pipeline.yml](../.github/workflows/pipeline.yml).
 
+For the tools underneath the pipeline — bundler, the axios dts postinstall
+patch, the TypeScript version policy, lint, and the maintenance history of
+the build environment — see [BUILD-ENV.md](BUILD-ENV.md).
+
 ![Frodo Library Release Pipeline Workflow](resources/images/release_pipeline.png)
 
 ## Release Model

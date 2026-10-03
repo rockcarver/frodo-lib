@@ -35,6 +35,11 @@ npm ci
 npm run build
 ```
 
+For how the build toolchain works — what each tool does and why, bundler
+configuration details (including the axios dts postinstall patch), the
+TypeScript version policy, and dependency-automation mechanics — see
+[BUILD-ENV.md](BUILD-ENV.md).
+
 ### Develop
 
 To automatically build as you develop, use:
