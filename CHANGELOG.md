@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [v4.10.0] - 2026-10-04
+
+### Added
+- Added a comprehensive toolchain guide (`BUILD-ENV.md`) explaining every build, lint, test, and release tool, its configuration, quirks, and maintenance history. It is linked from `CONTRIBUTE.md`, `PIPELINE.md`, and the README. (#676, #680)
+- Added a stable-named `Test gate` job over the versioned Node test matrix, so changing the matrix never requires touching required status checks on `main`. (#669)
+- Added workflow auto-merge for Dependabot patch and minor PRs: arms `gh pr merge --auto --squash` when all checks pass; majors and tooling updates remain manual. (#675)
+- CI now runs on docs-only PRs, so documentation changes receive required status checks. (#669)
+
+### Changed
+- Replaced the unmaintained `node-jose` with the actively maintained `jose` library behind the same API surface. (#672)
+- Replaced the unmaintained `esprima`, `jwk-to-pem`, and `replaceall` with maintained or native equivalents, and dropped unused dependencies. (#671)
+- Replaced the unmaintained `tsup` bundler with `tsdown`; the CJS/ESM dual build keeps the same output layout and fixes the previous CJS sucrase corruption workaround. A `postinstall` patch of axios type definitions ships as `scripts/patch-axios-types.cjs`. (#674)
+- Replaced the test-only `node-forge` with `@peculiar/x509`. (#673)
+- Migrated linting to ESLint 10 flat config with typescript-eslint, and switched import ordering to Prettier's sort-imports plugin; upgraded Prettier to 3.9.9 with a repo-wide reformat. (#678, #681)
+- Restricted the published npm package to a 13-file allowlist (previously ~450 files); consumers use the exports map, so bundled types were dropped. (#676)
+- Updated TypeScript to 5.9. (#668)
+- Updated GitHub Actions: upload-artifact, download-artifact, configure-pages, upload-pages-artifact, action-gh-release; refreshed dev dependency updates. (#654, #655, #656, #657, #658, #659, #660, #666)
+
+### Fixed
+- Broke the module-evaluation cycle between `FrodoLib` and `SecretsOps` that could crash consumers importing the library entry point. (#670)
+- The release build artifact now includes `scripts/patch-axios-types.cjs` so the artifact-only release jobs can complete their `npm ci` postinstall step. (#682)
+- Fixed the Dependabot configuration. (#653)
+- Pinned `qs` to ^6.16.0 and `basic-ftp` to 6.2.1 in the dev dependency tree to resolve known advisories; production dependency trees audit clean. (#679)
+
 ## [v4.9.4] - 2026-10-02
 
 ### Fixed
