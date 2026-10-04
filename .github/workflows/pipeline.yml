@@ -117,7 +117,10 @@ jobs:
         run: npm audit fix --audit-level critical
 
       - name: Zip build artifacts
-        run: zip -r build.zip dist mocks package.json package-lock.json snapshotResolve.js types docs
+        # scripts/patch-axios-types.cjs must ride along: package.json's
+        # postinstall (added with the tsdown migration) needs it during the
+        # artifact-only npm ci in the release jobs.
+        run: zip -r build.zip dist mocks package.json package-lock.json snapshotResolve.js types docs scripts/patch-axios-types.cjs
 
       - uses: actions/upload-artifact@v7
         with:
