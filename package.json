@@ -129,7 +129,7 @@
     "prettier": "3.8.1",
     "properties-reader": "^3.0.1",
     "proxy-agent": "^6.5.0",
-    "qs": "^6.10.3",
+    "qs": "^6.16.0",
     "reflect-metadata": "0.2.2",
     "rimraf": "^6.0.1",
     "setup-polly-jest": "^0.11.0",
@@ -146,19 +146,6 @@
     "winston": "^3.19.0"
   },
   "overrides": {
-    "@pollyjs/persister-fs": {
-      "@pollyjs/node-server": {
-        "express": {
-          "qs": "6.16.0"
-        }
-      }
-    },
-    "proxy-agent": {
-      "pac-proxy-agent": {
-        "get-uri": {
-          "basic-ftp": "6.2.1"
-        }
-      }
-    }
+    "basic-ftp": "6.2.1"
   }
 }
