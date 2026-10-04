@@ -41,12 +41,12 @@ Release automation:
 
 **What it does**: bundles `src/index.ts` into a hybrid package:
 
-| Output | Format | Role |
-|---|---|---|
-| `dist/index.js` | CJS | `"require"` condition (~6.6 MB) |
-| `dist/index.mjs` | ESM | `"import"` condition (~6.5 MB) |
-| `dist/index.d.ts` / `.d.mts` | dts | type surface (tsdown, oxc resolver) |
-| `types/` | tsc emit | the full per-file public type tree (kept on tsc deliberately — same emitter as before, per plan) |
+| Output                       | Format   | Role                                                                                             |
+| ---------------------------- | -------- | ------------------------------------------------------------------------------------------------ |
+| `dist/index.js`              | CJS      | `"require"` condition (~6.6 MB)                                                                  |
+| `dist/index.mjs`             | ESM      | `"import"` condition (~6.5 MB)                                                                   |
+| `dist/index.d.ts` / `.d.mts` | dts      | type surface (tsdown, oxc resolver)                                                              |
+| `types/`                     | tsc emit | the full per-file public type tree (kept on tsc deliberately — same emitter as before, per plan) |
 
 **Why tsdown**: tsup is unmaintained and had a real defect (below). Build
 time dropped from ~3.0 s to ~1.75 s. Verified at migration: 62/62 export
@@ -69,7 +69,7 @@ comma-sequenced constructor bodies (jose error classes) into invalid JS —
   (`outputOptions: { codeSplitting: false }` — keeps `dist/index.js` a
   single file).
 - `dts: { resolver: 'oxc' }` is ~5× faster than `tsc`; `fixedExtension:
-  false` preserves the `.js`/`.mjs` naming consumers already resolve.
+false` preserves the `.js`/`.mjs` naming consumers already resolve.
 - `deps.neverBundle` lists every devDependency (tsup bundled them too —
   that is why this repo has no `dependencies` field yet effectively ships
   runtime deps inside the bundle).
@@ -122,9 +122,17 @@ members.
 - `@peculiar/x509` requires `reflect-metadata` imported first (tsyringe) —
   test suites that build certificates import it explicitly.
 - Full suite: 153 suites / 2,433 tests / 927 snapshots (~3 min).
-- NOTE (2026-10): the Polly stack is unmaintained (2023); nock migration is
-  planned, no longer security-driven (the `qs` advisory closed:
-  Polly's tree now resolves patched `qs@6.16.0`).
+- NOTE (2026-10): the Polly stack is unmaintained (2023). A nock/MSW spike
+  (2026-10-03) proved replay fidelity on the gnarliest recording (425/425
+  exact via a ~60-line HAR converter) but found deep Polly coupling in the
+  record-mode harness (`SetupPollyForFrodoLib.ts` per-host routing, shared
+  auth cassette, 28 directives); migration DEFERRED — revisit when Node 28
+  or a real breakage forces it.
+- Dev-tree security pins (2026-10, #679): `qs` bumped to ^6.16.0 (direct
+  devDep) and a root-level npm `overrides` pins `basic-ftp` to 6.2.1 (the
+  advisory chain `proxy-agent → get-uri → basic-ftp` has no upstream fix).
+  Production tree is clean; keep overrides root-level — nested scoped
+  overrides produce locks that `npm ci` on npm 10 rejects.
 
 ---
 
@@ -218,18 +226,19 @@ whose required checks never run could never merge.
 
 ## 9. Maintenance history (what changed when)
 
-| Date | Change | PR |
-|---|---|---|
-| 2026-10-02 | Dependabot configs fixed (were empty template); security updates + secret scanning on | #653 |
-| 2026-10-02 | esprima→acorn, jwk-to-pem→node:crypto, replaceall→String.replaceAll, dead deps removed | #671 |
-| 2026-10-02 | node-jose→jose; tsup sucrase workaround | #672 |
-| 2026-10-02 | node-forge→@peculiar/x509 | #673 |
-| 2026-10-03 | FrodoLib↔SecretsOps circular import fixed (unblocks jest 30.5) | #670 |
-| 2026-10-03 | paths-ignore removed from PR trigger; Test gate added | #669 |
-| 2026-10-03 | tsup→tsdown + axios dts postinstall patch | #674 |
-| 2026-10-03 | Branch protection ruleset active | (repo settings) |
-| 2026-10-03 | Dependabot auto-merge workflow | #675 |
-| 2026-10-03 | TypeScript 5.8→5.9 | #668 |
-| 2026-10-03 | npm `files` allowlist | this PR |
-| 2026-10-03 | ESLint 9→10 (native flat config), Prettier-owns-imports via `@ianvs/prettier-plugin-sort-imports`; `eslint-plugin-prettier`, `simple-import-sort`, `jest`, `import` plugins removed; scripts `fix`/`check`; ~25 dead initializers + 1 `preserve-caught-error` fixed | this PR |
-| planned | Polly→nock | — |
+| Date       | Change                                                                                                                                                                                                                                                              | PR              |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| 2026-10-02 | Dependabot configs fixed (were empty template); security updates + secret scanning on                                                                                                                                                                               | #653            |
+| 2026-10-02 | esprima→acorn, jwk-to-pem→node:crypto, replaceall→String.replaceAll, dead deps removed                                                                                                                                                                              | #671            |
+| 2026-10-02 | node-jose→jose; tsup sucrase workaround                                                                                                                                                                                                                             | #672            |
+| 2026-10-02 | node-forge→@peculiar/x509                                                                                                                                                                                                                                           | #673            |
+| 2026-10-03 | FrodoLib↔SecretsOps circular import fixed (unblocks jest 30.5)                                                                                                                                                                                                      | #670            |
+| 2026-10-03 | paths-ignore removed from PR trigger; Test gate added                                                                                                                                                                                                               | #669            |
+| 2026-10-03 | tsup→tsdown + axios dts postinstall patch                                                                                                                                                                                                                           | #674            |
+| 2026-10-03 | Branch protection ruleset active                                                                                                                                                                                                                                    | (repo settings) |
+| 2026-10-03 | Dependabot auto-merge workflow                                                                                                                                                                                                                                      | #675            |
+| 2026-10-03 | TypeScript 5.8→5.9                                                                                                                                                                                                                                                  | #668            |
+| 2026-10-03 | npm `files` allowlist                                                                                                                                                                                                                                               | this PR         |
+| 2026-10-03 | ESLint 9→10 (native flat config), Prettier-owns-imports via `@ianvs/prettier-plugin-sort-imports`; `eslint-plugin-prettier`, `simple-import-sort`, `jest`, `import` plugins removed; scripts `fix`/`check`; ~25 dead initializers + 1 `preserve-caught-error` fixed | this PR         |
+| 2026-10-04 | Dev-tree security pins: `qs` →^6.16.0, root-level override `basic-ftp` →6.2.1 (no upstream fix in the get-uri chain)                                                                                                                                                | #679            |
+| planned    | Polly→nock — DEFERRED (deep record-harness coupling; revisit on Node 28 or real breakage)                                                                                                                                                                           | —               |
