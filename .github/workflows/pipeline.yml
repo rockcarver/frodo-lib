@@ -459,7 +459,7 @@ jobs:
 
       - name: Release
         if: ${{ !inputs.dry-run }}
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: Frodo Library ${{ needs.build.outputs.newVersion }}
           tag_name: ${{ needs.build.outputs.newTag }}
