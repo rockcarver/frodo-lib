@@ -411,13 +411,7 @@ export type McpExecutionScopeMetadata = {
 export type McpExecutionResultMetadata = {
   /** Top-level JSON shape returned by the tool call. */
   topLevelType:
-    | 'array'
-    | 'object'
-    | 'string'
-    | 'number'
-    | 'boolean'
-    | 'null'
-    | 'undefined';
+    'array' | 'object' | 'string' | 'number' | 'boolean' | 'null' | 'undefined';
   /** Estimated serialized payload size in bytes. */
   payloadSizeBytes?: number;
   /** Human-readable payload size string. */

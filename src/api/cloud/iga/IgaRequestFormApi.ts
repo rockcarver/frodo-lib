@@ -36,11 +36,7 @@ export type FieldType =
   | 'section'
   | 'formText';
 export type SelectFieldObjectType =
-  | 'entitlement'
-  | 'application'
-  | 'organization'
-  | 'role'
-  | 'user';
+  'entitlement' | 'application' | 'organization' | 'role' | 'user';
 
 export interface RequestFormEvent {
   type?: 'script';

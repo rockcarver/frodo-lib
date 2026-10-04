@@ -1,10 +1,7 @@
 import { McpCapabilityDescriptor, McpDeploymentType } from './CapabilityTypes';
 
 export type McpCapabilityRoutingStatus =
-  | 'preferred'
-  | 'compatible'
-  | 'unknown'
-  | 'incompatible';
+  'preferred' | 'compatible' | 'unknown' | 'incompatible';
 
 export type McpCapabilityRouting = {
   status: McpCapabilityRoutingStatus;

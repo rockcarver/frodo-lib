@@ -536,10 +536,7 @@ export interface MultiTreeExportInterface {
 }
 
 export type JourneyClassificationType =
-  | 'standard'
-  | 'custom'
-  | 'cloud'
-  | 'premium';
+  'standard' | 'custom' | 'cloud' | 'premium';
 
 export enum JourneyClassification {
   STANDARD = 'standard',
@@ -715,8 +712,7 @@ export async function updateCoordinates({
   }
   const nodeEntries = Object.entries(
     tree[nodesAttributeName] as
-      | NodeRefSkeletonInterface
-      | StaticNodeRefSkeletonInterface
+      NodeRefSkeletonInterface | StaticNodeRefSkeletonInterface
   ).filter(
     ([, nodeInfo]) => nodeInfo.x === undefined || nodeInfo.y === undefined
   );

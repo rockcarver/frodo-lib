@@ -1041,11 +1041,7 @@ export async function resolveFullName({
 
 /** What kind of principal a resolved identity turned out to be. */
 export type ResolvedIdentityKind =
-  | 'user'
-  | 'service'
-  | 'admin'
-  | 'admin-unconfirmed'
-  | 'unknown';
+  'user' | 'service' | 'admin' | 'admin-unconfirmed' | 'unknown';
 
 export type ResolvedIdentity = {
   /** The uuid that was resolved (extracted from the DN, if one was given). */

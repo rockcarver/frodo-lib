@@ -577,11 +577,9 @@ export async function exportConfigEntities({
           (error) =>
             !(
               // operation is not available in PingOne Advanced Identity Cloud
-              (
-                error.httpStatus === 403 &&
-                error.httpMessage ===
-                  'This operation is not available in PingOne Advanced Identity Cloud.'
-              )
+              error.httpStatus === 403 &&
+              error.httpMessage ===
+                'This operation is not available in PingOne Advanced Identity Cloud.'
             ) &&
             // list of config entities, which do not exist by default or ever.
             !(

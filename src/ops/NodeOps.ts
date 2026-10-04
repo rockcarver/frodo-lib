@@ -561,12 +561,7 @@ export interface CustomNodeExportOptions {
  * @deprecated since v4.0.0 Frodo no longer classifies nodes as "standard" vs "custom" vs "cloud" vs "excluded" vs "premium" vs "deprecated". This type will be removed in a future major release.
  */
 export type NodeClassificationType =
-  | 'standard'
-  | 'custom'
-  | 'cloud'
-  | 'excluded'
-  | 'premium'
-  | 'deprecated';
+  'standard' | 'custom' | 'cloud' | 'excluded' | 'premium' | 'deprecated';
 
 /**
  * Node classifications. Note that a node can have multiple classifications, e.g. a node can be both "cloud" and "premium" if it's a node that's exclusively available in the ForgeRock Identity Cloud and comes at a premium.

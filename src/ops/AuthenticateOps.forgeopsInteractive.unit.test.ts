@@ -57,22 +57,18 @@ jest.unstable_mockModule('../api/AuthenticationSettingsApi', () => ({
 // resolveBrowserLoginSubject() falls through to resolveIdentity() for
 // ForgeOps — mocked here so that path stays hermetic instead of attempting
 // a real network call against this test's fake host.
-const resolveIdentity = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    id: 'jdoe',
-    kind: 'unknown',
-  })
-);
+const resolveIdentity = jest.fn(async (_args?: any): Promise<any> => ({
+  id: 'jdoe',
+  kind: 'unknown',
+}));
 
 jest.unstable_mockModule('./ManagedObjectOps', () => ({
   resolveIdentity,
 }));
 
-const getServerInfo = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    cookieName: 'iPlanetDirectoryPro',
-  })
-);
+const getServerInfo = jest.fn(async (_args?: any): Promise<any> => ({
+  cookieName: 'iPlanetDirectoryPro',
+}));
 const getServerVersionInfo = jest.fn(async (_args?: any): Promise<any> => ({}));
 
 jest.unstable_mockModule('../api/ServerInfoApi', () => ({

@@ -25,18 +25,14 @@ jest.unstable_mockModule('./ConnectionProfileOps', () => ({
   saveConnectionProfile,
 }));
 
-const getServerInfo = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    cookieName: 'iPlanetDirectoryPro',
-  })
-);
+const getServerInfo = jest.fn(async (_args?: any): Promise<any> => ({
+  cookieName: 'iPlanetDirectoryPro',
+}));
 
-const getServerVersionInfo = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    fullVersion: 'ForgeRock Access Management 7.3.0',
-    version: '7.3.0',
-  })
-);
+const getServerVersionInfo = jest.fn(async (_args?: any): Promise<any> => ({
+  fullVersion: 'ForgeRock Access Management 7.3.0',
+  version: '7.3.0',
+}));
 
 jest.unstable_mockModule('../api/ServerInfoApi', () => ({
   getServerInfo,
@@ -44,13 +40,11 @@ jest.unstable_mockModule('../api/ServerInfoApi', () => ({
   getIdmServerVersionInfo: jest.fn(),
 }));
 
-const step = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    tokenId: 'fake-token-id',
-    successUrl: '/console',
-    realm: '/',
-  })
-);
+const step = jest.fn(async (_args?: any): Promise<any> => ({
+  tokenId: 'fake-token-id',
+  successUrl: '/console',
+  realm: '/',
+}));
 
 jest.unstable_mockModule('../api/AuthenticateApi', () => ({
   step,

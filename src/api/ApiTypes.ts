@@ -86,13 +86,7 @@ export type Metadata = {
  */
 export interface PatchOperationInterface {
   operation:
-    | 'add'
-    | 'copy'
-    | 'increment'
-    | 'move'
-    | 'remove'
-    | 'replace'
-    | 'transform';
+    'add' | 'copy' | 'increment' | 'move' | 'remove' | 'replace' | 'transform';
   field: string;
   value?: any;
   from?: string;

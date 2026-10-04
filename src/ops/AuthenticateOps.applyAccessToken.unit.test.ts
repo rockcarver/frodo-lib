@@ -32,15 +32,13 @@ const startDeviceAuthorizationFlow = jest.fn(
 const refreshBrowserBearerToken = jest.fn(async (_args?: any): Promise<any> => {
   throw new Error('refreshBrowserBearerToken mock not configured');
 });
-const exchangeTokenForScope = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    access_token: 'exchanged-token',
-    token_type: 'Bearer',
-    scope: 'fr:am:*',
-    expires_in: 30,
-    expires: Date.now() + 30_000,
-  })
-);
+const exchangeTokenForScope = jest.fn(async (_args?: any): Promise<any> => ({
+  access_token: 'exchanged-token',
+  token_type: 'Bearer',
+  scope: 'fr:am:*',
+  expires_in: 30,
+  expires: Date.now() + 30_000,
+}));
 // Defaults to a truthy client id — i.e. this token behaves like a real
 // browser/interactive-obtained one (test 3 relies on the exchange path
 // actually running). Test 7 overrides this to `undefined` to exercise the
@@ -73,23 +71,19 @@ jest.unstable_mockModule('../api/AuthenticationSettingsApi', () => ({
   getAuthenticationSettings,
 }));
 
-const resolveIdentity = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    id: 'jdoe',
-    username: 'jdoe',
-    kind: 'unknown',
-  })
-);
+const resolveIdentity = jest.fn(async (_args?: any): Promise<any> => ({
+  id: 'jdoe',
+  username: 'jdoe',
+  kind: 'unknown',
+}));
 
 jest.unstable_mockModule('./ManagedObjectOps', () => ({
   resolveIdentity,
 }));
 
-const getServerInfo = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    cookieName: 'iPlanetDirectoryPro',
-  })
-);
+const getServerInfo = jest.fn(async (_args?: any): Promise<any> => ({
+  cookieName: 'iPlanetDirectoryPro',
+}));
 const getServerVersionInfo = jest.fn(async (_args?: any): Promise<any> => ({}));
 
 jest.unstable_mockModule('../api/ServerInfoApi', () => ({

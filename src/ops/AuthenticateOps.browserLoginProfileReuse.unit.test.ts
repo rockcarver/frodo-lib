@@ -55,11 +55,9 @@ jest.unstable_mockModule('../api/AuthenticationSettingsApi', () => ({
   putAuthenticationSettings,
 }));
 
-const getServerInfo = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    cookieName: 'iPlanetDirectoryPro',
-  })
-);
+const getServerInfo = jest.fn(async (_args?: any): Promise<any> => ({
+  cookieName: 'iPlanetDirectoryPro',
+}));
 const getServerVersionInfo = jest.fn(async (_args?: any): Promise<any> => ({}));
 
 jest.unstable_mockModule('../api/ServerInfoApi', () => ({

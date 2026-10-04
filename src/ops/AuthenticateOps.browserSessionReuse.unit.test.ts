@@ -30,14 +30,12 @@ const startDeviceAuthorizationFlow = jest.fn(
 const refreshBrowserBearerToken = jest.fn(async (_args?: any): Promise<any> => {
   throw new Error('refreshBrowserBearerToken mock not configured');
 });
-const exchangeTokenForScope = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    access_token: 'exchanged-am-token',
-    token_type: 'Bearer',
-    expires_in: 40,
-    expires: Date.now() + 40_000,
-  })
-);
+const exchangeTokenForScope = jest.fn(async (_args?: any): Promise<any> => ({
+  access_token: 'exchanged-am-token',
+  token_type: 'Bearer',
+  expires_in: 40,
+  expires: Date.now() + 40_000,
+}));
 
 jest.unstable_mockModule('./BrowserAuthenticateOps', () => ({
   runInteractiveAuthorizationCodeFlow,
@@ -86,11 +84,9 @@ jest.unstable_mockModule('../api/AuthenticationSettingsApi', () => ({
   getAuthenticationSettings,
 }));
 
-const getServerInfo = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    cookieName: 'iPlanetDirectoryPro',
-  })
-);
+const getServerInfo = jest.fn(async (_args?: any): Promise<any> => ({
+  cookieName: 'iPlanetDirectoryPro',
+}));
 const getServerVersionInfo = jest.fn(async (_args?: any): Promise<any> => ({}));
 
 jest.unstable_mockModule('../api/ServerInfoApi', () => ({

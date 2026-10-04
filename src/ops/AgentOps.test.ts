@@ -1355,8 +1355,7 @@ describe('AgentOps', () => {
             state,
           });
           const aiAgentIdentity = readResponse._aiAgentIdentity as
-            | IdObjectSkeletonInterface
-            | undefined;
+            IdObjectSkeletonInterface | undefined;
           const owners =
             (aiAgentIdentity?.['owners'] as Array<Record<string, unknown>>) ??
             [];
@@ -1379,8 +1378,7 @@ describe('AgentOps', () => {
             state,
           });
           const aiAgentIdentity = readResponse._aiAgentIdentity as
-            | IdObjectSkeletonInterface
-            | undefined;
+            IdObjectSkeletonInterface | undefined;
           const privileges =
             (aiAgentIdentity?.['_privileges'] as Array<
               Record<string, unknown>
@@ -1388,8 +1386,7 @@ describe('AgentOps', () => {
           const resourceIds = privileges
             .map((privilege) => {
               const resource = privilege['resource'] as
-                | Record<string, unknown>
-                | undefined;
+                Record<string, unknown> | undefined;
               return resource?._refResourceId;
             })
             .filter((id): id is string => typeof id === 'string');

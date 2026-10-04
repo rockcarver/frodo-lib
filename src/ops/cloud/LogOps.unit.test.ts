@@ -1,26 +1,22 @@
 import { jest } from '@jest/globals';
 
-const fetch = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    result: [],
-    resultCount: 0,
-    pagedResultsCookie: null,
-    totalPagedResultsPolicy: 'NONE',
-    totalPagedResults: -1,
-    remainingPagedResults: -1,
-  })
-);
+const fetch = jest.fn(async (_args?: any): Promise<any> => ({
+  result: [],
+  resultCount: 0,
+  pagedResultsCookie: null,
+  totalPagedResultsPolicy: 'NONE',
+  totalPagedResults: -1,
+  remainingPagedResults: -1,
+}));
 
-const tailMock = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    result: [],
-    resultCount: 0,
-    pagedResultsCookie: null,
-    totalPagedResultsPolicy: 'NONE',
-    totalPagedResults: -1,
-    remainingPagedResults: -1,
-  })
-);
+const tailMock = jest.fn(async (_args?: any): Promise<any> => ({
+  result: [],
+  resultCount: 0,
+  pagedResultsCookie: null,
+  totalPagedResultsPolicy: 'NONE',
+  totalPagedResults: -1,
+  remainingPagedResults: -1,
+}));
 
 jest.unstable_mockModule('../../api/cloud/LogApi', () => ({
   createLogApiKey: jest.fn(),

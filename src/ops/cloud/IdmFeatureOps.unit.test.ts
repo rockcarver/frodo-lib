@@ -1,10 +1,8 @@
 import { jest } from '@jest/globals';
 
-const getIdmFeaturesApi = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    result: [],
-  })
-);
+const getIdmFeaturesApi = jest.fn(async (_args?: any): Promise<any> => ({
+  result: [],
+}));
 const getIdmFeatureApi = jest.fn(async (_args?: any): Promise<any> => ({}));
 const validateIdmFeatureApi = jest.fn(
   async (_args?: any): Promise<any> => ({})
