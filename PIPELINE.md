@@ -66,8 +66,10 @@ merges to `main`:
 - `Cross-Platform Tests (Credential File Permissions)`
 
 Release bot commits to `main` (changelog/version/docs updates) are covered
-by the ruleset's admin bypass; the GitHub Actions app cannot be a bypass
-actor.
+by the ruleset's bypass: the Release job authenticates with the org-wide
+`FRODO_CI_PAT` fine-grained token (repository admin identity), whose pushes
+the admin bypass admits. The GitHub Actions app cannot be a bypass actor —
+`GITHUB_TOKEN` pushes to `main` are rejected by the required status checks.
 
 ## Jobs
 
@@ -124,8 +126,10 @@ For `prerelease`, it publishes to `next`.
 Release job (needs build + npm-release):
 
 - Generates and promotes changelog content with `vscheuber/ai-changelog-action@v1`
-- Commits changelog/version/docs changes to `main` (attributed to the
-  dispatching user, which the ruleset's admin bypass covers)
+- Commits changelog/version/docs changes to `main` (pushed as the
+  `FRODO_CI_PAT` identity — the repository admin the ruleset's bypass
+  covers; a plain `GITHUB_TOKEN` push would be rejected by the required
+  status checks, since the Actions app cannot be a bypass actor)
 - Creates and pushes tag with duplicate-tag safety checks
 - Publishes GitHub release (unless `dry-run`)
 
