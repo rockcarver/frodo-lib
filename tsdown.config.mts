@@ -44,7 +44,18 @@ const baseConfig = {
   define: {
     __LIB_BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
   },
-  deps: { neverBundle: devDeps },
+  deps: { neverBundle: devDeps, onlyBundle: false },
+  // Silence the INEFFECTIVE_DYNAMIC_IMPORT warning: FrodoLib.ts is both
+  // statically imported (index.ts, mcp/*) and dynamically imported
+  // (SecretsOps.ts). That split is intentional (the lazy SecretsOps import
+  // breaks the SecretsOps<->FrodoLib cycle), and in a single-entry bundle
+  // the warning's suggestion (move to another chunk) doesn't apply anyway.
+  inputOptions: {
+    onwarn: (warning, warn) => {
+      if (warning.code === 'INEFFECTIVE_DYNAMIC_IMPORT') return;
+      warn(warning);
+    },
+  },
 };
 
 // ESM build: splitting on (tsdown default), mirrors tsup esmConfig.
