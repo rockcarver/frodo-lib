@@ -144,5 +144,21 @@
     "typescript-eslint": "8.71.0",
     "uuid": "^13.0.0",
     "winston": "^3.19.0"
+  },
+  "overrides": {
+    "@pollyjs/persister-fs": {
+      "@pollyjs/node-server": {
+        "express": {
+          "qs": "6.16.0"
+        }
+      }
+    },
+    "proxy-agent": {
+      "pac-proxy-agent": {
+        "get-uri": {
+          "basic-ftp": "6.2.1"
+        }
+      }
+    }
   }
 }
