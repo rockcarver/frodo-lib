@@ -78,12 +78,10 @@ jest.unstable_mockModule('./OAuth2OidcOps', () => ({
 // always falls through to resolveIdentity() here — mocked so that path
 // stays hermetic instead of attempting a real network call against this
 // test's fake host.
-const resolveIdentity = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    id: 'jdoe',
-    kind: 'unknown',
-  })
-);
+const resolveIdentity = jest.fn(async (_args?: any): Promise<any> => ({
+  id: 'jdoe',
+  kind: 'unknown',
+}));
 
 jest.unstable_mockModule('./ManagedObjectOps', () => ({
   resolveIdentity,

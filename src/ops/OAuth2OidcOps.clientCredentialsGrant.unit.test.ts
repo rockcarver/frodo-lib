@@ -10,14 +10,12 @@
  */
 import { jest } from '@jest/globals';
 
-const clientCredentialsGrant = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    access_token: 'fake-access-token',
-    token_type: 'Bearer',
-    scope: 'fr:idm:*',
-    expires_in: 3600,
-  })
-);
+const clientCredentialsGrant = jest.fn(async (_args?: any): Promise<any> => ({
+  access_token: 'fake-access-token',
+  token_type: 'Bearer',
+  scope: 'fr:idm:*',
+  expires_in: 3600,
+}));
 
 jest.unstable_mockModule('../api/OAuth2OIDCApi', () => ({
   authorize: jest.fn(),

@@ -143,11 +143,7 @@ export interface CertificationTemplateSkeleton {
   stages: {
     certifierId: string | null;
     certifierType:
-      | 'user'
-      | 'custom'
-      | 'organization'
-      | 'manager'
-      | 'authzGroup';
+      'user' | 'custom' | 'organization' | 'manager' | 'authzGroup';
     certifierScript: string | null;
     certifierPath: string | null;
     certifierInfo?: ObjectInfo;

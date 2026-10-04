@@ -317,13 +317,11 @@ export async function getFullServices({
             nextDescendents,
           };
         } catch (error) {
-          if (
-            !(
-              error.response?.status === 403 &&
-              error.response?.data?.message ===
-                'This operation is not available in PingOne Advanced Identity Cloud.'
-            )
-          ) {
+          if (!(
+            error.response?.status === 403 &&
+            error.response?.data?.message ===
+              'This operation is not available in PingOne Advanced Identity Cloud.'
+          )) {
             const message = error.response?.data?.message;
             printMessage({
               message: `Unable to retrieve data for ${listItem._id} with error: ${message}`,
@@ -383,12 +381,10 @@ export async function putFullService({
         debugMessage({ message: `ServiceOps.putFullService: clean`, state });
         await deleteFullService({ serviceId, globalConfig, state });
       } catch (error) {
-        if (
-          !(
-            error.response?.status === 404 &&
-            error.response?.data?.message === 'Not Found'
-          )
-        ) {
+        if (!(
+          error.response?.status === 404 &&
+          error.response?.data?.message === 'Not Found'
+        )) {
           throw new FrodoError(
             `Error deleting service '${serviceId}' before import`,
             error
@@ -636,13 +632,11 @@ export async function deleteFullServices({
             state,
           });
         } catch (error) {
-          if (
-            !(
-              error.response?.status === 403 &&
-              error.response?.data?.message ===
-                'This operation is not available in PingOne Advanced Identity Cloud.'
-            )
-          ) {
+          if (!(
+            error.response?.status === 403 &&
+            error.response?.data?.message ===
+              'This operation is not available in PingOne Advanced Identity Cloud.'
+          )) {
             const message = error.response?.data?.message;
             printMessage({
               message: `Delete service '${serviceListItem._id}': ${message}`,

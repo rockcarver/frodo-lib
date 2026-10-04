@@ -1,15 +1,15 @@
 import { jest } from '@jest/globals';
 import { FrodoError } from './FrodoError';
 
-const createProviderMock = jest.fn(
-  async (_args?: any): Promise<any> => ({ _id: 'created' })
-);
-const updateProviderMock = jest.fn(
-  async (_args?: any): Promise<any> => ({ _id: 'updated' })
-);
-const getScriptMock = jest.fn(
-  async (_args?: any): Promise<any> => ({ _id: 'script' })
-);
+const createProviderMock = jest.fn(async (_args?: any): Promise<any> => ({
+  _id: 'created',
+}));
+const updateProviderMock = jest.fn(async (_args?: any): Promise<any> => ({
+  _id: 'updated',
+}));
+const getScriptMock = jest.fn(async (_args?: any): Promise<any> => ({
+  _id: 'script',
+}));
 
 jest.unstable_mockModule('../api/Saml2Api', () => ({
   createProvider: createProviderMock,

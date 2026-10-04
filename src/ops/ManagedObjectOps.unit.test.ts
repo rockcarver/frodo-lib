@@ -8,16 +8,14 @@ const patchManagedObject = jest.fn(async (_args?: any): Promise<any> => ({}));
 const createManagedObjectApi = jest.fn(
   async (_args?: any): Promise<any> => ({})
 );
-const queryManagedObjectsApi = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    result: [],
-    resultCount: 0,
-    pagedResultsCookie: null,
-    totalPagedResultsPolicy: 'NONE',
-    totalPagedResults: -1,
-    remainingPagedResults: -1,
-  })
-);
+const queryManagedObjectsApi = jest.fn(async (_args?: any): Promise<any> => ({
+  result: [],
+  resultCount: 0,
+  pagedResultsCookie: null,
+  totalPagedResultsPolicy: 'NONE',
+  totalPagedResults: -1,
+  remainingPagedResults: -1,
+}));
 
 jest.unstable_mockModule('../api/ManagedObjectApi', () => ({
   countManagedObjects: jest.fn(),

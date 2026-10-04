@@ -531,13 +531,11 @@ async function exportOAuth2ClientDependencies(
               );
             exportData.script[scriptId] = scriptData;
           } catch (error) {
-            if (
-              !(
-                (error as FrodoError).httpStatus === 403 &&
-                (error as FrodoError).httpMessage ===
-                  'This operation is not available in PingOne Advanced Identity Cloud.'
-              )
-            ) {
+            if (!(
+              (error as FrodoError).httpStatus === 403 &&
+              (error as FrodoError).httpMessage ===
+                'This operation is not available in PingOne Advanced Identity Cloud.'
+            )) {
               throw new FrodoError(
                 `Error retrieving ${getCurrentRealmName(state) + ' realm'} script ${scriptId} referenced by ${key} key in client ${clientData['_id']}`,
                 error

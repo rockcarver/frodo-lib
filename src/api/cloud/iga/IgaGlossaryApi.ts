@@ -19,12 +19,7 @@ export type GlossaryObjectType =
   | '/openidm/managed/application'
   | '/iga/governance/account';
 export type GlossaryItemType =
-  | 'string'
-  | 'integer'
-  | 'float'
-  | 'boolean'
-  | 'date'
-  | 'managedObject';
+  'string' | 'integer' | 'float' | 'boolean' | 'date' | 'managedObject';
 export type GlossaryManagedObjectType =
   | '/openidm/managed/user'
   | '/openidm/managed/role'

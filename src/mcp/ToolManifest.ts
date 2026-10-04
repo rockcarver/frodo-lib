@@ -249,10 +249,7 @@ export type McpDiscoveryContext = {
 };
 
 export type McpCatalogHydrationStatus =
-  | 'available'
-  | 'not-applicable'
-  | 'failed'
-  | 'timed-out';
+  'available' | 'not-applicable' | 'failed' | 'timed-out';
 
 export type McpManagedObjectHydrationStatus = McpCatalogHydrationStatus;
 

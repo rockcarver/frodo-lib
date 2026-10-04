@@ -70,12 +70,7 @@ export type CustomNodeProperty = {
   type: 'NUMBER' | 'STRING' | 'OBJECT' | 'BOOLEAN';
   required: boolean;
   defaultValue?:
-    | string
-    | number
-    | boolean
-    | Record<string, string>
-    | string[]
-    | number[];
+    string | number | boolean | Record<string, string> | string[] | number[];
   multivalued: boolean;
   options?: Record<string, string>;
 };

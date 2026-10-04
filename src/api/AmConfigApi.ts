@@ -67,9 +67,7 @@ export type EntitySubInfo = {
 };
 
 export type ConfigEntitySkeleton =
-  | PagedResult<AmConfigEntityInterface>
-  | AmConfigEntityInterface
-  | undefined;
+  PagedResult<AmConfigEntityInterface> | AmConfigEntityInterface | undefined;
 
 /**
  * Gets a single am config entity at the given realm and path

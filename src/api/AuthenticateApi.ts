@@ -35,9 +35,7 @@ export type AuthenticateErrorResponse = {
 };
 
 export type AuthenticateResponse =
-  | AuthenticateStep
-  | AuthenticateSuccessResponse
-  | AuthenticateErrorResponse;
+  AuthenticateStep | AuthenticateSuccessResponse | AuthenticateErrorResponse;
 
 /**
  * Performs an authentication step using the service's authenticate endpoint

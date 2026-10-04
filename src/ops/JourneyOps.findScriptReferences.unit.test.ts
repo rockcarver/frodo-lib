@@ -1,10 +1,8 @@
 import { jest } from '@jest/globals';
 
-const getTrees = jest.fn(
-  async (_args?: any): Promise<any> => ({
-    result: [],
-  })
-);
+const getTrees = jest.fn(async (_args?: any): Promise<any> => ({
+  result: [],
+}));
 const readNodesMock = jest.fn(async (_args?: any): Promise<any[]> => []);
 
 jest.unstable_mockModule('../api/TreeApi', () => ({

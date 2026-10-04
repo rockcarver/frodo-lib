@@ -305,8 +305,7 @@ export interface FullGlobalExportInterface extends AmConfigEntitiesInterface {
   agent: Record<string, AgentSkeleton> | undefined;
   authentication: AuthenticationSettingsSkeleton | undefined;
   certificationTemplate:
-    | Record<string, CertificationTemplateSkeleton>
-    | undefined;
+    Record<string, CertificationTemplateSkeleton> | undefined;
   emailTemplate: Record<string, EmailTemplateSkeleton> | undefined;
   event: Record<string, EventSkeleton> | undefined;
   glossarySchema: Record<string, GlossarySchemaItemSkeleton<any>> | undefined;

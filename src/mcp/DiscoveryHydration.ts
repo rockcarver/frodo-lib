@@ -8,8 +8,7 @@ import {
 const DEFAULT_DISCOVERY_HYDRATION_TIMEOUT_MS = 3000;
 
 export type McpDiscoveryHydrationCatalog =
-  | 'managed-object-types'
-  | 'config-entity-ids';
+  'managed-object-types' | 'config-entity-ids';
 
 export type McpDiscoveryHydrationEvent = {
   catalog: McpDiscoveryHydrationCatalog;

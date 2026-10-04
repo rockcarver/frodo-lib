@@ -67,10 +67,7 @@ export type McpToolAnnotations = {
  * Argument-shape contract surfaced to MCP callers for a capability.
  */
 export type McpCapabilityArgumentMode =
-  | 'none'
-  | 'positional'
-  | 'named'
-  | 'mixed';
+  'none' | 'positional' | 'named' | 'mixed';
 
 /**
  * Lightweight JSON-schema-style contract for a structured MCP parameter value.
@@ -244,10 +241,7 @@ export type McpCapabilityPolicy = {
  * Built-in policy preset names recognized by the baseline MCP capability layer.
  */
 export type McpCapabilityPolicyPresetName =
-  | 'read-only'
-  | 'agentic'
-  | 'standard'
-  | 'admin';
+  'read-only' | 'agentic' | 'standard' | 'admin';
 
 /**
  * Identifies the identity data surface a capability operates on.
@@ -259,10 +253,7 @@ export type McpCapabilityPolicyPresetName =
  * - `unknown` — Surface not classified
  */
 export type McpIdentitySurface =
-  | 'managed'
-  | 'am-user'
-  | 'connector-system'
-  | 'unknown';
+  'managed' | 'am-user' | 'connector-system' | 'unknown';
 
 /**
  * Identifies a credential a capability needs beyond the standard AM/IDM bearer

@@ -791,16 +791,12 @@ export async function exportSaml2Providers({
         }
         fileData.saml[stub.location][providerData._id] = providerData;
       } catch (error) {
-        if (
-          !(
-            // operation is not available in PingOne Advanced Identity Cloud
-            (
-              error.httpStatus === 403 &&
-              error.httpMessage ===
-                'This operation is not available in PingOne Advanced Identity Cloud.'
-            )
-          )
-        ) {
+        if (!(
+          // operation is not available in PingOne Advanced Identity Cloud
+          error.httpStatus === 403 &&
+          error.httpMessage ===
+            'This operation is not available in PingOne Advanced Identity Cloud.'
+        )) {
           errors.push(
             new FrodoError(
               `Error exporting ${getCurrentRealmName(state) + ' realm'} saml2 provider ${stub._id}`,
