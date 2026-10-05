@@ -17,6 +17,8 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ### Removed
 - Removed previously deprecated functions from the `frodo.cloud.variable` module: `getVariable`, `getVariables`, `putVariable`, and `setVariableDescription`. These functions were deprecated since v2.0.0. (#690)
+- Removed the journey classification functions deprecated since v4.0.0: `frodo.authn.journey.isCustomJourney`, `isPremiumJourney`, `isCloudOnlyJourney`, `getJourneyClassification`, plus the `JourneyClassificationType` type and `JourneyClassification` enum. Removed without replacement — Frodo no longer classifies journeys. (#690)
+- Removed the node classification functions deprecated since v4.0.0: `frodo.authn.node.isPremiumNode`, `isCloudOnlyNode`, `isCloudExcludedNode`, `isDeprecatedNode`, `isCustomNode`, `getNodeClassification`, plus the `NodeClassificationType` type, the `NodeClassification` enum, and the internal OOTB/premium/cloud-only/cloud-excluded/deprecated node-type tables they consumed. Removed without replacement — Frodo no longer classifies nodes. (#690)
 
 ## [v5.0.0-2] - 2026-10-05
 
