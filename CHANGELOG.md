@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [v4.12.0] - 2026-10-05
+
+### Added
+- Exported all data-model types from the root entry. This change consolidates 120 type names, including skeletons, export/import option interfaces, and shared model types across 64 modules (66 interfaces and 54 type aliases), making them accessible without deep-import subpaths. This enhancement simplifies type imports for frodo-cli and other consumers building on the library's data model (#687).
+
 ## [v4.11.1] - 2026-10-04
 
 ### Changed
@@ -2496,6 +2501,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v4.12.0]: https://github.com/rockcarver/frodo-lib/compare/v4.11.1...v4.12.0
 [v4.11.1]: https://github.com/rockcarver/frodo-lib/compare/v4.11.0...v4.11.1
 [v4.11.0]: https://github.com/rockcarver/frodo-lib/compare/v4.10.0...v4.11.0
 [v4.9.4]: https://github.com/rockcarver/frodo-lib/compare/v4.9.3...v4.9.4
