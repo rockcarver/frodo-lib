@@ -46,16 +46,29 @@ version, with replacements — is maintained in the
   `delete*` equivalents on the same module). Four deprecated
   `frodo.cloud.variable` functions and the journey/node classification
   functions were overlooked; **5.0.0** removes them.
-- **5.x** removes those four `frodo.cloud.variable` functions and the
-  journey/node classification functions (see the
-  [Deprecations](#deprecations) section below for the lists), and
-  deprecates the `./types/*` deep-import subpath (see
+- **5.0.0** removes the four deprecated `frodo.cloud.variable` functions
+  (`getVariable`, `getVariables`, `putVariable`, `setVariableDescription`;
+  replaced by `readVariable`, `readVariables`, `createVariable`/
+  `updateVariable`, `updateVariableDescription`) and the journey/node
+  classification functions deprecated in 4.0.0: `frodo.authn.journey`
+  (`isCustomJourney`, `isPremiumJourney`, `isCloudOnlyJourney`,
+  `getJourneyClassification`, `JourneyClassificationType`,
+  `JourneyClassification`) and `frodo.authn.node` (`isPremiumNode`,
+  `isCloudOnlyNode`, `isCloudExcludedNode`, `isDeprecatedNode`,
+  `isCustomNode`, `getNodeClassification`, `NodeClassificationType`,
+  `NodeClassification`) — removed without replacement, as the product no
+  longer classifies journeys or nodes.
+- **5.x** deprecates the `./types/*` deep-import subpath (see
   [Using the library](#using-the-library)).
 
 ### Deprecations
 
-- Deprecated all journey classification functions in `frodo.authn.journey`: `isCustomJourney`, `isPremiumJourney`, `isCloudOnlyJourney`, `getJourneyClassification` — **removed in 5.0.0**
-- Deprecated all node classification functions in `frodo.authn.node`: `isPremiumNode`, `isCloudOnlyNode`, `isCloudExcludedNode`, `isDeprecatedNode`, `isCustomNode`, `getNodeClassification` — **removed in 5.0.0**
+- Deprecated the `@rockcarver/frodo-lib/types/<module>` deep-import
+  subpath since 4.12.0: it only resolves under the legacy
+  `moduleResolution: node` mode, which TypeScript 6 deprecates and 7
+  removes. Migrate to root imports — see
+  [Using the library](#using-the-library). Planned for removal in a
+  future major.
 
 ## About
 
