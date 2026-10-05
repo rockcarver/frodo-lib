@@ -43,6 +43,7 @@ The workflow runs on:
 Releases are explicit. Maintainers choose the release type from workflow input:
 
 - `prerelease`
+- `premajor` — starts (or continues) an `X.0.0-1` prerelease train for the next major
 - `patch`
 - `minor`
 - `major`
