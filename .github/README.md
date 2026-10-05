@@ -15,6 +15,7 @@ Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the comma
 - [Using the library](#using-the-library)
 - [Recording and replaying HTTP traffic](#recording-and-replaying-http-traffic)
 - [Library API docs](#library-api-docs)
+- [Migration guide](https://github.com/rockcarver/frodo-lib/blob/main/MIGRATION.md)
 - [Request features or report issues](#feature-requests)
 - [Contributing](#contributing)
 - [Maintaining](#maintaining)
@@ -28,166 +29,43 @@ interfaces, shared model types) are exported from the root entry — see
 [Using the library](#using-the-library) for the TypeScript import pattern.
 The per-file `./types/*` deep-import subpath is deprecated.
 
-### Carried forward from 4.x
-
-Frodo Library 4.0 added support for [Custom Nodes](https://docs.pingidentity.com/pingoneaic/journeys/node-designer.html), `fr-config-manager` and the latest Node.js versions.
-
-### Custom Nodes - Node Designer
-
-2.x introduces breaking changes to support multiple instances of the library to run concurrently and connect to multiple different Ping Identity Platform instances at the same time. [1.x](https://github.com/rockcarver/frodo-lib/tree/1.x) operates using a global singleton, making it impossible to connect to more than one platform instance at a time.
-
-### FR-Config-Manager
-
-Removing the singleton pattern and introducing multi-instantiability forced a radical redesign of the core library functions while striving to maintain the basic usage pattern. The library is now exposing two main types describing its modules ([Frodo](https://rockcarver.github.io/frodo-lib/types/Reference.Frodo.html)) and state ([State](https://rockcarver.github.io/frodo-lib/types/Reference.State.html)). Each module in turn exports all its collection of functions as a type as well. Exposing the library structure as types enables auto-completion for both JS and TS developers with properly configured IDEs like Visual Studio Code or other and also serves as an abstraction layer between what the library exposes vs what and how it's implemented.
-
 ### Node.js Versions
 
-- 5.x (current): supports Node.js 20 and later (per `engines`; the CI
-  matrix runs 22, 24, and 26).
-- 4.x: added support for Node.js 24 and 26; dropped support for Node.js 18.
+- 5.x (current): tested against Node.js 22, 24, and 26 (the CI matrix).
+- 4.x: added support for Node.js 22, 24, and 26; dropped support for
+  Node.js 18 and 20.
 
-### Breaking changes
+### Breaking changes and migration
 
-- Removed all deprecated (since v2.0.0) functions from:
-  - `frodo.admin`:
-    - `listOAuth2CustomClients`
-    - `listOAuth2AdminClients`
-    - `listNonOAuth2AdminStaticUserMappings`
-    - `addAutoIdStaticUserMapping`
-    - `grantOAuth2ClientAdminPrivileges`
-    - `revokeOAuth2ClientAdminPrivileges`
-    - `createOAuth2ClientWithAdminPrivileges`
-    - `createLongLivedToken`
-    - `removeStaticUserMapping`
-    - `hideGenericExtensionAttributes`
-    - `showGenericExtensionAttributes`
-    - `repairOrgModel`
-  - `frodo.login`:
-    - `getAccessTokenForServiceAccount` (added function `validateServiceAccount` with same input and output to `frodo.cloud.serviceAccount`)
-  - `frodo.agent`:
-    - `getAgents`
-    - `getAgent`
-    - `getAgentByTypeAndId`
-    - `getIdentityGatewayAgents`
-    - `getIdentityGatewayAgent`
-    - `putIdentityGatewayAgent`
-    - `getJavaAgents`
-    - `getJavaAgent`
-    - `putJavaAgent`
-    - `getWebAgents`
-    - `getWebAgent`
-    - `putWebAgent`
-  - `frodo.saml2.circlesOfTrust`:
-    - `getCirclesOfTrust`
-    - `getCircleOfTrust`
-  - `frodo.email.template`:
-    - `getEmailTemplates`
-    - `getEmailTemplate`
-    - `putEmailTemplate`
-  - `frodo.idm.config`:
-    - `getConfigEntityTypes`
-    - `getConfigEntityTypes`
-    - `getConfigEntitiesByType`
-    - `getConfigEntity`
-    - `putConfigEntity`
-    - `testConnectorServers`
-  - `frodo.oauth2oidc.external`:
-    - `getSocialIdentityProviders`
-    - `getSocialProvider`
-    - `putProviderByTypeAndId`
-    - `deleteSocialProvider`
-    - `exportSocialProvider`
-    - `exportSocialProviders`
-    - `importSocialProvider`
-    - `importFirstSocialProvider`
-    - `importSocialProviders`
-  - `frodo.authn.journey`:
-    - `getJourneys`
-    - `getJourney`
-    - `importAllJourneys`
-    - `findOrphanedNodes`
-    - `removeOrphanedNodes`
-  - `frodo.oauth2oidc.client`:
-    - `getOAuth2Clients`
-    - `getOAuth2Client`
-    - `putOAuth2Client`
-  - `frodo.oauth2oidc.provider`:
-    - `getOAuth2Provider`
-  - `frodo.oauth2oidc.issuer`:
-    - `getOAuth2TrustedJwtIssuers`
-    - `getOAuth2TrustedJwtIssuer`
-    - `putOAuth2TrustedJwtIssuer`
-  - `frodo.idm.organization`:
-    - `getOrganizations`
-  - `frodo.authz.policy`:
-    - `getPolicies`
-    - `getPoliciesByPolicySet`
-    - `getPolicy`
-    - `putPolicy`
-  - `frodo.authz.policySet`:
-    - `getPolicySets`
-    - `getPolicySet`
-  - `frodo.realm`:
-    - `getRealms`
-    - `getRealmByName`
-    - `putRealm`
-  - `frodo.authz.resourceType`:
-    - `getResourceType`
-    - `getResourceTypes`
-    - `getResourceTypeByName`
-  - `frodo.saml2.entityProvider`:
-    - `getSaml2ProviderStubs`
-    - `getProviderMetadataUrl`
-    - `getProviderMetadata`
-    - `getSaml2ProviderStub`
-    - `getSaml2Provider`
-  - `frodo.script`:
-    - `getScripts`
-    - `getScript`
-    - `getScriptByName`
-    - `putScript`
-  - `frodo.theme`:
-    - `getThemes`
-    - `getTheme`
-    - `getThemeByName`
-    - `putTheme`
-    - `putThemeByName`
-    - `putThemes`
-  - `frodo.cloud.adminFed`:
-    - `getAdminFederationProviders`
-    - `getAdminFederationProvider`
-    - `putProviderByTypeAndId`
-  - `frodo.cloud.secret`:
-    - `getSecrets`
-    - `getSecret`
-    - `putSecret`
-    - `setSecretDescription`
-    - `getSecretVersions`
-    - `createNewVersionOfSecret`
-    - `getVersionOfSecret`
-    - `setStatusOfVersionOfSecret`
-  - `frodo.cloud.variable`:
-    - `getVariable`
-    - `getVariables`
-    - `putVariable`
-    - `setVariableDescription`
+Full migration guidance — every removed and deprecated function per major
+version, with replacements — is maintained in the
+[Migration Guide](../MIGRATION.md). Summary:
+
+- **4.0.0** removed all functions deprecated since v2.0.0 (the legacy
+  `get*`/`put*` naming, replaced by `read*`/`update*`/`create*`/
+  `delete*` equivalents on the same module). Four deprecated
+  `frodo.cloud.variable` functions and the journey/node classification
+  functions were overlooked; **5.0.0** removes them.
+- **5.x** removes those four `frodo.cloud.variable` functions and the
+  journey/node classification functions (see the
+  [Deprecations](#deprecations) section below for the lists), and
+  deprecates the `./types/*` deep-import subpath (see
+  [Using the library](#using-the-library)).
 
 ### Deprecations
 
-- Deprecated all journey classificatino functions in `frodo.authn.journey`:
-  - `isCustomJourney`
-  - `isPremiumJourney`
-  - `isCloudOnlyJourney`
-  - `getJourneyClassification`
-- Deprecated all node classification functions in `frodo.authn.node`:
-  - `isPremiumNode`
-  - `isCloudOnlyNode`
-  - `isCloudExcludedNode`
-  - `isDeprecatedNode`,
-  - `isCustomNode`
-  - `getNodeClassification`.
+- Deprecated all journey classification functions in `frodo.authn.journey`: `isCustomJourney`, `isPremiumJourney`, `isCloudOnlyJourney`, `getJourneyClassification` — **removed in 5.0.0**
+- Deprecated all node classification functions in `frodo.authn.node`: `isPremiumNode`, `isCloudOnlyNode`, `isCloudExcludedNode`, `isDeprecatedNode`, `isCustomNode`, `getNodeClassification` — **removed in 5.0.0**
 
 ## About
+
+### How Frodo Works
+
+The library is multi-instantiable: each `frodo` instance connects to one Ping Identity Platform instance at a time, and multiple instances can run concurrently — e.g. to synchronize configuration between a source and a target environment. (Frodo Library 1.x operated using a global singleton, making it impossible to connect to more than one platform instance at a time.)
+
+The library exposes two main types describing its modules ([Frodo](https://rockcarver.github.io/frodo-lib/types/Reference.Frodo.html)) and state ([State](https://rockcarver.github.io/frodo-lib/types/Reference.State.html)). Each module in turn exports its collection of functions as a type as well. Exposing the library structure as types enables auto-completion for both JS and TS developers with properly configured IDEs like Visual Studio Code and also serves as an abstraction layer between what the library exposes vs what and how it's implemented.
+
+The `frodo` default instance (and each factory-created instance) organizes functionality into modules — see the module table below — and every module function takes the instance's `state` (connection details, tokens, and settings) implicitly, so calls stay concise. A default singleton-style instance is available as `frodo` for quick scripts; use the `createInstance*` factory functions when you need concurrent connections to more than one instance.
 
 ### Modules
 
@@ -280,14 +158,14 @@ The library automatically refreshes session and access tokens before they expire
 |   14    | :white_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign:  | :heavy_minus_sign: |
 |   16    | :white_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign:  | :heavy_minus_sign: |
 |   18    | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
-|   20    | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
-|   22    | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
+|   20    | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
+|   22    | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: | :white_check_mark:  | :white_check_mark: |
 |   24    | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
 |   26    | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
 |   28    | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign:  | :heavy_minus_sign: |
 
-`engines.node` per major: 1.x `>=14`, 2.x/3.x `>=18.17`, 4.x `>=20`,
-5.x `>=20`. The test matrix runs Node 22/24/26.
+The table reflects the Node.js versions each release line was tested
+against. The test matrix currently runs Node 22, 24, and 26.
 
 ## Considerations
 
@@ -307,7 +185,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 
 For those who want to contribute or are just curious about the build process.
 
-- Make sure you have **Node.js 20** or newer (**26** preferred — the CI matrix runs 22, 24, and 26) and npm installed.
+- Make sure you have **Node.js 22** or newer (**26** preferred — the CI matrix runs 22, 24, and 26) and npm installed.
 - Clone this repo
   ```console
   git clone https://github.com/rockcarver/frodo-lib.git
@@ -605,4 +483,4 @@ If you would like to contribute to frodo, please refer to the [contributing inst
 
 ## Maintaining
 
-If you are a maintainer of this repository, please refer to the [pipeline and release process instructions](https://github.com/rockcarver/frodo-lib/blob/main/PIPELINE.md) and the [build environment documentation](https://github.com/rockcarver/frodo-lib/blob/main/BUILD-ENV.md) (toolchain, bundler details, dependency policy).
+If you are a maintainer of this repository, please refer to the [pipeline and release process instructions](https://github.com/rockcarver/frodo-lib/blob/main/PIPELINE.md), the [build environment documentation](https://github.com/rockcarver/frodo-lib/blob/main/BUILD-ENV.md) (toolchain, bundler details, dependency policy), and the [migration guide](https://github.com/rockcarver/frodo-lib/blob/main/MIGRATION.md) (breaking changes per major — keep it updated when removing or deprecating public functions).

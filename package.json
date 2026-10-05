@@ -34,7 +34,7 @@
     "fix": "eslint --fix \"src/**/*.ts\" && prettier --write \"src/**/*.ts\"",
     "check": "eslint \"src/**/*.ts\" && prettier --check \"src/**/*.ts\"",
     "clean-types": "rimraf types",
-    "generate-types": "tsc",
+    "generate-types": "tsc && node scripts/deprecate-types-subpath.cjs",
     "generate-help": "node scripts/generate-help.mjs",
     "build": "npm run generate-help && npx tsdown && npm run clean-types && npm run generate-types",
     "doc": "npx typedoc",

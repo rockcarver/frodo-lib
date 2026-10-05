@@ -2474,46 +2474,6 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<TreeSkeleton>} the updated tree/journey object",
   },
   {
-    typeName: "Journey",
-    methodName: "isCustomJourney",
-    signature: "isCustomJourney(journey: SingleTreeExportInterface): boolean",
-    description: "Analyze if a journey contains any custom nodes considering the detected or the overridden version.",
-    params: [
-      { name: "journey", type: "SingleTreeExportInterface", description: "Journey/tree configuration object", required: true },
-    ],
-    returns: "{boolean} True if the journey/tree contains any custom nodes, false otherwise.",
-  },
-  {
-    typeName: "Journey",
-    methodName: "isPremiumJourney",
-    signature: "isPremiumJourney(journey: SingleTreeExportInterface): boolean",
-    description: "Analyze if a journey contains any premium nodes considering the detected or the overridden version.",
-    params: [
-      { name: "journey", type: "SingleTreeExportInterface", description: "Journey/tree configuration object", required: true },
-    ],
-    returns: "{boolean} True if the journey/tree contains any custom nodes, false otherwise.",
-  },
-  {
-    typeName: "Journey",
-    methodName: "isCloudOnlyJourney",
-    signature: "isCloudOnlyJourney(journey: SingleTreeExportInterface): boolean",
-    description: "Analyze if a journey contains any cloud-only nodes considering the detected or the overridden version.",
-    params: [
-      { name: "journey", type: "SingleTreeExportInterface", description: "Journey/tree configuration object", required: true },
-    ],
-    returns: "{boolean} True if the journey/tree contains any cloud-only nodes, false otherwise.",
-  },
-  {
-    typeName: "Journey",
-    methodName: "getJourneyClassification",
-    signature: "getJourneyClassification( journey: SingleTreeExportInterface ): JourneyClassificationType[]",
-    description: "Get a journey's classifications, which can be one or multiple of: - standard: can run on any instance of a ForgeRock platform - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud - premium: utilizes nodes, which come at a premium - custom: utilizes nodes not included in the ForgeRock platform release",
-    params: [
-      { name: "journey", type: "SingleTreeExportInterface", description: "journey export data", required: true },
-    ],
-    returns: "{JourneyClassificationType[]} an array of one or multiple classifications",
-  },
-  {
     typeName: "ManagedObject",
     methodName: "createManagedObject",
     signature: "createManagedObject( type: string, moData: IdObjectSkeletonInterface, id?: string ): Promise<IdObjectSkeletonInterface>",
@@ -3504,66 +3464,6 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "nodeId", type: "String", description: "ID or service name of the custom node", required: true },
     ],
     returns: "{Promise<CustomNodeUsage>} a promise that resolves to an object containing a custom node usage object",
-  },
-  {
-    typeName: "Node",
-    methodName: "isPremiumNode",
-    signature: "isPremiumNode(nodeType: string): boolean",
-    description: "Analyze if a node type is premium.",
-    params: [
-      { name: "nodeType", type: "string", description: "Node type", required: true },
-    ],
-    returns: "{boolean} True if the node type is premium, false otherwise.",
-  },
-  {
-    typeName: "Node",
-    methodName: "isCloudOnlyNode",
-    signature: "isCloudOnlyNode(nodeType: string): boolean",
-    description: "Analyze if a node type is a cloud-only node.",
-    params: [
-      { name: "nodeType", type: "string", description: "Node type", required: true },
-    ],
-    returns: "{boolean} True if the node type is cloud-only, false otherwise.",
-  },
-  {
-    typeName: "Node",
-    methodName: "isCloudExcludedNode",
-    signature: "isCloudExcludedNode(nodeType: string): boolean",
-    description: "Analyze if a node type is a cloud-excluded node. Cloud excluded nodes are OOTB nodes in self-hosted AM deployments but have been excluded in cloud.",
-    params: [
-      { name: "nodeType", type: "string", description: "node type.", required: true },
-    ],
-    returns: "{boolean} True if node type is cloud-excluded, false otherwise.",
-  },
-  {
-    typeName: "Node",
-    methodName: "isDeprecatedNode",
-    signature: "isDeprecatedNode(nodeType: string): boolean",
-    description: "Analyze if a node type has been deprecated",
-    params: [
-      { name: "nodeType", type: "string", description: "node type.", required: true },
-    ],
-    returns: "{boolean} True if node type is deprecated, false otherwise.",
-  },
-  {
-    typeName: "Node",
-    methodName: "isCustomNode",
-    signature: "isCustomNode(nodeType: string): boolean",
-    description: "Analyze if a node is custom.",
-    params: [
-      { name: "nodeType", type: "string", description: "Node type", required: true },
-    ],
-    returns: "{boolean} True if the node type is custom, false otherwise.",
-  },
-  {
-    typeName: "Node",
-    methodName: "getNodeClassification",
-    signature: "getNodeClassification(nodeType: string): NodeClassificationType[]",
-    description: "Get a node's classifications, which can be one or multiple of: - standard: can run on any instance of a ForgeRock platform - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud - premium: utilizes nodes, which come at a premium - deprecated: nodes that are no longer supported - custom: nodes that are user-defined - excluded: nodes that are excluded from certain environments",
-    params: [
-      { name: "nodeType", type: "string", description: "Node type", required: true },
-    ],
-    returns: "{NodeClassificationType[]} an array of one or multiple classifications",
   },
   {
     typeName: "OAuth2Client",
@@ -7054,48 +6954,6 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "variables", type: "Map<string, VariableSkeleton>", description: "Provide an empty or prepopulated map of ESV variables. The function adds any resolved variables to the map that don't exist.", required: true },
     ],
     returns: "{string} Returns the resolved value of the ESV or the original input string",
-  },
-  {
-    typeName: "Variable",
-    methodName: "getVariable",
-    signature: "getVariable(variableId: string): Promise<VariableSkeleton>",
-    description: "Get variable by id/name",
-    params: [
-      { name: "variableId", type: "string", description: "variable id/name", required: true },
-    ],
-    returns: "{Promise<VariableSkeleton>} a promise that resolves to a variable object",
-  },
-  {
-    typeName: "Variable",
-    methodName: "getVariables",
-    signature: "getVariables(): Promise<VariableSkeleton[]>",
-    description: "Get all variables",
-    params: [],
-    returns: "{Promise<VariableSkeleton[]>} a promise that resolves to an array of variable objects",
-  },
-  {
-    typeName: "Variable",
-    methodName: "putVariable",
-    signature: "putVariable( variableId: string, valueBase64: string, description: string, expressionType?: VariableExpressionType ): Promise<VariableSkeleton>",
-    description: "Create variable",
-    params: [
-      { name: "variableId", type: "string", description: "variable id/name", required: true },
-      { name: "valueBase64", type: "string", description: "base64-encoded variable value", required: true },
-      { name: "description", type: "string", description: "variable description", required: true },
-      { name: "expressionType", type: "VariableExpressionType", description: "type of the value", required: false },
-    ],
-    returns: "{Promise<VariableSkeleton>} a promise that resolves to a variable object",
-  },
-  {
-    typeName: "Variable",
-    methodName: "setVariableDescription",
-    signature: "setVariableDescription(variableId: string, description: string): Promise<any>",
-    description: "Set variable description",
-    params: [
-      { name: "variableId", type: "string", description: "variable id/name", required: true },
-      { name: "description", type: "string", description: "variable description", required: true },
-    ],
-    returns: "{Promise<any>} a promise that resolves to an empty string",
   },
   {
     typeName: "WSFed",
