@@ -9,36 +9,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v5.0.0-1] - 2026-10-05
 
+> **Note for the 5.0.0 stable release:** entries in this section are
+> cumulative — everything shipped on the 5.0.0 pre-release train and carried
+> forward from the 4.x stream that is part of the 5.0.0 story. They will be
+> consolidated into the `v5.0.0` entry when the stable release builds.
+
+### Added
+
+- Exported all data-model types from the root entry: 120 type names (66 interfaces, 54 type aliases) across 64 modules — skeletons, export/import option interfaces, and shared model types — are now importable from `@rockcarver/frodo-lib` directly, without deep-import subpaths. The root export is the supported type surface going forward; the `./types/*` subpath is deprecated and will be removed in a future major. (#687, released 4.12.0)
+- Support for the `premajor` release type in the pipeline dispatch input (X.0.0-1 prerelease trains for the next major). (#688)
+- A comprehensive toolchain guide (`BUILD-ENV.md`) explaining every build, lint, test, and release tool, its configuration, quirks, and maintenance history; linked from `CONTRIBUTE.md`, `PIPELINE.md`, and the README. (#676, #680)
+
 ### Changed
-- Internal pipeline update release. This release updates CI/CD or release automation under `.github/` without changing functional behavior.
+
+- Replaced the unmaintained `node-jose` with the actively maintained `jose` library behind the same API surface. (#672)
+- Replaced the unmaintained `esprima`, `jwk-to-pem`, and `replaceall` with maintained or native equivalents (`acorn`, `node:crypto`, `String.replaceAll`), and dropped unused dependencies. (#671)
+- Replaced the unmaintained `tsup` bundler with `tsdown`; the CJS/ESM dual build keeps the same output layout and fixes the previous CJS sucrase corruption workaround. A `postinstall` patch of axios type definitions ships as `scripts/patch-axios-types.cjs`. (#674)
+- Replaced the test-only `node-forge` with `@peculiar/x509`. (#673)
+- Migrated linting to ESLint 10 flat config with typescript-eslint, and switched import ordering to Prettier's sort-imports plugin; upgraded Prettier to 3.9.9 with a repo-wide reformat. (#678, #681)
+- Restricted the published npm package to a 13-file allowlist (previously ~450 files). (#676)
+- Updated TypeScript to 5.9. (#668)
+- Updated GitHub Actions: upload-artifact, download-artifact, configure-pages, upload-pages-artifact, action-gh-release; refreshed dev dependency updates. (#654, #655, #656, #657, #658, #659, #660, #666)
+
+### Fixed
+
+- Broke the module-evaluation cycle between `FrodoLib` and `SecretsOps` that could crash consumers importing the library entry point. (#670)
+- The release build artifact includes `scripts/patch-axios-types.cjs` so artifact-only release jobs can complete their `npm ci` postinstall step. (#682)
+- Fixed the Dependabot configuration. (#653)
+- Pinned `qs` to ^6.16.0 and `basic-ftp` to 6.2.1 in the dev dependency tree to resolve known advisories; production dependency trees audit clean. (#679)
+- Publish the generated `types/` tree and map it under `./types/*` to restore compatibility with consumers relying on internal type imports. (#685, released 4.11.0)
+- Release commits push with the org-wide `FRODO_CI_PAT` to comply with the main-branch ruleset's required status checks. (#684)
+
+### Infrastructure (no functional changes)
+
+- Release automation: stable `Test gate` job over the versioned Node matrix, CI on docs-only PRs, workflow auto-merge for Dependabot patch/minor PRs, branch-protection ruleset, dual npm publish (stable → `latest`, companion `-1` → `next`), npm trusted publishing with provenance. (#669, #675, #682)
+
+### Removed (planned for 5.0.0 stable)
+
+- The `./types/*` subpath export (superseded by the root type exports above).
 
 ## [v4.12.0] - 2026-10-05
 
 ### Added
+
 - Exported all data-model types from the root entry. This change consolidates 120 type names, including skeletons, export/import option interfaces, and shared model types across 64 modules (66 interfaces and 54 type aliases), making them accessible without deep-import subpaths. This enhancement simplifies type imports for frodo-cli and other consumers building on the library's data model (#687).
 
 ## [v4.11.1] - 2026-10-04
 
 ### Changed
+
 - Internal changes only. This release does not introduce functional behavior changes.
 
 ## [v4.11.0] - 2026-10-04
 
 ### Fixed
+
 - Publish the generated `types/` tree and map it under `./types/*` to restore compatibility with frodo-cli, which relies on internal type imports. (#685)
 
 ### Security
+
 - Push release commits with the org-wide `FRODO_CI_PAT` to ensure compliance with main-branch ruleset's required status checks. (#684)
 
 ## [v4.10.0] - 2026-10-04
 
 ### Added
+
 - Added a comprehensive toolchain guide (`BUILD-ENV.md`) explaining every build, lint, test, and release tool, its configuration, quirks, and maintenance history. It is linked from `CONTRIBUTE.md`, `PIPELINE.md`, and the README. (#676, #680)
 - Added a stable-named `Test gate` job over the versioned Node test matrix, so changing the matrix never requires touching required status checks on `main`. (#669)
 - Added workflow auto-merge for Dependabot patch and minor PRs: arms `gh pr merge --auto --squash` when all checks pass; majors and tooling updates remain manual. (#675)
 - CI now runs on docs-only PRs, so documentation changes receive required status checks. (#669)
 
 ### Changed
+
 - Replaced the unmaintained `node-jose` with the actively maintained `jose` library behind the same API surface. (#672)
 - Replaced the unmaintained `esprima`, `jwk-to-pem`, and `replaceall` with maintained or native equivalents, and dropped unused dependencies. (#671)
 - Replaced the unmaintained `tsup` bundler with `tsdown`; the CJS/ESM dual build keeps the same output layout and fixes the previous CJS sucrase corruption workaround. A `postinstall` patch of axios type definitions ships as `scripts/patch-axios-types.cjs`. (#674)
@@ -49,6 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated GitHub Actions: upload-artifact, download-artifact, configure-pages, upload-pages-artifact, action-gh-release; refreshed dev dependency updates. (#654, #655, #656, #657, #658, #659, #660, #666)
 
 ### Fixed
+
 - Broke the module-evaluation cycle between `FrodoLib` and `SecretsOps` that could crash consumers importing the library entry point. (#670)
 - The release build artifact now includes `scripts/patch-axios-types.cjs` so the artifact-only release jobs can complete their `npm ci` postinstall step. (#682)
 - Fixed the Dependabot configuration. (#653)
@@ -57,60 +100,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v4.9.4] - 2026-10-02
 
 ### Fixed
+
 - Bulk SAML2 entity provider import (`importSaml2Providers`) now applies the extended remote provider configuration after creation, matching single provider import. Previously, remote providers imported via bulk import (including `frodo config-manager` import/push) lost their extended configuration on first import. Failed SAML2 provider imports now report both the create and the update error instead of only the update error. (#652)
 - Failed SAML2 provider imports now report both the create and the update error instead of only the update error.
 
 ## [v4.9.3] - 2026-09-30
 
 ### Added
+
 - Introduced a developer guide for record and replay functionality, detailing how to supply custom recording hosts. This guide aids developers in utilizing the record/replay support effectively. (commit 542735d0b, commit 18e5396db)
 
 ### Changed
+
 - Enabled shared authentication cassettes for different deployment types, optimizing the login sequence in end-to-end tests. This change deduplicates the login sequence recordings across deployment types, enhancing test efficiency. (commit 397bee712)
 
 ## [v4.9.2] - 2026-09-29
 
 ### Fixed
+
 - Normalized path separators in `snapshotResolve.js` for Windows, ensuring consistent behavior across platforms. (f2419e186)
 - Self-heal master key permissions on every command execution, not just during legacy migration, to maintain secure access. (5f8beee6a)
 - Restricted permissions on credential files (master key, connection profiles, token cache) to prevent unauthorized access. These files are now written with secure permissions, addressing potential vulnerabilities on multi-user systems. (a5185272b, #649)
 
 ### Security
+
 - Improved security by restricting permissions on credential files, including the master key, connection profiles, and token cache. This change prevents unauthorized access to sensitive data on multi-user systems. (a5185272b, #649)
 
 ## [v4.9.1] - 2026-09-29
 
 ### Fixed
+
 - Corrected the default behavior of `updateRemote()` to use `isNotFoundError` for the `notFoundCheck`, ensuring consistent error handling when resources are not found. (8e476ff68)
 
 ## [v4.9.0] - 2026-09-27
 
 ### Added
+
 - Introduced the `forceUpdate` option to control imports/updates, ensuring updates occur only when changes are made. This applies to ESV variables/secrets, scripts, authorization policies, policy sets, and resource types. (d3daf084c, #646)
 
 ## [v4.8.6] - 2026-09-25
 
 ### Changed
+
 - Unified `preferredCredential` to replace the overlapping `defaultCredential` and ambient `authMode` mechanisms, resolving an issue where unrelated `--save` operations could affect authentication modes. (d4c179ab3)
 - Updated `logApi` credentials to inherit from root state on request-scoped instances, improving consistency in credential management. (1db5ec1f4)
 
 ### Fixed
+
 - Resolved an issue where `/serverinfo/*` requests were incorrectly sent authenticated from authenticated instances, ensuring proper unauthenticated access. (2a3091043)
 - Stabilized shared login cassette and fixed scope/authentication bugs in full-export operations, enhancing reliability in end-to-end testing scenarios. (34b01c1a6)
 
 ## [v4.8.6-1] - 2026-09-25
 
 ### Changed
+
 - Unified `preferredCredential` to replace the overlapping `defaultCredential` and ambient `authMode` mechanisms, resolving an issue where unrelated `--save` operations could affect authentication modes. (d4c179ab3)
 - Updated `logApi` credentials to inherit from root state on request-scoped instances, improving consistency in credential management. (1db5ec1f4)
 
 ### Fixed
+
 - Resolved an issue where `/serverinfo/*` requests were incorrectly sent authenticated from authenticated instances, ensuring proper unauthenticated access. (2a3091043)
 - Stabilized shared login cassette and fixed scope/authentication bugs in full-export operations, enhancing reliability in end-to-end testing scenarios. (34b01c1a6)
 
 ## [v4.8.5] - 2026-09-14
 
 ### Added
+
 - Added `createLogTailStream()` to the Log API, a stateful, deduped wrapper around `tail()`. PingOne Advanced Identity Cloud's own tail-endpoint documentation is explicit that each subsequent call's range "starts from the last returned log entry in the previous result (inclusive)" -- the boundary event repeats by design, and the endpoint returns no unique event id to tell repeats apart with. Confirmed live that this can go beyond just that one documented boundary event, redelivering an entire earlier batch verbatim, sometimes even within one poll's own result array. `createLogTailStream()` handles this centrally so callers doing a live polling loop (e.g. an interactive follow-style view) no longer have to reimplement cookie-tracking or dedup for themselves.
 
 - Introduced `createLogTailStream()` to the Log API, providing a stateful, deduplicated wrapper around `tail()`. This enhancement simplifies live polling loops by managing cookie-tracking and deduplication internally, addressing the issue of repeated log entries from PingOne Advanced Identity Cloud's tail-endpoint. (#645, e7432e2b1)
@@ -119,35 +174,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added bearer-token authentication mode for per-request caller identity, enabling more granular access control and integration scenarios. (d40ee07ef)
 
 ### Fixed
+
 - Corrected an issue where a connection profile could be resolved from an absent host, ensuring more reliable connection management. (4738e4ed9)
 - Enhanced support for BYOT (Bring Your Own Token) service-account-flavored tokens in cloud AM calls, improving compatibility and usability. (2e07c8cdc)
 
 ## [v4.8.4] - 2026-09-09
 
 ### Added
+
 - Implemented browser-based interactive login enhancements, including the ability to resolve `deploymentType` from a saved connection profile. This update eliminates the need for redundant `--type` flags when using `frodo login --browser <alias>`, streamlining the login process. (#644)
 
 ### Fixed
+
 - Resolved an issue with browser login credential resolution by adding a `credentialOverride` option. This fix ensures that credentials are correctly applied during browser-based authentication processes. (commit 02c64674b)
 
 ## [v4.8.3] - 2026-09-08
 
 ### Fixed
+
 - Restricted live-403 escalation to browser-started sessions only, preventing unnecessary privilege escalation attempts for service accounts or plain-user sessions. This change enhances stability by ensuring that only appropriate sessions trigger escalation processes. (#643)
 
 ## [v4.8.2] - 2026-09-08
 
 ### Fixed
+
 - Prevented escalation on 403 errors for services unavailable on the current deployment type, enhancing stability and preventing unnecessary operations. (#642)
 
 ## [v4.8.1] - 2026-09-08
 
 ### Fixed
+
 - Corrected the privilege classification logic to skip unnecessary classification when only one escalation candidate remains, preventing unexpected network calls and ensuring compatibility with Polly-replay e2e tests. (#641)
 
 ## [v4.8.0] - 2026-09-08
 
 ### Added
+
 - Implemented browser-based interactive login, supporting both loopback and device flow methods, enhancing user authentication options. (#640)
 - Introduced automatic least-privilege session escalation, improving security by dynamically adjusting session privileges as needed. (#640)
 - Added defaultCredential preference and improved visibility of ambient browser sessions, facilitating better session management. (#640)
@@ -156,20 +218,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Classified self-service-safe MCP capabilities into the 'both' trust tier, ensuring appropriate access levels. (#640)
 
 ### Fixed
+
 - Resolved login aliases in the interactive flow and fixed a mismatch in the first-save token-cache key, ensuring consistent session handling. (#640)
 
 ## [v4.7.0] - 2026-09-04
 
 ### Added
+
 - Introduced a new Telemetry API and operations functions to support `fr-config` telemetry commands, enhancing monitoring capabilities. This includes comprehensive tests for the new feature. (#638)
 - Added an optional flag to the `readJsonFile` function to ignore placeholders, providing more flexibility in JSON file handling. A corresponding test was also added to ensure functionality. (#639)
 
 ## [v4.6.1] - 2026-09-04
 
 ### Added
+
 - Outbound HTTP/HTTPS connection keep-alive (`BaseApi.ts`): the shared module-level agents (and the per-call scoped variants) now reuse outbound TCP/TLS connections between axios calls (`keepAlive: true`, `keepAliveMsecs: 1000`, `maxFreeSockets: 16`, `scheduling: 'lifo'`) instead of opening a fresh connection (TCP + TLS handshake) per request — under MCP-gateway or bulk-operation load this removes per-call connection churn, and on constrained hosts it reduces TIME_WAIT/ephemeral-port pressure. Free keep-alive sockets do not hold short-lived processes open (verified empirically on Node v24: a one-shot process making one request through the lib's agents exits naturally in ~0.2-0.3s, same as with keep-alive off, because no ref'd timer or handle survives once the request drains). Set `FRODO_NO_KEEPALIVE=1` (checked once at module-load time; `1`/`true`/`yes`, case-insensitive) to restore the old per-request-connection behavior for exotic environments or proxies that don't tolerate connection reuse.
 
 ### Fixed
+
 - Config writers are now self-sufficient for bare library consumers that never call `initConnectionProfiles()`/`initTokenCache()`: `saveTextToFile`/`saveJsonToFile` (the shared chokepoint in `ExportImportUtils.ts`), the token-cache writers in `TokenCacheOps.ts` (`saveUserSessionToken`/`saveUserBearerToken`/`saveSaBearerToken`/`saveToken`/`purge`/`flush`, plus `readToken`'s cache load), and the raw `writeFileSync` sites in `ConnectionProfileOps.ts` (`setConnectionProfileAlias`/`deleteConnectionProfileAlias`/`deleteConnectionProfile`) create the target file's directory (recursively, best-effort) before writing, instead of failing with a confusing ENOENT. The token-cache reads now treat a missing cache file as an empty cache (start fresh and create it on write) rather than failing the whole save; each site's existing failure mode is otherwise preserved (`saveTextToFile` catches+prints, token-cache ops catch+debug-log, alias ops throw `FrodoError`). The `init*` functions remain and are unchanged.
 - The `DataProtection` master-key bootstrap no longer degrades into silently encrypting under an empty key: when a new master key must be generated (no `FRODO_MASTER_KEY` env var, no existing key file), the directory portion of the key-file path (`FRODO_MASTER_KEY_PATH`, or the default `~/.frodo`) is now created before the key is written, and if the key file still cannot be written (unwritable path, a parent path component is a file, permission denied, ...) the error is rethrown instead of swallowed-and-`''`-returned — previously the encryption key silently became `scrypt('', salt, 32)`, a degenerate key recoverable by anyone, and (once the config writers became directory-bootstrapping above) the weakly-encrypted blob was actually persisted. Callers see the failure through their existing semantics: `saveConnectionProfile`/`getConnectionProfile*` throw `FrodoError`, token-cache ops catch and return false. `saveConnectionProfile` also now returns false (instead of unconditional true) when the underlying profiles-file write fails.
 
@@ -181,6 +247,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v4.6.0] - 2026-08-31
 
 ### Added
+
 - Added a semantic color-intent theme (`theme`/`themeForMode`/`resolveThemeMode`, `ColorTheme.ts`) with built-in `dark`/`light` palettes, replacing frodo-lib's previous direct, unthemed `tinyrainbow` calls. Call sites use named intents (`error`, `warning`, `command`, `emphasis`) instead of raw hue names, resolved per `state` instance (or per the `FRODO_COLOR_THEME` env var, or a `dark` default) rather than hardcoded -- `tinyrainbow`'s `*Bright` colors are unreadable on light-background terminals, and frodo-lib had no theming at all before this, unlike frodo-cli's own (non-semantic) fix for the same problem. Also callable as a tagged template (`` theme(state)`{error text}` ``) for inline substring emphasis within a larger message, supporting arbitrarily nested blocks.
   - Added `TerminalContrastFilter` (`TerminalContrast.ts`) -- an objective WCAG 2 contrast-ratio filter over the standard 16-color ANSI palette, used to choose both built-in themes' colors instead of eyeballing them. Notably, it surfaced that no yellow (plain or bright) clears WCAG AA contrast (4.5:1) against a white background at all, so the light theme's `warning` intentionally does not use yellow, unlike the dark theme's.
   - `TerminalContrastFilter`'s background reference now also accepts an arbitrary RGB triple, not just the plain black/white it was checked against originally -- lets a consumer (e.g. frodo-cli's own richer background-specific themes) objectively contrast-check colors against a real, non-black/non-white terminal background instead of only ever the nearest extreme.
@@ -194,6 +261,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `frodo.idm.managed.schema.createManagedObjectSchemaRelationshipProperty`/`updateManagedObjectSchemaRelationshipProperty`/`removeManagedObjectSchemaRelationshipProperty`, built on top of the existing single-sided `readManagedObjectSchemaProperty`/`updateManagedObjectSchemaProperty`/`removeManagedObjectSchemaProperty` v2-API primitives to add bidirectional (two-managed-object-type) relationship support: `create` can auto-create the reverse side in the same write via a `reverse` argument; `update`'s `withReverse` also updates the inferred reverse side as a second write, surfacing a distinct error (naming both sides) if that second write fails after the forward write already succeeded, with no automatic rollback; `remove`'s `withReverse` deletes the reverse side first, then the forward side, treating a 404 on the forward delete right after a successful reverse delete as success rather than an error (deleting a bidirectionally-auto-created pair's reverse side cascades and removes the forward side too, confirmed live). Also exports the supporting `ManagedObjectSchemaRelationshipPropertyFields`/`ManagedObjectSchemaRelationshipReverseFields` types, the pure `buildManagedObjectSchemaRelationshipPropertyPayload`/`extractManagedObjectSchemaRelationshipPropertyFields`/`toManagedObjectSchemaRelationshipReverseFields`/`inferManagedObjectSchemaRelationshipReverseIdentity` functions, and `readManagedObjectSchemaRelationshipPropertyOrNull` (a 404-as-`null` read, using the more robust `isNotFoundError` helper rather than a raw status check) — migrated out of frodo-cli the same way as the flat-property and type-level functions.
 
 ### Fixed
+
 - `AuthenticateOps.ts`'s deployment-type detection messages, `NodeOps.ts`'s node-type-skipped warning, and `State.ts`'s default `errorHandler` colored their output with raw, unthemed `tinyrainbow` `*Bright` calls baked directly into the message text -- unlike output routed through frodo-cli's own `printHandler`/`errorHandler` overrides, these bypassed frodo-cli's color handling entirely, since the color was already embedded in the string content before any handler saw it, so frodo-cli's own readability fix for the same underlying problem couldn't reach them. Migrated all three to the new semantic theme above.
 - `src/ext/axios-curlirize/curlirize.ts`'s fallback callback computed a colored string via `c.blueBright(...)` and then discarded it, printing the uncolored original instead (the same class of bug PR #633 fixed for a different color on an adjacent line). This callback is a last-resort default only used if a caller invokes the module without supplying its own callback -- frodo-lib's real curl-echo path (`BaseApi.ts`) always supplies one, routed through `state`'s `curlirizeHandler` -- and has no `state` in scope to resolve a theme from, so it now prints in plain, uncolored text via `console.log`/`console.error` rather than attempting (and, before, failing) to color it.
 - `createAIAgent` no longer mutates the caller-supplied `agentData` object when sanitizing the AI-agent identity field before submission. (commit 7158f7313)
@@ -204,6 +272,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `updateManagedObjectSchemaProperty`/`removeManagedObjectSchemaProperty` (and the underlying `putManagedObjectSchemaProperty`/`deleteManagedObjectSchemaProperty` API calls) now wait for the config write to fully propagate before returning by default (`?waitForCompletion=true`), matching a captured, working Platform Admin UI request for the same endpoint. IDM's schema-property config writes are asynchronous by default; an immediately-following read or dependent write (e.g. auto-creating a relationship's reverse side) could otherwise race the propagation and fail. `putConfigEntity`/`createConfigEntity`/`updateConfigEntity` already supported this via an opt-in `wait` parameter (used elsewhere, e.g. `JourneyOps`'s custom-node import); `ConfigEntityImportOptions` now also exposes an optional `wait` field, threaded through `importConfigEntities`/`importSubConfigEntity`/`removeSubConfigEntity`, defaulting to the existing (non-waiting) behavior when omitted.
 
 ### Changed
+
 - README: added a brief mention that frodo-lib's `mcp` module supplies the capability metadata/registry behind frodo-cli's turn-key MCP server, linking to frodo-cli's own MCP docs for actual usage -- kept deliberately low-key (no dedicated section, no table-of-contents entry), since frodo-lib and frodo-cli are designed as a combo and MCP is meant to be promoted as a turn-key CLI feature, not a library one, even though the primitives happen to live here.
 
 - Introduced a semantic color-intent theme with built-in `dark` and `light` palettes, replacing direct `tinyrainbow` calls. This includes `theme`/`themeForMode`/`resolveThemeMode` functions and supports named intents like `error`, `warning`, `command`, and `emphasis`. The theme can be set per `state` instance or via the `FRODO_COLOR_THEME` environment variable. It also supports tagged template usage for inline emphasis within messages. Additionally, `TerminalContrastFilter` now objectively selects colors based on WCAG 2 contrast ratios, and terminal background detection is available via `TerminalBackgroundDetection.ts` for better theme adaptation. (commit f04b32a91, #635)
@@ -226,18 +295,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v4.5.0] - 2026-08-25
 
 ### Added
+
 - Introduced `OidcNode` condition in `JourneyOps` to enhance scripted node conditions. (commit 672a907e8)
 - Added structured provisioning status for `createAIAgent` and normalized identity UID in `AgentOps`. (commit bffb6a296)
 - Implemented Cloud-only individual schema property CRUD operations in `ManagedObjectOps`. (commit 986133b6b)
 - Added node schema discovery and Just-In-Time (JIT) find-or-create functionality in `NodeOps`. (commit 08507f623)
 
 ### Changed
+
 - Guarded managed-system-object types on generic config paths and exported realm-context helper for MCP resolvers. (commit 82feaf5e1)
 - Split schema operations into dedicated files and hardened system-type guards in `ManagedObjectOps`. (commit 471260760)
 - Enhanced MCP capability surface by excluding cache domain and correcting risk classifications. (commit 321e1334c, 65f837f9d, 885e9cb8c)
 - Updated `generate-help.mjs` to fix signature parsing and scan utilities, excluding non-agentic utility tools. (commit f0f1a5f94)
 
 ### Fixed
+
 - Completed a sweep to correct misclassification of "not found" errors across create-if-absent flows. (commit 3bc50b922)
 - Stopped treating any read failure as "not found" in `AgentOps` and `OAuth2ClientOps`. (commit 565089122)
 - Made auto-derived parameters the master and used overrides for annotation only in MCP. (commit 28c7b2eba)
@@ -245,12 +317,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v4.4.2] - 2026-08-20
 
 ### Fixed
+
 - `MappingOps.readSyncMappings` and `MappingOps.updateMapping` no longer throw `Cannot read properties of null (reading 'name')` when a tenant's legacy `sync.json` `mappings` array contains a null/malformed entry; such entries are now skipped instead of aborting the operation. (PR #631)
 - `ThemeOps.getRealmThemes` now filters out null/malformed entries from the `ui/themerealm` config entity's per-realm theme array, preventing `Cannot read properties of null (reading 'name'/'_id')` in `readTheme`, `readThemeByName`, `exportThemes`, `updateTheme`, and `updateThemes`. (PR #631)
 
 ## [v4.4.1] - 2026-08-19
 
 ### Added
+
 - Added `readScriptSource`, `readScriptSourceByName`, and `updateScriptSource` to `ScriptOps`, returning/accepting a script's plain-text source directly instead of the full `ScriptSkeleton` wrapper.
 - Added `listScripts` to `ScriptOps`, returning lightweight script summaries (`_id`, `name`, `context`, `language`, `evaluatorVersion`, `default`) without script bodies.
 - Added a `required` flag to Help.ts's generated parameter metadata, derived from the real TypeScript signature rather than JSDoc prose.
@@ -258,6 +332,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The MCP tool runtime now enforces a default response-size safety net for list/search results, slicing oversized array responses by a byte budget (with pagination continuation metadata) instead of only warning about them.
 
 ### Fixed
+
 - Corrected `script.getLibraryScriptNames`'s capability metadata: it is a local helper requiring a `ScriptSkeleton` argument, not a parameterless list operation, and is now excluded from the MCP capability surface.
 
 - Added `readScriptSource`, `readScriptSourceByName`, and `updateScriptSource` to `ScriptOps`, allowing direct interaction with a script's plain-text source instead of the full `ScriptSkeleton` wrapper. (b97c90d11)
@@ -271,16 +346,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v4.4.0] - 2026-08-18
 
 ### Added
+
 - Introduced functions to load environment files and replace environment-specific values, enhancing configuration management capabilities. This includes support for config manager placeholders and associated tests. (#625, af75c9b6d)
 
 ## [v4.3.3] - 2026-08-18
 
 ### Fixed
+
 - Stopped probing IDM version on every login, resolving it lazily for ForgeOps discovery only, optimizing login performance. (#629)
 
 ## [v4.3.2] - 2026-08-18
 
 ### Added
+
 - Introduced `frodo.utils.version.getBuildTimestamp()` to expose a real build timestamp for builds. This utility aids in tracking and debugging build versions. (#89d093539)
 - Added relationship read/add/remove/replace helpers to `ManagedObjectOps`, enhancing the management of object relationships. (#47246e950)
 - Implemented `cloud.log.searchEvents`, a composed audit-search primitive that auto-chunks search events across the Log API's ~24-hour window limit. (#568773fbb)
@@ -290,10 +368,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added tracking of IDM version alongside AM version in the state module, improving version management. (#590e4fab8)
 
 ### Changed
+
 - Refactored `resolvePerpetratorUuid` into a structured `resolveIdentity`, enhancing identity resolution processes. (#b44859954)
 - Allowed explicit classification overrides in capability metadata, offering more flexibility in capability management. (#7e2d5c36b)
 
 ### Fixed
+
 - Stopped the routing tier from overriding query relevance and added symmetric caller-identity semantic aliases, improving query accuracy. (#43a5c2009)
 - Made `find_skills`' notes field competitive and ceased boosting mutating identity skills, ensuring fair skill evaluation. (#96eacce83)
 - Prevented leaking of live bearer/session tokens through `info.getInfo` and documented `getSessionInfo`'s service-account caveat, enhancing security. (#eda17baff)
@@ -305,30 +385,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Populated log API credentials during generic login, ensuring proper credential management. (#e1071c1f7)
 
 ### Documentation
+
 - Documented the relationship-write pattern on managed object PATCH, providing guidance for developers. (#e833c28f5)
 - Updated documentation to teach `cloud.log.*` the log-source taxonomy and filter syntax, clarifying logging capabilities. (#11946888f)
 
 ## [v4.3.1] - 2026-08-17
 
 ### Changed
+
 - Internal pipeline update release. This release updates CI/CD or release automation under `.github/` without changing functional behavior.
 
 ## [v4.3.0] - 2026-08-17
 
 ### Added
+
 - Introduced semantic skill aliases in the MCP module, enabling fuzzy catalog-term matching for more flexible object-family resolution without exact-string coupling. This feature enhances the adaptability of object management by allowing semantic identifier matching. (#626, commit 5b739f538)
 - Added config-entity hydration in the MCP module, which unifies discovery hydration processes. The new `hydrateMcpDiscoveryContext()` function supports both managed-object type hydration and config entity execution, streamlining configuration management. (#626, commit 5b739f538)
 - Implemented a library function to prune old secret versions, aiding in the management of secret versioning and potentially supporting future CLI commands for secret version pruning. (#624, commit a8643f59f)
 
 ### Changed
+
 - Enhanced the MCP module with executeRecommended auto-dispatch functionality, improving the automation and efficiency of recommended actions within the system. (#626, commit 5b739f538)
 
 ### Fixed
+
 - Improved semantic identifier matching in the MCP module, enhancing the accuracy and reliability of object-family resolution processes. (#626, commit 5b739f538)
 
 ## [v4.2.1] - 2026-08-08
 
 ### Added
+
 - Introduced dynamic resolution of managed object families in the MCP module, enhancing flexibility in handling object hierarchies. This feature allows for more adaptive and context-aware management of object relationships. (#623, commit f6e258993)
 - Added semantic object family discovery in the MCP module, improving the ability to categorize and manage objects based on their semantic relationships. This addition facilitates more intuitive and efficient object management. (#623, commit f3e1dccd1)
 - Enhanced managed-object discovery and diagnostics in the MCP module, providing improved tools for identifying and troubleshooting object configurations. This enhancement aids developers in maintaining and optimizing their deployments. (#623, commit 825ef8e58)
@@ -336,49 +422,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v4.2.0] - 2026-08-08
 
 ### Added
+
 - Introduced deployment-aware capability routing in the MCP module, allowing for more dynamic and context-sensitive routing of capabilities. This enhances the flexibility and scalability of deployments. (#622, commit 34b345d0)
 - Added a new MCP profile registry, which enables the registration and management of profiles within the MCP system. This feature supports better organization and retrieval of profile data. (#622, commit f619290f)
 
 ### Changed
+
 - Switched the canonical API to use skills naming within the MCP module, aligning terminology with industry standards and improving developer understanding and integration. (#622, commit c6d1d856)
 - Adopted a hybrid MCP dispatch runtime, optimizing the performance and responsiveness of the MCP system by integrating multiple dispatch strategies. (#622, commit 648c7ec3)
 
 ### Fixed
+
 - Normalized skills assertions formatting in MCP tests, improving the consistency and reliability of test outputs. (commit 78a879c1)
 
 ## [v4.1.8] - 2026-08-07
 
 ### Changed
+
 - Updated the service account naming scheme to be more user-identifiable, enhancing clarity when managing multiple accounts. This change improves the readability and management of service accounts within the system. (#620, commit e51d2f14)
 
 ## [v4.1.7] - 2026-08-03
 
 ### Changed
+
 - Internal changes only. This release does not introduce functional behavior changes.
 
 ## [v4.1.6] - 2026-08-02
 
 ### Changed
+
 - Internal pipeline update release. This release updates CI/CD or release automation under `.github/` without changing functional behavior.
 
 ## [v4.1.5] - 2026-08-02
 
 ### Changed
+
 - Cosmetic version update release. This release records a version or release-state change without additional functional behavior changes.
 
 ## [v4.1.4] - 2026-08-02
 
 ### Changed
+
 - Internal pipeline update release. This release updates CI/CD or release automation under `.github/` without changing functional behavior.
 
 ## [v4.1.3-2] - 2026-08-01
 
 ### Changed
+
 - Internal pipeline update release. This release updates CI/CD or release automation under `.github/` without changing the action's functional behavior.
 
 ## [v4.1.3-1] - 2026-08-01
 
 ### Added
+
 - Introduced API functions for importing raw configuration with `fr-config-manager` push commands, enhancing flexibility in configuration management. (#567)
 - Added support for AI agent integration and improved handling of managed objects. (#580)
 - Implemented library functions to export, import, and delete IGA-related configurations, including workflows, events, certification templates, request forms, and glossaries. This facilitates comprehensive IGA management within the library. (#554, #553, #552, #551)
@@ -386,11 +482,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added ability to determine if a tenant is an IGA tenant, enabling conditional access to IGA endpoints. (#546)
 
 ### Changed
+
 - Enhanced error handling and security features, and updated node APIs to be version-aware. (#588, #587)
 - Refactored realm naming to support dashes, maintaining backward compatibility by escaping '-' as '--'. (#581)
 - Improved agent import logic to handle identity inclusion, enhancing code clarity. (#589)
 
 ### Fixed
+
 - Resolved a bug where indeterminate loading spinners conflicted with curlirize messages in the console by routing messages through `printMessage` and `printError`. (#583)
 - Fixed an issue with Forgeops deployments to allow full AM configuration export/import. (#582)
 - Corrected a bug in app deletion to ensure connector and mapping dependencies are deleted when `deep=true`. (#547)
@@ -401,6 +499,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved AM version parsing to handle incomplete serverinfo responses gracefully. (#594)
 
 ### Removed
+
 - Removed functions deprecated in versions 2.0.0 and 4.0.0, streamlining the codebase. (#565)
 
 ## [4.1.3-0] - 2026-07-25
@@ -975,14 +1074,14 @@ The 2.x version of the library automatically refreshes session and access tokens
 - Kept supporting Node.js 18.
 - Added support for Node.js 20 and 22.
 
-| Node.js |    frodo-lib 1.x   | **_frodo-lib 2.x_** |    frodo-lib 3.x   |
+| Node.js |   frodo-lib 1.x    | **_frodo-lib 2.x_** |   frodo-lib 3.x    |
 | :-----: | :----------------: | :-----------------: | :----------------: |
-|    14   | :white_check_mark: |  :heavy_minus_sign: | :heavy_minus_sign: |
-|    16   | :white_check_mark: |  :heavy_minus_sign: | :heavy_minus_sign: |
-|    18   | :white_check_mark: |  :white_check_mark: | :heavy_minus_sign: |
-|    20   | :heavy_minus_sign: |  :white_check_mark: | :white_check_mark: |
-|    22   | :heavy_minus_sign: |  :white_check_mark: | :white_check_mark: |
-|    24   | :heavy_minus_sign: |  :heavy_minus_sign: | :white_check_mark: |
+|   14    | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
+|   16    | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
+|   18    | :white_check_mark: | :white_check_mark:  | :heavy_minus_sign: |
+|   20    | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
+|   22    | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
+|   24    | :heavy_minus_sign: | :heavy_minus_sign:  | :white_check_mark: |
 
 ### Considerations
 
@@ -1303,7 +1402,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
     Member style import any other modules from the library:
 
     ```javascript
-    import { frodo, state, FrodoLib } from '@rockcarver/frodo-lib';
+    import { frodo, FrodoLib, state } from '@rockcarver/frodo-lib';
     ```
 
   - CJS:

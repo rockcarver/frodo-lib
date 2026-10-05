@@ -6,7 +6,7 @@ is the companion to [PIPELINE.md](PIPELINE.md); the CLI keeps its own copy
 (`docs/BUILD-ENV.md` there) for the pieces that differ (binary packaging,
 SEA, Homebrew).
 
-_Last updated: 2026-10-03 (tooling modernization)._
+_Last updated: 2026-10-05 (v5.0.0-1 premajor train)._
 
 ---
 
@@ -41,12 +41,12 @@ Release automation:
 
 **What it does**: bundles `src/index.ts` into a hybrid package:
 
-| Output                       | Format   | Role                                                                                             |
-| ---------------------------- | -------- | ------------------------------------------------------------------------------------------------ |
-| `dist/index.js`              | CJS      | `"require"` condition (~6.6 MB)                                                                  |
-| `dist/index.mjs`             | ESM      | `"import"` condition (~6.5 MB)                                                                   |
-| `dist/index.d.ts` / `.d.mts` | dts      | type surface (tsdown, oxc resolver)                                                              |
-| `types/`                     | tsc emit | the full per-file public type tree (kept on tsc deliberately — same emitter as before, per plan) |
+| Output                       | Format   | Role                                                                                                                                                                                             |
+| ---------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `dist/index.js`              | CJS      | `"require"` condition (~6.6 MB)                                                                                                                                                                  |
+| `dist/index.mjs`             | ESM      | `"import"` condition (~6.5 MB)                                                                                                                                                                   |
+| `dist/index.d.ts` / `.d.mts` | dts      | type surface (tsdown, oxc resolver). Since #687 (4.12.0), re-exports all 120 data-model type names from the root entry — this is the supported consumer type surface                             |
+| `types/`                     | tsc emit | the full per-file public type tree (kept on tsc deliberately — same emitter as before, per plan). Serves the deprecated `./types/*` deep-import subpath; scheduled for removal in a future major |
 
 **Why tsdown**: tsup is unmaintained and had a real defect (below). Build
 time dropped from ~3.0 s to ~1.75 s. Verified at migration: 62/62 export
@@ -106,6 +106,24 @@ members.
   help data first (it feeds the bundle), then the bundle, then the tsc
   `types/` tree. `generate-types` (`tsc`) is deliberately unchanged from the
   pre-tsdown emitter — the public type surface is byte-compatible.
+
+### 3.1 Type surface (post #687, 4.12.0)
+
+- `src/index.ts` carries ~230 lines of explicit `export type {...} from
+'./module'` blocks re-exporting the 120 data-model type names consumers
+  (frodo-cli) actually import. Before #687, those names were
+  declared-but-unexported in `dist/index.d.ts` (TS2459 for deep-import
+  consumers).
+- The `./types/*` exports subpath (restored in #685 after the #676 allowlist
+  dropped it) is DEPRECATED: it only resolves under `moduleResolution:
+node` (node10), which TypeScript 6 deprecates and 7 removes. Consumers
+  should import from the root entry. Removal is planned for a future
+  major (5.0.0 stable notes carry the deprecation).
+- Known d.ts imperatives for 5.0.0 cleanup: `dist/index.d.ts` line 1
+  `import { Reader } from "properties-reader"` is unresolvable for
+  external consumers (properties-reader is a devDependency), and the d.ts
+  maps point at unpublished `src/` paths. Two TS2411 index-signature
+  errors (sessionToken, installedVersion) are pre-existing.
 
 ---
 
@@ -187,7 +205,11 @@ gracefully skips when axios is absent.
 ## 7. CI/CD pipeline (summary; details in PIPELINE.md)
 
 `pipeline.yml` — PRs and pushes validate; releases are manual
-`workflow_dispatch` (prerelease/patch/minor/major, dry-run supported).
+`workflow_dispatch` (prerelease/premajor/patch/minor/major, dry-run
+supported). `premajor` (added #688) starts/continues an X.0.0-1 prerelease
+train for the next major — the action maps it to `is_prerelease=true` +
+`publish_tag=next`, so the dual-release block, GitHub release prerelease
+flag, and changelog action all handle it without further gating.
 
 Jobs: Build (deep checkout with tags, version bump, build + typedoc into
 `build.zip`) → Test (Node 22/24/26 + cross-platform credential-file
@@ -241,5 +263,7 @@ whose required checks never run could never merge.
 | 2026-10-03 | npm `files` allowlist                                                                                                                                                                                                                                               | this PR         |
 | 2026-10-03 | ESLint 9→10 (native flat config), Prettier-owns-imports via `@ianvs/prettier-plugin-sort-imports`; `eslint-plugin-prettier`, `simple-import-sort`, `jest`, `import` plugins removed; scripts `fix`/`check`; ~25 dead initializers + 1 `preserve-caught-error` fixed | this PR         |
 | 2026-10-04 | Dev-tree security pins: `qs` →^6.16.0, root-level override `basic-ftp` →6.2.1 (no upstream fix in the get-uri chain)                                                                                                                                                | #679            |
-| 2026-10-04 | Release job pushes via org-wide `FRODO_CI_PAT` (fine-grained PAT, org secret, selected-repo visibility) — required status checks reject `github-actions[bot]` pushes; PAT-as-repo-admin rides the ruleset bypass                                                 | #684            |
+| 2026-10-04 | Release job pushes via org-wide `FRODO_CI_PAT` (fine-grained PAT, org secret, selected-repo visibility) — required status checks reject `github-actions[bot]` pushes; PAT-as-repo-admin rides the ruleset bypass                                                    | #684            |
+| 2026-10-05 | Root type exports: `src/index.ts` re-exports all 120 cli-consumed data-model type names from the root entry; `./types/*` subpath deprecated (node10-resolution only, dies in TS 7) — removal planned for a future major                                             | #687            |
+| 2026-10-05 | `premajor` release-type option in pipeline dispatch (X.0.0-1 train for the next major; first exercised by the 5.0.0-1 release)                                                                                                                                      | #688            |
 | planned    | Polly→nock — DEFERRED (deep record-harness coupling; revisit on Node 28 or real breakage)                                                                                                                                                                           | —               |
