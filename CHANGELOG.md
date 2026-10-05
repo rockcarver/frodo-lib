@@ -10,6 +10,11 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-4] - 2026-10-05
+
+### Changed
+- Internal changes only. This release does not introduce functional behavior changes.
+
 ## [v5.0.0-3] - 2026-10-05
 
 ### Deprecated
@@ -2630,6 +2635,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-4]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-3...v5.0.0-4
 [v5.0.0-3]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-2...v5.0.0-3
 [v5.0.0-2]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-1...v5.0.0-2
 [v5.0.0-1]: https://github.com/rockcarver/frodo-lib/compare/v4.12.0...v5.0.0-1

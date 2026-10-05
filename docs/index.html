@@ -1,5 +1,5 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="./"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>Frodo Library - v5.0.0-3</title><meta name="description" content="Documentation for Frodo Library"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script defer src="assets/main.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script><script async src="assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
-<div class="tsd-toolbar-contents container"><a href="index.html" class="title">Frodo Library - v5.0.0-3</a>
+<!DOCTYPE html><html class="default" lang="en" data-base="./"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>Frodo Library - v5.0.0-4</title><meta name="description" content="Documentation for Frodo Library"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script defer src="assets/main.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script><script async src="assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="index.html" class="title">Frodo Library - v5.0.0-4</a>
 <div id="tsd-toolbar-links"><a href="https://github.com/rockcarver/frodo-lib">Project Home</a></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
 <ul role="listbox" id="tsd-search-results"></ul>
 <div id="tsd-search-status" aria-live="polite" aria-atomic="true">
@@ -7,7 +7,7 @@
 <div class="container container-main">
 <div class="col-content">
 <div class="tsd-page-title">
-<h1>Frodo Library - v5.0.0-3</h1></div>
+<h1>Frodo Library - v5.0.0-4</h1></div>
 <div class="tsd-panel tsd-typography"><!-- README.md for GitHub; the one for NPM is ../README.md. -->
 <h1 id="frodo-library-5x-rockcarverfrodo-lib" class="tsd-anchor-link">Frodo Library 5.x - @rockcarver/frodo-lib<a href="#frodo-library-5x-rockcarverfrodo-lib" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h1>
 <p>A hybrid (ESM and CJS) library to manage PingOne Advanced Identity Cloud environments, ForgeOps deployments, and classic deployments.</p>
@@ -48,16 +48,29 @@ version, with replacements — is maintained in the
 <code>delete*</code> equivalents on the same module). Four deprecated
 <code>frodo.cloud.variable</code> functions and the journey/node classification
 functions were overlooked; <strong>5.0.0</strong> removes them.</li>
-<li><strong>5.x</strong> removes those four <code>frodo.cloud.variable</code> functions and the
-journey/node classification functions (see the
-<a href="#deprecations">Deprecations</a> section below for the lists), and
-deprecates the <code>./types/*</code> deep-import subpath (see
+<li><strong>5.0.0</strong> removes the four deprecated <code>frodo.cloud.variable</code> functions
+(<code>getVariable</code>, <code>getVariables</code>, <code>putVariable</code>, <code>setVariableDescription</code>;
+replaced by <code>readVariable</code>, <code>readVariables</code>, <code>createVariable</code>/
+<code>updateVariable</code>, <code>updateVariableDescription</code>) and the journey/node
+classification functions deprecated in 4.0.0: <code>frodo.authn.journey</code>
+(<code>isCustomJourney</code>, <code>isPremiumJourney</code>, <code>isCloudOnlyJourney</code>,
+<code>getJourneyClassification</code>, <code>JourneyClassificationType</code>,
+<code>JourneyClassification</code>) and <code>frodo.authn.node</code> (<code>isPremiumNode</code>,
+<code>isCloudOnlyNode</code>, <code>isCloudExcludedNode</code>, <code>isDeprecatedNode</code>,
+<code>isCustomNode</code>, <code>getNodeClassification</code>, <code>NodeClassificationType</code>,
+<code>NodeClassification</code>) — removed without replacement, as the product no
+longer classifies journeys or nodes.</li>
+<li><strong>5.x</strong> deprecates the <code>./types/*</code> deep-import subpath (see
 <a href="#using-the-library">Using the library</a>).</li>
 </ul>
 <h3 id="deprecations" class="tsd-anchor-link">Deprecations<a href="#deprecations" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul>
-<li>Deprecated all journey classification functions in <code>frodo.authn.journey</code>: <code>isCustomJourney</code>, <code>isPremiumJourney</code>, <code>isCloudOnlyJourney</code>, <code>getJourneyClassification</code> — <strong>removed in 5.0.0</strong></li>
-<li>Deprecated all node classification functions in <code>frodo.authn.node</code>: <code>isPremiumNode</code>, <code>isCloudOnlyNode</code>, <code>isCloudExcludedNode</code>, <code>isDeprecatedNode</code>, <code>isCustomNode</code>, <code>getNodeClassification</code> — <strong>removed in 5.0.0</strong></li>
+<li>Deprecated the <code>@rockcarver/frodo-lib/types/&lt;module&gt;</code> deep-import
+subpath since 4.12.0: it only resolves under the legacy
+<code>moduleResolution: node</code> mode, which TypeScript 6 deprecates and 7
+removes. Migrate to root imports — see
+<a href="#using-the-library">Using the library</a>. Planned for removal in a
+future major.</li>
 </ul>
 <h2 id="about" class="tsd-anchor-link">About<a href="#about" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <h3 id="how-frodo-works" class="tsd-anchor-link">How Frodo Works<a href="#how-frodo-works" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
@@ -649,7 +662,7 @@ removed in a future major release. Use root imports instead.</p>
 <li><a href="#maintaining"><span>Maintaining</span></a></li></ul></div></details></div>
 <div class="site-menu">
 <nav id="tsd-sidebar-links" class="tsd-navigation"><a href="https://github.com/rockcarver/frodo-lib" class="tsd-nav-link">Project Home</a></nav>
-<nav class="tsd-navigation"><a href="modules.html">Frodo Library - v5.0.0-3</a>
+<nav class="tsd-navigation"><a href="modules.html">Frodo Library - v5.0.0-4</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">
 <li>Loading...</li></ul></nav></div></div></div><footer></footer>
 <div class="overlay"></div></body></html>
