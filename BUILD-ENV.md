@@ -15,7 +15,7 @@ _Last updated: 2026-10-05 (v5.0.0-1 premajor train)._
 ```
 TypeScript sources (src/)
   │
-  ├─ jest 30 .............. test (2,433 tests, 927 snapshots, Polly cassettes)
+  ├─ jest 30 .............. test (test counts shift with the suite; see §4)
   │
   ├─ generate-help ........ scripts/generate-help.mjs (help data for frodo-cli)
   ├─ tsdown (rolldown) .... bundle src/index.ts -> dist/index.{js,mjs} + dts
@@ -104,8 +104,11 @@ members.
   `typescript-eslint` (<6.1) and `ts-jest` (<7) accept them.
 - `npm run build` = `generate-help && tsdown && clean-types && generate-types`:
   help data first (it feeds the bundle), then the bundle, then the tsc
-  `types/` tree. `generate-types` (`tsc`) is deliberately unchanged from the
-  pre-tsdown emitter — the public type surface is byte-compatible.
+  `types/` tree. `generate-types` = `tsc` (deliberately unchanged from the
+  pre-tsdown emitter — the public type surface is byte-compatible) followed
+  by `scripts/deprecate-types-subpath.cjs`, which stamps the formal
+  `@deprecated` banner for the `./types/*` subpath onto every generated
+  declaration file (idempotent).
 
 ### 3.1 Type surface (post #687, 4.12.0)
 
@@ -139,7 +142,7 @@ node` (node10), which TypeScript 6 deprecates and 7 removes. Consumers
   `importPKCS8` for the amster PEM flow.
 - `@peculiar/x509` requires `reflect-metadata` imported first (tsyringe) —
   test suites that build certificates import it explicitly.
-- Full suite: 153 suites / 2,433 tests / 927 snapshots (~3 min).
+- Full suite: 153 suites / 2,404 tests / 888 snapshots (~3 min) after the v5 deprecation-removal sweep — counts drift with API surface, so treat them as indicative.
 - NOTE (2026-10): the Polly stack is unmaintained (2023). A nock/MSW spike
   (2026-10-03) proved replay fidelity on the gnarliest recording (425/425
   exact via a ~60-line HAR converter) but found deep Polly coupling in the

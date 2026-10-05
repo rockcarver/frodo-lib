@@ -2470,13 +2470,6 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Answers "which journey uses this script?" — a config dependency question no other skill can answer, since the reference only lives on individual node objects (node.script), not on the journey itself or the script. Implemented as a full-realm scan (bulk-reads every node and every journey once, then joins in memory — no per-node fetches), so it stays cheap even on realms with many journeys. Each result reports the journey and the top-level node it actually references; when the script is used by a node nested inside a container node (e.g. a Page Node), the result also carries innerNodeId for the specific nested node, since a journey\'s own node map only ever points at the container. Returns an empty array, not an error, when nothing references the script.',
   },
-  'authn.journey.getJourneyClassification': {
-    // @deprecated since v4.0.0: "Frodo no longer classifies journeys as
-    // 'custom' or 'standard' or 'cloud-only' or 'premium'. This function
-    // will be removed in a future major release." ForgeRock's own JSDoc
-    // says the product no longer tracks this categorization.
-    excluded: true,
-  },
   'authn.journey.getNodeRef': {
     // Takes a full NodeSkeleton + SingleTreeExportInterface as input, not a
     // simple identifier — internal plumbing used while processing an export
@@ -2494,18 +2487,6 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     // reference arguments (installedJorneys/journeyMap/etc.) in place — a
     // pattern with no meaning across an MCP call boundary, since the caller
     // never sees those mutated locals. Effectively a dead call over MCP.
-    excluded: true,
-  },
-  'authn.journey.isCloudOnlyJourney': {
-    // @deprecated since v4.0.0, same rationale as getJourneyClassification.
-    excluded: true,
-  },
-  'authn.journey.isCustomJourney': {
-    // @deprecated since v4.0.0, same rationale as getJourneyClassification.
-    excluded: true,
-  },
-  'authn.journey.isPremiumJourney': {
-    // @deprecated since v4.0.0, same rationale as getJourneyClassification.
     excluded: true,
   },
   'authn.journey.fileByIdTreeExportResolver': {
@@ -2542,11 +2523,6 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     mutating: false,
     riskClass: 'low',
   },
-  'authn.node.getNodeClassification': {
-    // @deprecated, same rationale as authn.journey.getJourneyClassification
-    // — ForgeRock no longer tracks node classification.
-    excluded: true,
-  },
   'authn.node.removeOrphanedNodes': {
     operationType: 'delete',
     objectType: 'OrphanedNode',
@@ -2554,27 +2530,6 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     destructive: true,
     riskClass: 'high',
     notes: 'Bulk-deletes orphaned node configuration objects.',
-  },
-  'authn.node.isCloudExcludedNode': {
-    excluded: true, // @deprecated, same rationale as getNodeClassification
-  },
-  'authn.node.isCloudOnlyNode': {
-    excluded: true, // @deprecated, same rationale as getNodeClassification
-  },
-  'authn.node.isCustomNode': {
-    // @deprecated, same rationale as getNodeClassification. Also has
-    // opposing, unreliable fallback behavior (default: case returns true)
-    // for any AM version not in its hardcoded list.
-    excluded: true,
-  },
-  'authn.node.isDeprecatedNode': {
-    // @deprecated, same rationale as getNodeClassification. Also has
-    // opposing, unreliable fallback behavior (default: case returns false)
-    // for any AM version not in its hardcoded list.
-    excluded: true,
-  },
-  'authn.node.isPremiumNode': {
-    excluded: true, // @deprecated, same rationale as getNodeClassification
   },
 
   // Local SDK plumbing, not tenant capabilities. `cache` is frodo's local
@@ -2777,15 +2732,6 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes: 'Applies platform updates to the environment.',
   },
 
-  'cloud.variable.getVariable': {
-    // @deprecated 1:1 alias of readVariable, same underlying call — same
-    // precedent as the existing utils.getHostBaseUrl exclusion.
-    excluded: true,
-  },
-  'cloud.variable.getVariables': {
-    // @deprecated 1:1 alias of readVariables.
-    excluded: true,
-  },
   'cloud.variable.readVariable': {
     operationType: 'read',
     objectType: 'Variable',
@@ -2805,16 +2751,6 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     objectType: 'Variable',
     mutating: false,
     riskClass: 'medium',
-  },
-  'cloud.variable.putVariable': {
-    // @deprecated 1:1 alias of updateVariable — inference already gives
-    // updateVariable itself the correct medium/mutating classification, no
-    // override needed there.
-    excluded: true,
-  },
-  'cloud.variable.setVariableDescription': {
-    // @deprecated 1:1 alias of updateVariableDescription.
-    excluded: true,
   },
   'cloud.variable.updateVariableDescription': {
     operationType: 'update',

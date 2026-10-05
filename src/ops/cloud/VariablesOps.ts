@@ -129,61 +129,6 @@ export type Variable = {
     input: string,
     variables: Record<string, VariableSkeleton>
   ): Promise<string>;
-
-  // Deprecated
-
-  /**
-   * Get variable by id/name
-   * @param {string} variableId variable id/name
-   * @returns {Promise<VariableSkeleton>} a promise that resolves to a variable object
-   * @deprecated since v2.0.0 use {@link Variable.readVariable | readVariable} instead
-   * ```javascript
-   * readVariable(variableId: string): Promise<VariableSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  getVariable(variableId: string): Promise<VariableSkeleton>;
-  /**
-   * Get all variables
-   * @returns {Promise<VariableSkeleton[]>} a promise that resolves to an array of variable objects
-   * @deprecated since v2.0.0 use {@link Variable.readVariables | readVariables} instead
-   * ```javascript
-   * readVariables(): Promise<VariableSkeleton[]>
-   * ```
-   * @group Deprecated
-   */
-  getVariables(): Promise<VariableSkeleton[]>;
-  /**
-   * Create variable
-   * @param {string} variableId variable id/name
-   * @param {string} valueBase64 base64-encoded variable value
-   * @param {string} description variable description
-   * @param {VariableExpressionType} expressionType type of the value
-   * @returns {Promise<VariableSkeleton>} a promise that resolves to a variable object
-   * @deprecated since v2.0.0 use {@link Variable.createVariable | createVariable} instead
-   * ```javascript
-   * createVariable(variableId: string, value: string, description: string, expressionType?: VariableExpressionType): Promise<VariableSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  putVariable(
-    variableId: string,
-    valueBase64: string,
-    description: string,
-    expressionType?: VariableExpressionType
-  ): Promise<VariableSkeleton>;
-  /**
-   * Set variable description
-   * @param {string} variableId variable id/name
-   * @param {string} description variable description
-   * @returns {Promise<any>} a promise that resolves to an empty string
-   * @deprecated since v2.0.0 use {@link Variable.updateVariableDescription | updateVariableDescription} instead
-   * ```javascript
-   * updateVariableDescription(variableId: string, description: string): Promise<any>
-   * ```
-   * @group Deprecated
-   */
-  setVariableDescription(variableId: string, description: string): Promise<any>;
 };
 
 export default (state: State): Variable => {
@@ -271,40 +216,6 @@ export default (state: State): Variable => {
       variables: Record<string, VariableSkeleton>
     ): Promise<string> {
       return resolveVariable({ input, variables, state });
-    },
-
-    // Deprecated
-
-    async getVariable(variableId: string): Promise<VariableSkeleton> {
-      return readVariable({ variableId, noDecode: true, state });
-    },
-    async getVariables(): Promise<VariableSkeleton[]> {
-      return readVariables({ noDecode: true, state });
-    },
-    async putVariable(
-      variableId: string,
-      valueBase64: string,
-      description: string,
-      expressionType: VariableExpressionType = 'string'
-    ): Promise<VariableSkeleton> {
-      return updateVariable({
-        variableId,
-        value: valueBase64,
-        description,
-        expressionType,
-        noEncode: true,
-        state,
-      });
-    },
-    async setVariableDescription(
-      variableId: string,
-      description: string
-    ): Promise<any> {
-      return updateVariableDescription({
-        variableId,
-        description,
-        state,
-      });
     },
   };
 };

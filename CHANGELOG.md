@@ -5,11 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+For a per-major summary of breaking changes and how to migrate, see the
+[Migration Guide](MIGRATION.md).
+
 ## Unreleased
 
 ## [v5.0.0-2] - 2026-10-05
 
 ### Changed
+
 - Internal changes only. This release does not introduce functional behavior changes.
 
 ## [v5.0.0-1] - 2026-10-05
@@ -48,6 +52,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Infrastructure (no functional changes)
 
 - Release automation: stable `Test gate` job over the versioned Node matrix, CI on docs-only PRs, workflow auto-merge for Dependabot patch/minor PRs, branch-protection ruleset, dual npm publish (stable → `latest`, companion `-1` → `next`), npm trusted publishing with provenance. (#669, #675, #682)
+
+### Removed
+
+- Removed the four `frodo.cloud.variable` functions that were deprecated since v2.0.0 but overlooked in the 4.0.0 removal sweep: `getVariable`, `getVariables`, `putVariable`, `setVariableDescription`. Replacements on the same module: `readVariable`, `readVariables`, `createVariable`/`updateVariable`, `updateVariableDescription`. The raw `VariablesApi` request-layer functions are unchanged (internal primitives used by the modern operations).
+- Removed the journey classification functions deprecated since v4.0.0: `frodo.authn.journey.isCustomJourney`, `isPremiumJourney`, `isCloudOnlyJourney`, `getJourneyClassification`, plus the `JourneyClassificationType` type and `JourneyClassification` enum. Removed without replacement — Frodo no longer classifies journeys.
+- Removed the node classification functions deprecated since v4.0.0: `frodo.authn.node.isPremiumNode`, `isCloudOnlyNode`, `isCloudExcludedNode`, `isDeprecatedNode`, `isCustomNode`, `getNodeClassification`, plus the `NodeClassificationType` type, the `NodeClassification` enum, and the internal OOTB/premium/cloud-only/cloud-excluded/deprecated node-type tables they consumed. Removed without replacement — Frodo no longer classifies nodes.
 
 ### Removed (planned for 5.0.0 stable)
 

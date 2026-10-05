@@ -15,9 +15,6 @@ jest.unstable_mockModule('../api/TreeApi', () => ({
 
 jest.unstable_mockModule('./NodeOps', () => ({
   importCustomNodes: jest.fn(),
-  isCloudOnlyNode: jest.fn(() => false),
-  isCustomNode: jest.fn(() => false),
-  isPremiumNode: jest.fn(() => false),
   readCustomNode: jest.fn(),
   readNode: readNodeMock,
   readNodes: jest.fn(),
