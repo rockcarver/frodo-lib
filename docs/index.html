@@ -1,5 +1,5 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="./"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>Frodo Library - v5.0.0-2</title><meta name="description" content="Documentation for Frodo Library"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script defer src="assets/main.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script><script async src="assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
-<div class="tsd-toolbar-contents container"><a href="index.html" class="title">Frodo Library - v5.0.0-2</a>
+<!DOCTYPE html><html class="default" lang="en" data-base="./"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>Frodo Library - v5.0.0-3</title><meta name="description" content="Documentation for Frodo Library"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script defer src="assets/main.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script><script async src="assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="index.html" class="title">Frodo Library - v5.0.0-3</a>
 <div id="tsd-toolbar-links"><a href="https://github.com/rockcarver/frodo-lib">Project Home</a></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
 <ul role="listbox" id="tsd-search-results"></ul>
 <div id="tsd-search-status" aria-live="polite" aria-atomic="true">
@@ -7,7 +7,7 @@
 <div class="container container-main">
 <div class="col-content">
 <div class="tsd-page-title">
-<h1>Frodo Library - v5.0.0-2</h1></div>
+<h1>Frodo Library - v5.0.0-3</h1></div>
 <div class="tsd-panel tsd-typography"><!-- README.md for GitHub; the one for NPM is ../README.md. -->
 <h1 id="frodo-library-5x-rockcarverfrodo-lib" class="tsd-anchor-link">Frodo Library 5.x - @rockcarver/frodo-lib<a href="#frodo-library-5x-rockcarverfrodo-lib" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h1>
 <p>A hybrid (ESM and CJS) library to manage PingOne Advanced Identity Cloud environments, ForgeOps deployments, and classic deployments.</p>
@@ -21,6 +21,7 @@
 <li><a href="#using-the-library">Using the library</a></li>
 <li><a href="#recording-and-replaying-http-traffic">Recording and replaying HTTP traffic</a></li>
 <li><a href="#library-api-docs">Library API docs</a></li>
+<li><a href="https://github.com/rockcarver/frodo-lib/blob/main/MIGRATION.md">Migration guide</a></li>
 <li><a href="#feature-requests">Request features or report issues</a></li>
 <li><a href="#contributing">Contributing</a></li>
 <li><a href="#maintaining">Maintaining</a></li>
@@ -31,235 +32,38 @@
 interfaces, shared model types) are exported from the root entry — see
 <a href="#using-the-library">Using the library</a> for the TypeScript import pattern.
 The per-file <code>./types/*</code> deep-import subpath is deprecated.</p>
-<h3 id="carried-forward-from-4x" class="tsd-anchor-link">Carried forward from 4.x<a href="#carried-forward-from-4x" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
-<p>Frodo Library 4.0 added support for <a href="https://docs.pingidentity.com/pingoneaic/journeys/node-designer.html">Custom Nodes</a>, <code>fr-config-manager</code> and the latest Node.js versions.</p>
-<h3 id="custom-nodes-node-designer" class="tsd-anchor-link">Custom Nodes - Node Designer<a href="#custom-nodes-node-designer" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
-<p>2.x introduces breaking changes to support multiple instances of the library to run concurrently and connect to multiple different Ping Identity Platform instances at the same time. <a href="https://github.com/rockcarver/frodo-lib/tree/1.x">1.x</a> operates using a global singleton, making it impossible to connect to more than one platform instance at a time.</p>
-<h3 id="fr-config-manager" class="tsd-anchor-link">FR-Config-Manager<a href="#fr-config-manager" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
-<p>Removing the singleton pattern and introducing multi-instantiability forced a radical redesign of the core library functions while striving to maintain the basic usage pattern. The library is now exposing two main types describing its modules (<a href="https://rockcarver.github.io/frodo-lib/types/Reference.Frodo.html">Frodo</a>) and state (<a href="https://rockcarver.github.io/frodo-lib/types/Reference.State.html">State</a>). Each module in turn exports all its collection of functions as a type as well. Exposing the library structure as types enables auto-completion for both JS and TS developers with properly configured IDEs like Visual Studio Code or other and also serves as an abstraction layer between what the library exposes vs what and how it's implemented.</p>
 <h3 id="nodejs-versions" class="tsd-anchor-link">Node.js Versions<a href="#nodejs-versions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul>
-<li>5.x (current): supports Node.js 20 and later (per <code>engines</code>; the CI
-matrix runs 22, 24, and 26).</li>
-<li>4.x: added support for Node.js 24 and 26; dropped support for Node.js 18.</li>
+<li>5.x (current): tested against Node.js 22, 24, and 26 (the CI matrix).</li>
+<li>4.x: added support for Node.js 22, 24, and 26; dropped support for
+Node.js 18 and 20.</li>
 </ul>
-<h3 id="breaking-changes" class="tsd-anchor-link">Breaking changes<a href="#breaking-changes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<h3 id="breaking-changes-and-migration" class="tsd-anchor-link">Breaking changes and migration<a href="#breaking-changes-and-migration" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>Full migration guidance — every removed and deprecated function per major
+version, with replacements — is maintained in the
+<a href="media/MIGRATION.md">Migration Guide</a>. Summary:</p>
 <ul>
-<li>Removed all deprecated (since v2.0.0) functions from:
-<ul>
-<li><code>frodo.admin</code>:
-<ul>
-<li><code>listOAuth2CustomClients</code></li>
-<li><code>listOAuth2AdminClients</code></li>
-<li><code>listNonOAuth2AdminStaticUserMappings</code></li>
-<li><code>addAutoIdStaticUserMapping</code></li>
-<li><code>grantOAuth2ClientAdminPrivileges</code></li>
-<li><code>revokeOAuth2ClientAdminPrivileges</code></li>
-<li><code>createOAuth2ClientWithAdminPrivileges</code></li>
-<li><code>createLongLivedToken</code></li>
-<li><code>removeStaticUserMapping</code></li>
-<li><code>hideGenericExtensionAttributes</code></li>
-<li><code>showGenericExtensionAttributes</code></li>
-<li><code>repairOrgModel</code></li>
-</ul>
-</li>
-<li><code>frodo.login</code>:
-<ul>
-<li><code>getAccessTokenForServiceAccount</code> (added function <code>validateServiceAccount</code> with same input and output to <code>frodo.cloud.serviceAccount</code>)</li>
-</ul>
-</li>
-<li><code>frodo.agent</code>:
-<ul>
-<li><code>getAgents</code></li>
-<li><code>getAgent</code></li>
-<li><code>getAgentByTypeAndId</code></li>
-<li><code>getIdentityGatewayAgents</code></li>
-<li><code>getIdentityGatewayAgent</code></li>
-<li><code>putIdentityGatewayAgent</code></li>
-<li><code>getJavaAgents</code></li>
-<li><code>getJavaAgent</code></li>
-<li><code>putJavaAgent</code></li>
-<li><code>getWebAgents</code></li>
-<li><code>getWebAgent</code></li>
-<li><code>putWebAgent</code></li>
-</ul>
-</li>
-<li><code>frodo.saml2.circlesOfTrust</code>:
-<ul>
-<li><code>getCirclesOfTrust</code></li>
-<li><code>getCircleOfTrust</code></li>
-</ul>
-</li>
-<li><code>frodo.email.template</code>:
-<ul>
-<li><code>getEmailTemplates</code></li>
-<li><code>getEmailTemplate</code></li>
-<li><code>putEmailTemplate</code></li>
-</ul>
-</li>
-<li><code>frodo.idm.config</code>:
-<ul>
-<li><code>getConfigEntityTypes</code></li>
-<li><code>getConfigEntityTypes</code></li>
-<li><code>getConfigEntitiesByType</code></li>
-<li><code>getConfigEntity</code></li>
-<li><code>putConfigEntity</code></li>
-<li><code>testConnectorServers</code></li>
-</ul>
-</li>
-<li><code>frodo.oauth2oidc.external</code>:
-<ul>
-<li><code>getSocialIdentityProviders</code></li>
-<li><code>getSocialProvider</code></li>
-<li><code>putProviderByTypeAndId</code></li>
-<li><code>deleteSocialProvider</code></li>
-<li><code>exportSocialProvider</code></li>
-<li><code>exportSocialProviders</code></li>
-<li><code>importSocialProvider</code></li>
-<li><code>importFirstSocialProvider</code></li>
-<li><code>importSocialProviders</code></li>
-</ul>
-</li>
-<li><code>frodo.authn.journey</code>:
-<ul>
-<li><code>getJourneys</code></li>
-<li><code>getJourney</code></li>
-<li><code>importAllJourneys</code></li>
-<li><code>findOrphanedNodes</code></li>
-<li><code>removeOrphanedNodes</code></li>
-</ul>
-</li>
-<li><code>frodo.oauth2oidc.client</code>:
-<ul>
-<li><code>getOAuth2Clients</code></li>
-<li><code>getOAuth2Client</code></li>
-<li><code>putOAuth2Client</code></li>
-</ul>
-</li>
-<li><code>frodo.oauth2oidc.provider</code>:
-<ul>
-<li><code>getOAuth2Provider</code></li>
-</ul>
-</li>
-<li><code>frodo.oauth2oidc.issuer</code>:
-<ul>
-<li><code>getOAuth2TrustedJwtIssuers</code></li>
-<li><code>getOAuth2TrustedJwtIssuer</code></li>
-<li><code>putOAuth2TrustedJwtIssuer</code></li>
-</ul>
-</li>
-<li><code>frodo.idm.organization</code>:
-<ul>
-<li><code>getOrganizations</code></li>
-</ul>
-</li>
-<li><code>frodo.authz.policy</code>:
-<ul>
-<li><code>getPolicies</code></li>
-<li><code>getPoliciesByPolicySet</code></li>
-<li><code>getPolicy</code></li>
-<li><code>putPolicy</code></li>
-</ul>
-</li>
-<li><code>frodo.authz.policySet</code>:
-<ul>
-<li><code>getPolicySets</code></li>
-<li><code>getPolicySet</code></li>
-</ul>
-</li>
-<li><code>frodo.realm</code>:
-<ul>
-<li><code>getRealms</code></li>
-<li><code>getRealmByName</code></li>
-<li><code>putRealm</code></li>
-</ul>
-</li>
-<li><code>frodo.authz.resourceType</code>:
-<ul>
-<li><code>getResourceType</code></li>
-<li><code>getResourceTypes</code></li>
-<li><code>getResourceTypeByName</code></li>
-</ul>
-</li>
-<li><code>frodo.saml2.entityProvider</code>:
-<ul>
-<li><code>getSaml2ProviderStubs</code></li>
-<li><code>getProviderMetadataUrl</code></li>
-<li><code>getProviderMetadata</code></li>
-<li><code>getSaml2ProviderStub</code></li>
-<li><code>getSaml2Provider</code></li>
-</ul>
-</li>
-<li><code>frodo.script</code>:
-<ul>
-<li><code>getScripts</code></li>
-<li><code>getScript</code></li>
-<li><code>getScriptByName</code></li>
-<li><code>putScript</code></li>
-</ul>
-</li>
-<li><code>frodo.theme</code>:
-<ul>
-<li><code>getThemes</code></li>
-<li><code>getTheme</code></li>
-<li><code>getThemeByName</code></li>
-<li><code>putTheme</code></li>
-<li><code>putThemeByName</code></li>
-<li><code>putThemes</code></li>
-</ul>
-</li>
-<li><code>frodo.cloud.adminFed</code>:
-<ul>
-<li><code>getAdminFederationProviders</code></li>
-<li><code>getAdminFederationProvider</code></li>
-<li><code>putProviderByTypeAndId</code></li>
-</ul>
-</li>
-<li><code>frodo.cloud.secret</code>:
-<ul>
-<li><code>getSecrets</code></li>
-<li><code>getSecret</code></li>
-<li><code>putSecret</code></li>
-<li><code>setSecretDescription</code></li>
-<li><code>getSecretVersions</code></li>
-<li><code>createNewVersionOfSecret</code></li>
-<li><code>getVersionOfSecret</code></li>
-<li><code>setStatusOfVersionOfSecret</code></li>
-</ul>
-</li>
-<li><code>frodo.cloud.variable</code>:
-<ul>
-<li><code>getVariable</code></li>
-<li><code>getVariables</code></li>
-<li><code>putVariable</code></li>
-<li><code>setVariableDescription</code></li>
-</ul>
-</li>
-</ul>
-</li>
+<li><strong>4.0.0</strong> removed all functions deprecated since v2.0.0 (the legacy
+<code>get*</code>/<code>put*</code> naming, replaced by <code>read*</code>/<code>update*</code>/<code>create*</code>/
+<code>delete*</code> equivalents on the same module). Four deprecated
+<code>frodo.cloud.variable</code> functions and the journey/node classification
+functions were overlooked; <strong>5.0.0</strong> removes them.</li>
+<li><strong>5.x</strong> removes those four <code>frodo.cloud.variable</code> functions and the
+journey/node classification functions (see the
+<a href="#deprecations">Deprecations</a> section below for the lists), and
+deprecates the <code>./types/*</code> deep-import subpath (see
+<a href="#using-the-library">Using the library</a>).</li>
 </ul>
 <h3 id="deprecations" class="tsd-anchor-link">Deprecations<a href="#deprecations" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul>
-<li>Deprecated all journey classificatino functions in <code>frodo.authn.journey</code>:
-<ul>
-<li><code>isCustomJourney</code></li>
-<li><code>isPremiumJourney</code></li>
-<li><code>isCloudOnlyJourney</code></li>
-<li><code>getJourneyClassification</code></li>
-</ul>
-</li>
-<li>Deprecated all node classification functions in <code>frodo.authn.node</code>:
-<ul>
-<li><code>isPremiumNode</code></li>
-<li><code>isCloudOnlyNode</code></li>
-<li><code>isCloudExcludedNode</code></li>
-<li><code>isDeprecatedNode</code>,</li>
-<li><code>isCustomNode</code></li>
-<li><code>getNodeClassification</code>.</li>
-</ul>
-</li>
+<li>Deprecated all journey classification functions in <code>frodo.authn.journey</code>: <code>isCustomJourney</code>, <code>isPremiumJourney</code>, <code>isCloudOnlyJourney</code>, <code>getJourneyClassification</code> — <strong>removed in 5.0.0</strong></li>
+<li>Deprecated all node classification functions in <code>frodo.authn.node</code>: <code>isPremiumNode</code>, <code>isCloudOnlyNode</code>, <code>isCloudExcludedNode</code>, <code>isDeprecatedNode</code>, <code>isCustomNode</code>, <code>getNodeClassification</code> — <strong>removed in 5.0.0</strong></li>
 </ul>
 <h2 id="about" class="tsd-anchor-link">About<a href="#about" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<h3 id="how-frodo-works" class="tsd-anchor-link">How Frodo Works<a href="#how-frodo-works" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<p>The library is multi-instantiable: each <code>frodo</code> instance connects to one Ping Identity Platform instance at a time, and multiple instances can run concurrently — e.g. to synchronize configuration between a source and a target environment. (Frodo Library 1.x operated using a global singleton, making it impossible to connect to more than one platform instance at a time.)</p>
+<p>The library exposes two main types describing its modules (<a href="https://rockcarver.github.io/frodo-lib/types/Reference.Frodo.html">Frodo</a>) and state (<a href="https://rockcarver.github.io/frodo-lib/types/Reference.State.html">State</a>). Each module in turn exports its collection of functions as a type as well. Exposing the library structure as types enables auto-completion for both JS and TS developers with properly configured IDEs like Visual Studio Code and also serves as an abstraction layer between what the library exposes vs what and how it's implemented.</p>
+<p>The <code>frodo</code> default instance (and each factory-created instance) organizes functionality into modules — see the module table below — and every module function takes the instance's <code>state</code> (connection details, tokens, and settings) implicitly, so calls stay concise. A default singleton-style instance is available as <code>frodo</code> for quick scripts; use the <code>createInstance*</code> factory functions when you need concurrent connections to more than one instance.</p>
 <h3 id="modules" class="tsd-anchor-link">Modules<a href="#modules" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <p>List of modules that have been updated and/or added by version:</p>
 <table>
@@ -658,16 +462,16 @@ You can change the default location of the cache file (<code>~/.frodo/TokenCache
 <tr>
 <td style="text-align:center">20</td>
 <td style="text-align:center">:heavy_minus_sign:</td>
-<td style="text-align:center">:heavy_minus_sign:</td>
-<td style="text-align:center">:heavy_minus_sign:</td>
 <td style="text-align:center">:white_check_mark:</td>
 <td style="text-align:center">:white_check_mark:</td>
+<td style="text-align:center">:heavy_minus_sign:</td>
+<td style="text-align:center">:heavy_minus_sign:</td>
 </tr>
 <tr>
 <td style="text-align:center">22</td>
 <td style="text-align:center">:heavy_minus_sign:</td>
-<td style="text-align:center">:heavy_minus_sign:</td>
-<td style="text-align:center">:heavy_minus_sign:</td>
+<td style="text-align:center">:white_check_mark:</td>
+<td style="text-align:center">:white_check_mark:</td>
 <td style="text-align:center">:white_check_mark:</td>
 <td style="text-align:center">:white_check_mark:</td>
 </tr>
@@ -697,8 +501,8 @@ You can change the default location of the cache file (<code>~/.frodo/TokenCache
 </tr>
 </tbody>
 </table>
-<p><code>engines.node</code> per major: 1.x <code>&gt;=14</code>, 2.x/3.x <code>&gt;=18.17</code>, 4.x <code>&gt;=20</code>,
-5.x <code>&gt;=20</code>. The test matrix runs Node 22/24/26.</p>
+<p>The table reflects the Node.js versions each release line was tested
+against. The test matrix currently runs Node 22, 24, and 26.</p>
 <h2 id="considerations" class="tsd-anchor-link">Considerations<a href="#considerations" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <h3 id="platform-passwords-and-secrets" class="tsd-anchor-link">Platform Passwords And Secrets<a href="#platform-passwords-and-secrets" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <p>Platform passwords and secrets are configuration values that are stored encrypted as part of platform configuration. Examples are oauth2 client secrets or service account passwords.</p>
@@ -709,7 +513,7 @@ You can change the default location of the cache file (<code>~/.frodo/TokenCache
 <h3 id="developer-mode" class="tsd-anchor-link">Developer Mode<a href="#developer-mode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <p>For those who want to contribute or are just curious about the build process.</p>
 <ul>
-<li>Make sure you have <strong>Node.js 20</strong> or newer (<strong>26</strong> preferred — the CI matrix runs 22, 24, and 26) and npm installed.</li>
+<li>Make sure you have <strong>Node.js 22</strong> or newer (<strong>26</strong> preferred — the CI matrix runs 22, 24, and 26) and npm installed.</li>
 <li>Clone this repo<pre><code class="console"><span class="hl-0">git clone https://github.com/rockcarver/frodo-lib.git</span>
 </code><button type="button">Copy</button></pre>
 
@@ -788,7 +592,7 @@ removed in a future major release. Use root imports instead.</p>
 <h2 id="contributing" class="tsd-anchor-link">Contributing<a href="#contributing" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>If you would like to contribute to frodo, please refer to the <a href="https://github.com/rockcarver/frodo-lib/blob/main/CONTRIBUTE.md">contributing instructions</a>.</p>
 <h2 id="maintaining" class="tsd-anchor-link">Maintaining<a href="#maintaining" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<p>If you are a maintainer of this repository, please refer to the <a href="https://github.com/rockcarver/frodo-lib/blob/main/PIPELINE.md">pipeline and release process instructions</a> and the <a href="https://github.com/rockcarver/frodo-lib/blob/main/BUILD-ENV.md">build environment documentation</a> (toolchain, bundler details, dependency policy).</p>
+<p>If you are a maintainer of this repository, please refer to the <a href="https://github.com/rockcarver/frodo-lib/blob/main/PIPELINE.md">pipeline and release process instructions</a>, the <a href="https://github.com/rockcarver/frodo-lib/blob/main/BUILD-ENV.md">build environment documentation</a> (toolchain, bundler details, dependency policy), and the <a href="https://github.com/rockcarver/frodo-lib/blob/main/MIGRATION.md">migration guide</a> (breaking changes per major — keep it updated when removing or deprecating public functions).</p>
 </div></div>
 <div class="col-sidebar">
 <div class="page-menu">
@@ -810,15 +614,13 @@ removed in a future major release. Use root imports instead.</p>
 <li>
 <ul>
 <li><a href="#root-entry-type-exports"><span>Root-<wbr/>entry type exports</span></a></li>
-<li><a href="#carried-forward-from-4x"><span>Carried forward from 4.x</span></a></li>
-<li><a href="#custom-nodes-node-designer"><span>Custom <wbr/>Nodes -<wbr/> <wbr/>Node <wbr/>Designer</span></a></li>
-<li><a href="#fr-config-manager"><span>FR-<wbr/>Config-<wbr/>Manager</span></a></li>
 <li><a href="#nodejs-versions"><span>Node.js <wbr/>Versions</span></a></li>
-<li><a href="#breaking-changes"><span>Breaking changes</span></a></li>
+<li><a href="#breaking-changes-and-migration"><span>Breaking changes and migration</span></a></li>
 <li><a href="#deprecations"><span>Deprecations</span></a></li></ul></li>
 <li><a href="#about"><span>About</span></a></li>
 <li>
 <ul>
+<li><a href="#how-frodo-works"><span>How <wbr/>Frodo <wbr/>Works</span></a></li>
 <li><a href="#modules"><span>Modules</span></a></li>
 <li><a href="#secure-token-caching"><span>Secure <wbr/>Token <wbr/>Caching</span></a></li>
 <li><a href="#automatic-token-refresh"><span>Automatic <wbr/>Token <wbr/>Refresh</span></a></li>
@@ -847,7 +649,7 @@ removed in a future major release. Use root imports instead.</p>
 <li><a href="#maintaining"><span>Maintaining</span></a></li></ul></div></details></div>
 <div class="site-menu">
 <nav id="tsd-sidebar-links" class="tsd-navigation"><a href="https://github.com/rockcarver/frodo-lib" class="tsd-nav-link">Project Home</a></nav>
-<nav class="tsd-navigation"><a href="modules.html">Frodo Library - v5.0.0-2</a>
+<nav class="tsd-navigation"><a href="modules.html">Frodo Library - v5.0.0-3</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">
 <li>Loading...</li></ul></nav></div></div></div><footer></footer>
 <div class="overlay"></div></body></html>

@@ -10,6 +10,14 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-3] - 2026-10-05
+
+### Deprecated
+- The `./types/*` deep-import subpath is now formally deprecated. Refer to the migration guide for alternatives and guidance on transitioning away from these imports. (#690)
+
+### Removed
+- Removed previously deprecated functions from the `frodo.cloud.variable` module: `getVariable`, `getVariables`, `putVariable`, and `setVariableDescription`. These functions were deprecated since v2.0.0. (#690)
+
 ## [v5.0.0-2] - 2026-10-05
 
 ### Changed
@@ -2620,6 +2628,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-3]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-2...v5.0.0-3
 [v5.0.0-2]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-1...v5.0.0-2
 [v5.0.0-1]: https://github.com/rockcarver/frodo-lib/compare/v4.12.0...v5.0.0-1
 [v4.12.0]: https://github.com/rockcarver/frodo-lib/compare/v4.11.1...v4.12.0
