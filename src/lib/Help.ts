@@ -5767,9 +5767,32 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Service",
     methodName: "deleteFullService",
     signature: "deleteFullService( serviceId: string, globalConfig?: boolean ): Promise<AmServiceSkeleton>",
-    description: "Deletes the specified service",
+    description: "Deletes the specified service and its descendents.",
     params: [
       { name: "serviceId", type: "string", description: "The service to delete", required: true },
+      { name: "globalConfig", type: "boolean", description: "true if the global service is the target of the operation, false otherwise. Default: false.", required: false },
+    ],
+    returns: "{Promise<AmServiceSkeleton>} The deleted service",
+  },
+  {
+    typeName: "Service",
+    methodName: "deleteServiceNextDescendent",
+    signature: "deleteServiceNextDescendent( descendentId: string, nextDescendentName: string, globalConfig?: boolean ): Promise<AmServiceSkeleton>",
+    description: "Deletes a single next descendent without deleting the parent service",
+    params: [
+      { name: "descendentId", type: "string", description: "The parent service", required: true },
+      { name: "nextDescendentName", type: "string", description: "The name of the next descendent to delete", required: true },
+      { name: "globalConfig", type: "boolean", description: "true if the global service is the target of the operation, false otherwise. Default: false.", required: false },
+    ],
+    returns: "",
+  },
+  {
+    typeName: "Service",
+    methodName: "deleteServiceNextDescendents",
+    signature: "deleteServiceNextDescendents( descendentId: string, globalConfig?: boolean ): Promise<AmServiceSkeleton[]>",
+    description: "Deletes all next descendents without deleting the parent service",
+    params: [
+      { name: "descendentId", type: "string", description: "The parent service", required: true },
       { name: "globalConfig", type: "boolean", description: "true if the global service is the target of the operation, false otherwise. Default: false.", required: false },
     ],
     returns: "",

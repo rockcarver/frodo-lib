@@ -36,8 +36,17 @@ import { state } from '../lib/FrodoLib';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
 import * as ServiceOps from './ServiceOps';
+import { getService, getServiceDescendents } from '../api/ServiceApi';
+import {
+  service1,
+  service2,
+  service3,
+  setup as serviceSetup,
+} from '../test/setup/ServiceSetup';
+
 
 const ctx = autoSetupPolly();
+serviceSetup();
 
 describe('ServiceOps', () => {
   beforeEach(async () => {
@@ -119,12 +128,103 @@ describe('ServiceOps', () => {
     //TODO: create tests
   });
 
+
+  describe('deleteServiceNextDescendent()', () => {
+    test('0: Method is implemented', async () => {
+      expect(ServiceOps.deleteServiceNextDescendent).toBeDefined();
+    });
+  
+    test('1: Delete a single service descendent', async () => {
+      const serviceId = service1._type._id;
+  
+      const response = await ServiceOps.deleteServiceNextDescendent({
+        serviceId,
+        nextDescendentName: 'CSV',
+        globalConfig: false,
+        state,
+      });
+  
+      expect(response).toBeDefined();
+  
+      const descendents = await getServiceDescendents({
+        serviceId,
+        globalConfig: false,
+        state,
+      });
+  
+      expect(descendents).toHaveLength(1);
+      expect(descendents[0]._id).toBe('JSON');
+  
+      const parent = await getService({
+        serviceId,
+        globalConfig: false,
+        state,
+      });
+  
+      expect(parent).toBeDefined();
+    });
+  });
+  
+  describe('deleteServiceNextDescendents()', () => {
+    test('0: Method is implemented', async () => {
+      expect(ServiceOps.deleteServiceNextDescendents).toBeDefined();
+    });
+  
+    test('1: Delete all service descendents', async () => {
+      const serviceId = service2._type._id;
+  
+      const response = await ServiceOps.deleteServiceNextDescendents({
+        serviceId,
+        globalConfig: false,
+        state,
+      });
+  
+      expect(response).toHaveLength(2);
+  
+      const descendents = await getServiceDescendents({
+        serviceId,
+        globalConfig: false,
+        state,
+      });
+  
+      expect(descendents).toHaveLength(0);
+  
+      const parent = await getService({
+        serviceId,
+        globalConfig: false,
+        state,
+      });
+  
+      expect(parent).toBeDefined();
+    });
+  });
+  
   describe('deleteFullService()', () => {
     test('0: Method is implemented', async () => {
       expect(ServiceOps.deleteFullService).toBeDefined();
     });
-    //TODO: create tests
+  
+    test('1: Delete full service', async () => {
+      const serviceId = service3._type._id;
+  
+      const response = await ServiceOps.deleteFullService({
+        serviceId,
+        globalConfig: false,
+        state,
+      });
+  
+      expect(response).toBeDefined();
+  
+      await expect(
+        getService({
+          serviceId,
+          globalConfig: false,
+          state,
+        })
+      ).rejects.toThrow();
+    });
   });
+  
 
   describe('deleteFullServices()', () => {
     test('0: Method is implemented', async () => {
