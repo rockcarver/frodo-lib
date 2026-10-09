@@ -313,9 +313,31 @@ jobs:
             src/ops/TokenCacheOps.browserToken.unit.test.ts \
             src/ops/TokenCacheOps.sessionManagement.unit.test.ts
 
+  # Single, non-matrix job so branch protection has ONE stable check name to
+  # require. GitHub matches required status-check contexts by exact name, and
+  # matrix legs register as '<job name> (os)' -- so requiring the matrix job's
+  # name directly never matches and leaves every PR permanently blocked from a
+  # plain merge (admin bypass was the only way through). Mirrors the CLI's
+  # `test-gate` job. Point the main-branch-protection ruleset at
+  # 'Cross-Platform gate', not at the matrix job name.
+  test-cross-platform-gate:
+    name: 'Cross-Platform gate'
+    needs: [test-cross-platform]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any cross-platform matrix leg did not succeed
+        run: |
+          result='${{ needs.test-cross-platform.result }}'
+          echo "test-cross-platform matrix result: ${result}"
+          if [ "${result}" != "success" ]; then
+            echo "::error::Not all cross-platform matrix legs succeeded"
+            exit 1
+          fi
+
   npm-release:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
-    needs: [build, test, test-cross-platform]
+    needs: [build, test, test-cross-platform, test-cross-platform-gate]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v8
