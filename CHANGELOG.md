@@ -10,6 +10,11 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-5] - 2026-10-09
+
+### Fixed
+- Resolved vulnerabilities in development dependencies by updating `handlebars` to version 4.7.10 and addressing issues in `sprintf-js` via `argparse`. These changes mitigate critical and moderate advisories detected by `npm audit` (#693).
+
 ## [v5.0.0-4] - 2026-10-05
 
 ### Changed
@@ -2635,6 +2640,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-5]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-4...v5.0.0-5
 [v5.0.0-4]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-3...v5.0.0-4
 [v5.0.0-3]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-2...v5.0.0-3
 [v5.0.0-2]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-1...v5.0.0-2
