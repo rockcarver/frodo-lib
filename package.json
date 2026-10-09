@@ -149,6 +149,7 @@
     "winston": "^3.19.0"
   },
   "overrides": {
-    "basic-ftp": "6.2.1"
+    "basic-ftp": "6.2.1",
+    "argparse": "^2.0.1"
   }
 }
