@@ -73,6 +73,16 @@ false` preserves the `.js`/`.mjs` naming consumers already resolve.
 - `deps.neverBundle` lists every devDependency (tsup bundled them too —
   that is why this repo has no `dependencies` field yet effectively ships
   runtime deps inside the bundle).
+- **Dependency-placement rule** (same as the CLI's, see the CLI's
+  BUILD-ENV.md §2.2.1): packages imported by shipped code belong in
+  `devDependencies` — the bundler inlines those and the npm package
+  stays zero-dep (`dependencies` stays empty, `npm audit --omit=dev`
+  stays empty). tsdown externalizes anything listed under
+  `dependencies` unless forced via `deps.alwaysBundle` (tsup equivalent:
+  `noExternal`) — never needed here, and it would break consumers who
+  rely on the zero-install-weight design. Confirmed as the intended
+  convention when the CLI hit exactly this trap with the `@inquirer/*`
+  packages (cli #772, 2026-10).
 - `target: 'es2022'`.
 
 ### 2.3 The axios dts patch (postinstall — do not remove)
@@ -269,4 +279,5 @@ whose required checks never run could never merge.
 | 2026-10-04 | Release job pushes via org-wide `FRODO_CI_PAT` (fine-grained PAT, org secret, selected-repo visibility) — required status checks reject `github-actions[bot]` pushes; PAT-as-repo-admin rides the ruleset bypass                                                    | #684            |
 | 2026-10-05 | Root type exports: `src/index.ts` re-exports all 120 cli-consumed data-model type names from the root entry; `./types/*` subpath deprecated (node10-resolution only, dies in TS 7) — removal planned for a future major                                             | #687            |
 | 2026-10-05 | `premajor` release-type option in pipeline dispatch (X.0.0-1 train for the next major; first exercised by the 5.0.0-1 release)                                                                                                                                      | #688            |
+| 2026-10-10 | Dependency-placement rule documented (§2.2): shipped-code imports go in `devDependencies` (inlined; tsup `noExternal`/tsdown `deps.alwaysBundle` are the force-inline escape hatches, never needed here) and `dependencies` stays empty — zero-dep design, empty audit surface. Confirmed as convention when cli #772 hit the inverse trap (`@inquirer/*` as dependencies → tsdown externalized → SEA `ERR_UNKNOWN_BUILTIN_MODULE`)                                                                                                   | cli #772 (doc)  |
 | planned    | Polly→nock — DEFERRED (deep record-harness coupling; revisit on Node 28 or real breakage)                                                                                                                                                                           | —               |
