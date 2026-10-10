@@ -113,7 +113,7 @@
     "@types/pluralize": "^0.0.33",
     "@types/properties-reader": "^2.1.1",
     "@types/uuid": "^10.0.0",
-    "acorn": "8.18.0",
+    "acorn": "8.19.0",
     "agentkeepalive": "^4.2.1",
     "axios": "^1.13.4",
     "axios-mock-adapter": "^2.1.0",
