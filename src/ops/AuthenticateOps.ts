@@ -121,6 +121,36 @@ export type Authenticate = {
    * @returns {Promise<Tokens>} object containing the tokens
    */
   applyAccessToken(token: AccessTokenMetaType): Promise<Tokens>;
+  /**
+   * Anonymous deployment-type probe: identifies the deployment type of a
+   * host WITHOUT any credentials or session — two POSTs to
+   * `/oauth2/authorize` with the built-in admin client ids (no cookie, no
+   * CSRF token) and elimination:
+   *
+   * - `idmAdminClient` (cloud built-in) answers 302 → cloud
+   * - `idm-admin-ui` (ForgeOps built-in) answers 302 → forgeops
+   * - neither exists → classic (by elimination)
+   *
+   * A 302 means "client exists AND its registered redirect URI matches" —
+   * the same clients with an unregistered redirect answer 400
+   * `redirect_uri_mismatch`, and an unknown client answers 400
+   * `invalid_client`. Verified live (2026-10-12) against a real AIC tenant
+   * (302/400) and a real ForgeOps deployment (400/302); classic follows
+   * from elimination exactly as `determineDeploymentType()`'s
+   * authenticated probe falls back to it.
+   *
+   * Intended for pre-auth flows: prompts and previews that want the
+   * deployment type (realm map, cloud-only gating, help text) before any
+   * login is possible — e.g. a host that appears on the command line or
+   * via an env variable with no saved connection profile.
+   *
+   * NOTE: reads nothing from `state` except the connection settings that
+   * shape the HTTP calls (allow-insecure, proxies, header overrides);
+   * never writes to it. Safe to call at any time.
+   * @param {string} host the AM base URL to probe, e.g. `https://cdk.iam.example.com/am`
+   * @returns {Promise<DeploymentTypeProbe>} the detected deployment type plus the raw per-client responses (for callers that want to log or branch on the evidence)
+   */
+  probe(host: string): Promise<DeploymentTypeProbe>;
 };
 
 export default (state: State): Authenticate => {
@@ -150,6 +180,9 @@ export default (state: State): Authenticate => {
     },
     async applyAccessToken(token: AccessTokenMetaType) {
       return applyAccessToken({ token, state });
+    },
+    async probe(host: string) {
+      return probeDeploymentType({ host, state });
     },
   };
 };
@@ -247,6 +280,21 @@ export type UserSessionMetaType = AuthenticateSuccessResponse & {
   universalId?: string;
   latestAccessTime?: string;
   amCtxId?: string;
+};
+/**
+ * Result of the anonymous deployment-type probe (see
+ * `Authenticate.probe()`).
+ */
+export type DeploymentTypeProbe = {
+  /** 'cloud' | 'forgeops' | 'classic' — classic by elimination. */
+  deploymentType: string;
+  /** The raw per-client evidence the type was derived from. */
+  responses: {
+    /** Probe with the cloud built-in client (`idmAdminClient`). */
+    idmAdminClient: { status?: number; redirected: boolean };
+    /** Probe with the ForgeOps built-in client (`idm-admin-ui`). */
+    idmAdminUi: { status?: number; redirected: boolean };
+  };
 };
 type StepHandler = (step: AuthenticateStep) => Promise<AuthenticateStep>;
 type MFAResult = {
@@ -508,6 +556,104 @@ async function determineDeploymentType(state: State): Promise<string> {
       return deploymentType;
     }
   }
+}
+
+/**
+ * Anonymous deployment-type probe (exported via `frodo.login.probe` —
+ * see the `Authenticate.probe` doc for the full contract). Two parallel
+ * POSTs to `/oauth2/authorize`, one per built-in admin client, no
+ * cookie/CSRF; the 302 pattern identifies cloud/forgeops, everything
+ * else is classic by elimination. Verified live 2026-10-12 against a
+ * real AIC tenant (302/400) and a real ForgeOps deployment (400/302).
+ *
+ * NOT a replacement for `determineDeploymentType()` — that runs
+ * authenticated, inside the login flow, and also honors an explicitly
+ * configured type. This probe exists for the pre-auth window (no
+ * profile, no session) where prompts/previews want the type before any
+ * login can happen.
+ * @param {object} params parameters object
+ * @param {string} params.host the AM base URL to probe
+ * @param {State} params.state library state (read-only: only the
+ *   connection-shaping settings are consulted)
+ * @returns {Promise<DeploymentTypeProbe>} the detected type plus raw evidence
+ */
+async function probeDeploymentType({
+  host,
+  state,
+}: {
+  host: string;
+  state: State;
+}): Promise<DeploymentTypeProbe> {
+  debugMessage({
+    message: `AuthenticateOps.probeDeploymentType: start [host=${host}]`,
+    state,
+  });
+  const redirectUri = new URL(redirectUrlTemplate, host).toString();
+  const challenge = createPkcePair();
+
+  // Deliberately NO csrf/cookie: the probe never authenticates. A 302
+  // here is the login redirect (client exists + redirect registered),
+  // not a consent success — exactly the anonymous signal.
+  const probeClient = async (clientId: string) => {
+    const bodyFormData = `redirect_uri=${encodeURIComponent(redirectUri)}&scope=${s.OpenIdScope}&response_type=code&client_id=${clientId}&csrf=&decision=allow&code_challenge=${challenge.challenge}&code_challenge_method=${challenge.method}`;
+    try {
+      await authorize({
+        amBaseUrl: host,
+        data: bodyFormData,
+        config: {
+          maxRedirects: 0,
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        },
+        state,
+      });
+      // 2xx: consent succeeded without a session — not an expected shape,
+      // but a 2xx from the fidc client still proves the client exists.
+      return { status: 200, redirected: true };
+    } catch (e) {
+      const status = e.response?.status;
+      const location = e.response?.headers?.location || '';
+      const redirected = status === 302 && location.indexOf('UI/Login') > -1;
+      debugMessage({
+        message: `AuthenticateOps.probeDeploymentType: ${clientId} -> status=${status} redirected=${redirected}`,
+        state,
+      });
+      return { status, redirected };
+    }
+  };
+
+  // Both probes in parallel: ~1 round trip of latency either way.
+  const [idmAdminClient, idmAdminUi] = await Promise.all([
+    probeClient(fidcClientId),
+    probeClient(forgeopsClientId),
+  ]);
+
+  let deploymentType = Constants.CLASSIC_DEPLOYMENT_TYPE_KEY;
+  if (idmAdminClient.redirected && !idmAdminUi.redirected) {
+    deploymentType = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
+    verboseMessage({
+      message: theme(state).emphasis(`ForgeRock Identity Cloud`) + ` detected.`,
+      state,
+    });
+  } else if (!idmAdminClient.redirected && idmAdminUi.redirected) {
+    deploymentType = Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
+    verboseMessage({
+      message: theme(state).emphasis(`ForgeOps deployment`) + ` detected.`,
+      state,
+    });
+  } else {
+    verboseMessage({
+      message: theme(state).emphasis(`Classic deployment`) + ` detected.`,
+      state,
+    });
+  }
+  debugMessage({
+    message: `AuthenticateOps.probeDeploymentType: end [type=${deploymentType}]`,
+    state,
+  });
+  return {
+    deploymentType,
+    responses: { idmAdminClient, idmAdminUi },
+  };
 }
 
 const UNKNOWN_AM_VERSION = '0.0.0';

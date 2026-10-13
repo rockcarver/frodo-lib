@@ -2960,6 +2960,12 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     // to an agent, so excluded rather than classified.
     excluded: true,
   },
+  'login.probe': {
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Anonymous pre-auth probe of an AM host: two unauthenticated POSTs to /oauth2/authorize (the built-in admin client ids) to classify the deployment type (cloud/forgeops/classic). No credentials sent, no token returned, no state written — reads only publicly reachable endpoint behavior.',
+  },
 
   'am.config.createConfigEntityExportTemplate': {
     // Pure local builder (no API calls), used internally by
