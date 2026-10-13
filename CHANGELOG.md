@@ -10,6 +10,11 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-7] - 2026-10-13
+
+### Changed
+- Updated GitHub Actions workflows to use the latest versions of `actions/checkout`, `actions/setup-node`, `actions/deploy-pages`, and `dependabot/fetch-metadata`, which now require Node.js version 24 as the Actions runtime. This change may affect developers using GitHub Actions for CI/CD pipelines with this library (#696, #698, #699, #697).
+
 ## [v5.0.0-6] - 2026-10-13
 
 ### Added
@@ -2648,6 +2653,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-7]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-6...v5.0.0-7
 [v5.0.0-6]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-5...v5.0.0-6
 [v5.0.0-5]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-4...v5.0.0-5
 [v5.0.0-4]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-3...v5.0.0-4
