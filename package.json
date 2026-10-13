@@ -118,7 +118,7 @@
     "axios": "^1.13.4",
     "axios-mock-adapter": "^2.1.0",
     "axios-retry": "^4.4.0",
-    "eslint": "10.11.0",
+    "eslint": "10.12.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-import-x": "4.17.1",
     "fastest-levenshtein": "^1.0.16",
