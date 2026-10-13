@@ -10,6 +10,14 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-6] - 2026-10-13
+
+### Added
+- Introduced `frodo.login.probeDeploymentType`, an anonymous deployment-type probe that identifies a host's deployment type without requiring credentials or a session. This feature performs two parallel POST requests to `/oauth2/authorize` using built-in admin clients, enhancing deployment diagnostics (#704).
+
+### Changed
+- Renamed `login.probe` to `login.probeDeploymentType` for clarity, aligning the public API with the internal implementation. This change affects `Authenticate.probe` and `CapabilityMetadata` (#705).
+
 ## [v5.0.0-5] - 2026-10-09
 
 ### Fixed
@@ -2640,6 +2648,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-6]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-5...v5.0.0-6
 [v5.0.0-5]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-4...v5.0.0-5
 [v5.0.0-4]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-3...v5.0.0-4
 [v5.0.0-3]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-2...v5.0.0-3
