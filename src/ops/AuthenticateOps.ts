@@ -150,7 +150,7 @@ export type Authenticate = {
    * @param {string} host the AM base URL to probe, e.g. `https://cdk.iam.example.com/am`
    * @returns {Promise<DeploymentTypeProbe>} the detected deployment type plus the raw per-client responses (for callers that want to log or branch on the evidence)
    */
-  probe(host: string): Promise<DeploymentTypeProbe>;
+  probeDeploymentType(host: string): Promise<DeploymentTypeProbe>;
 };
 
 export default (state: State): Authenticate => {
@@ -181,7 +181,7 @@ export default (state: State): Authenticate => {
     async applyAccessToken(token: AccessTokenMetaType) {
       return applyAccessToken({ token, state });
     },
-    async probe(host: string) {
+    async probeDeploymentType(host: string) {
       return probeDeploymentType({ host, state });
     },
   };
@@ -283,7 +283,7 @@ export type UserSessionMetaType = AuthenticateSuccessResponse & {
 };
 /**
  * Result of the anonymous deployment-type probe (see
- * `Authenticate.probe()`).
+ * `Authenticate.probeDeploymentType()`).
  */
 export type DeploymentTypeProbe = {
   /** 'cloud' | 'forgeops' | 'classic' — classic by elimination. */
@@ -559,7 +559,8 @@ async function determineDeploymentType(state: State): Promise<string> {
 }
 
 /**
- * Anonymous deployment-type probe (exported via `frodo.login.probe` —
+ * Anonymous deployment-type probe (exported via
+ * `frodo.login.probeDeploymentType` —
  * see the `Authenticate.probe` doc for the full contract). Two parallel
  * POSTs to `/oauth2/authorize`, one per built-in admin client, no
  * cookie/CSRF; the 302 pattern identifies cloud/forgeops, everything

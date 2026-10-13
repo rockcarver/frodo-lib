@@ -2960,7 +2960,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     // to an agent, so excluded rather than classified.
     excluded: true,
   },
-  'login.probe': {
+  'login.probeDeploymentType': {
     mutating: false,
     riskClass: 'low',
     notes:

@@ -1,10 +1,10 @@
 /**
  * Run tests
  *
- *        npm run test:only AuthenticateOps.probe
+ *        npm run test:only AuthenticateOps.probeDeploymentType
  *
  * Regression coverage for probeDeploymentType() — the ANONYMOUS
- * deployment-type probe exported as `frodo.login.probe`. It POSTs to
+ * deployment-type probe exported as `frodo.login.probeDeploymentType`. It POSTs to
  * `/oauth2/authorize` twice (the two built-in admin client ids), no
  * cookie/CSRF, and classifies by elimination:
  *
@@ -55,7 +55,7 @@ beforeEach(() => {
   });
 });
 
-describe('AuthenticateOps.probe (frodo.login.probe)', () => {
+describe('AuthenticateOps.probeDeploymentType (frodo.login.probeDeploymentType)', () => {
   test('cloud: fidc client 302, forgeops client 400', async () => {
     authorize
       .mockImplementationOnce(async () => {
@@ -69,7 +69,7 @@ describe('AuthenticateOps.probe (frodo.login.probe)', () => {
       .mockImplementationOnce(authorizeThrow(400));
     const result = await AuthenticateOps(
       StateImpl({ host: HOST, useTokenCache: false })
-    ).probe(HOST);
+    ).probeDeploymentType(HOST);
     expect(result.deploymentType).toBe('cloud');
     expect(result.responses.idmAdminClient).toEqual({
       status: 302,
@@ -94,7 +94,7 @@ describe('AuthenticateOps.probe (frodo.login.probe)', () => {
       });
     const result = await AuthenticateOps(
       StateImpl({ host: HOST, useTokenCache: false })
-    ).probe(HOST);
+    ).probeDeploymentType(HOST);
     expect(result.deploymentType).toBe('forgeops');
     expect(result.responses.idmAdminClient.redirected).toBe(false);
     expect(result.responses.idmAdminUi.redirected).toBe(true);
@@ -105,7 +105,7 @@ describe('AuthenticateOps.probe (frodo.login.probe)', () => {
     authorize.mockImplementationOnce(authorizeThrow(400));
     const result = await AuthenticateOps(
       StateImpl({ host: HOST, useTokenCache: false })
-    ).probe(HOST);
+    ).probeDeploymentType(HOST);
     expect(result.deploymentType).toBe('classic');
     expect(result.responses.idmAdminClient.redirected).toBe(false);
     expect(result.responses.idmAdminUi.redirected).toBe(false);
@@ -120,7 +120,7 @@ describe('AuthenticateOps.probe (frodo.login.probe)', () => {
     });
     const result = await AuthenticateOps(
       StateImpl({ host: HOST, useTokenCache: false })
-    ).probe(HOST);
+    ).probeDeploymentType(HOST);
     expect(result.deploymentType).toBe('classic');
     expect(result.responses.idmAdminClient.status).toBeUndefined();
     expect(result.responses.idmAdminUi.status).toBeUndefined();
@@ -131,7 +131,7 @@ describe('AuthenticateOps.probe (frodo.login.probe)', () => {
     authorize.mockImplementationOnce(authorizeThrow(400));
     await AuthenticateOps(
       StateImpl({ host: HOST, useTokenCache: false })
-    ).probe(HOST);
+    ).probeDeploymentType(HOST);
     expect(authorize).toHaveBeenCalledTimes(2);
     for (const call of authorize.mock.calls) {
       const { amBaseUrl, data, config } = call[0] as any;

@@ -961,8 +961,8 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Authenticate",
-    methodName: "probe",
-    signature: "probe(host: string): Promise<DeploymentTypeProbe>",
+    methodName: "probeDeploymentType",
+    signature: "probeDeploymentType(host: string): Promise<DeploymentTypeProbe>",
     description: "Anonymous deployment-type probe: identifies the deployment type of a host WITHOUT any credentials or session — two POSTs to `/oauth2/authorize` with the built-in admin client ids (no cookie, no CSRF token) and elimination: - `idmAdminClient` (cloud built-in) answers 302 → cloud - `idm-admin-ui` (ForgeOps built-in) answers 302 → forgeops - neither exists → classic (by elimination) A 302 means \"client exists AND its registered redirect URI matches\" — the same clients with an unregistered redirect answer 400 `redirect_uri_mismatch`, and an unknown client answers 400 `invalid_client`. Verified live (2026-10-12) against a real AIC tenant (302/400) and a real ForgeOps deployment (400/302); classic follows from elimination exactly as `determineDeploymentType()`'s authenticated probe falls back to it. Intended for pre-auth flows: prompts and previews that want the deployment type (realm map, cloud-only gating, help text) before any login is possible — e.g. a host that appears on the command line or via an env variable with no saved connection profile. NOTE: reads nothing from `state` except the connection settings that shape the HTTP calls (allow-insecure, proxies, header overrides); never writes to it. Safe to call at any time.",
     params: [
       { name: "host", type: "string", description: "the AM base URL to probe, e.g. `https://cdk.iam.example.com/am`", required: true },
