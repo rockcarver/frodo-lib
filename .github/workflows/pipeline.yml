@@ -473,7 +473,11 @@ jobs:
           if git diff --cached --quiet; then
             echo "No release changes to commit"
           else
-            git commit --message "Updated changelog, version, and docs for release ${{ needs.build.outputs.newTag }}"
+            # [skip ci]: this commit only bumps the version + changelog +
+            # docs of a tree whose content was fully validated by THIS
+            # release run; the push would otherwise re-trigger the
+            # pipeline on main for a no-op validation. See PIPELINE.md.
+            git commit --message "Updated changelog, version, and docs for release ${{ needs.build.outputs.newTag }} [skip ci]"
             git push origin HEAD
           fi
 
