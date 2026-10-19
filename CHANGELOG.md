@@ -10,6 +10,11 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-9] - 2026-10-19
+
+### Fixed
+- The `saveJsonToFile` utility function now correctly strips the empty `meta` placeholder when `includeMeta` is `false`. This resolves a regression introduced in the previous release, ensuring that placeholder metadata is removed as expected (#714).
+
 ## [v5.0.0-8] - 2026-10-19
 
 ### Changed
@@ -2661,6 +2666,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-9]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-8...v5.0.0-9
 [v5.0.0-8]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-7...v5.0.0-8
 [v5.0.0-7]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-6...v5.0.0-7
 [v5.0.0-6]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-5...v5.0.0-6
