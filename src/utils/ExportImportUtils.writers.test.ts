@@ -116,6 +116,21 @@ describe('saveJsonToFile', () => {
       });
     });
 
+    test('strips an empty meta placeholder when includeMeta is false', () => {
+      // callers (e.g. frodo-cli file templates) seed `meta: {}` before the
+      // envelope is filled in
+      const filename = join(baseTmp, 'json', 'meta-placeholder-stripped.json');
+      saveJsonToFile({
+        data: { meta: {}, emailTemplate: { welcome: { name: 'welcome' } } },
+        filename,
+        includeMeta: false,
+        state,
+      });
+      expect(JSON.parse(fs.readFileSync(filename, 'utf8'))).toEqual({
+        emailTemplate: { welcome: { name: 'welcome' } },
+      });
+    });
+
     test('adds export metadata when includeMeta is true and none is present', () => {
       const filename = join(baseTmp, 'json', 'meta-envelope-added.json');
       saveJsonToFile({
