@@ -449,16 +449,18 @@ export function saveToFile({
 }
 
 /**
- * Check whether a value is export metadata as produced by {@link getMetadata}
+ * Check whether a value is the export metadata envelope: either export
+ * metadata as produced by {@link getMetadata}, or the empty `{}` placeholder
+ * callers put in a file template before the envelope is filled in
  * @param {unknown} value value to check
- * @returns {boolean} true if the value looks like export metadata, false otherwise
+ * @returns {boolean} true if the value is an export metadata envelope, false otherwise
  */
-function isExportMetaData(value: unknown): value is ExportMetaData {
+function isExportMetaData(value: unknown): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const candidate = value as Partial<ExportMetaData>;
   return (
-    typeof candidate.exportTool === 'string' &&
-    typeof candidate.exportDate === 'string'
+    Object.keys(candidate).length === 0 ||
+    typeof candidate.exportTool === 'string'
   );
 }
 
@@ -489,9 +491,9 @@ export function saveJsonToFile({
   const exportData = data;
   if (includeMeta && !exportData['meta'])
     exportData['meta'] = getMetadata({ state });
-  // Only strip the export envelope. A top-level `meta` that is not export
-  // metadata is real data (e.g. the IGA `meta` relationship config on a
-  // managed object) and must survive.
+  // Only strip the export envelope (or its empty placeholder). Any other
+  // top-level `meta` is real data (e.g. the IGA `meta` relationship config on
+  // a managed object) and must survive.
   if (!includeMeta && isExportMetaData(exportData['meta']))
     delete exportData['meta'];
   const keysToDelete = [];
