@@ -10,6 +10,14 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-8] - 2026-10-19
+
+### Changed
+- The `saveJsonToFile` utility function now only strips export metadata from the top-level `meta` property when `includeMeta` is `false`. Previously, it removed any top-level `meta` key, which could inadvertently strip important metadata from managed objects during export operations. This change addresses the issue reported in rockcarver/frodo-cli#757 and ensures that only the export metadata envelope is affected (#713).
+
+### Removed
+- Removed the `@types/uuid` devDependency. The `uuid` package now includes its own TypeScript types, making the DefinitelyTyped stub unnecessary and potentially conflicting (#706).
+
 ## [v5.0.0-7] - 2026-10-13
 
 ### Changed
@@ -2653,6 +2661,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-8]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-7...v5.0.0-8
 [v5.0.0-7]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-6...v5.0.0-7
 [v5.0.0-6]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-5...v5.0.0-6
 [v5.0.0-5]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-4...v5.0.0-5
