@@ -449,6 +449,20 @@ export function saveToFile({
 }
 
 /**
+ * Check whether a value is export metadata as produced by {@link getMetadata}
+ * @param {unknown} value value to check
+ * @returns {boolean} true if the value looks like export metadata, false otherwise
+ */
+function isExportMetaData(value: unknown): value is ExportMetaData {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const candidate = value as Partial<ExportMetaData>;
+  return (
+    typeof candidate.exportTool === 'string' &&
+    typeof candidate.exportDate === 'string'
+  );
+}
+
+/**
  * Save JSON object to file
  * @param {object} data data object
  * @param {string} filename file name
@@ -475,7 +489,11 @@ export function saveJsonToFile({
   const exportData = data;
   if (includeMeta && !exportData['meta'])
     exportData['meta'] = getMetadata({ state });
-  if (!includeMeta && exportData['meta']) delete exportData['meta'];
+  // Only strip the export envelope. A top-level `meta` that is not export
+  // metadata is real data (e.g. the IGA `meta` relationship config on a
+  // managed object) and must survive.
+  if (!includeMeta && isExportMetaData(exportData['meta']))
+    delete exportData['meta'];
   const keysToDelete = [];
   if (!keepRev) {
     keysToDelete.push('_rev');

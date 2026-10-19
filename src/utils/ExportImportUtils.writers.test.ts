@@ -21,6 +21,7 @@ import {
 import { saveUserSessionToken } from '../ops/TokenCacheOps';
 import {
   ensureDirectoryForFile,
+  getMetadata,
   saveJsonToFile,
   saveTextToFile,
 } from './ExportImportUtils';
@@ -77,6 +78,55 @@ describe('saveJsonToFile', () => {
     expect(result).toBe(true);
     expect(JSON.parse(fs.readFileSync(filename, 'utf8'))).toEqual({
       key: 'value',
+    });
+  });
+
+  describe('top-level meta handling', () => {
+    // IGA `meta` relationship config on a managed object: real data, not the
+    // export envelope
+    const managedObjectMeta = {
+      property: '_meta',
+      resourceCollection: 'managed/alpha_usermeta',
+      trackedProperties: ['createDate', 'lastChanged'],
+    };
+
+    test('keeps a top-level meta property that is not export metadata when includeMeta is false', () => {
+      const filename = join(baseTmp, 'json', 'meta-data-kept.json');
+      saveJsonToFile({
+        data: { name: 'alpha_user', meta: { ...managedObjectMeta } },
+        filename,
+        includeMeta: false,
+        state,
+      });
+      expect(JSON.parse(fs.readFileSync(filename, 'utf8')).meta).toEqual(
+        managedObjectMeta
+      );
+    });
+
+    test('still strips export metadata when includeMeta is false', () => {
+      const filename = join(baseTmp, 'json', 'meta-envelope-stripped.json');
+      saveJsonToFile({
+        data: { meta: getMetadata({ state }), idm: { key: 'value' } },
+        filename,
+        includeMeta: false,
+        state,
+      });
+      expect(JSON.parse(fs.readFileSync(filename, 'utf8'))).toEqual({
+        idm: { key: 'value' },
+      });
+    });
+
+    test('adds export metadata when includeMeta is true and none is present', () => {
+      const filename = join(baseTmp, 'json', 'meta-envelope-added.json');
+      saveJsonToFile({
+        data: { key: 'value' },
+        filename,
+        includeMeta: true,
+        state,
+      });
+      const written = JSON.parse(fs.readFileSync(filename, 'utf8'));
+      expect(written.meta.exportTool).toBeTruthy();
+      expect(written.meta.exportDate).toBeTruthy();
     });
   });
 });
