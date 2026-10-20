@@ -185,6 +185,8 @@ export default (state: State): Config => {
         onlyRealm: false,
         onlyGlobal: false,
         onlyCustom: false,
+        includeStatic: true,
+        includeDynamic: true,
       },
       resultCallback = void 0
     ) {
@@ -200,6 +202,8 @@ export default (state: State): Config => {
         includeDefault: false,
         includeActiveValues: true,
         onlyCustom: false,
+        includeStatic: true,
+        includeDynamic: true,
       },
       resultCallback = void 0
     ): Promise<(object | any[])[]> {
@@ -257,6 +261,14 @@ export interface FullExportOptions {
    * Include only custom request types in export if true.
    */
   onlyCustom: boolean;
+  /**
+   * Include static configuration.
+   */
+  includeStatic?: boolean;
+  /**
+   * Include dynamic configuration.
+   */
+  includeDynamic?: boolean;
 }
 
 /**
@@ -301,6 +313,14 @@ export interface FullImportOptions {
    * Note that non-custom request type imports will only modify the workflow ID as in the UI.
    */
   onlyCustom: boolean;
+  /**
+   * Include static configuration.
+   */
+  includeStatic?: boolean;
+  /**
+   * Include dynamic configuration.
+   */
+  includeDynamic?: boolean;
 }
 
 export interface FullExportInterface {
@@ -379,6 +399,8 @@ export async function exportFullConfiguration({
     onlyRealm: false,
     onlyGlobal: false,
     onlyCustom: false,
+    includeStatic: true,
+    includeDynamic: true,
   },
   resultCallback = void 0,
   state,
@@ -398,6 +420,8 @@ export async function exportFullConfiguration({
     onlyRealm,
     onlyGlobal,
     onlyCustom,
+    includeStatic,
+    includeDynamic,
   } = options;
   const stateObj = { state };
   const globalStateObj = { globalConfig: true, state };
@@ -422,7 +446,8 @@ export async function exportFullConfiguration({
       state,
     },
     'AM Config Entities',
-    resultCallback
+    resultCallback,
+    includeStatic
   );
 
   // export global config
@@ -442,7 +467,7 @@ export async function exportFullConfiguration({
       },
       'Mappings',
       resultCallback,
-      isIdmDeployment
+      isIdmDeployment && includeStatic
     );
 
     // Export servers and server properties
@@ -451,7 +476,7 @@ export async function exportFullConfiguration({
       { options: { includeDefault: true }, state },
       'Servers',
       resultCallback,
-      isFullAmDeployment
+      isFullAmDeployment && includeDynamic
     );
     if (serverExport) {
       delete serverExport.meta;
@@ -465,7 +490,7 @@ export async function exportFullConfiguration({
           globalStateObj,
           'Global Agents',
           resultCallback,
-          isFullAmDeployment
+          isFullAmDeployment && includeDynamic
         )
       )?.agent,
       authentication: (
@@ -474,7 +499,7 @@ export async function exportFullConfiguration({
           globalStateObj,
           'Global Authentication Settings',
           resultCallback,
-          isFullAmDeployment
+          isFullAmDeployment && includeStatic
         )
       )?.authentication,
       certificationTemplate: (
@@ -490,7 +515,7 @@ export async function exportFullConfiguration({
           },
           'Certification Templates',
           resultCallback,
-          !!state.getIsIGA()
+          !!state.getIsIGA() && includeDynamic
         )
       )?.certificationTemplate,
       emailTemplate: (
@@ -499,7 +524,7 @@ export async function exportFullConfiguration({
           { includeDefault: includeReadOnly, state },
           'Email Templates',
           resultCallback,
-          isIdmDeployment
+          isIdmDeployment && includeStatic
         )
       )?.emailTemplate,
       event: (
@@ -513,7 +538,7 @@ export async function exportFullConfiguration({
           },
           'Events',
           resultCallback,
-          !!state.getIsIGA()
+          !!state.getIsIGA() && includeDynamic
         )
       )?.event,
       glossarySchema: (
@@ -527,7 +552,7 @@ export async function exportFullConfiguration({
           },
           'Glossary Schemas',
           resultCallback,
-          !!state.getIsIGA()
+          !!state.getIsIGA() && includeDynamic
         )
       )?.glossarySchema,
       idm: (
@@ -543,7 +568,7 @@ export async function exportFullConfiguration({
           },
           'IDM Config Entities',
           resultCallback,
-          isIdmDeployment
+          isIdmDeployment && includeStatic
         )
       )?.idm,
       internalRole: (
@@ -552,7 +577,7 @@ export async function exportFullConfiguration({
           stateObj,
           'Internal Roles',
           resultCallback,
-          isIdmDeployment
+          isIdmDeployment && includeDynamic
         )
       )?.internalRole,
       mapping: mappings?.mapping,
@@ -566,7 +591,8 @@ export async function exportFullConfiguration({
             state,
           },
           'Custom Nodes',
-          resultCallback
+          resultCallback,
+          includeStatic
         )
       )?.nodeTypes,
       realm: (
@@ -575,7 +601,7 @@ export async function exportFullConfiguration({
           stateObj,
           'Realms',
           resultCallback,
-          includeReadOnly || isFullAmDeployment
+          (includeReadOnly || isFullAmDeployment) && includeStatic
         )
       )?.realm,
       requestForm: (
@@ -591,7 +617,7 @@ export async function exportFullConfiguration({
           },
           'Request Forms',
           resultCallback,
-          !!state.getIsIGA()
+          !!state.getIsIGA() && includeDynamic
         )
       )?.requestForm,
       requestType: (
@@ -606,7 +632,7 @@ export async function exportFullConfiguration({
           },
           'Request Types',
           resultCallback,
-          !!state.getIsIGA()
+          !!state.getIsIGA() && includeDynamic
         )
       )?.requestType,
       scripttype: (
@@ -615,7 +641,7 @@ export async function exportFullConfiguration({
           stateObj,
           'Script Types',
           resultCallback,
-          includeReadOnly || isFullAmDeployment
+          (includeReadOnly || isFullAmDeployment) && includeStatic
         )
       )?.scripttype,
       secret: (
@@ -624,7 +650,7 @@ export async function exportFullConfiguration({
           { options: { includeActiveValues, target }, state },
           'ESV Secrets',
           resultCallback,
-          isCloudDeployment
+          isCloudDeployment && includeDynamic
         )
       )?.secret,
       secretstore: (
@@ -633,7 +659,7 @@ export async function exportFullConfiguration({
           globalStateObj,
           'Global Secret Stores',
           resultCallback,
-          isFullAmDeployment
+          isFullAmDeployment && includeStatic
         )
       )?.secretstore,
       server: serverExport,
@@ -642,7 +668,8 @@ export async function exportFullConfiguration({
           exportServices,
           globalStateObj,
           'Services',
-          resultCallback
+          resultCallback,
+          includeStatic
         )
       )?.service,
       site: (
@@ -651,7 +678,7 @@ export async function exportFullConfiguration({
           stateObj,
           'Sites',
           resultCallback,
-          isFullAmDeployment
+          isFullAmDeployment && includeDynamic
         )
       )?.site,
       sync: mappings?.sync,
@@ -661,7 +688,7 @@ export async function exportFullConfiguration({
           stateObj,
           'Telemetry',
           resultCallback,
-          isCloudDeployment
+          isCloudDeployment && includeDynamic
         )
       )?.telemetry,
       variable: (
@@ -673,7 +700,7 @@ export async function exportFullConfiguration({
           },
           'ESV Variables',
           resultCallback,
-          isCloudDeployment
+          isCloudDeployment && includeDynamic
         )
       )?.variable,
       workflow: (
@@ -691,7 +718,7 @@ export async function exportFullConfiguration({
           },
           'Workflows',
           resultCallback,
-          !!state.getIsIGA()
+          !!state.getIsIGA() && includeDynamic
         )
       )?.workflow,
       ...config?.global,
@@ -754,7 +781,7 @@ export async function exportFullConfiguration({
             stateObj,
             'SAML2 Providers',
             resultCallback,
-            requestable
+            requestable && includeDynamic
           )) as CirclesOfTrustExportInterface
         )?.saml;
         const cotExport = await exportWithErrorHandling(
@@ -762,7 +789,7 @@ export async function exportFullConfiguration({
           stateObj,
           'Circle of Trusts',
           resultCallback,
-          requestable
+          requestable && includeDynamic
         );
         if (saml) {
           saml.cot = cotExport?.saml.cot;
@@ -776,7 +803,7 @@ export async function exportFullConfiguration({
               stateObj,
               'Agent Groups',
               resultCallback,
-              requestable
+              requestable && includeDynamic
             )
           )?.agentGroup,
           agent: (
@@ -785,7 +812,7 @@ export async function exportFullConfiguration({
               realmStateObj,
               'Agents',
               resultCallback,
-              requestable
+              requestable && includeDynamic
             )
           )?.agent,
           application: (
@@ -797,7 +824,7 @@ export async function exportFullConfiguration({
               },
               'OAuth2 Client Applications',
               resultCallback,
-              requestable
+              requestable && includeDynamic
             )
           )?.application,
           authentication: (
@@ -806,7 +833,7 @@ export async function exportFullConfiguration({
               realmStateObj,
               'Authentication Settings',
               resultCallback,
-              requestable
+              requestable && includeStatic
             )
           )?.authentication,
           idp: (
@@ -815,7 +842,7 @@ export async function exportFullConfiguration({
               stateObj,
               'Social Identity Providers',
               resultCallback,
-              requestable
+              requestable && includeStatic
             )
           )?.idp,
           trees: (
@@ -832,7 +859,7 @@ export async function exportFullConfiguration({
               },
               'Journeys',
               resultCallback,
-              requestable
+              requestable && includeStatic
             )
           )?.trees,
           managedApplication: (
@@ -844,7 +871,7 @@ export async function exportFullConfiguration({
               },
               'Applications',
               resultCallback,
-              isIdmDeployment
+              isIdmDeployment && includeDynamic
             )
           )?.managedApplication,
           policy: (
@@ -855,7 +882,8 @@ export async function exportFullConfiguration({
                 state,
               },
               'Policies',
-              resultCallback
+              resultCallback,
+              includeDynamic
             )
           )?.policy,
           policyset: (
@@ -866,7 +894,8 @@ export async function exportFullConfiguration({
                 state,
               },
               'Policy Sets',
-              resultCallback
+              resultCallback,
+              includeDynamic
             )
           )?.policyset,
           resourcetype: (
@@ -874,7 +903,8 @@ export async function exportFullConfiguration({
               exportResourceTypes,
               stateObj,
               'Resource Types',
-              resultCallback
+              resultCallback,
+              includeDynamic
             )
           )?.resourcetype,
           saml,
@@ -892,7 +922,7 @@ export async function exportFullConfiguration({
               },
               'Scripts',
               resultCallback,
-              requestable
+              requestable && includeStatic
             )
           )?.script,
           secretstore: (
@@ -901,7 +931,7 @@ export async function exportFullConfiguration({
               realmStateObj,
               'Secret Stores',
               resultCallback,
-              requestable
+              requestable && includeStatic
             )
           )?.secretstore,
           service: (
@@ -910,7 +940,7 @@ export async function exportFullConfiguration({
               realmStateObj,
               'Services',
               resultCallback,
-              requestable
+              requestable && includeStatic
             )
           )?.service,
           theme: (
@@ -921,7 +951,7 @@ export async function exportFullConfiguration({
               },
               'Themes',
               resultCallback,
-              isIdmDeployment
+              isIdmDeployment && includeStatic
             )
           )?.theme,
           trustedJwtIssuer: (
@@ -933,7 +963,7 @@ export async function exportFullConfiguration({
               },
               'Trusted JWT Issuers',
               resultCallback,
-              requestable
+              requestable && includeDynamic
             )
           )?.trustedJwtIssuer,
           ...config?.realm[realm],
@@ -978,6 +1008,8 @@ export async function importFullConfiguration({
     includeActiveValues: true,
     source: '',
     onlyCustom: false,
+    includeStatic: true,
+    includeDynamic: true,
   },
   resultCallback = void 0,
   state,
@@ -1007,7 +1039,10 @@ export async function importFullConfiguration({
     includeActiveValues,
     source,
     onlyCustom,
+    includeStatic,
+    includeDynamic,
   } = options;
+
   const errorCallback = getErrorCallback(resultCallback);
   // Import to global
   let indicatorId = createProgressIndicator({
@@ -1030,7 +1065,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Servers',
       resultCallback,
-      isFullAmDeployment && !!importData.global.server
+      isFullAmDeployment && includeDynamic && !!importData.global.server
     )
   );
   response.push(
@@ -1045,7 +1080,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Sites',
       resultCallback,
-      isFullAmDeployment && !!importData.global.site
+      isFullAmDeployment && includeDynamic && !!importData.global.site
     )
   );
   response.push(
@@ -1060,7 +1095,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Realms',
       resultCallback,
-      isFullAmDeployment && !!importData.global.realm
+      isFullAmDeployment && includeStatic && !!importData.global.realm
     )
   );
   response.push(
@@ -1080,7 +1115,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Custom Nodes',
       resultCallback,
-      !!importData.global.nodeTypes
+      !!importData.global.nodeTypes && includeStatic
     )
   );
   response.push(
@@ -1094,7 +1129,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Script Types',
       resultCallback,
-      isFullAmDeployment && !!importData.global.scripttype
+      isFullAmDeployment && includeStatic && !!importData.global.scripttype
     )
   );
   response.push(
@@ -1109,7 +1144,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Secret Stores',
       resultCallback,
-      isFullAmDeployment && !!importData.global.secretstore
+      isFullAmDeployment && includeStatic && !!importData.global.secretstore
     )
   );
   response.push(
@@ -1126,7 +1161,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Secrets',
       resultCallback,
-      isCloudDeployment && !!importData.global.secret
+      isCloudDeployment && includeDynamic && !!importData.global.secret
     )
   );
   response.push(
@@ -1139,7 +1174,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Variables',
       resultCallback,
-      isCloudDeployment && !!importData.global.variable
+      isCloudDeployment && includeDynamic && !!importData.global.variable
     )
   );
   response.push(
@@ -1158,7 +1193,7 @@ export async function importFullConfiguration({
       indicatorId,
       'IDM Config Entities',
       resultCallback,
-      isIdmDeployment && !!importData.global.idm
+      isIdmDeployment && includeStatic && !!importData.global.idm
     )
   );
   response.push(
@@ -1175,7 +1210,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Glossary Schemas',
       resultCallback,
-      !!state.getIsIGA() && !!importData.global.glossarySchema
+      !!state.getIsIGA() && includeDynamic && !!importData.global.glossarySchema
     )
   );
   response.push(
@@ -1188,7 +1223,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Email Templates',
       resultCallback,
-      isIdmDeployment && !!importData.global.emailTemplate
+      isIdmDeployment && includeStatic && !!importData.global.emailTemplate
     )
   );
   response.push(
@@ -1202,7 +1237,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Mappings',
       resultCallback,
-      isIdmDeployment
+      isIdmDeployment && includeStatic
     )
   );
   response.push(
@@ -1216,7 +1251,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Services',
       resultCallback,
-      !!importData.global.service
+      !!importData.global.service && includeStatic
     )
   );
   response.push(
@@ -1226,7 +1261,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Agents',
       resultCallback,
-      isFullAmDeployment && !!importData.global.agent
+      isFullAmDeployment && includeDynamic && !!importData.global.agent
     )
   );
   response.push(
@@ -1240,7 +1275,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Authentication Settings',
       resultCallback,
-      isFullAmDeployment && !!importData.global.authentication
+      isFullAmDeployment && includeStatic && !!importData.global.authentication
     )
   );
   response.push(
@@ -1253,7 +1288,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Internal Roles',
       resultCallback,
-      isIdmDeployment && !!importData.global.internalRole
+      isIdmDeployment && includeDynamic && !!importData.global.internalRole
     )
   );
   response.push(
@@ -1270,7 +1305,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Request Types',
       resultCallback,
-      !!state.getIsIGA() && !!importData.global.requestType
+      !!state.getIsIGA() && includeDynamic && !!importData.global.requestType
     )
   );
   response.push(
@@ -1287,7 +1322,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Request Forms',
       resultCallback,
-      !!state.getIsIGA() && !!importData.global.requestForm
+      !!state.getIsIGA() && includeDynamic && !!importData.global.requestForm
     )
   );
   response.push(
@@ -1304,7 +1339,9 @@ export async function importFullConfiguration({
       indicatorId,
       'Certification Templates',
       resultCallback,
-      !!state.getIsIGA() && !!importData.global.certificationTemplate
+      !!state.getIsIGA() &&
+        includeDynamic &&
+        !!importData.global.certificationTemplate
     )
   );
   response.push(
@@ -1319,7 +1356,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Workflows',
       resultCallback,
-      !!state.getIsIGA() && !!importData.global.workflow
+      !!state.getIsIGA() && includeDynamic && !!importData.global.workflow
     )
   );
   response.push(
@@ -1336,7 +1373,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Events',
       resultCallback,
-      !!state.getIsIGA() && !!importData.global.event
+      !!state.getIsIGA() && includeDynamic && !!importData.global.event
     )
   );
   response.push(
@@ -1349,7 +1386,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Telemetry',
       resultCallback,
-      isCloudDeployment && !!importData.global.telemetry
+      isCloudDeployment && includeDynamic && !!importData.global.telemetry
     )
   );
   stopProgressIndicator({
@@ -1388,7 +1425,7 @@ export async function importFullConfiguration({
           indicatorId,
           'Scripts',
           resultCallback,
-          !!importData.realm[realm].script
+          includeStatic && !!importData.realm[realm].script
         )
       );
       response.push(
@@ -1401,7 +1438,7 @@ export async function importFullConfiguration({
           indicatorId,
           'Themes',
           resultCallback,
-          isIdmDeployment && !!importData.realm[realm].theme
+          isIdmDeployment && includeStatic && !!importData.realm[realm].theme
         )
       );
       response.push(
@@ -1416,7 +1453,7 @@ export async function importFullConfiguration({
           indicatorId,
           'Secret Stores',
           resultCallback,
-          !!importData.realm[realm].secretstore
+          includeStatic && !!importData.realm[realm].secretstore
         )
       );
       response.push(
@@ -1426,7 +1463,7 @@ export async function importFullConfiguration({
           indicatorId,
           'Agent Groups',
           resultCallback,
-          !!importData.realm[realm].agentGroup
+          includeDynamic && !!importData.realm[realm].agentGroup
         )
       );
       response.push(
@@ -1436,7 +1473,7 @@ export async function importFullConfiguration({
           indicatorId,
           'Agents',
           resultCallback,
-          !!importData.realm[realm].agent
+          includeDynamic && !!importData.realm[realm].agent
         )
       );
       response.push(
@@ -1449,7 +1486,7 @@ export async function importFullConfiguration({
           indicatorId,
           'Resource Types',
           resultCallback,
-          !!importData.realm[realm].resourcetype
+          includeDynamic && !!importData.realm[realm].resourcetype
         )
       );
       response.push(
@@ -1462,7 +1499,9 @@ export async function importFullConfiguration({
           indicatorId,
           'Circles of Trust',
           resultCallback,
-          !!importData.realm[realm].saml && !!importData.realm[realm].saml.cot
+          includeDynamic &&
+            !!importData.realm[realm].saml &&
+            !!importData.realm[realm].saml.cot
         )
       );
       response.push(
@@ -1476,7 +1515,7 @@ export async function importFullConfiguration({
           indicatorId,
           'Saml2 Providers',
           resultCallback,
-          !!importData.realm[realm].saml
+          includeDynamic && !!importData.realm[realm].saml
         )
       );
       response.push(
@@ -1490,7 +1529,7 @@ export async function importFullConfiguration({
           indicatorId,
           'Social Identity Providers',
           resultCallback,
-          !!importData.realm[realm].idp
+          includeStatic && !!importData.realm[realm].idp
         )
       );
       response.push(
@@ -1504,7 +1543,7 @@ export async function importFullConfiguration({
           indicatorId,
           'OAuth2 Clients',
           resultCallback,
-          !!importData.realm[realm].application
+          includeDynamic && !!importData.realm[realm].application
         )
       );
       response.push(
@@ -1517,7 +1556,7 @@ export async function importFullConfiguration({
           indicatorId,
           'Trusted JWT Issuers',
           resultCallback,
-          !!importData.realm[realm].trustedJwtIssuer
+          includeDynamic && !!importData.realm[realm].trustedJwtIssuer
         )
       );
       response.push(
@@ -1531,7 +1570,9 @@ export async function importFullConfiguration({
           indicatorId,
           'Applications',
           resultCallback,
-          isIdmDeployment && !!importData.realm[realm].managedApplication
+          includeDynamic &&
+            isIdmDeployment &&
+            !!importData.realm[realm].managedApplication
         )
       );
       response.push(
@@ -1545,7 +1586,7 @@ export async function importFullConfiguration({
           indicatorId,
           'Policy Sets',
           resultCallback,
-          !!importData.realm[realm].policyset
+          includeDynamic && !!importData.realm[realm].policyset
         )
       );
       response.push(
@@ -1559,7 +1600,7 @@ export async function importFullConfiguration({
           indicatorId,
           'Policies',
           resultCallback,
-          !!importData.realm[realm].policy
+          includeDynamic && !!importData.realm[realm].policy
         )
       );
       response.push(
@@ -1578,7 +1619,7 @@ export async function importFullConfiguration({
           indicatorId,
           'Journeys',
           resultCallback,
-          !!importData.realm[realm].trees
+          includeStatic && !!importData.realm[realm].trees
         )
       );
       response.push(
@@ -1592,7 +1633,7 @@ export async function importFullConfiguration({
           indicatorId,
           'Services',
           resultCallback,
-          !!importData.realm[realm].service
+          includeStatic && !!importData.realm[realm].service
         )
       );
       response.push(
@@ -1606,7 +1647,7 @@ export async function importFullConfiguration({
           indicatorId,
           'Authentication Settings',
           resultCallback,
-          !!importData.realm[realm].authentication
+          includeStatic && !!importData.realm[realm].authentication
         )
       );
       stopProgressIndicator({
@@ -1635,7 +1676,8 @@ export async function importFullConfiguration({
       },
       indicatorId,
       'Other AM Config Entities',
-      resultCallback
+      resultCallback,
+      includeStatic
     )
   );
   // Filter out any null or empty results

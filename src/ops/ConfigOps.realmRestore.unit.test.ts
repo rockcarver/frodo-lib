@@ -119,6 +119,8 @@ const exportOptions = {
   onlyRealm: false,
   onlyGlobal: false,
   onlyCustom: false,
+  includeStatic: true,
+  includeDynamic: true,
 };
 
 const importOptions = {
@@ -130,6 +132,8 @@ const importOptions = {
   includeActiveValues: true,
   source: '',
   onlyCustom: false,
+  includeStatic: true,
+  includeDynamic: true,
 };
 
 // one script for the alpha realm: its import is the request that fails
