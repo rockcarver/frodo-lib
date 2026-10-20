@@ -5,6 +5,7 @@ this: rockcarver/frodo-lib
 related:
   - role: cli
     repo: rockcarver/frodo-cli
+    secret: FRODO_CLI_ISSUES_TOKEN
     when: |
       Issues that are strictly about the CLI wrapper: argument parsing,
       help text, output formatting, packaging, or distribution.
