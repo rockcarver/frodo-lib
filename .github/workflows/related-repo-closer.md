@@ -21,14 +21,16 @@ safe-outputs:
   add-comment:
     max: 1
     target: "*"
+    github-token: ${{ secrets.FRODO_CLI_ISSUES_TOKEN }}
   add-labels:
-    github-token: ${{ secrets.SIGNAL_TOKEN }}
+    github-token: ${{ secrets.FRODO_CLI_ISSUES_TOKEN }}
     allowed:
       - awaiting-release
     max: 1
     target: "*"
   close-issue:
     max: 1
+    github-token: ${{ secrets.FRODO_CLI_ISSUES_TOKEN }}
   threat-detection:
     enabled: true
     continue-on-error: false
