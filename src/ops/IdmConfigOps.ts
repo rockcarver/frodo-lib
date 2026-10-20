@@ -553,6 +553,11 @@ export async function exportConfigEntities({
 }): Promise<ConfigEntityExportInterface> {
   const exportData = createConfigEntityExportTemplate({ state });
   let configurations = await readConfigEntities({ state });
+  if (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
+    configurations = configurations.filter(
+      (c) => !AIC_PROTECTED_ENTITIES.includes(c._id)
+    );
+  }
   if (options.entitiesToExport && options.entitiesToExport.length > 0) {
     configurations = configurations.filter((c) =>
       options.entitiesToExport.includes(c._id)
