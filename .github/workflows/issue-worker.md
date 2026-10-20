@@ -9,7 +9,6 @@ on:
     types: [opened, reopened, edited]
   issue_comment:
     types: [created]
-  skip-if-match: "label:related-repo OR label:duplicate OR label:spam"
   workflow_dispatch:
     inputs:
       issue_number:
@@ -29,16 +28,25 @@ max-turns: 10
 permissions:
   contents: read
   issues: read
+tools:
+  bash: false
+  cli-proxy: false
+  github:
+    min-integrity: none
 safe-outputs:
   add-comment:
     max: 2
+    target: "*"
   add-labels:
     allowed:
       - issue-worker-ready
       - related-repo
     max: 2
+    target: "*"
   create-issue:
     max: 1
+    # Repos that use related-repos.md must list the related repositories here,
+    # for example: allowed-repos: ["owner/library"]
   threat-detection:
     enabled: true
     continue-on-error: false
@@ -51,7 +59,10 @@ timeout-minutes: 5
 ## Target issue
 - Issue event → analyze issue #${{ github.event.issue.number }}.
 - Comment event → analyze the issue the comment belongs to (ignore bot comments).
-- workflow_dispatch with `issue_number` → analyze that issue.
+- workflow_dispatch → analyze issue #${{ github.event.inputs.issue_number }}.
+  If that value is empty, do nothing.
+  On this trigger there is no triggering item, so pass that issue number
+  explicitly to add-comment and add-labels.
 - Otherwise do nothing.
 
 ## Completeness criteria
