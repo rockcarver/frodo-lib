@@ -109,8 +109,10 @@ export type Journey = {
    * | `['login']` | supplied | Validate tree `login` in the export offline. |
    *
    * Duplicate IDs are processed once. Live validation reads each journey once;
-   * findings are returned without printing. Missing, blank, or unreadable
-   * journeys are reported together after all requested journeys are processed.
+   * findings are returned without printing. When verbose, live validation
+   * prints the export trace as `exportJourney` does (findings are never
+   * printed). Missing, blank, or unreadable journeys are reported together
+   * after all requested journeys are processed.
    * @param {string[]} journeyIds journey names; omit or pass an empty array to validate all journeys
    * @param {MultiTreeExportInterface} journeysExport optional export; when supplied, validation is offline
    * @returns {Promise<JourneyValidationFinding[]>} validation findings
@@ -525,16 +527,10 @@ export interface TreeExportResolverInterface {
   (treeId: string, state: State): Promise<SingleTreeExportInterface>;
 }
 
-function validateJourneyExport(
-  journey: SingleTreeExportInterface
-): JourneyValidationFinding[] {
-  return validateJourneyReferences(journey);
-}
-
 function validateJourneysExport(
   journeys: MultiTreeExportInterface
 ): JourneyValidationFinding[] {
-  return Object.values(journeys.trees).flatMap(validateJourneyExport);
+  return Object.values(journeys.trees).flatMap(validateJourneyReferences);
 }
 
 function reportJourneyFindings(
@@ -581,8 +577,13 @@ function assertNoJourneyErrors(
 ): void {
   const errors = findings.filter((finding) => finding.severity === 'error');
   if (errors.length > 0) {
+    const journeyIds = [...new Set(errors.map((finding) => finding.journeyId))];
+    const journeyLabel =
+      journeyIds.length === 1
+        ? `journey '${journeyIds[0]}'`
+        : `journeys ${journeyIds.map((journeyId) => `'${journeyId}'`).join(', ')}`;
     throw new FrodoError(
-      `Error importing ${getCurrentRealmName(state) + ' realm'} journey '${errors[0].journeyId}':\n${errors
+      `Error importing ${getCurrentRealmName(state) + ' realm'} ${journeyLabel}:\n${errors
         .map(
           (finding) =>
             `  - [${finding.code}] ${finding.journeyId}: ${finding.message}`
@@ -1546,6 +1547,32 @@ export async function validateJourneys({
   const findings: JourneyValidationFinding[] = [];
   const errors: FrodoError[] = [];
   const realm = `${getCurrentRealmName(state)} realm`;
+  const errorMessage = `Error validating ${realm} journeys`;
+  if (
+    journeyIds != null &&
+    (!Array.isArray(journeyIds) ||
+      !journeyIds.every((journeyId) => typeof journeyId === 'string'))
+  ) {
+    throw new FrodoError(
+      errorMessage,
+      new Error('journeyIds must be an array of strings')
+    );
+  }
+  if (
+    journeysExport !== undefined &&
+    (!journeysExport ||
+      typeof journeysExport !== 'object' ||
+      !journeysExport.trees ||
+      typeof journeysExport.trees !== 'object' ||
+      Array.isArray(journeysExport.trees))
+  ) {
+    throw new FrodoError(
+      errorMessage,
+      new Error(
+        'journeysExport must contain a trees map (a multi-journey export); wrap a single-journey export as { trees: { <id>: export } }'
+      )
+    );
+  }
   const requestedIds = journeyIds?.length
     ? [...new Set(journeyIds)]
     : undefined;
@@ -1587,7 +1614,7 @@ export async function validateJourneys({
         );
         continue;
       }
-      findings.push(...validateJourneyExport(journey));
+      findings.push(...validateJourneyReferences(journey));
       continue;
     }
 
@@ -1597,7 +1624,7 @@ export async function validateJourneys({
         options: { deps: false, useStringArrays: true, coords: false },
         state,
       });
-      findings.push(...validateJourneyExport(journey));
+      findings.push(...validateJourneyReferences(journey));
     } catch (error) {
       errors.push(new FrodoError(message, error));
     }
@@ -1702,7 +1729,7 @@ export async function exportJourneys({
       }
     );
     if (exportData) {
-      reportJourneyFindings(validateJourneyExport(exportData), state);
+      reportJourneyFindings(validateJourneyReferences(exportData), state);
       delete exportData.meta;
       multiTreeExport.trees[tree._id] = exportData;
       updateProgressIndicator({
@@ -1965,7 +1992,7 @@ export async function importJourney({
   const errors = [];
 
   if (options.validate !== false) {
-    const validationFindings = validateJourneyExport(importData);
+    const validationFindings = validateJourneyReferences(importData);
     reportJourneyFindings(
       validationFindings.filter((finding) => finding.severity === 'warning'),
       state

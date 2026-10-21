@@ -337,10 +337,20 @@ function checkInnerNodeReferences(
   return findings;
 }
 
+function outcomeDifference(
+  actual: Set<string>,
+  expected: Set<string>
+): { extra: string[]; missing: string[] } {
+  return {
+    extra: [...actual].filter((outcome) => !expected.has(outcome)),
+    missing: [...expected].filter((outcome) => !actual.has(outcome)),
+  };
+}
+
 function getExpectedPageOutcomes(
   pageNode: JourneyNodeDefinition,
   innerNode: JourneyNodeDefinition
-): Set<string> {
+): { extra: string[]; missing: string[] } {
   const outcomes = outcomeIds(pageNode);
   const innerOutcomes = outcomeIds(innerNode);
   const prefixedOutcomes = new Set(
@@ -353,10 +363,18 @@ function getExpectedPageOutcomes(
       ? [innerOutcomes]
       : [innerOutcomes, prefixedOutcomes];
 
-  return (
-    candidates.find((candidate) => sameSet(outcomes, candidate)) ||
-    closestOutcomeSet(outcomes, candidates)
-  );
+  return candidates
+    .map((expected) => ({
+      expected,
+      difference: outcomeDifference(outcomes, expected),
+    }))
+    .reduce((closest, candidate) => {
+      const differenceSize =
+        candidate.difference.extra.length + candidate.difference.missing.length;
+      const closestDifferenceSize =
+        closest.difference.extra.length + closest.difference.missing.length;
+      return differenceSize < closestDifferenceSize ? candidate : closest;
+    }).difference;
 }
 
 function checkPageNodeOutcomes(
@@ -369,32 +387,27 @@ function checkPageNodeOutcomes(
     return [];
   }
 
-  const actualOutcomes = outcomeIds(pageNode);
-  const expectedOutcomes = getExpectedPageOutcomes(pageNode, lastInnerNode);
+  const { extra, missing } = getExpectedPageOutcomes(pageNode, lastInnerNode);
   const findings: JourneyValidationFinding[] = [];
-  for (const outcome of actualOutcomes) {
-    if (!expectedOutcomes.has(outcome)) {
-      findings.push(
-        finding(
-          journey,
-          'PAGE_NODE_OUTCOME_MISMATCH',
-          `Page Node '${pageNodeId}' outcome '${outcome}' does not match the last inner node's outcomes`,
-          { nodeId: pageNodeId, outcome }
-        )
-      );
-    }
+  for (const outcome of extra) {
+    findings.push(
+      finding(
+        journey,
+        'PAGE_NODE_OUTCOME_MISMATCH',
+        `Page Node '${pageNodeId}' outcome '${outcome}' does not match the last inner node's outcomes`,
+        { nodeId: pageNodeId, outcome }
+      )
+    );
   }
-  for (const outcome of expectedOutcomes) {
-    if (!actualOutcomes.has(outcome)) {
-      findings.push(
-        finding(
-          journey,
-          'PAGE_NODE_OUTCOME_MISMATCH',
-          `Page Node '${pageNodeId}' is missing exposed outcome '${outcome}'`,
-          { nodeId: pageNodeId, outcome }
-        )
-      );
-    }
+  for (const outcome of missing) {
+    findings.push(
+      finding(
+        journey,
+        'PAGE_NODE_OUTCOME_MISMATCH',
+        `Page Node '${pageNodeId}' is missing exposed outcome '${outcome}'`,
+        { nodeId: pageNodeId, outcome }
+      )
+    );
   }
   return findings;
 }
@@ -446,27 +459,6 @@ function checkPageNodes(
   }
 
   return findings;
-}
-
-function sameSet(left: Set<string>, right: Set<string>): boolean {
-  return (
-    left.size === right.size && [...left].every((value) => right.has(value))
-  );
-}
-
-function closestOutcomeSet(
-  actual: Set<string>,
-  candidates: Set<string>[]
-): Set<string> {
-  return candidates.reduce((closest, candidate) => {
-    const difference =
-      [...actual].filter((value) => !candidate.has(value)).length +
-      [...candidate].filter((value) => !actual.has(value)).length;
-    const closestDifference =
-      [...actual].filter((value) => !closest.has(value)).length +
-      [...closest].filter((value) => !actual.has(value)).length;
-    return difference < closestDifference ? candidate : closest;
-  });
 }
 
 /**

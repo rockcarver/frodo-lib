@@ -219,6 +219,38 @@ describe('JourneyOps versioning unit coverage', () => {
     expect(bulkImportMessage).toMatchObject({ type: 'warn' });
   });
 
+  test('importJourneys names all journeys with validation errors', async () => {
+    const invalidJourney = (journeyId: string) => ({
+      tree: {
+        _id: journeyId,
+        entryNodeId: 'missing-entry',
+        nodes: {},
+        staticNodes: {},
+      },
+      nodes: {},
+      innerNodes: {},
+    });
+
+    await expect(
+      JourneyOps.importJourneys({
+        importData: {
+          trees: {
+            FirstJourney: invalidJourney('FirstJourney'),
+            SecondJourney: invalidJourney('SecondJourney'),
+          },
+        },
+        options: { reUuid: false, deps: false },
+        state: {
+          getVerbose: () => false,
+          getDeploymentType: () => 'onprem',
+        } as any,
+      })
+    ).rejects.toThrow(
+      "Error importing alpha realm journeys 'FirstJourney', 'SecondJourney':"
+    );
+    expect(getTreesMock).not.toHaveBeenCalled();
+  });
+
   test('validateJourneys reads all live journeys and returns findings silently', async () => {
     getTreesMock.mockResolvedValue({
       result: [{ _id: 'HealthyJourney' }, { _id: 'BrokenJourney' }],
@@ -337,6 +369,49 @@ describe('JourneyOps versioning unit coverage', () => {
     expect(getTreeMock).not.toHaveBeenCalled();
     expect(printMessageMock).not.toHaveBeenCalled();
   });
+
+  test.each(['BrokenJourney', 1, { id: 'BrokenJourney' }])(
+    'validateJourneys rejects invalid journeyIds %p before API access',
+    async (journeyIds) => {
+      await expect(
+        JourneyOps.validateJourneys({
+          journeyIds: journeyIds as any,
+          state: validationState(),
+        })
+      ).rejects.toMatchObject({
+        name: 'FrodoError',
+        message: 'Error validating alpha realm journeys',
+        originalErrors: [{ message: 'journeyIds must be an array of strings' }],
+      });
+      expect(getTreesMock).not.toHaveBeenCalled();
+      expect(getTreeMock).not.toHaveBeenCalled();
+      expect(readNodeMock).not.toHaveBeenCalled();
+    }
+  );
+
+  test.each([{ tree: {} }, {}, { trees: null }])(
+    'validateJourneys rejects malformed journeysExport %p',
+    async (journeysExport) => {
+      await expect(
+        JourneyOps.validateJourneys({
+          journeysExport: journeysExport as any,
+          state: validationState(),
+        })
+      ).rejects.toMatchObject({
+        name: 'FrodoError',
+        message: 'Error validating alpha realm journeys',
+        originalErrors: [
+          {
+            message:
+              'journeysExport must contain a trees map (a multi-journey export); wrap a single-journey export as { trees: { <id>: export } }',
+          },
+        ],
+      });
+      expect(getTreesMock).not.toHaveBeenCalled();
+      expect(getTreeMock).not.toHaveBeenCalled();
+      expect(readNodeMock).not.toHaveBeenCalled();
+    }
+  );
 
   test('validateJourneys processes remaining live journeys before aggregating lookup failures', async () => {
     getTreeMock.mockImplementation(async ({ id }: { id: string }) => {
