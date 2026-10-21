@@ -11,7 +11,7 @@ function validJourney(): JourneyValidationInput {
       _id: 'Login',
       entryNodeId: 'page',
       nodes: {
-        page: { connections: { 'inner-1-outcome': 'node-2' } },
+        page: { connections: { outcome: 'node-2' } },
         'node-2': { connections: { done: 'end' } },
       },
       staticNodes: { end: {} },
@@ -20,7 +20,7 @@ function validJourney(): JourneyValidationInput {
       page: {
         _id: 'page',
         _type: { _id: 'PageNode' },
-        _outcomes: [{ id: 'inner-1-outcome' }],
+        _outcomes: [{ id: 'outcome' }],
         nodes: [{ _id: 'inner-1' }],
       },
       'node-2': {
@@ -45,6 +45,77 @@ function findingCodes(journey: JourneyValidationInput): string[] {
 describe('validateJourneyReferences', () => {
   test('accepts a normal Page Node outcome derived from its inner node', () => {
     expect(validateJourneyReferences(validJourney())).toEqual([]);
+  });
+
+  test('exposes only the last inner node outcomes for a v1 Page Node', () => {
+    const journey = validJourney();
+    journey.nodes.page.nodes = [{ _id: 'inner-1' }, { _id: 'inner-2' }];
+    journey.nodes.page._outcomes = [{ id: 'last' }];
+    journey.tree.nodes.page.connections = { last: 'node-2' };
+    journey.innerNodes['inner-2'] = {
+      _id: 'inner-2',
+      _outcomes: [{ id: 'last' }],
+    };
+
+    expect(validateJourneyReferences(journey)).toEqual([]);
+  });
+
+  test('accepts prefixed outcomes for a v2 Page Node', () => {
+    const journey = validJourney();
+    journey.nodes.page._type.version = '2.0';
+    journey.nodes.page._outcomes = [{ id: 'inner-1-outcome' }];
+    journey.tree.nodes.page.connections = { 'inner-1-outcome': 'node-2' };
+
+    expect(validateJourneyReferences(journey)).toEqual([]);
+  });
+
+  test('accepts either outcome form for an unknown Page Node version', () => {
+    const journey = validJourney();
+    journey.nodes.page._type.version = '3.0';
+    journey.nodes.page._outcomes = [{ id: 'inner-1-outcome' }];
+    journey.tree.nodes.page.connections = { 'inner-1-outcome': 'node-2' };
+
+    expect(validateJourneyReferences(journey)).toEqual([]);
+  });
+
+  test('reports an outcome from a non-last inner node as stale', () => {
+    const journey = validJourney();
+    journey.nodes.page.nodes = [{ _id: 'inner-1' }, { _id: 'inner-2' }];
+    journey.nodes.page._outcomes = [{ id: 'old' }, { id: 'last' }];
+    journey.tree.nodes.page.connections = {
+      old: 'node-2',
+      last: 'node-2',
+    };
+    journey.innerNodes['inner-1']._outcomes = [{ id: 'old' }];
+    journey.innerNodes['inner-2'] = {
+      _id: 'inner-2',
+      _outcomes: [{ id: 'last' }],
+    };
+
+    expect(
+      validateJourneyReferences(journey).filter(
+        (finding) => finding.code === 'PAGE_NODE_OUTCOME_MISMATCH'
+      )
+    ).toMatchObject([
+      {
+        severity: 'warning',
+        nodeId: 'page',
+        outcome: 'old',
+      },
+    ]);
+  });
+
+  test('reports missing outcomes exposed by the last inner node', () => {
+    const journey = validJourney();
+    journey.nodes.page._outcomes = [];
+
+    expect(validateJourneyReferences(journey)).toContainEqual(
+      expect.objectContaining({
+        code: 'PAGE_NODE_OUTCOME_MISMATCH',
+        severity: 'warning',
+        outcome: 'outcome',
+      })
+    );
   });
 
   test('accepts classic connections to built-in graph nodes without staticNodes', () => {
@@ -176,13 +247,18 @@ describe('validateJourneyReferences', () => {
     journey.tree.nodes.debug = { connections: {} };
     journey.nodes.debug = { _id: 'debug', _outcomes: [] };
 
-    expect(validateJourneyReferences(journey)).toMatchObject([
+    const findings = validateJourneyReferences(journey);
+    expect(findings).toHaveLength(1);
+    expect(findings).toMatchObject([
       {
         code: 'UNREACHABLE_NODE',
         severity: 'warning',
         nodeId: 'debug',
       },
     ]);
+    expect(findings.filter((finding) => finding.severity === 'error')).toEqual(
+      []
+    );
   });
 
   test('accepts all checked-in journey import fixtures without blocking errors', () => {
@@ -207,6 +283,11 @@ describe('validateJourneyReferences', () => {
           (finding) => finding.severity === 'error'
         );
         expect(errors).toEqual([]);
+        expect(
+          validateJourneyReferences(journey).filter(
+            (finding) => finding.code === 'PAGE_NODE_OUTCOME_MISMATCH'
+          )
+        ).toEqual([]);
       }
     }
   });

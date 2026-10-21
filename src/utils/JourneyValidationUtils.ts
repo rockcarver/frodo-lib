@@ -1,12 +1,5 @@
 export type JourneyValidationSeverity = 'error' | 'warning';
 
-/**
- * `MISSING_NODE_DEFINITION`, `NODE_ID_MISMATCH`, `MISSING_CONNECTION_TARGET`,
- * `MISSING_ENTRY_NODE`, and `MISSING_INNER_NODE` are errors. All other codes
- * are warnings: `UNKNOWN_CONNECTION_OUTCOME`, `UNCONNECTED_OUTCOME`,
- * `UNREACHABLE_NODE`, `UNREFERENCED_INNER_NODE`, `UNREPRESENTED_NODE`, and
- * `PAGE_NODE_OUTCOME_MISMATCH`.
- */
 export type JourneyValidationCode =
   | 'MISSING_NODE_DEFINITION'
   | 'NODE_ID_MISMATCH'
@@ -20,19 +13,31 @@ export type JourneyValidationCode =
   | 'UNREPRESENTED_NODE'
   | 'PAGE_NODE_OUTCOME_MISMATCH';
 
+/**
+ * A journey validation result. `severity` indicates whether the finding blocks
+ * import; `journeyId` identifies the affected journey, and optional node and
+ * outcome fields identify the related graph reference.
+ */
 export interface JourneyValidationFinding {
+  /** Stable identifier for the validation rule that produced this finding. */
   code: JourneyValidationCode;
+  /** Whether the finding blocks journey import or is informational only. */
   severity: JourneyValidationSeverity;
+  /** Journey name or ID associated with the finding. */
   journeyId: string;
+  /** Human-readable explanation of the invalid or suspicious reference. */
   message: string;
+  /** Node associated with the finding, when applicable. */
   nodeId?: string;
+  /** Referenced node associated with the finding, when applicable. */
   targetNodeId?: string;
+  /** Connection or declared outcome associated with the finding, when applicable. */
   outcome?: string;
 }
 
 interface JourneyNodeDefinition {
   _id?: string;
-  _type?: { _id?: string };
+  _type?: { _id?: string; version?: string };
   _outcomes?: { id?: string }[];
   nodes?: { _id?: string }[];
 }
@@ -41,6 +46,10 @@ interface JourneyNodeReference {
   connections?: Record<string, string>;
 }
 
+/**
+ * Minimal journey export shape consumed by the referential-integrity checks.
+ * The legacy lowercase `innernodes` property is supported for older exports.
+ */
 export interface JourneyValidationInput {
   tree: {
     _id?: string;
@@ -52,6 +61,31 @@ export interface JourneyValidationInput {
   innerNodes?: Record<string, JourneyNodeDefinition>;
   innernodes?: Record<string, JourneyNodeDefinition>;
 }
+
+const JOURNEY_VALIDATION_SEVERITY: Record<
+  JourneyValidationCode,
+  JourneyValidationSeverity
+> = {
+  MISSING_NODE_DEFINITION: 'error',
+  NODE_ID_MISMATCH: 'error',
+  MISSING_CONNECTION_TARGET: 'error',
+  MISSING_ENTRY_NODE: 'error',
+  MISSING_INNER_NODE: 'error',
+  UNKNOWN_CONNECTION_OUTCOME: 'warning',
+  UNCONNECTED_OUTCOME: 'warning',
+  UNREACHABLE_NODE: 'warning',
+  UNREFERENCED_INNER_NODE: 'warning',
+  UNREPRESENTED_NODE: 'warning',
+  PAGE_NODE_OUTCOME_MISMATCH: 'warning',
+};
+
+const BUILT_IN_GRAPH_NODE_IDS = [
+  '70e691a5-1e33-4ac3-a356-e7b6d60d92e0',
+  'e301438c-0bd0-429c-ab0c-66126501069a',
+  'startNode',
+];
+
+export const JOURNEY_CONTAINER_NODE_TYPES = ['PageNode', 'CustomPageNode'];
 
 function hasOwnKey(value: object, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(value, key);
@@ -65,136 +99,190 @@ function outcomeIds(node: JourneyNodeDefinition): Set<string> {
   );
 }
 
-export function validateJourneyReferences(
+function getInnerNodeDefinitions(
+  journey: JourneyValidationInput
+): Record<string, JourneyNodeDefinition> {
+  if (journey.innerNodes && Object.keys(journey.innerNodes).length > 0) {
+    return journey.innerNodes;
+  }
+  return journey.innernodes || journey.innerNodes || {};
+}
+
+function finding(
+  journey: JourneyValidationInput,
+  code: JourneyValidationCode,
+  message: string,
+  details: Pick<
+    JourneyValidationFinding,
+    'nodeId' | 'targetNodeId' | 'outcome'
+  > = {}
+): JourneyValidationFinding {
+  return {
+    code,
+    severity: JOURNEY_VALIDATION_SEVERITY[code],
+    journeyId: journey.tree._id || '<unknown>',
+    message,
+    ...details,
+  };
+}
+
+function checkTreeNodeDefinitions(
   journey: JourneyValidationInput
 ): JourneyValidationFinding[] {
-  const tree = journey.tree;
-  const journeyId = tree._id || '<unknown>';
-  const treeNodes = tree.nodes || {};
-  const staticNodes = tree.staticNodes || {};
-  const nodeDefinitions = journey.nodes || {};
-  const innerNodeDefinitions =
-    journey.innerNodes && Object.keys(journey.innerNodes).length > 0
-      ? journey.innerNodes
-      : journey.innernodes || journey.innerNodes || {};
   const findings: JourneyValidationFinding[] = [];
-  const builtInGraphNodeIds = [
-    '70e691a5-1e33-4ac3-a356-e7b6d60d92e0',
-    'e301438c-0bd0-429c-ab0c-66126501069a',
-    'startNode',
-  ];
-
-  const addFinding = (
-    code: JourneyValidationCode,
-    severity: JourneyValidationSeverity,
-    message: string,
-    details: Pick<
-      JourneyValidationFinding,
-      'nodeId' | 'targetNodeId' | 'outcome'
-    > = {}
-  ) => {
-    findings.push({ code, severity, journeyId, message, ...details });
-  };
+  const treeNodes = journey.tree.nodes || {};
+  const nodeDefinitions = journey.nodes || {};
 
   for (const [nodeId, nodeReference] of Object.entries(treeNodes)) {
     const definition = nodeDefinitions[nodeId];
     if (!definition) {
-      addFinding(
-        'MISSING_NODE_DEFINITION',
-        'error',
-        `Tree node '${nodeId}' has no node definition`,
-        { nodeId }
+      findings.push(
+        finding(
+          journey,
+          'MISSING_NODE_DEFINITION',
+          `Tree node '${nodeId}' has no node definition`,
+          { nodeId }
+        )
       );
       continue;
     }
+
     const declaredOutcomes = outcomeIds(definition);
     for (const outcome of Object.keys(nodeReference.connections || {})) {
       if (!declaredOutcomes.has(outcome)) {
-        addFinding(
-          'UNKNOWN_CONNECTION_OUTCOME',
-          'warning',
-          `Connection outcome '${outcome}' is not declared by node '${nodeId}'`,
-          { nodeId, outcome }
+        findings.push(
+          finding(
+            journey,
+            'UNKNOWN_CONNECTION_OUTCOME',
+            `Connection outcome '${outcome}' is not declared by node '${nodeId}'`,
+            { nodeId, outcome }
+          )
         );
       }
     }
     for (const outcome of declaredOutcomes) {
       if (!hasOwnKey(nodeReference.connections || {}, outcome)) {
-        addFinding(
-          'UNCONNECTED_OUTCOME',
-          'warning',
-          `Declared outcome '${outcome}' on node '${nodeId}' has no connection`,
-          { nodeId, outcome }
+        findings.push(
+          finding(
+            journey,
+            'UNCONNECTED_OUTCOME',
+            `Declared outcome '${outcome}' on node '${nodeId}' has no connection`,
+            { nodeId, outcome }
+          )
         );
       }
     }
   }
 
+  return findings;
+}
+
+function checkNodeDefinitionKeys(
+  journey: JourneyValidationInput
+): JourneyValidationFinding[] {
+  const findings: JourneyValidationFinding[] = [];
+  const treeNodes = journey.tree.nodes || {};
+  const nodeDefinitions = journey.nodes || {};
+
   for (const [nodeId, definition] of Object.entries(nodeDefinitions)) {
     if (definition._id !== nodeId) {
-      addFinding(
-        'NODE_ID_MISMATCH',
-        'error',
-        `Node definition key '${nodeId}' does not match _id '${definition._id}'`,
-        { nodeId }
+      findings.push(
+        finding(
+          journey,
+          'NODE_ID_MISMATCH',
+          `Node definition key '${nodeId}' does not match _id '${definition._id}'`,
+          { nodeId }
+        )
       );
     }
     if (!hasOwnKey(treeNodes, nodeId)) {
-      addFinding(
-        'UNREPRESENTED_NODE',
-        'warning',
-        `Node definition '${nodeId}' is not represented in tree.nodes`,
-        { nodeId }
+      findings.push(
+        finding(
+          journey,
+          'UNREPRESENTED_NODE',
+          `Node definition '${nodeId}' is not represented in tree.nodes`,
+          { nodeId }
+        )
       );
     }
   }
 
   for (const [innerNodeId, definition] of Object.entries(
-    innerNodeDefinitions
+    getInnerNodeDefinitions(journey)
   )) {
     if (definition._id !== innerNodeId) {
-      addFinding(
-        'NODE_ID_MISMATCH',
-        'error',
-        `Inner node definition key '${innerNodeId}' does not match _id '${definition._id}'`,
-        { nodeId: innerNodeId }
+      findings.push(
+        finding(
+          journey,
+          'NODE_ID_MISMATCH',
+          `Inner node definition key '${innerNodeId}' does not match _id '${definition._id}'`,
+          { nodeId: innerNodeId }
+        )
       );
     }
   }
 
-  const graphNodeIds = new Set([
-    ...builtInGraphNodeIds,
-    ...Object.keys(treeNodes),
-    ...Object.keys(staticNodes),
-  ]);
-  const entryNodeId = tree.entryNodeId;
+  return findings;
+}
+
+function checkNodeDefinitions(
+  journey: JourneyValidationInput
+): JourneyValidationFinding[] {
+  return [
+    ...checkTreeNodeDefinitions(journey),
+    ...checkNodeDefinitionKeys(journey),
+  ];
+}
+
+function checkEntryAndConnections(
+  journey: JourneyValidationInput,
+  graphNodeIds: Set<string>
+): JourneyValidationFinding[] {
+  const findings: JourneyValidationFinding[] = [];
+  const treeNodes = journey.tree.nodes || {};
+  const entryNodeId = journey.tree.entryNodeId;
+
   if (!entryNodeId || !graphNodeIds.has(entryNodeId)) {
-    addFinding(
-      'MISSING_ENTRY_NODE',
-      'error',
-      `Entry node '${entryNodeId || ''}' does not resolve to a graph node`,
-      { nodeId: entryNodeId }
+    findings.push(
+      finding(
+        journey,
+        'MISSING_ENTRY_NODE',
+        `Entry node '${entryNodeId || ''}' does not resolve to a graph node`,
+        { nodeId: entryNodeId }
+      )
     );
   }
 
   for (const [nodeId, nodeReference] of Object.entries(treeNodes)) {
     for (const targetNodeId of Object.values(nodeReference.connections || {})) {
       if (!graphNodeIds.has(targetNodeId)) {
-        addFinding(
-          'MISSING_CONNECTION_TARGET',
-          'error',
-          `Connection from node '${nodeId}' targets missing graph node '${targetNodeId}'`,
-          { nodeId, targetNodeId }
+        findings.push(
+          finding(
+            journey,
+            'MISSING_CONNECTION_TARGET',
+            `Connection from node '${nodeId}' targets missing graph node '${targetNodeId}'`,
+            { nodeId, targetNodeId }
+          )
         );
       }
     }
   }
 
+  return findings;
+}
+
+function findUnreachableNodes(
+  journey: JourneyValidationInput,
+  graphNodeIds: Set<string>
+): JourneyValidationFinding[] {
+  const treeNodes = journey.tree.nodes || {};
+  const entryNodeId = journey.tree.entryNodeId;
   const reachableNodeIds = new Set<string>();
+
   if (entryNodeId && graphNodeIds.has(entryNodeId)) {
     const pendingNodeIds = [entryNodeId];
     while (pendingNodeIds.length > 0) {
-      const nodeId = pendingNodeIds.pop();
+      const nodeId = pendingNodeIds.pop()!;
       if (reachableNodeIds.has(nodeId)) {
         continue;
       }
@@ -208,70 +296,201 @@ export function validateJourneyReferences(
       }
     }
   }
-  for (const nodeId of Object.keys(treeNodes)) {
-    if (!reachableNodeIds.has(nodeId)) {
-      addFinding(
+
+  return Object.keys(treeNodes)
+    .filter((nodeId) => !reachableNodeIds.has(nodeId))
+    .map((nodeId) =>
+      finding(
+        journey,
         'UNREACHABLE_NODE',
-        'warning',
         `Tree node '${nodeId}' is not reachable from the entry node`,
         { nodeId }
+      )
+    );
+}
+
+function checkInnerNodeReferences(
+  journey: JourneyValidationInput,
+  pageNodeId: string,
+  references: { _id?: string }[],
+  innerNodeDefinitions: Record<string, JourneyNodeDefinition>,
+  referencedInnerNodeIds: Set<string>
+): JourneyValidationFinding[] {
+  const findings: JourneyValidationFinding[] = [];
+  for (const reference of references) {
+    const innerNodeId = reference._id;
+    if (!innerNodeId) {
+      continue;
+    }
+    referencedInnerNodeIds.add(innerNodeId);
+    if (!innerNodeDefinitions[innerNodeId]) {
+      findings.push(
+        finding(
+          journey,
+          'MISSING_INNER_NODE',
+          `Page Node '${pageNodeId}' references missing inner node '${innerNodeId}'`,
+          { nodeId: pageNodeId, targetNodeId: innerNodeId }
+        )
       );
     }
   }
+  return findings;
+}
 
+function getExpectedPageOutcomes(
+  pageNode: JourneyNodeDefinition,
+  innerNode: JourneyNodeDefinition
+): Set<string> {
+  const outcomes = outcomeIds(pageNode);
+  const innerOutcomes = outcomeIds(innerNode);
+  const prefixedOutcomes = new Set(
+    [...innerOutcomes].map((outcome) => `${innerNode._id}-${outcome}`)
+  );
+  const version = pageNode._type?.version || '';
+  const candidates = version.startsWith('2')
+    ? [prefixedOutcomes]
+    : version.startsWith('1') || !version
+      ? [innerOutcomes]
+      : [innerOutcomes, prefixedOutcomes];
+
+  return (
+    candidates.find((candidate) => sameSet(outcomes, candidate)) ||
+    closestOutcomeSet(outcomes, candidates)
+  );
+}
+
+function checkPageNodeOutcomes(
+  journey: JourneyValidationInput,
+  pageNodeId: string,
+  pageNode: JourneyNodeDefinition,
+  lastInnerNode: JourneyNodeDefinition | undefined
+): JourneyValidationFinding[] {
+  if (!lastInnerNode) {
+    return [];
+  }
+
+  const actualOutcomes = outcomeIds(pageNode);
+  const expectedOutcomes = getExpectedPageOutcomes(pageNode, lastInnerNode);
+  const findings: JourneyValidationFinding[] = [];
+  for (const outcome of actualOutcomes) {
+    if (!expectedOutcomes.has(outcome)) {
+      findings.push(
+        finding(
+          journey,
+          'PAGE_NODE_OUTCOME_MISMATCH',
+          `Page Node '${pageNodeId}' outcome '${outcome}' does not match the last inner node's outcomes`,
+          { nodeId: pageNodeId, outcome }
+        )
+      );
+    }
+  }
+  for (const outcome of expectedOutcomes) {
+    if (!actualOutcomes.has(outcome)) {
+      findings.push(
+        finding(
+          journey,
+          'PAGE_NODE_OUTCOME_MISMATCH',
+          `Page Node '${pageNodeId}' is missing exposed outcome '${outcome}'`,
+          { nodeId: pageNodeId, outcome }
+        )
+      );
+    }
+  }
+  return findings;
+}
+
+function checkPageNodes(
+  journey: JourneyValidationInput,
+  innerNodeDefinitions: Record<string, JourneyNodeDefinition>
+): JourneyValidationFinding[] {
+  const findings: JourneyValidationFinding[] = [];
   const referencedInnerNodeIds = new Set<string>();
-  for (const [nodeId, definition] of Object.entries(nodeDefinitions)) {
-    if (
-      definition._type?._id !== 'PageNode' &&
-      definition._type?._id !== 'CustomPageNode'
-    ) {
+
+  for (const [nodeId, definition] of Object.entries(journey.nodes || {})) {
+    if (!JOURNEY_CONTAINER_NODE_TYPES.includes(definition._type?._id || '')) {
       continue;
     }
-
-    const exposedOutcomeIds = new Set<string>();
-    for (const innerNodeReference of definition.nodes || []) {
-      const innerNodeId = innerNodeReference._id;
-      if (!innerNodeId) {
-        continue;
-      }
-      referencedInnerNodeIds.add(innerNodeId);
-      const innerNode = innerNodeDefinitions[innerNodeId];
-      if (!innerNode) {
-        addFinding(
-          'MISSING_INNER_NODE',
-          'error',
-          `Page Node '${nodeId}' references missing inner node '${innerNodeId}'`,
-          { nodeId, targetNodeId: innerNodeId }
-        );
-        continue;
-      }
-      for (const outcome of outcomeIds(innerNode)) {
-        exposedOutcomeIds.add(`${innerNode._id}-${outcome}`);
-      }
-    }
-
-    for (const outcome of outcomeIds(definition)) {
-      if (!exposedOutcomeIds.has(outcome)) {
-        addFinding(
-          'PAGE_NODE_OUTCOME_MISMATCH',
-          'warning',
-          `Page Node '${nodeId}' outcome '${outcome}' is not exposed by its inner nodes`,
-          { nodeId, outcome }
-        );
-      }
-    }
+    const innerNodeReferences = definition.nodes || [];
+    findings.push(
+      ...checkInnerNodeReferences(
+        journey,
+        nodeId,
+        innerNodeReferences,
+        innerNodeDefinitions,
+        referencedInnerNodeIds
+      )
+    );
+    const lastInnerNodeId =
+      innerNodeReferences[innerNodeReferences.length - 1]?._id;
+    findings.push(
+      ...checkPageNodeOutcomes(
+        journey,
+        nodeId,
+        definition,
+        lastInnerNodeId ? innerNodeDefinitions[lastInnerNodeId] : undefined
+      )
+    );
   }
 
   for (const innerNodeId of Object.keys(innerNodeDefinitions)) {
     if (!referencedInnerNodeIds.has(innerNodeId)) {
-      addFinding(
-        'UNREFERENCED_INNER_NODE',
-        'warning',
-        `Inner node '${innerNodeId}' is not referenced by a Page Node`,
-        { nodeId: innerNodeId }
+      findings.push(
+        finding(
+          journey,
+          'UNREFERENCED_INNER_NODE',
+          `Inner node '${innerNodeId}' is not referenced by a Page Node`,
+          { nodeId: innerNodeId }
+        )
       );
     }
   }
 
   return findings;
+}
+
+function sameSet(left: Set<string>, right: Set<string>): boolean {
+  return (
+    left.size === right.size && [...left].every((value) => right.has(value))
+  );
+}
+
+function closestOutcomeSet(
+  actual: Set<string>,
+  candidates: Set<string>[]
+): Set<string> {
+  return candidates.reduce((closest, candidate) => {
+    const difference =
+      [...actual].filter((value) => !candidate.has(value)).length +
+      [...candidate].filter((value) => !actual.has(value)).length;
+    const closestDifference =
+      [...actual].filter((value) => !closest.has(value)).length +
+      [...closest].filter((value) => !actual.has(value)).length;
+    return difference < closestDifference ? candidate : closest;
+  });
+}
+
+/**
+ * Validate journey graph references. Structural errors are marked as errors;
+ * graph hygiene and outcome inconsistencies are reported as warnings.
+ *
+ * @param journey A single journey export.
+ * @returns Findings associated with the journey.
+ */
+export function validateJourneyReferences(
+  journey: JourneyValidationInput
+): JourneyValidationFinding[] {
+  const tree = journey.tree;
+  const graphNodeIds = new Set([
+    ...BUILT_IN_GRAPH_NODE_IDS,
+    ...Object.keys(tree.nodes || {}),
+    ...Object.keys(tree.staticNodes || {}),
+  ]);
+  const innerNodeDefinitions = getInnerNodeDefinitions(journey);
+
+  return [
+    ...checkNodeDefinitions(journey),
+    ...checkEntryAndConnections(journey, graphNodeIds),
+    ...findUnreachableNodes(journey, graphNodeIds),
+    ...checkPageNodes(journey, innerNodeDefinitions),
+  ];
 }

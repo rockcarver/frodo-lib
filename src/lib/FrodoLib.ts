@@ -144,6 +144,8 @@ export type Frodo = {
 
   app: Application;
 
+  journey: Journey;
+
   authn: {
     journey: Journey;
     node: Node;
@@ -407,6 +409,7 @@ export type Frodo = {
  */
 const FrodoLib = (config: StateInterface = {}): Frodo => {
   const state = StateImpl(config);
+  const journey = JourneyOps(state);
   return {
     state: state,
     admin: AdminOps(state),
@@ -418,8 +421,10 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
 
     app: ApplicationOps(state),
 
+    journey,
+
     authn: {
-      journey: JourneyOps(state),
+      journey,
       node: NodeOps(state),
       settings: AuthenticationSettingsOps(state),
     },

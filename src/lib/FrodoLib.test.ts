@@ -14,6 +14,22 @@ const host1 = 'https://instance1/am';
 const host2 = 'https://instance2/am';
 
 describe('FrodoLib', () => {
+  test('exposes journey validation through the Frodo facade', () => {
+    const journey = frodo.journey.createSingleTreeExportTemplate();
+    journey.tree._id = 'InvalidJourney';
+    journey.tree.entryNodeId = 'missing-entry';
+    journey.tree.nodes = {};
+    const multiJourney = frodo.journey.createMultiTreeExportTemplate();
+    multiJourney.trees.InvalidJourney = journey;
+
+    expect(frodo.journey.validateJourney(journey)).toMatchObject([
+      { code: 'MISSING_ENTRY_NODE', journeyId: 'InvalidJourney' },
+    ]);
+    expect(frodo.journey.validateJourneys(multiJourney)).toEqual(
+      frodo.authn.journey.validateJourneys(multiJourney)
+    );
+  });
+
   test(`frodo.createInstance(): FrodoLib is instantiable using factory function`, async () => {
     state0.setHost('https://instance0/am');
     const instance1 = frodo.createInstance({

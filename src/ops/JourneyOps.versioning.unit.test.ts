@@ -158,7 +158,9 @@ describe('JourneyOps versioning unit coverage', () => {
         options,
         state,
       })
-    ).rejects.toThrow('[MISSING_ENTRY_NODE]');
+    ).rejects.toThrow(
+      "Error importing alpha realm journey 'WarnedJourney':\n  - [MISSING_ENTRY_NODE]"
+    );
     const bulkImportMessage = printMessageMock.mock.calls.find(
       ([args]: any[]) => args.message === '2 warnings in journey WarnedJourney'
     )?.[0];
@@ -194,7 +196,7 @@ describe('JourneyOps versioning unit coverage', () => {
     );
     expect(printMessageMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: '1 warning in journey InvalidJourney',
+        message: '1 error in journey InvalidJourney',
         type: 'warn',
       })
     );

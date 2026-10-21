@@ -61,9 +61,9 @@ import {
   getCurrentRealmName,
 } from '../utils/ForgeRockUtils';
 import {
+  JOURNEY_CONTAINER_NODE_TYPES,
   validateJourneyReferences,
   type JourneyValidationFinding,
-  type JourneyValidationInput,
 } from '../utils/JourneyValidationUtils';
 import { findInArray } from '../utils/JsonUtils';
 import { readCirclesOfTrust } from './CirclesOfTrustOps';
@@ -98,6 +98,22 @@ import {
 import { readThemes, updateThemes, type ThemeSkeleton } from './ThemeOps';
 
 export type Journey = {
+  /**
+   * Validate a single journey export for referential integrity issues.
+   * @param {SingleTreeExportInterface} journey journey export to validate
+   * @returns {JourneyValidationFinding[]} validation findings
+   */
+  validateJourney(
+    journey: SingleTreeExportInterface
+  ): JourneyValidationFinding[];
+  /**
+   * Validate every journey in a multi-tree export for referential integrity issues.
+   * @param {MultiTreeExportInterface} journeys multi-tree export to validate
+   * @returns {JourneyValidationFinding[]} validation findings for all journeys
+   */
+  validateJourneys(
+    journeys: MultiTreeExportInterface
+  ): JourneyValidationFinding[];
   /**
    * Create an empty single tree export template
    * @returns {SingleTreeExportInterface} an empty single tree export template
@@ -205,6 +221,9 @@ export type Journey = {
    * @param {MultiTreeExportInterface} importData map of trees object
    * @param {TreeImportOptions} options import options
    * @param {ResultCallback} resultCallback Optional callback to process individual results
+   * @remarks The complete batch is validated before reading installed journeys or
+   * writing any journey. If validation fails, the batch is rejected without
+   * partially importing valid journeys.
    */
   importJourneys(
     importData: MultiTreeExportInterface,
@@ -307,6 +326,8 @@ export default (state: State): Journey => {
     createMultiTreeExportTemplate(): MultiTreeExportInterface {
       return createMultiTreeExportTemplate({ state });
     },
+    validateJourney,
+    validateJourneys,
     async exportJourney(
       treeId: string,
       options: TreeExportOptions = {
@@ -495,35 +516,56 @@ export interface TreeExportResolverInterface {
   (treeId: string, state: State): Promise<SingleTreeExportInterface>;
 }
 
-function getJourneyValidationFindings(
+/**
+ * Validate a single journey export.
+ * @param journey journey export to validate
+ * @returns validation findings
+ */
+export function validateJourney(
   journey: SingleTreeExportInterface
 ): JourneyValidationFinding[] {
-  return validateJourneyReferences(
-    journey as unknown as JourneyValidationInput
-  );
+  return validateJourneyReferences(journey);
 }
 
-function reportJourneyValidationWarnings(
+/**
+ * Validate every journey in a multi-tree export.
+ * @param journeys multi-tree export to validate
+ * @returns validation findings for all journeys
+ */
+export function validateJourneys(
+  journeys: MultiTreeExportInterface
+): JourneyValidationFinding[] {
+  return Object.values(journeys.trees).flatMap(validateJourney);
+}
+
+function reportJourneyFindings(
   findings: JourneyValidationFinding[],
-  state: State,
-  includeErrors = false
+  state: State
 ): void {
-  const warningsByJourney = new Map<string, JourneyValidationFinding[]>();
+  const findingsByJourney = new Map<string, JourneyValidationFinding[]>();
   for (const finding of findings) {
-    if (includeErrors || finding.severity === 'warning') {
-      const journeyWarnings = warningsByJourney.get(finding.journeyId) || [];
-      journeyWarnings.push(finding);
-      warningsByJourney.set(finding.journeyId, journeyWarnings);
-    }
+    const journeyFindings = findingsByJourney.get(finding.journeyId) || [];
+    journeyFindings.push(finding);
+    findingsByJourney.set(finding.journeyId, journeyFindings);
   }
-  for (const [journeyId, warnings] of warningsByJourney) {
+  for (const [journeyId, journeyFindings] of findingsByJourney) {
+    const errors = journeyFindings.filter(
+      (finding) => finding.severity === 'error'
+    ).length;
+    const warnings = journeyFindings.length - errors;
+    const summary = [
+      errors > 0 ? `${errors} error${errors === 1 ? '' : 's'}` : '',
+      warnings > 0 ? `${warnings} warning${warnings === 1 ? '' : 's'}` : '',
+    ]
+      .filter(Boolean)
+      .join(' and ');
     printMessage({
-      message: `${warnings.length} warning${warnings.length === 1 ? '' : 's'} in journey ${journeyId}`,
+      message: `${summary} in journey ${journeyId}`,
       type: 'warn',
       state,
     });
     if (state.getVerbose()) {
-      for (const finding of warnings) {
+      for (const finding of journeyFindings) {
         printMessage({
           message: `[${finding.code}] ${finding.message}`,
           type: 'warn',
@@ -534,13 +576,14 @@ function reportJourneyValidationWarnings(
   }
 }
 
-function assertJourneyValidationPassed(
-  findings: JourneyValidationFinding[]
+function assertNoJourneyErrors(
+  findings: JourneyValidationFinding[],
+  state: State
 ): void {
   const errors = findings.filter((finding) => finding.severity === 'error');
   if (errors.length > 0) {
     throw new FrodoError(
-      `Journey referential integrity validation failed:\n${errors
+      `Error importing ${getCurrentRealmName(state) + ' realm'} journey '${errors[0].journeyId}':\n${errors
         .map(
           (finding) =>
             `  - [${finding.code}] ${finding.journeyId}: ${finding.message}`
@@ -549,26 +592,6 @@ function assertJourneyValidationPassed(
     );
   }
 }
-
-function reportJourneyExportFindings(
-  journey: SingleTreeExportInterface,
-  state: State
-): void {
-  const findings = getJourneyValidationFindings(journey);
-  reportJourneyValidationWarnings(findings, state, true);
-}
-
-function reportMultiTreeExportFindings(
-  journeyExport: MultiTreeExportInterface,
-  state: State
-): void {
-  const findings = Object.values(journeyExport.trees).flatMap(
-    getJourneyValidationFindings
-  );
-  reportJourneyValidationWarnings(findings, state, true);
-}
-
-const containerNodes = ['PageNode', 'CustomPageNode'];
 
 const scriptedNodesConditions = {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1076,7 +1099,7 @@ async function exportSingleJourney({
       }
 
       // get inner nodes (nodes inside container nodes)
-      if (containerNodes.includes(nodeType)) {
+      if (JOURNEY_CONTAINER_NODE_TYPES.includes(nodeType)) {
         for (const innerNode of nodeObject.nodes) {
           debugMessage({
             message: `JourneyOps.exportJourney: reading inner node [node=${innerNode._id}]`,
@@ -1534,7 +1557,7 @@ export async function exportJourney({
   if (!options.deps) {
     const multiTreeExport = createMultiTreeExportTemplate({ state });
     multiTreeExport.trees[journeyId] = stripExportMetadata(exportData);
-    reportMultiTreeExportFindings(multiTreeExport, state);
+    reportJourneyFindings(validateJourneys(multiTreeExport), state);
     return multiTreeExport;
   }
   const treeDependencyMap = await getTreeDescendents({
@@ -1560,7 +1583,7 @@ export async function exportJourney({
       stripExportMetadata(dependencyExport);
   }
   multiTreeExport.trees[journeyId] = stripExportMetadata(exportData);
-  reportMultiTreeExportFindings(multiTreeExport, state);
+  reportJourneyFindings(validateJourneys(multiTreeExport), state);
   return multiTreeExport;
 }
 
@@ -1602,7 +1625,7 @@ export async function exportJourneys({
       }
     );
     if (exportData) {
-      reportJourneyExportFindings(exportData, state);
+      reportJourneyFindings(validateJourney(exportData), state);
       delete exportData.meta;
       multiTreeExport.trees[tree._id] = exportData;
       updateProgressIndicator({
@@ -1864,13 +1887,16 @@ export async function importJourney({
   let response = null;
   const errors = [];
 
-  try {
-    if (options.validate !== false) {
-      const validationFindings = getJourneyValidationFindings(importData);
-      reportJourneyValidationWarnings(validationFindings, state);
-      assertJourneyValidationPassed(validationFindings);
-    }
+  if (options.validate !== false) {
+    const validationFindings = validateJourney(importData);
+    reportJourneyFindings(
+      validationFindings.filter((finding) => finding.severity === 'warning'),
+      state
+    );
+    assertNoJourneyErrors(validationFindings, state);
+  }
 
+  try {
     const { reUuid, deps } = options;
     const verbose = state.getVerbose();
     if (verbose)
@@ -2802,7 +2828,9 @@ export async function resolveDependencies(
 }
 
 /**
- * Import journeys
+ * Import journeys. The complete batch is validated before reading installed
+ * journeys or writing any journey, so a validation error rejects the batch
+ * without partially importing valid journeys.
  * @param {MultiTreeExportInterface} importData map of trees object
  * @param {TreeImportOptions} options import options
  * @param {ResultCallback} resultCallback Optional callback to process individual results
@@ -2820,11 +2848,12 @@ export async function importJourneys({
 }): Promise<TreeSkeleton[]> {
   const response = [];
   if (options.validate !== false) {
-    const validationFindings = Object.values(importData.trees).flatMap(
-      getJourneyValidationFindings
+    const validationFindings = validateJourneys(importData);
+    reportJourneyFindings(
+      validationFindings.filter((finding) => finding.severity === 'warning'),
+      state
     );
-    reportJourneyValidationWarnings(validationFindings, state);
-    assertJourneyValidationPassed(validationFindings);
+    assertNoJourneyErrors(validationFindings, state);
   }
 
   const installedJourneys = (await readJourneys({ state })).map((x) => x._id);
@@ -2920,7 +2949,7 @@ export function getNodeRef(
     return singleTreeExport.tree.nodes[nodeObj._id];
   } else {
     for (const node of Object.values(singleTreeExport.nodes)) {
-      if (containerNodes.includes(node._type._id)) {
+      if (JOURNEY_CONTAINER_NODE_TYPES.includes(node._type._id)) {
         for (const nodeRef of node.nodes) {
           if (nodeRef._id === nodeObj._id) {
             return nodeRef;
@@ -3183,7 +3212,7 @@ export async function deleteJourney({
         deleteTreeResponse.nodes
       )) {
         // delete inner nodes (nodes inside container nodes)
-        if (containerNodes.includes(nodeObject['nodeType'])) {
+        if (JOURNEY_CONTAINER_NODE_TYPES.includes(nodeObject['nodeType'])) {
           try {
             const containerNode = await readNode({
               nodeId,

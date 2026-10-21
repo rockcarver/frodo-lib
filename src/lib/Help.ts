@@ -2277,6 +2277,26 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Journey",
+    methodName: "validateJourney",
+    signature: "validateJourney( journey: SingleTreeExportInterface ): JourneyValidationFinding[]",
+    description: "Validate a single journey export for referential integrity issues.",
+    params: [
+      { name: "journey", type: "SingleTreeExportInterface", description: "journey export to validate", required: true },
+    ],
+    returns: "{JourneyValidationFinding[]} validation findings",
+  },
+  {
+    typeName: "Journey",
+    methodName: "validateJourneys",
+    signature: "validateJourneys( journeys: MultiTreeExportInterface ): JourneyValidationFinding[]",
+    description: "Validate every journey in a multi-tree export for referential integrity issues.",
+    params: [
+      { name: "journeys", type: "MultiTreeExportInterface", description: "multi-tree export to validate", required: true },
+    ],
+    returns: "{JourneyValidationFinding[]} validation findings for all journeys",
+  },
+  {
+    typeName: "Journey",
     methodName: "createSingleTreeExportTemplate",
     signature: "createSingleTreeExportTemplate(): SingleTreeExportInterface",
     description: "Create an empty single tree export template",
