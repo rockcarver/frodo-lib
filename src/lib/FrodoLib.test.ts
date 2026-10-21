@@ -15,19 +15,19 @@ const host2 = 'https://instance2/am';
 
 describe('FrodoLib', () => {
   test('exposes journey validation through the Frodo facade', () => {
-    const journey = frodo.journey.createSingleTreeExportTemplate();
+    const journey = frodo.authn.journey.createSingleTreeExportTemplate();
     journey.tree._id = 'InvalidJourney';
     journey.tree.entryNodeId = 'missing-entry';
     journey.tree.nodes = {};
-    const multiJourney = frodo.journey.createMultiTreeExportTemplate();
+    const multiJourney = frodo.authn.journey.createMultiTreeExportTemplate();
     multiJourney.trees.InvalidJourney = journey;
 
-    expect(frodo.journey.validateJourney(journey)).toMatchObject([
+    expect(frodo.authn.journey.validateJourney(journey)).toMatchObject([
       { code: 'MISSING_ENTRY_NODE', journeyId: 'InvalidJourney' },
     ]);
-    expect(frodo.journey.validateJourneys(multiJourney)).toEqual(
-      frodo.authn.journey.validateJourneys(multiJourney)
-    );
+    expect(frodo.authn.journey.validateJourneys(multiJourney)).toMatchObject([
+      { code: 'MISSING_ENTRY_NODE', journeyId: 'InvalidJourney' },
+    ]);
   });
 
   test(`frodo.createInstance(): FrodoLib is instantiable using factory function`, async () => {
