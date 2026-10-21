@@ -13,7 +13,8 @@ described in the job sections that follow.)
 
 ```mermaid
 flowchart TD
-    PR["PR to main<br/>or push to main"] --> B["Build<br/>(version bump, build.zip)<br/>required check"]
+    PR["PR to main<br/>or push to main"] --> CH["Detect code changes<br/>(skips tests for docs-only PRs)"]
+    PR --> B["Build<br/>(version bump, build.zip)<br/>required check"]
     B --> T["Test (22 / 24 / 26)<br/>+ squid proxy leg"]
     B --> CP["Cross-Platform Tests<br/>(credential file permissions)"]
     T --> TG["Test gate<br/>required check"]
@@ -74,6 +75,23 @@ the admin bypass admits. The GitHub Actions app cannot be a bypass actor —
 
 ## Jobs
 
+### Detect code changes
+
+`Detect code changes` runs first on every event. For pull requests it lists the
+changed files through the API and sets `code=false` only when **every** file is
+on a docs-and-automation allowlist (root `*.md`, `docs/`, `LICENSE`, issue
+templates, the agentic-workflow definitions, scripts and lock files under
+`.github/`, and a few non-pipeline workflow files). Anything else counts as
+code, including `pipeline.yml`, `package.json` and the lockfile. API errors,
+more than 3000 changed files, pushes, `workflow_dispatch` and release runs all
+resolve to `code=true`, so the filter can only ever skip work, never hide it.
+
+When `code=false`, `Test` and `Cross-Platform Tests` are skipped. `Build` still runs (it is a
+required check and also lints and builds). Skipped required jobs count as
+passing, and the gate job(s) accept a skip only when `code=false` and `Build`
+succeeded. Filtering cannot use `paths-ignore` on the `pull_request` trigger,
+because required checks would stay "expected" forever.
+
 ### Build
 
 Build does the following:
@@ -109,7 +127,8 @@ without ever touching repository settings.
 
 The job uses `if: ${{ !cancelled() }}` so it still runs (and fails) when a
 matrix leg is cancelled or skipped, which a plain `needs` alone would
-silently accept.
+silently accept. A skip is only accepted when `Detect code changes` reported
+`code=false` and `Build` succeeded; otherwise the gate expects `success`.
 
 ### npm-release
 
