@@ -1,5 +1,12 @@
 export type JourneyValidationSeverity = 'error' | 'warning';
 
+/**
+ * `MISSING_NODE_DEFINITION`, `NODE_ID_MISMATCH`, `MISSING_CONNECTION_TARGET`,
+ * `MISSING_ENTRY_NODE`, and `MISSING_INNER_NODE` are errors. All other codes
+ * are warnings: `UNKNOWN_CONNECTION_OUTCOME`, `UNCONNECTED_OUTCOME`,
+ * `UNREACHABLE_NODE`, `UNREFERENCED_INNER_NODE`, `UNREPRESENTED_NODE`, and
+ * `PAGE_NODE_OUTCOME_MISMATCH`.
+ */
 export type JourneyValidationCode =
   | 'MISSING_NODE_DEFINITION'
   | 'NODE_ID_MISMATCH'
@@ -71,6 +78,11 @@ export function validateJourneyReferences(
       ? journey.innerNodes
       : journey.innernodes || journey.innerNodes || {};
   const findings: JourneyValidationFinding[] = [];
+  const builtInGraphNodeIds = [
+    '70e691a5-1e33-4ac3-a356-e7b6d60d92e0',
+    'e301438c-0bd0-429c-ab0c-66126501069a',
+    'startNode',
+  ];
 
   const addFinding = (
     code: JourneyValidationCode,
@@ -100,7 +112,7 @@ export function validateJourneyReferences(
       if (!declaredOutcomes.has(outcome)) {
         addFinding(
           'UNKNOWN_CONNECTION_OUTCOME',
-          'error',
+          'warning',
           `Connection outcome '${outcome}' is not declared by node '${nodeId}'`,
           { nodeId, outcome }
         );
@@ -151,6 +163,7 @@ export function validateJourneyReferences(
   }
 
   const graphNodeIds = new Set([
+    ...builtInGraphNodeIds,
     ...Object.keys(treeNodes),
     ...Object.keys(staticNodes),
   ]);
@@ -233,7 +246,7 @@ export function validateJourneyReferences(
         continue;
       }
       for (const outcome of outcomeIds(innerNode)) {
-        exposedOutcomeIds.add(outcome);
+        exposedOutcomeIds.add(`${innerNode._id}-${outcome}`);
       }
     }
 

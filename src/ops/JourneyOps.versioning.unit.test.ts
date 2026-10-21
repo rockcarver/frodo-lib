@@ -4,6 +4,7 @@ const getTreeMock: any = jest.fn();
 const readNodeMock: any = jest.fn();
 const updateNodeMock: any = jest.fn();
 const putTreeMock: any = jest.fn();
+const printMessageMock: any = jest.fn();
 
 jest.unstable_mockModule('../api/TreeApi', () => ({
   deleteTree: jest.fn(),
@@ -25,7 +26,7 @@ jest.unstable_mockModule('./NodeOps', () => ({
 jest.unstable_mockModule('../utils/Console', () => ({
   createProgressIndicator: jest.fn(),
   debugMessage: jest.fn(),
-  printMessage: jest.fn(),
+  printMessage: printMessageMock,
   printError: jest.fn(),
   verboseMessage: jest.fn(),
   curlirizeMessage: jest.fn(),
@@ -93,7 +94,80 @@ describe('JourneyOps versioning unit coverage', () => {
     expect(putTreeMock).not.toHaveBeenCalled();
   });
 
-  test('exportJourney rejects an invalid tree before returning export data', async () => {
+  test('importJourney can skip validation for a known imperfect journey', async () => {
+    const state = {
+      getVerbose: () => false,
+      getDeploymentType: () => 'onprem',
+    } as any;
+    const importData = {
+      tree: {
+        _id: 'KnownImperfectJourney',
+        entryNodeId: 'missing-entry',
+        nodes: {},
+        staticNodes: {},
+      },
+      nodes: {},
+      innerNodes: {},
+    } as any;
+
+    await JourneyOps.importJourney({
+      importData,
+      options: { reUuid: false, deps: false, validate: false },
+      state,
+    });
+
+    expect(putTreeMock).toHaveBeenCalled();
+  });
+
+  test('importJourney and importJourneys summarize warnings consistently', async () => {
+    const state = {
+      getVerbose: () => false,
+      getDeploymentType: () => 'onprem',
+    } as any;
+    const journey = {
+      tree: {
+        _id: 'WarnedJourney',
+        entryNodeId: 'missing-entry',
+        nodes: {
+          node: { connections: {} },
+        },
+        staticNodes: {},
+      },
+      nodes: {
+        node: {
+          _id: 'node',
+          _type: { _id: 'DecisionNode' },
+          _outcomes: [{ id: 'unconnected' }],
+        },
+      },
+      innerNodes: {},
+    } as any;
+    const options = { reUuid: false, deps: false };
+
+    await expect(
+      JourneyOps.importJourney({ importData: journey, options, state })
+    ).rejects.toThrow("Error importing alpha realm journey 'WarnedJourney'");
+    const singleImportMessage = printMessageMock.mock.calls.find(
+      ([args]: any[]) => args.message === '2 warnings in journey WarnedJourney'
+    )?.[0];
+
+    printMessageMock.mockClear();
+    await expect(
+      JourneyOps.importJourneys({
+        importData: { trees: { WarnedJourney: journey } },
+        options,
+        state,
+      })
+    ).rejects.toThrow('[MISSING_ENTRY_NODE]');
+    const bulkImportMessage = printMessageMock.mock.calls.find(
+      ([args]: any[]) => args.message === '2 warnings in journey WarnedJourney'
+    )?.[0];
+
+    expect(singleImportMessage).toMatchObject({ type: 'warn' });
+    expect(bulkImportMessage).toMatchObject({ type: 'warn' });
+  });
+
+  test('exportJourney includes a tree with invalid references', async () => {
     const state = {
       getVerbose: () => false,
       getDeploymentType: () => 'onprem',
@@ -109,13 +183,21 @@ describe('JourneyOps versioning unit coverage', () => {
       staticNodes: {},
     });
 
-    await expect(
-      JourneyOps.exportJourney({
-        journeyId: 'InvalidJourney',
-        options: { deps: false, useStringArrays: true, coords: true },
-        state,
+    const exportData = await JourneyOps.exportJourney({
+      journeyId: 'InvalidJourney',
+      options: { deps: false, useStringArrays: true, coords: true },
+      state,
+    });
+
+    expect(exportData.trees.InvalidJourney.tree.entryNodeId).toBe(
+      'missing-entry'
+    );
+    expect(printMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: '1 warning in journey InvalidJourney',
+        type: 'warn',
       })
-    ).rejects.toThrow('[MISSING_ENTRY_NODE]');
+    );
   });
 
   test('importJourney forwards nodeTypeVersion from inner nodes and nodes', async () => {

@@ -11,7 +11,7 @@ function validJourney(): JourneyValidationInput {
       _id: 'Login',
       entryNodeId: 'page',
       nodes: {
-        page: { connections: { outcome: 'node-2' } },
+        page: { connections: { 'inner-1-outcome': 'node-2' } },
         'node-2': { connections: { done: 'end' } },
       },
       staticNodes: { end: {} },
@@ -20,7 +20,7 @@ function validJourney(): JourneyValidationInput {
       page: {
         _id: 'page',
         _type: { _id: 'PageNode' },
-        _outcomes: [{ id: 'outcome' }],
+        _outcomes: [{ id: 'inner-1-outcome' }],
         nodes: [{ _id: 'inner-1' }],
       },
       'node-2': {
@@ -43,8 +43,34 @@ function findingCodes(journey: JourneyValidationInput): string[] {
 }
 
 describe('validateJourneyReferences', () => {
-  test('accepts valid tree, node, static node, and Page Node references', () => {
+  test('accepts a normal Page Node outcome derived from its inner node', () => {
     expect(validateJourneyReferences(validJourney())).toEqual([]);
+  });
+
+  test('accepts classic connections to built-in graph nodes without staticNodes', () => {
+    const journey: JourneyValidationInput = {
+      tree: {
+        _id: 'ClassicJourney',
+        entryNodeId: 'decision',
+        nodes: {
+          decision: {
+            connections: {
+              success: '70e691a5-1e33-4ac3-a356-e7b6d60d92e0',
+              failure: 'e301438c-0bd0-429c-ab0c-66126501069a',
+              start: 'startNode',
+            },
+          },
+        },
+      },
+      nodes: {
+        decision: {
+          _id: 'decision',
+          _outcomes: [{ id: 'success' }, { id: 'failure' }, { id: 'start' }],
+        },
+      },
+    };
+
+    expect(validateJourneyReferences(journey)).toEqual([]);
   });
 
   test('supports the legacy lowercase innernodes export property', () => {
@@ -109,7 +135,12 @@ describe('validateJourneyReferences', () => {
     const journey = validJourney();
     journey.tree.nodes.page.connections.unknown = 'end';
 
-    expect(findingCodes(journey)).toContain('UNKNOWN_CONNECTION_OUTCOME');
+    expect(validateJourneyReferences(journey)).toContainEqual(
+      expect.objectContaining({
+        code: 'UNKNOWN_CONNECTION_OUTCOME',
+        severity: 'warning',
+      })
+    );
   });
 
   test('reports non-blocking graph and outcome inconsistencies', () => {
@@ -140,6 +171,20 @@ describe('validateJourneyReferences', () => {
     );
   });
 
+  test('reports one warning for an orphaned debug node and no errors', () => {
+    const journey = validJourney();
+    journey.tree.nodes.debug = { connections: {} };
+    journey.nodes.debug = { _id: 'debug', _outcomes: [] };
+
+    expect(validateJourneyReferences(journey)).toMatchObject([
+      {
+        code: 'UNREACHABLE_NODE',
+        severity: 'warning',
+        nodeId: 'debug',
+      },
+    ]);
+  });
+
   test('accepts all checked-in journey import fixtures without blocking errors', () => {
     const fixtureDirectory = join(
       process.cwd(),
@@ -164,5 +209,21 @@ describe('validateJourneyReferences', () => {
         expect(errors).toEqual([]);
       }
     }
+  });
+
+  test('reports only the missing entry error for the known imperfect journey', () => {
+    const journey: JourneyValidationInput = {
+      tree: {
+        _id: 'test',
+        entryNodeId: 'missing-entry',
+        nodes: {},
+      },
+      nodes: {},
+    };
+    const errors = validateJourneyReferences(journey)
+      .filter((finding) => finding.severity === 'error')
+      .map((finding) => finding.code);
+
+    expect(errors).toEqual(['MISSING_ENTRY_NODE']);
   });
 });

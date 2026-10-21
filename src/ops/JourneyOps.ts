@@ -460,6 +460,10 @@ export interface TreeImportOptions {
    * Include any dependencies specific to AIC or Frodo (scripts, email templates, SAML entity providers and circles of trust, social identity providers, themes, custom nodes).
    */
   deps: boolean;
+  /**
+   * Validate journey node references before import. Defaults to true.
+   */
+  validate?: boolean;
 }
 
 export interface SingleTreeExportInterface {
@@ -501,15 +505,31 @@ function getJourneyValidationFindings(
 
 function reportJourneyValidationWarnings(
   findings: JourneyValidationFinding[],
-  state: State
+  state: State,
+  includeErrors = false
 ): void {
+  const warningsByJourney = new Map<string, JourneyValidationFinding[]>();
   for (const finding of findings) {
-    if (finding.severity === 'warning') {
-      printMessage({
-        message: `[${finding.code}] ${finding.journeyId}: ${finding.message}`,
-        type: 'warn',
-        state,
-      });
+    if (includeErrors || finding.severity === 'warning') {
+      const journeyWarnings = warningsByJourney.get(finding.journeyId) || [];
+      journeyWarnings.push(finding);
+      warningsByJourney.set(finding.journeyId, journeyWarnings);
+    }
+  }
+  for (const [journeyId, warnings] of warningsByJourney) {
+    printMessage({
+      message: `${warnings.length} warning${warnings.length === 1 ? '' : 's'} in journey ${journeyId}`,
+      type: 'warn',
+      state,
+    });
+    if (state.getVerbose()) {
+      for (const finding of warnings) {
+        printMessage({
+          message: `[${finding.code}] ${finding.message}`,
+          type: 'warn',
+          state,
+        });
+      }
     }
   }
 }
@@ -530,24 +550,22 @@ function assertJourneyValidationPassed(
   }
 }
 
-function validateJourneyForOperation(
+function reportJourneyExportFindings(
   journey: SingleTreeExportInterface,
   state: State
 ): void {
   const findings = getJourneyValidationFindings(journey);
-  reportJourneyValidationWarnings(findings, state);
-  assertJourneyValidationPassed(findings);
+  reportJourneyValidationWarnings(findings, state, true);
 }
 
-function validateMultiTreeExportForOperation(
+function reportMultiTreeExportFindings(
   journeyExport: MultiTreeExportInterface,
   state: State
 ): void {
   const findings = Object.values(journeyExport.trees).flatMap(
     getJourneyValidationFindings
   );
-  reportJourneyValidationWarnings(findings, state);
-  assertJourneyValidationPassed(findings);
+  reportJourneyValidationWarnings(findings, state, true);
 }
 
 const containerNodes = ['PageNode', 'CustomPageNode'];
@@ -1516,7 +1534,7 @@ export async function exportJourney({
   if (!options.deps) {
     const multiTreeExport = createMultiTreeExportTemplate({ state });
     multiTreeExport.trees[journeyId] = stripExportMetadata(exportData);
-    validateMultiTreeExportForOperation(multiTreeExport, state);
+    reportMultiTreeExportFindings(multiTreeExport, state);
     return multiTreeExport;
   }
   const treeDependencyMap = await getTreeDescendents({
@@ -1542,7 +1560,7 @@ export async function exportJourney({
       stripExportMetadata(dependencyExport);
   }
   multiTreeExport.trees[journeyId] = stripExportMetadata(exportData);
-  validateMultiTreeExportForOperation(multiTreeExport, state);
+  reportMultiTreeExportFindings(multiTreeExport, state);
   return multiTreeExport;
 }
 
@@ -1576,23 +1594,7 @@ export async function exportJourneys({
     const exportData: SingleTreeExportInterface = await getResult(
       resultCallback,
       `Error exporting the ${getCurrentRealmName(state) + ' realm'} journey ${tree._id}`,
-      async ({
-        journeyId,
-        options,
-        state,
-      }: {
-        journeyId: string;
-        options: TreeExportOptions;
-        state: State;
-      }) => {
-        const journeyExport = await exportSingleJourney({
-          journeyId,
-          options,
-          state,
-        });
-        validateJourneyForOperation(journeyExport, state);
-        return journeyExport;
-      },
+      exportSingleJourney,
       {
         journeyId: tree._id,
         options,
@@ -1600,6 +1602,7 @@ export async function exportJourneys({
       }
     );
     if (exportData) {
+      reportJourneyExportFindings(exportData, state);
       delete exportData.meta;
       multiTreeExport.trees[tree._id] = exportData;
       updateProgressIndicator({
@@ -1862,9 +1865,11 @@ export async function importJourney({
   const errors = [];
 
   try {
-    const validationFindings = getJourneyValidationFindings(importData);
-    reportJourneyValidationWarnings(validationFindings, state);
-    assertJourneyValidationPassed(validationFindings);
+    if (options.validate !== false) {
+      const validationFindings = getJourneyValidationFindings(importData);
+      reportJourneyValidationWarnings(validationFindings, state);
+      assertJourneyValidationPassed(validationFindings);
+    }
 
     const { reUuid, deps } = options;
     const verbose = state.getVerbose();
@@ -2814,10 +2819,13 @@ export async function importJourneys({
   state: State;
 }): Promise<TreeSkeleton[]> {
   const response = [];
-  const validationFindings = Object.values(importData.trees).flatMap(
-    getJourneyValidationFindings
-  );
-  assertJourneyValidationPassed(validationFindings);
+  if (options.validate !== false) {
+    const validationFindings = Object.values(importData.trees).flatMap(
+      getJourneyValidationFindings
+    );
+    reportJourneyValidationWarnings(validationFindings, state);
+    assertJourneyValidationPassed(validationFindings);
+  }
 
   const installedJourneys = (await readJourneys({ state })).map((x) => x._id);
   const unresolvedJourneys: {
@@ -2875,7 +2883,7 @@ export async function importJourneys({
       importJourney,
       {
         importData: importData.trees[tree],
-        options,
+        options: { ...options, validate: false },
         state,
       }
     );
