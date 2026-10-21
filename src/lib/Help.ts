@@ -2297,6 +2297,26 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Journey",
+    methodName: "validateJourneyById",
+    signature: "validateJourneyById(journeyId: string): Promise<JourneyValidationFinding[]>",
+    description: "Read and validate a journey from the tenant.",
+    params: [
+      { name: "journeyId", type: "string", description: "journey name/identifier", required: true },
+    ],
+    returns: "{Promise<JourneyValidationFinding[]>} validation findings",
+  },
+  {
+    typeName: "Journey",
+    methodName: "validateJourneysById",
+    signature: "validateJourneysById( journeyIds: string[] ): Promise<JourneyValidationFinding[]>",
+    description: "Read and validate journeys from the tenant. Lookup failures are collected and reported after every requested journey has been processed.",
+    params: [
+      { name: "journeyIds", type: "string[]", description: "journey names/identifiers", required: true },
+    ],
+    returns: "{Promise<JourneyValidationFinding[]>} validation findings",
+  },
+  {
+    typeName: "Journey",
     methodName: "createSingleTreeExportTemplate",
     signature: "createSingleTreeExportTemplate(): SingleTreeExportInterface",
     description: "Create an empty single tree export template",

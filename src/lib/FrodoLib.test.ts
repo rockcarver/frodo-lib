@@ -28,6 +28,8 @@ describe('FrodoLib', () => {
     expect(frodo.authn.journey.validateJourneys(multiJourney)).toMatchObject([
       { code: 'MISSING_ENTRY_NODE', journeyId: 'InvalidJourney' },
     ]);
+    expect(typeof frodo.authn.journey.validateJourneyById).toBe('function');
+    expect(typeof frodo.authn.journey.validateJourneysById).toBe('function');
   });
 
   test(`frodo.createInstance(): FrodoLib is instantiable using factory function`, async () => {

@@ -505,6 +505,64 @@ describe('MCP capability foundation', () => {
     expect(getUnreviewedSpecialCapabilities()).toEqual([]);
   });
 
+  test('journey validation capabilities are reviewed, low-risk, and non-mutating', () => {
+    const capabilities = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['authn'],
+      includeUtils: false,
+    });
+    const byId = new Map(
+      capabilities.map((capability) => [capability.id, capability])
+    );
+    const validationIds = [
+      'authn.journey.validateJourney',
+      'authn.journey.validateJourneys',
+      'authn.journey.validateJourneyById',
+      'authn.journey.validateJourneysById',
+    ];
+
+    for (const id of validationIds) {
+      const capability = byId.get(id);
+      expect(capability).toBeDefined();
+      expect(capability?.mutating).toBe(false);
+      expect(capability?.riskClass).toBe('low');
+      expect(capability?.objectType).toBe('Journey');
+      expect(capability?.argumentMode).toBe('named');
+    }
+    expect(
+      byId
+        .get('authn.journey.validateJourney')
+        ?.parameters?.map((parameter) => parameter.name)
+    ).toEqual(['journey']);
+    expect(
+      byId
+        .get('authn.journey.validateJourneys')
+        ?.parameters?.map((parameter) => parameter.name)
+    ).toEqual(['journeys']);
+    expect(
+      byId
+        .get('authn.journey.validateJourneyById')
+        ?.parameters?.map((parameter) => parameter.name)
+    ).toEqual(['journeyId']);
+    expect(
+      byId
+        .get('authn.journey.validateJourneysById')
+        ?.parameters?.map((parameter) => parameter.name)
+    ).toEqual(['journeyIds']);
+    expect(
+      byId.get('authn.journey.validateJourneysById')?.parameters?.[0]?.schema
+    ).toMatchObject({
+      type: 'array',
+      items: { type: 'string' },
+      minItems: 1,
+    });
+    expect(byId.get('authn.journey.validateJourneyById')?.supportsRealm).toBe(
+      true
+    );
+    expect(byId.get('authn.journey.validateJourneysById')?.supportsRealm).toBe(
+      true
+    );
+  });
+
   test('never advertises an empty parameter contract when Help.ts reports required params', () => {
     // Regression guard for the script.getLibraryScriptNames bug class: a
     // capability must never end up with an empty/undefined parameter list

@@ -115,6 +115,21 @@ export type Journey = {
     journeys: MultiTreeExportInterface
   ): JourneyValidationFinding[];
   /**
+   * Read and validate a journey from the tenant.
+   * @param {string} journeyId journey name/identifier
+   * @returns {Promise<JourneyValidationFinding[]>} validation findings
+   */
+  validateJourneyById(journeyId: string): Promise<JourneyValidationFinding[]>;
+  /**
+   * Read and validate journeys from the tenant. Lookup failures are collected
+   * and reported after every requested journey has been processed.
+   * @param {string[]} journeyIds journey names/identifiers
+   * @returns {Promise<JourneyValidationFinding[]>} validation findings
+   */
+  validateJourneysById(
+    journeyIds: string[]
+  ): Promise<JourneyValidationFinding[]>;
+  /**
    * Create an empty single tree export template
    * @returns {SingleTreeExportInterface} an empty single tree export template
    */
@@ -328,6 +343,16 @@ export default (state: State): Journey => {
     },
     validateJourney,
     validateJourneys,
+    async validateJourneyById(
+      journeyId: string
+    ): Promise<JourneyValidationFinding[]> {
+      return validateJourneyById({ journeyId, state });
+    },
+    async validateJourneysById(
+      journeyIds: string[]
+    ): Promise<JourneyValidationFinding[]> {
+      return validateJourneysById({ journeyIds, state });
+    },
     async exportJourney(
       treeId: string,
       options: TreeExportOptions = {
@@ -1530,6 +1555,72 @@ async function exportSingleJourney({
     state,
   });
   return exportData;
+}
+
+/**
+ * Read and validate one live journey without exporting its dependencies or
+ * printing its validation findings.
+ */
+export async function validateJourneyById({
+  journeyId,
+  state,
+}: {
+  journeyId: string;
+  state: State;
+}): Promise<JourneyValidationFinding[]> {
+  try {
+    const journey = await exportSingleJourney({
+      journeyId,
+      options: { deps: false, useStringArrays: true, coords: true },
+      state,
+    });
+    return validateJourney(journey);
+  } catch (error) {
+    throw new FrodoError(
+      `Error validating ${getCurrentRealmName(state) + ' realm'} journey '${journeyId}'`,
+      error
+    );
+  }
+}
+
+/**
+ * Read and validate each requested live journey, collecting lookup failures
+ * before rejecting the complete request.
+ */
+export async function validateJourneysById({
+  journeyIds,
+  state,
+}: {
+  journeyIds: string[];
+  state: State;
+}): Promise<JourneyValidationFinding[]> {
+  const findings: JourneyValidationFinding[] = [];
+  const errors: FrodoError[] = [];
+
+  for (const journeyId of journeyIds) {
+    try {
+      findings.push(...(await validateJourneyById({ journeyId, state })));
+    } catch (error) {
+      errors.push(
+        error instanceof FrodoError
+          ? error
+          : new FrodoError(
+              `Error validating ${getCurrentRealmName(state) + ' realm'} journey '${journeyId}'`,
+              error
+            )
+      );
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new FrodoError(
+      `Error validating ${getCurrentRealmName(state) + ' realm'} journeys:\n${errors
+        .map((error) => `  - ${error.message}`)
+        .join('\n')}`,
+      errors
+    );
+  }
+  return findings;
 }
 
 /**

@@ -2476,6 +2476,74 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     // already in hand, not a standalone operation an agent could call.
     excluded: true,
   },
+  'authn.journey.validateJourney': {
+    operationType: 'special',
+    objectType: 'Journey',
+    argumentMode: 'named',
+    parameterOverrides: {
+      journey: {
+        description:
+          'A single journey export (SingleTreeExportInterface) to validate, for example one entry of the trees map returned by authn.journey.exportJourney, optionally edited since.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+    },
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Offline check of an export you already hold: no tenant call, no side effects. Returns findings (code, severity, journeyId, message, nodeId/targetNodeId/outcome); errors mean the journey would fail import, warnings are advisory. Typical use: export a journey, validate it, or export, edit, then validate before importing.',
+  },
+  'authn.journey.validateJourneys': {
+    operationType: 'special',
+    objectType: 'Journey',
+    argumentMode: 'named',
+    parameterOverrides: {
+      journeys: {
+        description:
+          'A multi-journey export (MultiTreeExportInterface, i.e. the object returned by authn.journey.exportJourney or exportJourneys) to validate.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+    },
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Offline check of every journey in an export you already hold: no tenant call, no side effects. Pass the result of authn.journey.exportJourney / exportJourneys directly, or an edited copy of it.',
+  },
+  'authn.journey.validateJourneyById': {
+    operationType: 'special',
+    objectType: 'Journey',
+    argumentMode: 'named',
+    parameterOverrides: {
+      journeyId: {
+        description: 'Journey name to read from the tenant and validate.',
+        examples: ['Login'],
+      },
+    },
+    supportsRealm: true,
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Reads the journey from the tenant and returns its validation findings without changing anything. For an export you already hold, use authn.journey.validateJourney instead.',
+  },
+  'authn.journey.validateJourneysById': {
+    operationType: 'special',
+    objectType: 'Journey',
+    argumentMode: 'named',
+    parameterOverrides: {
+      journeyIds: {
+        description: 'Journey names to read from the tenant and validate.',
+        schema: {
+          type: 'array',
+          items: { type: 'string' },
+          minItems: 1,
+        },
+      },
+    },
+    supportsRealm: true,
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Reads each journey from the tenant and returns all validation findings without changing anything. For an export you already hold, use authn.journey.validateJourneys instead.',
+  },
   'authn.journey.getTreeDescendents': {
     operationType: 'list',
     objectType: 'Journey',
