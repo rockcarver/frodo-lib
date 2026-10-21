@@ -617,22 +617,20 @@ export async function getConnectionProfileByHost({
       preferredDeviceFlow: profiles[0].preferredDeviceFlow,
       defaultCredential: profiles[0].defaultCredential,
     };
+    const secretKeys = new Set(
+      Object.keys(profiles[0])
+        .filter((key) => key.startsWith('encoded') && key.length > 7)
+        .map((key) => key.charAt(7).toLowerCase() + key.slice(8))
+    );
     debugMessage({
       message: `ConnectionProfileOps.getConnectionProfileByHost: retrieved connection profile for host '${host}': ${JSON.stringify(
         {
-          ...connectionProfile,
-          password: connectionProfile.password
-            ? '<present>'
-            : connectionProfile.password,
-          logApiSecret: connectionProfile.logApiSecret
-            ? '<present>'
-            : connectionProfile.logApiSecret,
-          svcacctJwk: connectionProfile.svcacctJwk
-            ? '<present>'
-            : connectionProfile.svcacctJwk,
-          amsterPrivateKey: connectionProfile.amsterPrivateKey
-            ? '<present>'
-            : connectionProfile.amsterPrivateKey,
+          ...Object.fromEntries(
+            Object.entries(connectionProfile).map(([key, value]) => [
+              key,
+              secretKeys.has(key) && value ? '<present>' : value,
+            ])
+          ),
           authenticationHeaderOverrides: Object.fromEntries(
             Object.keys(connectionProfile.authenticationHeaderOverrides).map(
               (key) => [key, '<present>']

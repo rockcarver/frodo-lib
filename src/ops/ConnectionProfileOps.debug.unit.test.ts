@@ -122,6 +122,34 @@ describe('Connection profile debug output', () => {
     });
   });
 
+  test.each(['username', 'logApiKey'])(
+    'lookup dynamically masks %s when its encoded key is present',
+    async (key) => {
+      setCredentials();
+      expect(await saveConnectionProfile({ host, state })).toBe(true);
+      const filename = state.getConnectionProfilesPath();
+      const connections = JSON.parse(fs.readFileSync(filename, 'utf8'));
+      connections[host][
+        `encoded${key.charAt(0).toUpperCase()}${key.slice(1)}`
+      ] = 'test-only-encoded-value';
+      fs.writeFileSync(filename, JSON.stringify(connections));
+      debugHandler.mockClear();
+
+      const profile = await getConnectionProfileByHost({ host, state });
+
+      expect(profile[key]).toBe(connections[host][key]);
+      const diagnostic = debugHandler.mock.calls
+        .map(([message]) => String(message))
+        .find((message) => message.includes('retrieved connection profile'));
+      const loggedProfile = JSON.parse(
+        diagnostic.slice(diagnostic.indexOf('{'))
+      );
+      expect(loggedProfile[key]).toBe('<present>');
+      expect(diagnostic).not.toContain(profile[key]);
+      expectNoSecrets();
+    }
+  );
+
   test('lookup handles profiles without optional credentials', async () => {
     expect(await saveConnectionProfile({ host, state })).toBe(true);
     debugHandler.mockClear();
