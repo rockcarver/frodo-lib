@@ -46,8 +46,8 @@ safe-outputs:
     target: "*"
   create-issue:
     max: 1
-    allowed-repos: ["rockcarver/frodo-cli"]
-    github-token: ${{ secrets.FRODO_CLI_ISSUES_TOKEN }}
+    # Repos that use related-repos.md must list the related repositories here,
+    # for example: allowed-repos: ["owner/library"]
   threat-detection:
     enabled: true
     continue-on-error: false
@@ -84,7 +84,11 @@ The `secret` field on that entry names the Actions secret the workflow uses to c
    - Title: same as the original, or a clear summary.
    - Body: include the original report and a line `Reported from {owner}/{repo}#{number}`.
 2. On the original (non-canonical) issue:
-   - Post a plain-language comment: "This is being tracked in {owner}/{repo}#{number}. We will update this issue when that work is finished."
+   - Post a plain-language comment.
+     If the related entry has `release.requires_consumer_release: true`:
+     "This is being tracked in {owner}/{repo}#{number}. A release of this project that includes that fix will be needed before this is resolved."
+     Otherwise:
+     "This is being tracked in {owner}/{repo}#{number}. We will update this issue when that work is finished."
    - Add the internal label `related-repo`.
    - Do **not** add `issue-worker-ready`.
 3. On the new canonical issue, post a short comment: "Opened from {owner}/{repo}#{number}."
