@@ -2514,7 +2514,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     argumentMode: 'named',
     parameterOverrides: {
       journeyId: {
-        description: 'Journey name to read from the tenant and validate.',
+        description: 'Identifier (name) of the journey to validate.',
         examples: ['Login'],
       },
     },
@@ -2522,7 +2522,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     mutating: false,
     riskClass: 'low',
     notes:
-      'Reads the journey from the tenant and returns its validation findings without changing anything. For an export you already hold, use authn.journey.validateJourney instead.',
+      'Reads the journey from the tenant (thin read, no dependencies) and returns the validation findings (code, severity, journeyId, message, nodeId/targetNodeId/outcome). Changes nothing. Errors mean the journey would fail import, warnings are advisory. Use validateJourney instead when you already hold an export, for example one you edited.',
   },
   'authn.journey.validateJourneysById': {
     operationType: 'special',
@@ -2530,19 +2530,19 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     argumentMode: 'named',
     parameterOverrides: {
       journeyIds: {
-        description: 'Journey names to read from the tenant and validate.',
+        description: 'Identifiers (names) of the journeys to validate.',
         schema: {
           type: 'array',
           items: { type: 'string' },
-          minItems: 1,
         },
+        examples: [['Login', 'Registration']],
       },
     },
     supportsRealm: true,
     mutating: false,
     riskClass: 'low',
     notes:
-      'Reads each journey from the tenant and returns all validation findings without changing anything. For an export you already hold, use authn.journey.validateJourneys instead.',
+      'Reads each journey from the tenant (thin read, no dependencies) and returns the combined validation findings; every finding carries its journeyId. Changes nothing. A journey that cannot be read fails the call after the others have been processed. Use validateJourneys instead when you already hold an export.',
   },
   'authn.journey.getTreeDescendents': {
     operationType: 'list',

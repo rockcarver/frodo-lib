@@ -550,11 +550,13 @@ describe('MCP capability foundation', () => {
     ).toEqual(['journeyIds']);
     expect(
       byId.get('authn.journey.validateJourneysById')?.parameters?.[0]?.schema
-    ).toMatchObject({
+    ).toEqual({
       type: 'array',
       items: { type: 'string' },
-      minItems: 1,
     });
+    expect(
+      byId.get('authn.journey.validateJourneysById')?.parameters?.[0]?.examples
+    ).toEqual([['Login', 'Registration']]);
     expect(byId.get('authn.journey.validateJourneyById')?.supportsRealm).toBe(
       true
     );

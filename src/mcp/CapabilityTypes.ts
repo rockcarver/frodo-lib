@@ -82,7 +82,6 @@ export type McpCapabilityParameterSchema = {
   enum?: unknown[];
   properties?: Record<string, McpCapabilityParameterSchema>;
   required?: string[];
-  minItems?: number;
   additionalProperties?: boolean;
   items?: McpCapabilityParameterSchema;
 };
