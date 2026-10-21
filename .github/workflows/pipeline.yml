@@ -514,7 +514,7 @@ jobs:
             CHANGELOG.md
             LICENSE
             Release.txt
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_TOKEN }}
 
   doc:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && !inputs.dry-run
