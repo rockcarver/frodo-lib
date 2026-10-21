@@ -4,6 +4,7 @@ description: |
   Guides reporters only through comments; never mentions internal labels.
   Prefers the repository issue template as the definition of a complete issue.
   For split-repo projects, creates a linked canonical issue and marks the original with related-repo.
+if: ${{ github.event.issue.user.type != 'Bot' && github.event.comment.user.type != 'Bot' && github.event.issue.pull_request == null }}
 on:
   issues:
     types: [opened, reopened, edited]
@@ -124,6 +125,7 @@ Then say one of these, plainly:
 - Still present: the current code still matches the report. Continue as usual.
 
 Do not use age or inactivity as a reason to call an issue fixed.
+An open pull request, or one closed without merging, is never evidence that something is fixed.
 
 ### Missing information
 If required details are absent and the issue belongs here, end with a direct request that lists only the items still needed.
@@ -133,6 +135,9 @@ If it is valid but not urgent, say that it has been noted for later and that no 
 
 If the repository defines an environment agent and a quick reproduction check would help, you may request it. Otherwise proceed without it.
 
+### Declared dependencies
+A `Depends on:`, `Blocked by:`, or `Requires:` line is not a reason to withhold `issue-worker-ready`, to say work is on hold, or to promise a later update. Waiting for a dependency is handled after this step: issue triage applies the gate and a watcher resumes the issue. Analyze the issue as usual. Do not mention the dependency as a reason that no work is planned.
+
 ## Signaling (internal)
-- If the issue stays here: add `issue-worker-ready`.
+- If the issue stays here: add `issue-worker-ready`, even when it declares a dependency that is not finished yet.
 - If you created or confirmed a linked canonical issue: add `related-repo` and do **not** add `issue-worker-ready`.

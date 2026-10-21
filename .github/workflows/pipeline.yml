@@ -47,6 +47,46 @@ permissions:
   id-token: write
       
 jobs:
+  # Classifies a PR as code or non-code so the long test jobs can be skipped
+  # for docs and automation-only changes. This cannot be done with
+  # `paths-ignore` on the pull_request trigger: the required checks would stay
+  # "expected" forever. Skipped jobs count as passing for required checks.
+  # Fails safe: anything not on the allowlist, any API error, and every
+  # non-PR event (push, workflow_dispatch, releases) is treated as code.
+  changes:
+    name: 'Detect code changes'
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.classify.outputs.code }}
+    steps:
+      - name: Classify changed files
+        id: classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          code=true
+          if [ "${EVENT}" = "pull_request" ]; then
+            if files=$(gh api "repos/${REPO}/pulls/${PR}/files" --paginate \
+                --jq '.[] | .filename, (.previous_filename // empty)'); then
+              count=$(printf '%s\n' "${files}" | grep -c . || true)
+              # The files API caps at 3000 entries; treat that as "unknown".
+              if [ "${count}" -gt 0 ] && [ "${count}" -lt 3000 ]; then
+                safe='^(docs/|[^/]+\.md$|LICENSE|\.github/(ISSUE_TEMPLATE/|agentic-workflows/|scripts/|workflows/[^/]+\.(ya?ml|md)$|CODEOWNERS$|dependabot\.yml$|copilot-instructions\.md$))'
+                # Any workflow except this pipeline is non-code: it cannot change
+                # what these jobs build or test.
+                if ! printf '%s\n' "${files}" | grep -Ev "${safe}" | grep -q . \
+                    && ! printf '%s\n' "${files}" | grep -qx '.github/workflows/pipeline.yml'; then
+                  code=false
+                fi
+              fi
+            fi
+          fi
+          echo "code=${code}"
+          echo "code=${code}" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -139,7 +179,8 @@ jobs:
     name: 'Test'
     # You must use a Linux environment when using service containers or container jobs
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: [build, changes]
+    if: needs.changes.outputs.code == 'true'
     strategy:
       matrix:
         node-version: [26, 24, 22]
@@ -198,11 +239,6 @@ jobs:
           npm run test
         continue-on-error: true # Allow subsequent steps to run even if tests fail
 
-      - name: Show debug log on failure
-        if: steps.direct-tests.outcome == 'failure'
-        run: |
-          cat frodo-lib-debug.log
-
       - name: Show jest exceptions log on failure
         if: steps.direct-tests.outcome == 'failure'
         run: |
@@ -219,11 +255,6 @@ jobs:
         run: |
           npm run test
 
-      - name: Show debug log on failure
-        if: steps.proxy-tests.outcome == 'failure'
-        run: |
-          cat frodo-lib-debug.log
-
       - name: Show jest exceptions log on failure
         if: steps.proxy-tests.outcome == 'failure'
         run: |
@@ -239,16 +270,34 @@ jobs:
   # cancelled/skipped unexpectedly.
   test-gate:
     name: 'Test gate'
-    needs: [test]
+    needs: [build, changes, test]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Fail if any test matrix leg did not succeed
         run: |
+          build='${{ needs.build.result }}'
+          changes='${{ needs.changes.result }}'
+          code='${{ needs.changes.outputs.code }}'
           result='${{ needs.test.result }}'
-          echo "test matrix result: ${result}"
-          if [ "${result}" != "success" ]; then
-            echo "::error::Not all test matrix legs succeeded"
+          echo "build=${build} changes=${changes} code=${code} test=${result}"
+          if [ "${changes}" != "success" ]; then
+            echo "::error::Change detection did not succeed"
+            exit 1
+          fi
+          if [ "${code}" = "true" ]; then
+            expected=success
+          else
+            # Non-code PR: the tests are skipped on purpose, but Build must
+            # still have passed (a skipped Build would also skip the tests).
+            expected=skipped
+            if [ "${build}" != "success" ]; then
+              echo "::error::Build did not succeed"
+              exit 1
+            fi
+          fi
+          if [ "${result}" != "${expected}" ]; then
+            echo "::error::Expected test result '${expected}', got '${result}'"
             exit 1
           fi
 
@@ -261,7 +310,8 @@ jobs:
     # verified directly on every OS frodo ships a binary for, independent
     # of the Linux-only `test` job above (which needs a Linux-only service
     # container and isn't testing this).
-    needs: [build]
+    needs: [build, changes]
+    if: needs.changes.outputs.code == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -322,16 +372,34 @@ jobs:
   # 'Cross-Platform gate', not at the matrix job name.
   test-cross-platform-gate:
     name: 'Cross-Platform gate'
-    needs: [test-cross-platform]
+    needs: [build, changes, test-cross-platform]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Fail if any cross-platform matrix leg did not succeed
         run: |
+          build='${{ needs.build.result }}'
+          changes='${{ needs.changes.result }}'
+          code='${{ needs.changes.outputs.code }}'
           result='${{ needs.test-cross-platform.result }}'
-          echo "test-cross-platform matrix result: ${result}"
-          if [ "${result}" != "success" ]; then
-            echo "::error::Not all cross-platform matrix legs succeeded"
+          echo "build=${build} changes=${changes} code=${code} test-cross-platform=${result}"
+          if [ "${changes}" != "success" ]; then
+            echo "::error::Change detection did not succeed"
+            exit 1
+          fi
+          if [ "${code}" = "true" ]; then
+            expected=success
+          else
+            # Non-code PR: the tests are skipped on purpose, but Build must
+            # still have passed (a skipped Build would also skip the tests).
+            expected=skipped
+            if [ "${build}" != "success" ]; then
+              echo "::error::Build did not succeed"
+              exit 1
+            fi
+          fi
+          if [ "${result}" != "${expected}" ]; then
+            echo "::error::Expected test-cross-platform result '${expected}', got '${result}'"
             exit 1
           fi
 
