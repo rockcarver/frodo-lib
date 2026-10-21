@@ -239,11 +239,6 @@ jobs:
           npm run test
         continue-on-error: true # Allow subsequent steps to run even if tests fail
 
-      - name: Show debug log on failure
-        if: steps.direct-tests.outcome == 'failure'
-        run: |
-          cat frodo-lib-debug.log
-
       - name: Show jest exceptions log on failure
         if: steps.direct-tests.outcome == 'failure'
         run: |
@@ -259,11 +254,6 @@ jobs:
           # FRODO_SA_JWK: ${{ secrets.FIDC_TENANT_SA_JWK }}
         run: |
           npm run test
-
-      - name: Show debug log on failure
-        if: steps.proxy-tests.outcome == 'failure'
-        run: |
-          cat frodo-lib-debug.log
 
       - name: Show jest exceptions log on failure
         if: steps.proxy-tests.outcome == 'failure'
