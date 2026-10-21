@@ -60,6 +60,11 @@ import {
   getCurrentRealmManagedUser,
   getCurrentRealmName,
 } from '../utils/ForgeRockUtils';
+import {
+  validateJourneyReferences,
+  type JourneyValidationFinding,
+  type JourneyValidationInput,
+} from '../utils/JourneyValidationUtils';
 import { findInArray } from '../utils/JsonUtils';
 import { readCirclesOfTrust } from './CirclesOfTrustOps';
 import { resolveVariable, updateVariable } from './cloud/VariablesOps';
@@ -484,6 +489,65 @@ export interface TreeDependencyMapInterface {
 
 export interface TreeExportResolverInterface {
   (treeId: string, state: State): Promise<SingleTreeExportInterface>;
+}
+
+function getJourneyValidationFindings(
+  journey: SingleTreeExportInterface
+): JourneyValidationFinding[] {
+  return validateJourneyReferences(
+    journey as unknown as JourneyValidationInput
+  );
+}
+
+function reportJourneyValidationWarnings(
+  findings: JourneyValidationFinding[],
+  state: State
+): void {
+  for (const finding of findings) {
+    if (finding.severity === 'warning') {
+      printMessage({
+        message: `[${finding.code}] ${finding.journeyId}: ${finding.message}`,
+        type: 'warn',
+        state,
+      });
+    }
+  }
+}
+
+function assertJourneyValidationPassed(
+  findings: JourneyValidationFinding[]
+): void {
+  const errors = findings.filter((finding) => finding.severity === 'error');
+  if (errors.length > 0) {
+    throw new FrodoError(
+      `Journey referential integrity validation failed:\n${errors
+        .map(
+          (finding) =>
+            `  - [${finding.code}] ${finding.journeyId}: ${finding.message}`
+        )
+        .join('\n')}`
+    );
+  }
+}
+
+function validateJourneyForOperation(
+  journey: SingleTreeExportInterface,
+  state: State
+): void {
+  const findings = getJourneyValidationFindings(journey);
+  reportJourneyValidationWarnings(findings, state);
+  assertJourneyValidationPassed(findings);
+}
+
+function validateMultiTreeExportForOperation(
+  journeyExport: MultiTreeExportInterface,
+  state: State
+): void {
+  const findings = Object.values(journeyExport.trees).flatMap(
+    getJourneyValidationFindings
+  );
+  reportJourneyValidationWarnings(findings, state);
+  assertJourneyValidationPassed(findings);
 }
 
 const containerNodes = ['PageNode', 'CustomPageNode'];
@@ -1452,6 +1516,7 @@ export async function exportJourney({
   if (!options.deps) {
     const multiTreeExport = createMultiTreeExportTemplate({ state });
     multiTreeExport.trees[journeyId] = stripExportMetadata(exportData);
+    validateMultiTreeExportForOperation(multiTreeExport, state);
     return multiTreeExport;
   }
   const treeDependencyMap = await getTreeDescendents({
@@ -1477,6 +1542,7 @@ export async function exportJourney({
       stripExportMetadata(dependencyExport);
   }
   multiTreeExport.trees[journeyId] = stripExportMetadata(exportData);
+  validateMultiTreeExportForOperation(multiTreeExport, state);
   return multiTreeExport;
 }
 
@@ -1510,7 +1576,23 @@ export async function exportJourneys({
     const exportData: SingleTreeExportInterface = await getResult(
       resultCallback,
       `Error exporting the ${getCurrentRealmName(state) + ' realm'} journey ${tree._id}`,
-      exportSingleJourney,
+      async ({
+        journeyId,
+        options,
+        state,
+      }: {
+        journeyId: string;
+        options: TreeExportOptions;
+        state: State;
+      }) => {
+        const journeyExport = await exportSingleJourney({
+          journeyId,
+          options,
+          state,
+        });
+        validateJourneyForOperation(journeyExport, state);
+        return journeyExport;
+      },
       {
         journeyId: tree._id,
         options,
@@ -1780,6 +1862,10 @@ export async function importJourney({
   const errors = [];
 
   try {
+    const validationFindings = getJourneyValidationFindings(importData);
+    reportJourneyValidationWarnings(validationFindings, state);
+    assertJourneyValidationPassed(validationFindings);
+
     const { reUuid, deps } = options;
     const verbose = state.getVerbose();
     if (verbose)
@@ -2728,6 +2814,11 @@ export async function importJourneys({
   state: State;
 }): Promise<TreeSkeleton[]> {
   const response = [];
+  const validationFindings = Object.values(importData.trees).flatMap(
+    getJourneyValidationFindings
+  );
+  assertJourneyValidationPassed(validationFindings);
+
   const installedJourneys = (await readJourneys({ state })).map((x) => x._id);
   const unresolvedJourneys: {
     [k: string]: string[];

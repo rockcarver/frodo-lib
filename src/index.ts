@@ -132,6 +132,14 @@ export type { SocialIdpSkeleton } from './api/SocialIdentityProvidersApi';
 
 export type { TreeSkeleton } from './api/TreeApi';
 
+export {
+  validateJourneyReferences,
+  type JourneyValidationCode,
+  type JourneyValidationFinding,
+  type JourneyValidationInput,
+  type JourneyValidationSeverity,
+} from './utils/JourneyValidationUtils';
+
 export type { ContentSecurityPolicy } from './api/cloud/EnvContentSecurityPolicyApi';
 
 export type { DirectConfigurationSessionState } from './api/cloud/EnvDirectConfigurationSessionApi';

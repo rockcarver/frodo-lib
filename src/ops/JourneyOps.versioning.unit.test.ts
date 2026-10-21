@@ -61,6 +61,63 @@ beforeEach(() => {
 });
 
 describe('JourneyOps versioning unit coverage', () => {
+  test('importJourney rejects invalid references before writing nodes or trees', async () => {
+    const state = {
+      getVerbose: () => false,
+      getDeploymentType: () => 'onprem',
+    } as any;
+    const importData = {
+      tree: {
+        _id: 'InvalidJourney',
+        entryNodeId: 'missing-entry',
+        nodes: {},
+        staticNodes: {},
+      },
+      nodes: {},
+      innerNodes: {},
+    } as any;
+
+    let caughtError: any;
+    try {
+      await JourneyOps.importJourney({
+        importData,
+        options: { reUuid: false, deps: false },
+        state,
+      });
+    } catch (error) {
+      caughtError = error;
+    }
+
+    expect(caughtError.toString()).toContain('[MISSING_ENTRY_NODE]');
+    expect(updateNodeMock).not.toHaveBeenCalled();
+    expect(putTreeMock).not.toHaveBeenCalled();
+  });
+
+  test('exportJourney rejects an invalid tree before returning export data', async () => {
+    const state = {
+      getVerbose: () => false,
+      getDeploymentType: () => 'onprem',
+      getHost: () => 'https://example.com/am',
+      getAmVersion: () => '9.0.0',
+      getUsername: () => 'alpha_user',
+      getFrodoVersion: () => 'v4.0.0-test',
+    } as any;
+    getTreeMock.mockResolvedValue({
+      _id: 'InvalidJourney',
+      entryNodeId: 'missing-entry',
+      nodes: {},
+      staticNodes: {},
+    });
+
+    await expect(
+      JourneyOps.exportJourney({
+        journeyId: 'InvalidJourney',
+        options: { deps: false, useStringArrays: true, coords: true },
+        state,
+      })
+    ).rejects.toThrow('[MISSING_ENTRY_NODE]');
+  });
+
   test('importJourney forwards nodeTypeVersion from inner nodes and nodes', async () => {
     const state = {
       getVerbose: () => false,
@@ -76,7 +133,15 @@ describe('JourneyOps versioning unit coverage', () => {
         uiConfig: {},
         mustRun: false,
         noSession: false,
-        nodes: {},
+        nodes: {
+          'node-1': {
+            connections: {},
+            displayName: 'Password',
+            nodeType: 'ValidatedPasswordNode',
+            x: 0,
+            y: 0,
+          },
+        },
         staticNodes: {},
       },
       innerNodes: {
@@ -227,7 +292,7 @@ describe('JourneyOps versioning unit coverage', () => {
         noSession: false,
         uiConfig: {},
         nodes: {},
-        staticNodes: {},
+        staticNodes: { 'node-2': {} },
       },
     };
     const nodeMap: Record<string, any> = {
@@ -319,7 +384,7 @@ describe('JourneyOps versioning unit coverage', () => {
         noSession: false,
         uiConfig: {},
         nodes: {},
-        staticNodes: {},
+        staticNodes: { 'node-2': {} },
       },
     };
     const nodeMap: Record<string, any> = {

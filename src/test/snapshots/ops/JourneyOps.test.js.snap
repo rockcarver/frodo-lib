@@ -1024,6 +1024,12 @@ For example, for textOutputCallback, the options could be: { messageType: 0, mes
 `;
 
 exports[`JourneyOps exportJourneys() 1: Export journeys w/o dependencies 1`] = `
+"Error exporting the alpha realm journey test
+  Journey referential integrity validation failed:
+  - [MISSING_ENTRY_NODE] test: Entry node 'd26176be-ea6f-4f2a-81cd-3d41dd6cee4d' does not resolve to a graph node"
+`;
+
+exports[`JourneyOps exportJourneys() 1: Export journeys w/o dependencies 2`] = `
 {
   "meta": Any<Object>,
   "trees": {
@@ -7839,48 +7845,17 @@ exports[`JourneyOps exportJourneys() 1: Export journeys w/o dependencies 1`] = `
       },
       "variable": {},
     },
-    "test": {
-      "circlesOfTrust": {},
-      "emailTemplates": {},
-      "innerNodes": {},
-      "nodes": {},
-      "saml2Entities": {},
-      "scripts": {},
-      "socialIdentityProviders": {},
-      "themes": [],
-      "tree": {
-        "_id": "test",
-        "_rev": "-1438477812",
-        "enabled": true,
-        "entryNodeId": "d26176be-ea6f-4f2a-81cd-3d41dd6cee4d",
-        "identityResource": "managed/alpha_user",
-        "innerTreeOnly": false,
-        "mustRun": false,
-        "noSession": false,
-        "nodes": {},
-        "staticNodes": {
-          "70e691a5-1e33-4ac3-a356-e7b6d60d92e0": {
-            "x": 50,
-            "y": 117,
-          },
-          "e301438c-0bd0-429c-ab0c-66126501069a": {
-            "x": 152,
-            "y": 25,
-          },
-          "startNode": {
-            "x": 50,
-            "y": 25,
-          },
-        },
-        "uiConfig": {},
-      },
-      "variable": {},
-    },
   },
 }
 `;
 
 exports[`JourneyOps exportJourneys() 2: Export journeys w/ dependencies 1`] = `
+"Error exporting the alpha realm journey test
+  Journey referential integrity validation failed:
+  - [MISSING_ENTRY_NODE] test: Entry node 'd26176be-ea6f-4f2a-81cd-3d41dd6cee4d' does not resolve to a graph node"
+`;
+
+exports[`JourneyOps exportJourneys() 2: Export journeys w/ dependencies 2`] = `
 {
   "meta": Any<Object>,
   "trees": {
@@ -18909,48 +18884,17 @@ a{
       },
       "variable": {},
     },
-    "test": {
-      "circlesOfTrust": {},
-      "emailTemplates": {},
-      "innerNodes": {},
-      "nodes": {},
-      "saml2Entities": {},
-      "scripts": {},
-      "socialIdentityProviders": {},
-      "themes": [],
-      "tree": {
-        "_id": "test",
-        "_rev": "-1438477812",
-        "enabled": true,
-        "entryNodeId": "d26176be-ea6f-4f2a-81cd-3d41dd6cee4d",
-        "identityResource": "managed/alpha_user",
-        "innerTreeOnly": false,
-        "mustRun": false,
-        "noSession": false,
-        "nodes": {},
-        "staticNodes": {
-          "70e691a5-1e33-4ac3-a356-e7b6d60d92e0": {
-            "x": 50,
-            "y": 117,
-          },
-          "e301438c-0bd0-429c-ab0c-66126501069a": {
-            "x": 152,
-            "y": 25,
-          },
-          "startNode": {
-            "x": 50,
-            "y": 25,
-          },
-        },
-        "uiConfig": {},
-      },
-      "variable": {},
-    },
   },
 }
 `;
 
 exports[`JourneyOps exportJourneys() 3: Export journeys w/ dependencies and w/o coordinates 1`] = `
+"Error exporting the alpha realm journey test
+  Journey referential integrity validation failed:
+  - [MISSING_ENTRY_NODE] test: Entry node 'd26176be-ea6f-4f2a-81cd-3d41dd6cee4d' does not resolve to a graph node"
+`;
+
+exports[`JourneyOps exportJourneys() 3: Export journeys w/ dependencies and w/o coordinates 2`] = `
 {
   "meta": Any<Object>,
   "trees": {
@@ -29432,34 +29376,6 @@ a{
         "uiConfig": {
           "categories": "[]",
         },
-      },
-      "variable": {},
-    },
-    "test": {
-      "circlesOfTrust": {},
-      "emailTemplates": {},
-      "innerNodes": {},
-      "nodes": {},
-      "saml2Entities": {},
-      "scripts": {},
-      "socialIdentityProviders": {},
-      "themes": [],
-      "tree": {
-        "_id": "test",
-        "_rev": "-1438477812",
-        "enabled": true,
-        "entryNodeId": "d26176be-ea6f-4f2a-81cd-3d41dd6cee4d",
-        "identityResource": "managed/alpha_user",
-        "innerTreeOnly": false,
-        "mustRun": false,
-        "noSession": false,
-        "nodes": {},
-        "staticNodes": {
-          "70e691a5-1e33-4ac3-a356-e7b6d60d92e0": {},
-          "e301438c-0bd0-429c-ab0c-66126501069a": {},
-          "startNode": {},
-        },
-        "uiConfig": {},
       },
       "variable": {},
     },
