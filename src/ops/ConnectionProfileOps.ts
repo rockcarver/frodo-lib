@@ -617,8 +617,34 @@ export async function getConnectionProfileByHost({
       preferredDeviceFlow: profiles[0].preferredDeviceFlow,
       defaultCredential: profiles[0].defaultCredential,
     };
+    const secretKeys = new Set(
+      Object.keys(profiles[0])
+        .filter((key) => key.startsWith('encoded') && key.length > 7)
+        .map((key) => key.charAt(7).toLowerCase() + key.slice(8))
+    );
     debugMessage({
-      message: `ConnectionProfileOps.getConnectionProfileByHost: retrieved connection profile for host '${host}': ${JSON.stringify(connectionProfile, null, 2)}`,
+      message: `ConnectionProfileOps.getConnectionProfileByHost: retrieved connection profile for host '${host}': ${JSON.stringify(
+        {
+          ...Object.fromEntries(
+            Object.entries(connectionProfile).map(([key, value]) => [
+              key,
+              secretKeys.has(key) && value ? '<present>' : value,
+            ])
+          ),
+          authenticationHeaderOverrides: Object.fromEntries(
+            Object.keys(connectionProfile.authenticationHeaderOverrides).map(
+              (key) => [key, '<present>']
+            )
+          ),
+          configurationHeaderOverrides: Object.fromEntries(
+            Object.keys(connectionProfile.configurationHeaderOverrides).map(
+              (key) => [key, '<present>']
+            )
+          ),
+        },
+        null,
+        2
+      )}`,
       state,
     });
     return connectionProfile;
@@ -773,7 +799,6 @@ export async function saveConnectionProfile({
           message: `Existing profile: ${profile.tenant}`,
           state,
         });
-        debugMessage({ message: profile, state });
       }
 
       // connection profile not found, validate host is a real URL
@@ -938,7 +963,9 @@ export async function saveConnectionProfile({
         state,
       });
       debugMessage({
-        message: state.getAuthenticationHeaderOverrides(),
+        message: Object.keys(state.getAuthenticationHeaderOverrides()).join(
+          ', '
+        ),
         state,
       });
     }
@@ -953,7 +980,9 @@ export async function saveConnectionProfile({
         state,
       });
       debugMessage({
-        message: state.getConfigurationHeaderOverrides(),
+        message: Object.keys(state.getConfigurationHeaderOverrides()).join(
+          ', '
+        ),
         state,
       });
     }
