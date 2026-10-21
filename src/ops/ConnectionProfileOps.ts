@@ -620,10 +620,29 @@ export async function getConnectionProfileByHost({
     debugMessage({
       message: `ConnectionProfileOps.getConnectionProfileByHost: retrieved connection profile for host '${host}': ${JSON.stringify(
         {
-          tenant: connectionProfile.tenant,
-          username: connectionProfile.username,
-          svcacctId: connectionProfile.svcacctId,
-          logApiKey: connectionProfile.logApiKey,
+          ...connectionProfile,
+          password: connectionProfile.password
+            ? '<present>'
+            : connectionProfile.password,
+          logApiSecret: connectionProfile.logApiSecret
+            ? '<present>'
+            : connectionProfile.logApiSecret,
+          svcacctJwk: connectionProfile.svcacctJwk
+            ? '<present>'
+            : connectionProfile.svcacctJwk,
+          amsterPrivateKey: connectionProfile.amsterPrivateKey
+            ? '<present>'
+            : connectionProfile.amsterPrivateKey,
+          authenticationHeaderOverrides: Object.fromEntries(
+            Object.keys(connectionProfile.authenticationHeaderOverrides).map(
+              (key) => [key, '<present>']
+            )
+          ),
+          configurationHeaderOverrides: Object.fromEntries(
+            Object.keys(connectionProfile.configurationHeaderOverrides).map(
+              (key) => [key, '<present>']
+            )
+          ),
         },
         null,
         2

@@ -79,7 +79,7 @@ describe('Connection profile debug output', () => {
     }
   }
 
-  test('lookup logs routing details but returns credentials unchanged', async () => {
+  test('lookup logs all profile fields with secrets masked but returns credentials unchanged', async () => {
     setCredentials();
     expect(await saveConnectionProfile({ host, state })).toBe(true);
     debugHandler.mockClear();
@@ -106,13 +106,28 @@ describe('Connection profile debug output', () => {
     expect(diagnostic).toContain('"username": "profile-user"');
     expect(diagnostic).toContain('"svcacctId": "profile-service-account"');
     expect(diagnostic).toContain('"logApiKey": "profile-log-key"');
+    expect(JSON.parse(diagnostic.slice(diagnostic.indexOf('{')))).toEqual({
+      ...profile,
+      password: '<present>',
+      logApiSecret: '<present>',
+      svcacctJwk: '<present>',
+      amsterPrivateKey: '<present>',
+      authenticationHeaderOverrides: {
+        Authorization: '<present>',
+        'X-Custom-Auth': '<present>',
+      },
+      configurationHeaderOverrides: {
+        Authorization: '<present>',
+      },
+    });
   });
 
   test('lookup handles profiles without optional credentials', async () => {
     expect(await saveConnectionProfile({ host, state })).toBe(true);
     debugHandler.mockClear();
 
-    expect(await getConnectionProfileByHost({ host, state })).toMatchObject({
+    const profile = await getConnectionProfileByHost({ host, state });
+    expect(profile).toMatchObject({
       tenant: host,
       password: null,
       logApiSecret: null,
@@ -122,8 +137,11 @@ describe('Connection profile debug output', () => {
       configurationHeaderOverrides: {},
     });
     expectNoSecrets();
-    expect(JSON.stringify(debugHandler.mock.calls)).toContain(
-      'retrieved connection profile'
+    const diagnostic = debugHandler.mock.calls
+      .map(([message]) => String(message))
+      .find((message) => message.includes('retrieved connection profile'));
+    expect(JSON.parse(diagnostic.slice(diagnostic.indexOf('{')))).toEqual(
+      profile
     );
   });
 
