@@ -32,6 +32,7 @@ Triggered only when an issue receives `plan-triage-handoff`.
 Assign the Copilot cloud agent with these instructions:
 
 - Implement the change described in the plan.
+- Do not use a closing keyword. Do not write `Fixes`, `Closes`, or `Resolves` followed by the issue number. The issue stays open until a release contains the fix. Reference the issue as `Relates to #N` if you mention it.
 - When the pull request is opened (or updated and ready for review), add the label `pr-worker-ready` to the pull request.
 - That label is the signal that the PR triage gate may run.
 - If the repository defines an environment agent, you may request it for test generation.
