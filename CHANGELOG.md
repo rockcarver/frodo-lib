@@ -10,6 +10,22 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-10] - 2026-10-21
+
+### Added
+- Introduced a mechanism to track release states using `waiting-for-release` and `released` labels. This helps manage issue closure across repositories, ensuring that issues remain open until the related CLI release pins the fixed library version (#738).
+- Implemented cost controls on early gates to manage resources efficiently. This includes using a light model for certain workflows, applying `skip-if-match` for specific conditions, and setting a maximum number of turns for early gates (#720).
+
+### Changed
+- Updated the issue triage process to apply labels directly instead of suggesting them. This change ensures that labels are applied consistently, allowing workflows to proceed without manual intervention (#729).
+- Enhanced the workflow dispatch process to target specific issues, allowing comments and labels to be added even when no triggering issue exists (#725).
+
+### Fixed
+- Resolved an issue with configuration exports failing due to protected AIC email templates. The export process now skips these templates to prevent errors, ensuring successful configuration exports (#732).
+
+### Security
+- Updated the `markdown-it` dependency from version 14.3.2 to 14.3.3, addressing security fixes backported from version 15.0.3 (#734).
+
 ## [v5.0.0-9] - 2026-10-19
 
 ### Fixed
@@ -2666,6 +2682,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-10]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-9...v5.0.0-10
 [v5.0.0-9]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-8...v5.0.0-9
 [v5.0.0-8]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-7...v5.0.0-8
 [v5.0.0-7]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-6...v5.0.0-7
