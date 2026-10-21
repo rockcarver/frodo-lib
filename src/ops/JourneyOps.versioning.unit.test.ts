@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 
 const getTreeMock: any = jest.fn();
+const getTreesMock: any = jest.fn();
 const readNodeMock: any = jest.fn();
 const updateNodeMock: any = jest.fn();
 const putTreeMock: any = jest.fn();
@@ -9,7 +10,7 @@ const printMessageMock: any = jest.fn();
 jest.unstable_mockModule('../api/TreeApi', () => ({
   deleteTree: jest.fn(),
   getTree: getTreeMock,
-  getTrees: jest.fn(),
+  getTrees: getTreesMock,
   getTreesCount: jest.fn(),
   putTree: putTreeMock,
 }));
@@ -62,9 +63,47 @@ function validationState(): any {
   };
 }
 
+function journeyExport(
+  journeyId: string,
+  targetNodeId: string = 'startNode'
+): any {
+  return {
+    tree: {
+      _id: journeyId,
+      entryNodeId: 'node',
+      nodes: {
+        node: {
+          nodeType: 'DecisionNode',
+          version: '1.0',
+          connections: { done: targetNodeId },
+        },
+      },
+      staticNodes: {},
+    },
+    nodes: {
+      node: {
+        _id: 'node',
+        _type: { _id: 'DecisionNode', version: '1.0' },
+        _outcomes: [{ id: 'done' }],
+      },
+    },
+    innerNodes: {},
+  };
+}
+
+function multiJourneyExport(): any {
+  return {
+    trees: {
+      HealthyJourney: journeyExport('HealthyJourney'),
+      BrokenJourney: journeyExport('BrokenJourney', 'missing-target'),
+    },
+  };
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
   getTreeMock.mockReset();
+  getTreesMock.mockReset();
   readNodeMock.mockReset();
   updateNodeMock.mockResolvedValue({});
   putTreeMock.mockImplementation(
@@ -180,29 +219,27 @@ describe('JourneyOps versioning unit coverage', () => {
     expect(bulkImportMessage).toMatchObject({ type: 'warn' });
   });
 
-  test('validateJourneyById returns findings without printing them', async () => {
-    const state = validationState();
-    getTreeMock.mockResolvedValue({
-      _id: 'BrokenJourney',
-      entryNodeId: 'node',
-      nodes: {
-        node: {
-          nodeType: 'DecisionNode',
-          version: '1.0',
-          connections: { done: 'missing-target' },
-        },
-      },
+  test('validateJourneys reads all live journeys and returns findings silently', async () => {
+    getTreesMock.mockResolvedValue({
+      result: [{ _id: 'HealthyJourney' }, { _id: 'BrokenJourney' }],
     });
-    readNodeMock.mockResolvedValue({
-      _id: 'node',
-      _type: { _id: 'DecisionNode', version: '1.0' },
-      _outcomes: [{ id: 'done' }],
-    });
+    getTreeMock.mockImplementation(
+      async ({ id }: { id: string }) =>
+        journeyExport(
+          id,
+          id === 'BrokenJourney' ? 'missing-target' : 'startNode'
+        ).tree
+    );
+    readNodeMock.mockImplementation(
+      async ({ nodeId }: { nodeId: string }) =>
+        journeyExport('ignored').nodes[nodeId]
+    );
 
-    const findings = await JourneyOps.validateJourneyById({
-      journeyId: 'BrokenJourney',
-      state,
+    const result = JourneyOps.validateJourneys({
+      state: validationState(),
     });
+    expect(result).toBeInstanceOf(Promise);
+    const findings = await result;
 
     expect(findings).toContainEqual(
       expect.objectContaining({
@@ -212,129 +249,166 @@ describe('JourneyOps versioning unit coverage', () => {
         targetNodeId: 'missing-target',
       })
     );
+    expect(getTreesMock).toHaveBeenCalledTimes(1);
+    expect(getTreeMock).toHaveBeenCalledTimes(2);
     expect(printMessageMock).not.toHaveBeenCalled();
   });
 
-  test('validateJourneyById returns an empty list for a healthy journey', async () => {
-    const state = validationState();
-    getTreeMock.mockResolvedValue({
-      _id: 'HealthyJourney',
-      entryNodeId: 'node',
-      nodes: {
-        node: {
-          nodeType: 'DecisionNode',
-          version: '1.0',
-          connections: { done: 'startNode' },
-        },
-      },
-    });
-    readNodeMock.mockResolvedValue({
-      _id: 'node',
-      _type: { _id: 'DecisionNode', version: '1.0' },
-      _outcomes: [{ id: 'done' }],
+  test('validateJourneys reads only requested live journeys and removes duplicate IDs', async () => {
+    getTreeMock.mockImplementation(
+      async ({ id }: { id: string }) => journeyExport(id, 'missing-target').tree
+    );
+    readNodeMock.mockImplementation(
+      async ({ nodeId }: { nodeId: string }) =>
+        journeyExport('ignored').nodes[nodeId]
+    );
+
+    const findings = await JourneyOps.validateJourneys({
+      journeyIds: ['BrokenJourney', 'BrokenJourney'],
+      state: validationState(),
     });
 
-    await expect(
-      JourneyOps.validateJourneyById({ journeyId: 'HealthyJourney', state })
-    ).resolves.toEqual([]);
+    expect(
+      findings.filter((finding) => finding.code === 'MISSING_CONNECTION_TARGET')
+    ).toHaveLength(1);
+    expect(getTreesMock).not.toHaveBeenCalled();
+    expect(getTreeMock).toHaveBeenCalledTimes(1);
+    expect(printMessageMock).not.toHaveBeenCalled();
   });
 
-  test('validateJourneyById wraps missing journeys in a FrodoError', async () => {
-    const state = validationState();
-    getTreeMock.mockRejectedValue(new Error('Journey not found'));
+  test.each([undefined, null, []])(
+    'validateJourneys treats %s as all journeys in offline mode',
+    async (journeyIds) => {
+      const findings = await JourneyOps.validateJourneys({
+        journeyIds: journeyIds as string[] | undefined,
+        journeysExport: multiJourneyExport(),
+        state: validationState(),
+      });
 
+      expect(findings).toContainEqual(
+        expect.objectContaining({
+          code: 'MISSING_CONNECTION_TARGET',
+          journeyId: 'BrokenJourney',
+        })
+      );
+      expect(getTreesMock).not.toHaveBeenCalled();
+      expect(getTreeMock).not.toHaveBeenCalled();
+      expect(readNodeMock).not.toHaveBeenCalled();
+      expect(printMessageMock).not.toHaveBeenCalled();
+    }
+  );
+
+  test('validateJourneys validates only requested journeys in an export', async () => {
+    const findings = await JourneyOps.validateJourneys({
+      journeyIds: ['BrokenJourney', 'BrokenJourney'],
+      journeysExport: multiJourneyExport(),
+      state: validationState(),
+    });
+
+    expect(
+      findings.filter((finding) => finding.code === 'MISSING_CONNECTION_TARGET')
+    ).toHaveLength(1);
+    expect(findings).toContainEqual(
+      expect.objectContaining({ journeyId: 'BrokenJourney' })
+    );
+    expect(findings).not.toContainEqual(
+      expect.objectContaining({ journeyId: 'HealthyJourney' })
+    );
+    expect(getTreesMock).not.toHaveBeenCalled();
+    expect(getTreeMock).not.toHaveBeenCalled();
+    expect(printMessageMock).not.toHaveBeenCalled();
+  });
+
+  test('validateJourneys aggregates missing and blank offline IDs', async () => {
     await expect(
-      JourneyOps.validateJourneyById({ journeyId: 'MissingJourney', state })
+      JourneyOps.validateJourneys({
+        journeyIds: ['MissingJourney', ' '],
+        journeysExport: multiJourneyExport(),
+        state: validationState(),
+      })
     ).rejects.toMatchObject({
       name: 'FrodoError',
-      message: "Error validating alpha realm journey 'MissingJourney'",
+      message: 'Error validating alpha realm journeys',
+      originalErrors: [
+        { message: "Error validating alpha realm journey 'MissingJourney'" },
+        { message: "Error validating alpha realm journey ' '" },
+      ],
     });
+    expect(getTreeMock).not.toHaveBeenCalled();
+    expect(printMessageMock).not.toHaveBeenCalled();
   });
 
-  test('validateJourneysById combines findings and preserves journey IDs', async () => {
-    const state = validationState();
-    getTreeMock.mockImplementation(async ({ id }: { id: string }) => ({
-      _id: id,
-      entryNodeId: 'node',
-      nodes: {
-        node: {
-          nodeType: 'DecisionNode',
-          version: '1.0',
-          connections: id === 'BrokenJourney' ? { done: 'missing' } : {},
-        },
-      },
-    }));
-    readNodeMock.mockImplementation(async ({ nodeId }: { nodeId: string }) => ({
-      _id: nodeId,
-      _type: { _id: 'DecisionNode', version: '1.0' },
-      _outcomes: [{ id: 'done' }],
-    }));
-
-    const findings = await JourneyOps.validateJourneysById({
-      journeyIds: ['BrokenJourney', 'HealthyJourney'],
-      state,
-    });
-
-    expect(findings).toContainEqual(
-      expect.objectContaining({
-        code: 'MISSING_CONNECTION_TARGET',
-        journeyId: 'BrokenJourney',
-      })
-    );
-    expect(findings).toContainEqual(
-      expect.objectContaining({
-        code: 'UNCONNECTED_OUTCOME',
-        journeyId: 'HealthyJourney',
-      })
-    );
-  });
-
-  test('validateJourneysById processes remaining journeys before reporting failures', async () => {
-    const state = validationState();
+  test('validateJourneys processes remaining live journeys before aggregating lookup failures', async () => {
     getTreeMock.mockImplementation(async ({ id }: { id: string }) => {
-      if (id === 'MissingJourney') {
-        throw new Error('Journey not found');
-      }
-      return {
-        _id: id,
-        entryNodeId: 'node',
-        nodes: {
-          node: {
-            nodeType: 'DecisionNode',
-            version: '1.0',
-            connections: { done: 'missing' },
-          },
-        },
-      };
+      if (id === 'MissingJourney') throw new Error('Journey not found');
+      return journeyExport(id, 'missing-target').tree;
     });
-    readNodeMock.mockImplementation(async ({ nodeId }: { nodeId: string }) => ({
-      _id: nodeId,
-      _type: { _id: 'DecisionNode', version: '1.0' },
-      _outcomes: [{ id: 'done' }],
-    }));
+    readNodeMock.mockImplementation(
+      async ({ nodeId }: { nodeId: string }) =>
+        journeyExport('ignored').nodes[nodeId]
+    );
 
     await expect(
-      JourneyOps.validateJourneysById({
+      JourneyOps.validateJourneys({
         journeyIds: ['MissingJourney', 'BrokenJourney'],
-        state,
+        state: validationState(),
       })
     ).rejects.toMatchObject({
       name: 'FrodoError',
-      message: expect.stringContaining(
-        "Error validating alpha realm journey 'MissingJourney'"
-      ),
+      message: 'Error validating alpha realm journeys',
+      originalErrors: [
+        {
+          message: "Error validating alpha realm journey 'MissingJourney'",
+        },
+      ],
     });
     expect(getTreeMock).toHaveBeenCalledTimes(2);
     expect(readNodeMock).toHaveBeenCalledTimes(1);
   });
 
-  test('validateJourneysById accepts an empty ID list', async () => {
-    const findings = await JourneyOps.validateJourneysById({
-      journeyIds: [],
-      state: validationState(),
-    });
+  test('validateJourneys treats empty and blank live IDs as lookup failures', async () => {
+    getTreeMock.mockResolvedValue(journeyExport('HealthyJourney').tree);
+    readNodeMock.mockResolvedValue(journeyExport('HealthyJourney').nodes.node);
 
-    expect(findings).toEqual([]);
+    await expect(
+      JourneyOps.validateJourneys({
+        journeyIds: ['', ' ', 'HealthyJourney'],
+        state: validationState(),
+      })
+    ).rejects.toMatchObject({
+      name: 'FrodoError',
+      message: 'Error validating alpha realm journeys',
+      originalErrors: [
+        { message: "Error validating alpha realm journey ''" },
+        { message: "Error validating alpha realm journey ' '" },
+      ],
+    });
+    expect(getTreesMock).not.toHaveBeenCalled();
+    expect(getTreeMock).toHaveBeenCalledTimes(1);
+  });
+
+  test('validateJourneys treats null, undefined and empty IDs alike in live mode', async () => {
+    for (const journeyIds of [undefined, null, []]) {
+      getTreesMock.mockResolvedValue({
+        result: [{ _id: 'HealthyJourney' }, { _id: 'BrokenJourney' }],
+      });
+      getTreeMock.mockImplementation(
+        async ({ id }: { id: string }) => journeyExport(id, 'startNode').tree
+      );
+      readNodeMock.mockImplementation(
+        async ({ nodeId }: { nodeId: string }) =>
+          journeyExport('ignored').nodes[nodeId]
+      );
+
+      await expect(
+        JourneyOps.validateJourneys({
+          journeyIds: journeyIds as string[] | undefined,
+          state: validationState(),
+        })
+      ).resolves.toEqual([]);
+      expect(getTreeMock).toHaveBeenCalledTimes(2);
+      getTreeMock.mockClear();
+    }
   });
 
   test('exportJourney includes a tree with invalid references', async () => {

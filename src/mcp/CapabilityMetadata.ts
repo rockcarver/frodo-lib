@@ -2476,73 +2476,28 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     // already in hand, not a standalone operation an agent could call.
     excluded: true,
   },
-  'authn.journey.validateJourney': {
-    operationType: 'special',
-    objectType: 'Journey',
-    argumentMode: 'named',
-    parameterOverrides: {
-      journey: {
-        description:
-          'A single journey export (SingleTreeExportInterface) to validate, for example one entry of the trees map returned by authn.journey.exportJourney, optionally edited since.',
-        schema: { type: 'object', additionalProperties: true },
-      },
-    },
-    mutating: false,
-    riskClass: 'low',
-    notes:
-      'Offline check of an export you already hold: no tenant call, no side effects. Returns findings (code, severity, journeyId, message, nodeId/targetNodeId/outcome); errors mean the journey would fail import, warnings are advisory. Typical use: export a journey, validate it, or export, edit, then validate before importing.',
-  },
   'authn.journey.validateJourneys': {
     operationType: 'special',
     objectType: 'Journey',
     argumentMode: 'named',
     parameterOverrides: {
-      journeys: {
+      journeyIds: {
         description:
-          'A multi-journey export (MultiTreeExportInterface, i.e. the object returned by authn.journey.exportJourney or exportJourneys) to validate.',
+          'Names of the journeys to validate. Omit it, or pass an empty array, to validate every journey. Do not pass null: omit the argument instead.',
+        schema: { type: 'array', items: { type: 'string' } },
+        examples: [['Login']],
+      },
+      journeysExport: {
+        description:
+          'Optional multi-journey export (the object returned by authn.journey.exportJourney / exportJourneys, possibly edited since) to validate offline instead of reading from the tenant. When supplied, nothing is read from the tenant.',
         schema: { type: 'object', additionalProperties: true },
       },
     },
-    mutating: false,
-    riskClass: 'low',
-    notes:
-      'Offline check of every journey in an export you already hold: no tenant call, no side effects. Pass the result of authn.journey.exportJourney / exportJourneys directly, or an edited copy of it.',
-  },
-  'authn.journey.validateJourneyById': {
-    operationType: 'special',
-    objectType: 'Journey',
-    argumentMode: 'named',
-    parameterOverrides: {
-      journeyId: {
-        description: 'Identifier (name) of the journey to validate.',
-        examples: ['Login'],
-      },
-    },
     supportsRealm: true,
     mutating: false,
     riskClass: 'low',
     notes:
-      'Reads the journey from the tenant (thin read, no dependencies) and returns the validation findings (code, severity, journeyId, message, nodeId/targetNodeId/outcome). Changes nothing. Errors mean the journey would fail import, warnings are advisory. Use validateJourney instead when you already hold an export, for example one you edited.',
-  },
-  'authn.journey.validateJourneysById': {
-    operationType: 'special',
-    objectType: 'Journey',
-    argumentMode: 'named',
-    parameterOverrides: {
-      journeyIds: {
-        description: 'Identifiers (names) of the journeys to validate.',
-        schema: {
-          type: 'array',
-          items: { type: 'string' },
-        },
-        examples: [['Login', 'Registration']],
-      },
-    },
-    supportsRealm: true,
-    mutating: false,
-    riskClass: 'low',
-    notes:
-      'Reads each journey from the tenant (thin read, no dependencies) and returns the combined validation findings; every finding carries its journeyId. Changes nothing. A journey that cannot be read fails the call after the others have been processed. Use validateJourneys instead when you already hold an export.',
+      'Validates journeys for referential integrity and returns findings (code, severity, journeyId, message, nodeId/targetNodeId/outcome); changes nothing. Errors mean the journey would fail import, warnings are advisory. Live mode (no journeysExport) reads the named journeys, or all of them, from the tenant. Export mode (journeysExport supplied) is offline: export, edit, then validate before importing.',
   },
   'authn.journey.getTreeDescendents': {
     operationType: 'list',

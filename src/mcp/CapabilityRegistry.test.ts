@@ -505,7 +505,7 @@ describe('MCP capability foundation', () => {
     expect(getUnreviewedSpecialCapabilities()).toEqual([]);
   });
 
-  test('journey validation capabilities are reviewed, low-risk, and non-mutating', () => {
+  test('journey validation is one reviewed, low-risk, non-mutating capability', () => {
     const capabilities = buildCapabilityInventory(frodo, {
       includeTopLevelDomains: ['authn'],
       includeUtils: false,
@@ -513,56 +513,35 @@ describe('MCP capability foundation', () => {
     const byId = new Map(
       capabilities.map((capability) => [capability.id, capability])
     );
-    const validationIds = [
-      'authn.journey.validateJourney',
-      'authn.journey.validateJourneys',
-      'authn.journey.validateJourneyById',
-      'authn.journey.validateJourneysById',
-    ];
-
-    for (const id of validationIds) {
-      const capability = byId.get(id);
-      expect(capability).toBeDefined();
-      expect(capability?.mutating).toBe(false);
-      expect(capability?.riskClass).toBe('low');
-      expect(capability?.objectType).toBe('Journey');
-      expect(capability?.argumentMode).toBe('named');
-    }
+    const validation = byId.get('authn.journey.validateJourneys');
+    expect(validation).toBeDefined();
+    expect(validation).toMatchObject({
+      mutating: false,
+      riskClass: 'low',
+      objectType: 'Journey',
+      argumentMode: 'named',
+      supportsRealm: true,
+    });
     expect(
-      byId
-        .get('authn.journey.validateJourney')
-        ?.parameters?.map((parameter) => parameter.name)
-    ).toEqual(['journey']);
-    expect(
-      byId
-        .get('authn.journey.validateJourneys')
-        ?.parameters?.map((parameter) => parameter.name)
-    ).toEqual(['journeys']);
-    expect(
-      byId
-        .get('authn.journey.validateJourneyById')
-        ?.parameters?.map((parameter) => parameter.name)
-    ).toEqual(['journeyId']);
-    expect(
-      byId
-        .get('authn.journey.validateJourneysById')
-        ?.parameters?.map((parameter) => parameter.name)
-    ).toEqual(['journeyIds']);
-    expect(
-      byId.get('authn.journey.validateJourneysById')?.parameters?.[0]?.schema
-    ).toEqual({
+      validation?.parameters?.map(({ name, required }) => ({ name, required }))
+    ).toEqual([
+      { name: 'journeyIds', required: false },
+      { name: 'journeysExport', required: false },
+    ]);
+    expect(validation?.parameters?.[0]?.schema).toEqual({
       type: 'array',
       items: { type: 'string' },
     });
+    expect(validation?.parameters?.[0]?.examples).toEqual([['Login']]);
+    expect(validation?.parameters?.[1]?.schema).toEqual({
+      type: 'object',
+      additionalProperties: true,
+    });
     expect(
-      byId.get('authn.journey.validateJourneysById')?.parameters?.[0]?.examples
-    ).toEqual([['Login', 'Registration']]);
-    expect(byId.get('authn.journey.validateJourneyById')?.supportsRealm).toBe(
-      true
-    );
-    expect(byId.get('authn.journey.validateJourneysById')?.supportsRealm).toBe(
-      true
-    );
+      [...byId.keys()].filter(
+        (id) => id.startsWith('authn.journey.validate') && id !== validation?.id
+      )
+    ).toEqual([]);
   });
 
   test('never advertises an empty parameter contract when Help.ts reports required params', () => {

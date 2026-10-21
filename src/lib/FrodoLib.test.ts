@@ -22,14 +22,11 @@ describe('FrodoLib', () => {
     const multiJourney = frodo.authn.journey.createMultiTreeExportTemplate();
     multiJourney.trees.InvalidJourney = journey;
 
-    expect(frodo.authn.journey.validateJourney(journey)).toMatchObject([
+    return expect(
+      frodo.authn.journey.validateJourneys([], multiJourney)
+    ).resolves.toMatchObject([
       { code: 'MISSING_ENTRY_NODE', journeyId: 'InvalidJourney' },
     ]);
-    expect(frodo.authn.journey.validateJourneys(multiJourney)).toMatchObject([
-      { code: 'MISSING_ENTRY_NODE', journeyId: 'InvalidJourney' },
-    ]);
-    expect(typeof frodo.authn.journey.validateJourneyById).toBe('function');
-    expect(typeof frodo.authn.journey.validateJourneysById).toBe('function');
   });
 
   test(`frodo.createInstance(): FrodoLib is instantiable using factory function`, async () => {

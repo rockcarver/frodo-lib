@@ -99,35 +99,25 @@ import { readThemes, updateThemes, type ThemeSkeleton } from './ThemeOps';
 
 export type Journey = {
   /**
-   * Validate a single journey export for referential integrity issues.
-   * @param {SingleTreeExportInterface} journey journey export to validate
-   * @returns {JourneyValidationFinding[]} validation findings
-   */
-  validateJourney(
-    journey: SingleTreeExportInterface
-  ): JourneyValidationFinding[];
-  /**
-   * Validate every journey in a multi-tree export for referential integrity issues.
-   * @param {MultiTreeExportInterface} journeys multi-tree export to validate
-   * @returns {JourneyValidationFinding[]} validation findings for all journeys
+   * Validate journeys for referential integrity.
+   *
+   * | `journeyIds` | `journeysExport` | Behavior |
+   * | --- | --- | --- |
+   * | omitted, `null` or `[]` | omitted | Read and validate all journeys in the realm. |
+   * | `['login']` | omitted | Read and validate journey `login` from the realm. |
+   * | omitted, `null` or `[]` | supplied | Validate all journeys in the export offline. |
+   * | `['login']` | supplied | Validate tree `login` in the export offline. |
+   *
+   * Duplicate IDs are processed once. Live validation reads each journey once;
+   * findings are returned without printing. Missing, blank, or unreadable
+   * journeys are reported together after all requested journeys are processed.
+   * @param {string[]} journeyIds journey names; omit or pass an empty array to validate all journeys
+   * @param {MultiTreeExportInterface} journeysExport optional export; when supplied, validation is offline
+   * @returns {Promise<JourneyValidationFinding[]>} validation findings
    */
   validateJourneys(
-    journeys: MultiTreeExportInterface
-  ): JourneyValidationFinding[];
-  /**
-   * Read and validate a journey from the tenant.
-   * @param {string} journeyId journey name/identifier
-   * @returns {Promise<JourneyValidationFinding[]>} validation findings
-   */
-  validateJourneyById(journeyId: string): Promise<JourneyValidationFinding[]>;
-  /**
-   * Read and validate journeys from the tenant. Lookup failures are collected
-   * and reported after every requested journey has been processed.
-   * @param {string[]} journeyIds journey names/identifiers
-   * @returns {Promise<JourneyValidationFinding[]>} validation findings
-   */
-  validateJourneysById(
-    journeyIds: string[]
+    journeyIds?: string[],
+    journeysExport?: MultiTreeExportInterface
   ): Promise<JourneyValidationFinding[]>;
   /**
    * Create an empty single tree export template
@@ -341,17 +331,11 @@ export default (state: State): Journey => {
     createMultiTreeExportTemplate(): MultiTreeExportInterface {
       return createMultiTreeExportTemplate({ state });
     },
-    validateJourney,
-    validateJourneys,
-    async validateJourneyById(
-      journeyId: string
+    async validateJourneys(
+      journeyIds?: string[],
+      journeysExport?: MultiTreeExportInterface
     ): Promise<JourneyValidationFinding[]> {
-      return validateJourneyById({ journeyId, state });
-    },
-    async validateJourneysById(
-      journeyIds: string[]
-    ): Promise<JourneyValidationFinding[]> {
-      return validateJourneysById({ journeyIds, state });
+      return validateJourneys({ journeyIds, journeysExport, state });
     },
     async exportJourney(
       treeId: string,
@@ -541,26 +525,16 @@ export interface TreeExportResolverInterface {
   (treeId: string, state: State): Promise<SingleTreeExportInterface>;
 }
 
-/**
- * Validate a single journey export.
- * @param journey journey export to validate
- * @returns validation findings
- */
-export function validateJourney(
+function validateJourneyExport(
   journey: SingleTreeExportInterface
 ): JourneyValidationFinding[] {
   return validateJourneyReferences(journey);
 }
 
-/**
- * Validate every journey in a multi-tree export.
- * @param journeys multi-tree export to validate
- * @returns validation findings for all journeys
- */
-export function validateJourneys(
+function validateJourneysExport(
   journeys: MultiTreeExportInterface
 ): JourneyValidationFinding[] {
-  return Object.values(journeys.trees).flatMap(validateJourney);
+  return Object.values(journeys.trees).flatMap(validateJourneyExport);
 }
 
 function reportJourneyFindings(
@@ -1558,67 +1532,79 @@ async function exportSingleJourney({
 }
 
 /**
- * Read and validate one live journey without exporting its dependencies or
- * printing its validation findings.
+ * Validate journeys from an export or from the active tenant.
  */
-export async function validateJourneyById({
-  journeyId,
-  state,
-}: {
-  journeyId: string;
-  state: State;
-}): Promise<JourneyValidationFinding[]> {
-  try {
-    const journey = await exportSingleJourney({
-      journeyId,
-      options: { deps: false, useStringArrays: true, coords: true },
-      state,
-    });
-    return validateJourney(journey);
-  } catch (error) {
-    throw new FrodoError(
-      `Error validating ${getCurrentRealmName(state) + ' realm'} journey '${journeyId}'`,
-      error
-    );
-  }
-}
-
-/**
- * Read and validate each requested live journey, collecting lookup failures
- * before rejecting the complete request.
- */
-export async function validateJourneysById({
+export async function validateJourneys({
   journeyIds,
+  journeysExport,
   state,
 }: {
-  journeyIds: string[];
+  journeyIds?: string[];
+  journeysExport?: MultiTreeExportInterface;
   state: State;
 }): Promise<JourneyValidationFinding[]> {
   const findings: JourneyValidationFinding[] = [];
   const errors: FrodoError[] = [];
+  const realm = `${getCurrentRealmName(state)} realm`;
+  const requestedIds = journeyIds?.length
+    ? [...new Set(journeyIds)]
+    : undefined;
+  let ids = requestedIds;
 
-  for (const journeyId of journeyIds) {
+  if (!ids && journeysExport) {
+    ids = Object.keys(journeysExport.trees);
+  } else if (!ids) {
     try {
-      findings.push(...(await validateJourneyById({ journeyId, state })));
+      ids = [
+        ...new Set((await readJourneys({ state })).map((tree) => tree._id)),
+      ];
     } catch (error) {
       errors.push(
         error instanceof FrodoError
           ? error
-          : new FrodoError(
-              `Error validating ${getCurrentRealmName(state) + ' realm'} journey '${journeyId}'`,
-              error
-            )
+          : new FrodoError(`Error validating ${realm} journeys`, error)
       );
     }
   }
 
+  for (const journeyId of ids || []) {
+    const message = `Error validating ${realm} journey '${journeyId}'`;
+    if (typeof journeyId !== 'string' || !journeyId.trim()) {
+      errors.push(
+        new FrodoError(message, new Error('Journey ID must not be blank'))
+      );
+      continue;
+    }
+
+    if (journeysExport) {
+      const journey = journeysExport.trees[journeyId];
+      if (!journey) {
+        errors.push(
+          new FrodoError(
+            message,
+            new Error(`Journey '${journeyId}' not found in supplied export`)
+          )
+        );
+        continue;
+      }
+      findings.push(...validateJourneyExport(journey));
+      continue;
+    }
+
+    try {
+      const journey = await exportSingleJourney({
+        journeyId,
+        options: { deps: false, useStringArrays: true, coords: false },
+        state,
+      });
+      findings.push(...validateJourneyExport(journey));
+    } catch (error) {
+      errors.push(new FrodoError(message, error));
+    }
+  }
+
   if (errors.length > 0) {
-    throw new FrodoError(
-      `Error validating ${getCurrentRealmName(state) + ' realm'} journeys:\n${errors
-        .map((error) => `  - ${error.message}`)
-        .join('\n')}`,
-      errors
-    );
+    throw new FrodoError(`Error validating ${realm} journeys`, errors);
   }
   return findings;
 }
@@ -1648,7 +1634,7 @@ export async function exportJourney({
   if (!options.deps) {
     const multiTreeExport = createMultiTreeExportTemplate({ state });
     multiTreeExport.trees[journeyId] = stripExportMetadata(exportData);
-    reportJourneyFindings(validateJourneys(multiTreeExport), state);
+    reportJourneyFindings(validateJourneysExport(multiTreeExport), state);
     return multiTreeExport;
   }
   const treeDependencyMap = await getTreeDescendents({
@@ -1674,7 +1660,7 @@ export async function exportJourney({
       stripExportMetadata(dependencyExport);
   }
   multiTreeExport.trees[journeyId] = stripExportMetadata(exportData);
-  reportJourneyFindings(validateJourneys(multiTreeExport), state);
+  reportJourneyFindings(validateJourneysExport(multiTreeExport), state);
   return multiTreeExport;
 }
 
@@ -1716,7 +1702,7 @@ export async function exportJourneys({
       }
     );
     if (exportData) {
-      reportJourneyFindings(validateJourney(exportData), state);
+      reportJourneyFindings(validateJourneyExport(exportData), state);
       delete exportData.meta;
       multiTreeExport.trees[tree._id] = exportData;
       updateProgressIndicator({
@@ -1979,7 +1965,7 @@ export async function importJourney({
   const errors = [];
 
   if (options.validate !== false) {
-    const validationFindings = validateJourney(importData);
+    const validationFindings = validateJourneyExport(importData);
     reportJourneyFindings(
       validationFindings.filter((finding) => finding.severity === 'warning'),
       state
@@ -2939,7 +2925,7 @@ export async function importJourneys({
 }): Promise<TreeSkeleton[]> {
   const response = [];
   if (options.validate !== false) {
-    const validationFindings = validateJourneys(importData);
+    const validationFindings = validateJourneysExport(importData);
     reportJourneyFindings(
       validationFindings.filter((finding) => finding.severity === 'warning'),
       state

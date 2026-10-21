@@ -2277,41 +2277,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Journey",
-    methodName: "validateJourney",
-    signature: "validateJourney( journey: SingleTreeExportInterface ): JourneyValidationFinding[]",
-    description: "Validate a single journey export for referential integrity issues.",
-    params: [
-      { name: "journey", type: "SingleTreeExportInterface", description: "journey export to validate", required: true },
-    ],
-    returns: "{JourneyValidationFinding[]} validation findings",
-  },
-  {
-    typeName: "Journey",
     methodName: "validateJourneys",
-    signature: "validateJourneys( journeys: MultiTreeExportInterface ): JourneyValidationFinding[]",
-    description: "Validate every journey in a multi-tree export for referential integrity issues.",
+    signature: "validateJourneys( journeyIds?: string[], journeysExport?: MultiTreeExportInterface ): Promise<JourneyValidationFinding[]>",
+    description: "Validate journeys for referential integrity. | `journeyIds` | `journeysExport` | Behavior | | --- | --- | --- | | omitted, `null` or `[]` | omitted | Read and validate all journeys in the realm. | | `['login']` | omitted | Read and validate journey `login` from the realm. | | omitted, `null` or `[]` | supplied | Validate all journeys in the export offline. | | `['login']` | supplied | Validate tree `login` in the export offline. | Duplicate IDs are processed once. Live validation reads each journey once; findings are returned without printing. Missing, blank, or unreadable journeys are reported together after all requested journeys are processed.",
     params: [
-      { name: "journeys", type: "MultiTreeExportInterface", description: "multi-tree export to validate", required: true },
-    ],
-    returns: "{JourneyValidationFinding[]} validation findings for all journeys",
-  },
-  {
-    typeName: "Journey",
-    methodName: "validateJourneyById",
-    signature: "validateJourneyById(journeyId: string): Promise<JourneyValidationFinding[]>",
-    description: "Read and validate a journey from the tenant.",
-    params: [
-      { name: "journeyId", type: "string", description: "journey name/identifier", required: true },
-    ],
-    returns: "{Promise<JourneyValidationFinding[]>} validation findings",
-  },
-  {
-    typeName: "Journey",
-    methodName: "validateJourneysById",
-    signature: "validateJourneysById( journeyIds: string[] ): Promise<JourneyValidationFinding[]>",
-    description: "Read and validate journeys from the tenant. Lookup failures are collected and reported after every requested journey has been processed.",
-    params: [
-      { name: "journeyIds", type: "string[]", description: "journey names/identifiers", required: true },
+      { name: "journeyIds", type: "string[]", description: "journey names; omit or pass an empty array to validate all journeys", required: false },
+      { name: "journeysExport", type: "MultiTreeExportInterface", description: "optional export; when supplied, validation is offline", required: false },
     ],
     returns: "{Promise<JourneyValidationFinding[]>} validation findings",
   },
