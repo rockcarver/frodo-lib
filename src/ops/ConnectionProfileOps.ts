@@ -618,7 +618,16 @@ export async function getConnectionProfileByHost({
       defaultCredential: profiles[0].defaultCredential,
     };
     debugMessage({
-      message: `ConnectionProfileOps.getConnectionProfileByHost: retrieved connection profile for host '${host}': ${JSON.stringify(connectionProfile, null, 2)}`,
+      message: `ConnectionProfileOps.getConnectionProfileByHost: retrieved connection profile for host '${host}': ${JSON.stringify(
+        {
+          tenant: connectionProfile.tenant,
+          username: connectionProfile.username,
+          svcacctId: connectionProfile.svcacctId,
+          logApiKey: connectionProfile.logApiKey,
+        },
+        null,
+        2
+      )}`,
       state,
     });
     return connectionProfile;
@@ -773,7 +782,6 @@ export async function saveConnectionProfile({
           message: `Existing profile: ${profile.tenant}`,
           state,
         });
-        debugMessage({ message: profile, state });
       }
 
       // connection profile not found, validate host is a real URL
@@ -938,7 +946,9 @@ export async function saveConnectionProfile({
         state,
       });
       debugMessage({
-        message: state.getAuthenticationHeaderOverrides(),
+        message: Object.keys(state.getAuthenticationHeaderOverrides()).join(
+          ', '
+        ),
         state,
       });
     }
@@ -953,7 +963,9 @@ export async function saveConnectionProfile({
         state,
       });
       debugMessage({
-        message: state.getConfigurationHeaderOverrides(),
+        message: Object.keys(state.getConfigurationHeaderOverrides()).join(
+          ', '
+        ),
         state,
       });
     }
