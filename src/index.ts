@@ -157,6 +157,8 @@ export type { ColorThemeMode, Intent } from './utils/ColorTheme';
 export const contrastRatio = TerminalContrast.contrastRatio;
 /** @deprecated Use `frodo.utils.terminal.TerminalContrastFilter` instead. */
 export const TerminalContrastFilter = TerminalContrast.TerminalContrastFilter;
+/** @deprecated Use `frodo.utils.terminal.TerminalContrastFilter` instead. */
+export type TerminalContrastFilter = TerminalContrast.TerminalContrastFilter;
 /** @deprecated Use `frodo.utils.terminal.ALL_ANSI_COLOR_NAMES` instead. */
 export const ALL_ANSI_COLOR_NAMES = TerminalContrast.ALL_ANSI_COLOR_NAMES;
 export type {

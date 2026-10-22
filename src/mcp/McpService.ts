@@ -164,7 +164,6 @@ export function createMcpService(
     : undefined;
   const manifest = buildToolManifest(capabilities, discoveryContext);
   const runtime = createToolRuntime(manifest, capabilities, frodoInstance, {
-    frodoRoot: frodoInstance,
     managedObjectTypes: discoveryContext?.managedObjectTypes,
     managedObjectHydrationStatus:
       discoveryContext?.managedObjectHydrationStatus,

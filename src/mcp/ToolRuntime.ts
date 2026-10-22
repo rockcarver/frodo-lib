@@ -491,8 +491,7 @@ export type McpToolExecutionResult = {
  */
 export type McpToolRuntimeOptions = {
   /**
-   * Optional root Frodo instance used by the default resolver.
-   * The deprecated root-level adapter defaults this to the library singleton.
+   * Root Frodo instance used by the deprecated root-level adapter.
    */
   frodoRoot?: Frodo;
   /**
@@ -571,7 +570,7 @@ export function createToolRuntime(
   manifest: McpToolManifest,
   capabilities: McpCapabilityDescriptor[],
   frodoRoot: Frodo,
-  options: McpToolRuntimeOptions = {}
+  options: Omit<McpToolRuntimeOptions, 'frodoRoot'> = {}
 ): McpToolRuntime {
   const byId = new Map<string, McpCapabilityDescriptor>(
     capabilities.map((c) => [c.id, c])

@@ -35,7 +35,7 @@ type CatalogHydrationResult = {
  */
 export async function hydrateMcpDiscoveryContext(
   frodoInstance: Frodo,
-  options: McpDiscoveryHydrationOptions = {}
+  options: Omit<McpDiscoveryHydrationOptions, 'frodoInstance'> = {}
 ): Promise<McpDiscoveryContext> {
   const deploymentType = frodoInstance.state.getDeploymentType();
   const activeTarget = options.activeTarget

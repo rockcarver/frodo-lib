@@ -16,10 +16,18 @@ import {
 /**
  * Built-in policy presets representing common launch safety postures.
  */
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    Object.values(value).forEach(deepFreeze);
+  }
+  return value;
+}
+
 export const MCP_POLICY_PRESETS: Record<
   McpCapabilityPolicyPresetName,
   McpCapabilityPolicy
-> = {
+> = deepFreeze({
   'read-only': {
     name: 'read-only',
     allowOperationTypes: ['count', 'read', 'search', 'list'],
@@ -63,7 +71,7 @@ export const MCP_POLICY_PRESETS: Record<
     name: 'admin',
     includeSpecial: true,
   },
-};
+});
 
 /**
  * Applies capability exposure rules to a descriptor set.
