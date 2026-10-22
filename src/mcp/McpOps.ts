@@ -33,16 +33,16 @@ export type Mcp = {
   getRealmFromContext(context: McpRuntimeRequestContext): string | undefined;
 };
 
-export default (instance: Frodo): Mcp => ({
-  createService: (options = {}) => createMcpService(instance, options),
+export default (getInstance: () => Frodo): Mcp => ({
+  createService: (options = {}) => createMcpService(getInstance(), options),
   hydrateDiscoveryContext: (options = {}) =>
-    hydrateMcpDiscoveryContext(instance, options),
+    hydrateMcpDiscoveryContext(getInstance(), options),
   buildCapabilityInventory: (options = {}) =>
-    buildCapabilityInventory(instance, options),
+    buildCapabilityInventory(getInstance(), options),
   listProfiles: () => listMcpProfiles(),
   resolveProfileSelection: (name) => resolveMcpProfileSelection(name),
   policyPresets: MCP_POLICY_PRESETS,
   resolveRequestScopedFrodo: (requestContext) =>
-    resolveRequestScopedFrodo(requestContext, instance),
+    resolveRequestScopedFrodo(requestContext, getInstance()),
   getRealmFromContext: (context) => getRealmFromContext(context),
 });

@@ -504,7 +504,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     info: InfoOps(state),
     login: AuthenticateOps(state),
 
-    mcp: {} as Mcp,
+    mcp: McpOps(() => instance),
 
     oauth2oidc: {
       client: OAuth2ClientOps(state),
@@ -559,7 +559,6 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     createInstanceWithBrowserLogin,
     createInstanceWithAccessToken,
   };
-  instance.mcp = McpOps(instance);
   return instance;
 };
 
