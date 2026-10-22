@@ -10,6 +10,27 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-11] - 2026-10-22
+
+### Added
+- Exposed terminal, schema, and MCP helpers through the Frodo facade. These capabilities are now accessible via `frodo.utils.terminal`, `frodo.idm.managed.schema`, and `frodo.mcp` members, while preserving and deprecating existing root exports (#764).
+- Implemented journey validation on import to prevent structural errors. The `frodo.authn.journey.validateJourneys` function now blocks imports with dangling or inconsistent node references, ensuring integrity before execution (#745).
+
+### Changed
+- Updated the CI process to treat certain files, such as the Concierge pin and gh-aw lock cache, as non-code, preventing unnecessary test executions (#768).
+- Improved the issue worker to handle enhancements correctly by not marking them as invalid if the feature is not yet implemented (#743).
+- Enhanced the issue worker to detect already-fixed and cannot-reproduce issues, applying appropriate labels and closing them when necessary (#741).
+
+### Fixed
+- Resolved an issue where the PR Worker incorrectly read issue content to verify dependencies, now using label checks in activation conditions to prevent unauthorized reads (#763).
+- Corrected the event-driven dependency watch to trigger on specific events, ensuring timely updates without waiting for scheduled slots (#758).
+- Addressed credential leaks in connection-profile debug outputs by replacing sensitive data with an allowlist of safe fields (#747).
+- Fixed the pipeline to resume correctly when the `plan-approval-required` label is removed, ensuring no workflow remains stuck (#751).
+- Ensured the issue worker does not withhold readiness for issues with declared dependencies, allowing proper workflow progression (#750).
+
+### Security
+- Prevented potential credential disclosure in connection profile debug outputs by masking sensitive information (#747).
+
 ## [v5.0.0-10] - 2026-10-21
 
 ### Added
@@ -2682,6 +2703,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-11]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-10...v5.0.0-11
 [v5.0.0-10]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-9...v5.0.0-10
 [v5.0.0-9]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-8...v5.0.0-9
 [v5.0.0-8]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-7...v5.0.0-8
