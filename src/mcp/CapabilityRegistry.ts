@@ -8,7 +8,7 @@
  * manifests.
  */
 
-import { Frodo } from '../lib/FrodoLib';
+import type { Frodo } from '../lib/FrodoLib';
 import { getHelpMetadataByMethod } from '../utils/HelpUtils';
 import { resolveCapabilityMeta } from './CapabilityMetadata';
 import {

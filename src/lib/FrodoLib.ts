@@ -1,4 +1,5 @@
 // instantiable modules
+import McpOps, { Mcp } from '../mcp/McpOps';
 import AdminOps, { Admin } from '../ops/AdminOps';
 import AgentOps, { Agent } from '../ops/AgentOps';
 import AmConfigOps, { AmConfig } from '../ops/AmConfigOps';
@@ -129,6 +130,7 @@ import JsonUtils, { Json } from '../utils/JsonUtils';
 import ScriptValidationUtils, {
   ScriptValidation,
 } from '../utils/ScriptValidationUtils';
+import TerminalUtils, { Terminal } from '../utils/TerminalUtils';
 
 /**
  * Frodo Library
@@ -222,6 +224,8 @@ export type Frodo = {
   info: Info;
   login: Authenticate;
 
+  mcp: Mcp;
+
   oauth2oidc: {
     client: OAuth2Client;
     endpoint: OAuth2Oidc;
@@ -264,6 +268,7 @@ export type Frodo = {
       jose: Jose;
       json: Json;
       version: Version;
+      terminal: Terminal;
     };
 
   /**
@@ -407,7 +412,7 @@ export type Frodo = {
  */
 const FrodoLib = (config: StateInterface = {}): Frodo => {
   const state = StateImpl(config);
-  return {
+  const instance: Frodo = {
     state: state,
     admin: AdminOps(state),
     agent: AgentOps(state),
@@ -499,6 +504,8 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     info: InfoOps(state),
     login: AuthenticateOps(state),
 
+    mcp: McpOps(() => instance),
+
     oauth2oidc: {
       client: OAuth2ClientOps(state),
       endpoint: OAuth2OidcOps(state),
@@ -542,6 +549,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
       jose: JoseOps(state),
       json: JsonUtils(),
       version: VersionUtils(state),
+      terminal: TerminalUtils(),
     },
 
     createInstance,
@@ -551,6 +559,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     createInstanceWithBrowserLogin,
     createInstanceWithAccessToken,
   };
+  return instance;
 };
 
 function createInstance(config: StateInterface): Frodo {

@@ -8,7 +8,7 @@
  * actual transport wiring to higher layers.
  */
 
-import { Frodo, frodo } from '../lib/FrodoLib';
+import type { Frodo } from '../lib/FrodoLib';
 import { applyCapabilityPolicy, MCP_POLICY_PRESETS } from './CapabilityPolicy';
 import { buildCapabilityInventory } from './CapabilityRegistry';
 import {
@@ -54,7 +54,7 @@ export type McpServiceToolDefinition = {
 export type McpServiceOptions = {
   /**
    * Frodo instance to inspect and use as runtime factory root.
-   * Defaults to the library singleton.
+   * The deprecated root-level adapter defaults this to the library singleton.
    */
   frodoInstance?: Frodo;
   /** Optional profile name to constrain the active capability universe. */
@@ -132,8 +132,10 @@ export function composeCapabilityPolicy(
  * @param options Service construction options.
  * @returns Composed service object with manifest and runtime hooks.
  */
-export function createMcpService(options: McpServiceOptions = {}): McpService {
-  const frodoInstance = options.frodoInstance ?? frodo;
+export function createMcpService(
+  frodoInstance: Frodo,
+  options: Omit<McpServiceOptions, 'frodoInstance'> = {}
+): McpService {
   const profileSelection = options.profileName
     ? resolveMcpProfileSelection(options.profileName)
     : undefined;
@@ -161,8 +163,7 @@ export function createMcpService(options: McpServiceOptions = {}): McpService {
       }
     : undefined;
   const manifest = buildToolManifest(capabilities, discoveryContext);
-  const runtime = createToolRuntime(manifest, capabilities, {
-    frodoRoot: frodoInstance,
+  const runtime = createToolRuntime(manifest, capabilities, frodoInstance, {
     managedObjectTypes: discoveryContext?.managedObjectTypes,
     managedObjectHydrationStatus:
       discoveryContext?.managedObjectHydrationStatus,

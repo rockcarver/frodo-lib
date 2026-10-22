@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { jest } from '@jest/globals';
 import { frodo, frodo as instance0, state as state0 } from '../index';
 import Constants from '../shared/Constants';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
@@ -14,6 +15,97 @@ const host1 = 'https://instance1/am';
 const host2 = 'https://instance2/am';
 
 describe('FrodoLib', () => {
+  test('exposes terminal, managed schema, and MCP helpers through the facade', () => {
+    expect(frodo.utils.terminal).toEqual(
+      expect.objectContaining({
+        theme: expect.any(Function),
+        themeForMode: expect.any(Function),
+        resolveThemeMode: expect.any(Function),
+        FRODO_COLOR_THEME_ENV_KEY: expect.any(String),
+        contrastRatio: expect.any(Function),
+        TerminalContrastFilter: expect.any(Function),
+        ALL_ANSI_COLOR_NAMES: expect.any(Array),
+        detectTerminalBackgroundRgb: expect.any(Function),
+        matchBackgroundPreset: expect.any(Function),
+      })
+    );
+
+    expect(frodo.idm.managed.schema).toEqual(
+      expect.objectContaining({
+        buildManagedObjectSchemaPropertyPayload: expect.any(Function),
+        extractManagedObjectSchemaPropertyFields: expect.any(Function),
+        MANAGED_OBJECT_SCHEMA_CREATABLE_PROPERTY_TYPES: expect.any(Array),
+        setSchemaProperty: expect.any(Function),
+        removeSchemaProperty: expect.any(Function),
+        parseSubPropertyPath: expect.any(Function),
+        navigateToPropertyContainer: expect.any(Function),
+        navigatePropertyPath: expect.any(Function),
+        buildManagedObjectTypeSchema: expect.any(Function),
+        MANAGED_OBJECT_TYPE_DEFAULT_ICON: expect.any(String),
+        buildManagedObjectSchemaRelationshipPropertyPayload:
+          expect.any(Function),
+        extractManagedObjectSchemaRelationshipPropertyFields:
+          expect.any(Function),
+        toManagedObjectSchemaRelationshipReverseFields: expect.any(Function),
+        inferManagedObjectSchemaRelationshipReverseIdentity:
+          expect.any(Function),
+      })
+    );
+
+    expect(Object.keys(frodo.mcp).sort()).toEqual(
+      [
+        'buildCapabilityInventory',
+        'createService',
+        'getRealmFromContext',
+        'hydrateDiscoveryContext',
+        'listProfiles',
+        'policyPresets',
+        'resolveProfileSelection',
+        'resolveRequestScopedFrodo',
+      ].sort()
+    );
+  });
+
+  test('binds MCP service construction to the instance that created it', async () => {
+    const instance = frodo.createInstance({ host: 'https://instance1/am' });
+    const readJourney = jest.fn(async (journeyId: string) => ({
+      id: journeyId,
+      found: true,
+    }));
+    const scopedInstance = {
+      login: { getTokens: jest.fn(async () => {}) },
+      authn: { journey: { readJourney } },
+    };
+    const createInstance = jest
+      .spyOn(instance, 'createInstance')
+      .mockReturnValue(scopedInstance as any);
+    instance.authn.journey.readJourney = readJourney;
+
+    const service = instance.mcp.createService({
+      inventoryOptions: { includeTopLevelDomains: ['authn'] },
+      policyPreset: 'read-only',
+    });
+    const result = await service.executeTool({
+      toolName: 'frodo_dispatch_read_only',
+      arguments: {
+        skillId: 'authn.journey.readJourney',
+        positionalArgs: ['journey-123'],
+      },
+      context: {
+        auth: {
+          mode: 'state-config',
+          config: { host: 'https://tenant.example/am' },
+        },
+      },
+    });
+
+    expect(createInstance).toHaveBeenCalledWith({
+      host: 'https://tenant.example/am',
+    });
+    expect(readJourney).toHaveBeenCalledWith('journey-123');
+    expect(result.data).toEqual({ id: 'journey-123', found: true });
+  });
+
   test('exposes journey validation through the Frodo facade', () => {
     const journey = frodo.authn.journey.createSingleTreeExportTemplate();
     journey.tree._id = 'InvalidJourney';

@@ -79,4 +79,21 @@ describe('special-kind capability policy gating', () => {
       }
     }
   });
+
+  test('built-in presets and nested arrays are deeply frozen', () => {
+    const original =
+      MCP_POLICY_PRESETS['read-only'].allowOperationTypes?.slice();
+
+    expect(Object.isFrozen(MCP_POLICY_PRESETS)).toBe(true);
+    expect(Object.isFrozen(MCP_POLICY_PRESETS['read-only'])).toBe(true);
+    expect(
+      Object.isFrozen(MCP_POLICY_PRESETS['read-only'].allowOperationTypes)
+    ).toBe(true);
+    expect(() =>
+      MCP_POLICY_PRESETS['read-only'].allowOperationTypes?.push('delete')
+    ).toThrow();
+    expect(MCP_POLICY_PRESETS['read-only'].allowOperationTypes).toEqual(
+      original
+    );
+  });
 });

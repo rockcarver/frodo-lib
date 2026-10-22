@@ -1,4 +1,4 @@
-import { Frodo, frodo } from '../lib/FrodoLib';
+import type { Frodo } from '../lib/FrodoLib';
 import {
   McpCatalogHydrationStatus,
   McpDiscoveryContext,
@@ -34,9 +34,9 @@ type CatalogHydrationResult = {
  * Catalog failures are isolated so service construction can continue.
  */
 export async function hydrateMcpDiscoveryContext(
-  options: McpDiscoveryHydrationOptions = {}
+  frodoInstance: Frodo,
+  options: Omit<McpDiscoveryHydrationOptions, 'frodoInstance'> = {}
 ): Promise<McpDiscoveryContext> {
-  const frodoInstance = options.frodoInstance ?? frodo;
   const deploymentType = frodoInstance.state.getDeploymentType();
   const activeTarget = options.activeTarget
     ? { ...options.activeTarget }

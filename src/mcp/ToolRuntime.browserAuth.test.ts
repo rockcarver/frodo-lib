@@ -193,7 +193,7 @@ describe('MCP runtime — browser-login auth mode end to end', () => {
       createInstanceWithBrowserLogin: jest.fn(() => fakeInstance),
     } as unknown as Frodo;
 
-    const runtime = createToolRuntime(manifest, [descriptor], { frodoRoot });
+    const runtime = createToolRuntime(manifest, [descriptor], frodoRoot);
 
     await expect(
       runtime.executeTool({
@@ -225,8 +225,7 @@ describe('MCP runtime — browser-login auth mode end to end', () => {
     } as unknown as Frodo;
     const browserLoginPromptHandler = jest.fn(async () => {});
 
-    const runtime = createToolRuntime(manifest, [descriptor], {
-      frodoRoot,
+    const runtime = createToolRuntime(manifest, [descriptor], frodoRoot, {
       browserLoginPromptHandler,
     });
 
@@ -285,8 +284,7 @@ describe('assertTrustTierAllowed — Phase G enforcement', () => {
     frodoRoot: Frodo,
     auth: McpRuntimeRequestContext['auth']
   ) {
-    const runtime = createToolRuntime(manifest, [descriptor], {
-      frodoRoot,
+    const runtime = createToolRuntime(manifest, [descriptor], frodoRoot, {
       browserLoginPromptHandler: jest.fn(async () => {}),
     });
     return runtime.executeTool({
