@@ -21,6 +21,21 @@ releases missed):
 - `frodo.authn.journey`: `isCustomJourney`, `isPremiumJourney`, `isCloudOnlyJourney`, `getJourneyClassification` — removed without replacement; Frodo no longer classifies journeys as custom/standard/cloud-only/premium (deprecated since 4.0.0). The `JourneyClassificationType` type and `JourneyClassification` enum were removed with them
 - `frodo.authn.node`: `isPremiumNode`, `isCloudOnlyNode`, `isCloudExcludedNode`, `isDeprecatedNode`, `isCustomNode`, `getNodeClassification` — removed without replacement; Frodo no longer classifies nodes as standard/custom/cloud/excluded/premium/deprecated (deprecated since 4.0.0). The `NodeClassificationType` type and `NodeClassification` enum were removed with them
 
+### Behavior changes
+
+- `frodo.authn.journey.importJourney`, `importJourneys` and
+  `frodo.config.importFullConfiguration` now validate journeys before writing
+  them. Structural errors (missing node definition, node ID mismatch, missing
+  connection target, missing entry node or missing Page Node inner node) reject
+  the import; warnings are only reported. `importJourneys` validates the whole
+  batch first, so one invalid journey rejects the batch rather than importing a
+  subset; for full configuration import, the whole journeys section is
+  rejected. To keep the previous behavior, pass `validate: false` in
+  `TreeImportOptions`, or `validateJourneys: false` in `FullImportOptions`.
+  Exports are unaffected: they report findings as warnings and never block.
+- [`frodo.authn.journey.validateJourneys(journeyIds?, journeysExport?)`](https://rockcarver.github.io/frodo-lib/types/Reference.Journey.html#validateJourneys)
+  validates journeys from the tenant or from a multi-journey export.
+
 **Deprecation**:
 
 The `@rockcarver/frodo-lib/types/<module>` deep-import subpath is

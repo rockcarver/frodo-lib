@@ -347,7 +347,7 @@ function outcomeDifference(
   };
 }
 
-function getExpectedPageOutcomes(
+function getPageOutcomeDifference(
   pageNode: JourneyNodeDefinition,
   innerNode: JourneyNodeDefinition
 ): { extra: string[]; missing: string[] } {
@@ -387,7 +387,7 @@ function checkPageNodeOutcomes(
     return [];
   }
 
-  const { extra, missing } = getExpectedPageOutcomes(pageNode, lastInnerNode);
+  const { extra, missing } = getPageOutcomeDifference(pageNode, lastInnerNode);
   const findings: JourneyValidationFinding[] = [];
   for (const outcome of extra) {
     findings.push(
