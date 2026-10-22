@@ -23,8 +23,10 @@ safe-outputs:
     max: 1
     target: "*"
     github-token: ${{ secrets.FRODO_CLI_ISSUES_TOKEN }}
+    allowed-repos: ["rockcarver/frodo-cli"]
   add-labels:
     github-token: ${{ secrets.FRODO_CLI_ISSUES_TOKEN }}
+    allowed-repos: ["rockcarver/frodo-cli"]
     allowed:
       - waiting-for-release
     max: 1
@@ -32,6 +34,7 @@ safe-outputs:
   close-issue:
     max: 1
     github-token: ${{ secrets.FRODO_CLI_ISSUES_TOKEN }}
+    allowed-repos: ["rockcarver/frodo-cli"]
   threat-detection:
     enabled: false
 max-ai-credits: 6
