@@ -1,7 +1,66 @@
 import { frodo, state } from './lib/FrodoLib';
+import type { McpCapabilityDescriptor } from './mcp/CapabilityTypes';
+import { hydrateMcpDiscoveryContext as hydrateMcpDiscoveryContextForRoot } from './mcp/DiscoveryHydration';
+import type { McpDiscoveryHydrationOptions } from './mcp/DiscoveryHydration';
+import { createMcpService as createMcpServiceForRoot } from './mcp/McpService';
+import type { McpService, McpServiceOptions } from './mcp/McpService';
+import type { McpToolManifest } from './mcp/ToolManifest';
+import {
+  createToolRuntime as createToolRuntimeForRoot,
+  resolveRequestScopedFrodo as resolveRequestScopedFrodoForRoot,
+} from './mcp/ToolRuntime';
+import type {
+  McpRuntimeRequestContext,
+  McpToolRuntime,
+  McpToolRuntimeOptions,
+} from './mcp/ToolRuntime';
 import { FrodoError } from './ops/FrodoError';
 
+/**
+ * @deprecated Use the corresponding `frodo.mcp.*` member where available;
+ * other MCP internals are not part of the facade.
+ */
 export * from './mcp';
+
+/** @deprecated Use `frodo.mcp.createService()` instead. */
+export function createMcpService(options: McpServiceOptions = {}): McpService {
+  const { frodoInstance = frodo, ...serviceOptions } = options;
+  return createMcpServiceForRoot(frodoInstance, serviceOptions);
+}
+
+/** @deprecated Use `frodo.mcp.hydrateDiscoveryContext()` instead. */
+export function hydrateMcpDiscoveryContext(
+  options: McpDiscoveryHydrationOptions = {}
+) {
+  const { frodoInstance = frodo, ...hydrationOptions } = options;
+  return hydrateMcpDiscoveryContextForRoot(frodoInstance, hydrationOptions);
+}
+
+/** @deprecated Use `frodo.mcp.resolveRequestScopedFrodo()` instead. */
+export function resolveRequestScopedFrodo(
+  context: McpRuntimeRequestContext,
+  frodoRoot = frodo
+) {
+  return resolveRequestScopedFrodoForRoot(context, frodoRoot);
+}
+
+/**
+ * @deprecated Internal MCP runtime; use `frodo.mcp.createService()` to
+ * construct an MCP service.
+ */
+export function createToolRuntime(
+  manifest: McpToolManifest,
+  capabilities: McpCapabilityDescriptor[],
+  options: McpToolRuntimeOptions = {}
+): McpToolRuntime {
+  const { frodoRoot = frodo, ...runtimeOptions } = options;
+  return createToolRuntimeForRoot(
+    manifest,
+    capabilities,
+    frodoRoot,
+    runtimeOptions
+  );
+}
 
 // Main library exports
 export { frodo, FrodoError, state };
@@ -9,6 +68,7 @@ export { frodo, FrodoError, state };
 // Semantic color-intent theme (dark/light), consumed by frodo-cli and
 // available to any other consumer wanting readable colored output without
 // hardcoding a hue. See ColorTheme.ts's own doc comments for details.
+/** @deprecated Use `frodo.utils.terminal.*` instead. */
 export {
   theme,
   themeForMode,
@@ -22,6 +82,7 @@ export {
 // palette, and best-effort actual terminal-background-color detection built
 // on top of it -- see TerminalContrast.ts/TerminalBackgroundDetection.ts's
 // own doc comments for details.
+/** @deprecated Use `frodo.utils.terminal.*` instead. */
 export {
   contrastRatio,
   TerminalContrastFilter,
@@ -30,6 +91,7 @@ export {
   type TerminalBackground,
   type Rgb,
 } from './utils/TerminalContrast';
+/** @deprecated Use `frodo.utils.terminal.*` instead. */
 export {
   detectTerminalBackgroundRgb,
   matchBackgroundPreset,
@@ -41,6 +103,7 @@ export {
 // definition, reused by consumers (e.g. frodo-cli) that need to preview a
 // change before committing it via frodo.idm.managed.schema's orchestration
 // functions. See ManagedObjectSchemaOps.ts's own doc comments for details.
+/** @deprecated Use `frodo.idm.managed.schema.*` instead. */
 export {
   buildManagedObjectSchemaPropertyPayload,
   extractManagedObjectSchemaPropertyFields,
@@ -58,6 +121,7 @@ export {
 // Managed-object type-level (title/icon/description) create/update support
 // -- pure helpers and shared types, reused the same way as the flat-property
 // exports above. See ManagedObjectSchemaOps.ts's own doc comments.
+/** @deprecated Use `frodo.idm.managed.schema.*` instead. */
 export {
   buildManagedObjectTypeSchema,
   MANAGED_OBJECT_TYPE_DEFAULT_ICON,
@@ -69,6 +133,7 @@ export {
 // build its own current/proposed preview before committing a change via
 // frodo.idm.managed.schema's relationship-property orchestration
 // functions). See ManagedObjectSchemaOps.ts's own doc comments.
+/** @deprecated Use `frodo.idm.managed.schema.*` instead. */
 export {
   buildManagedObjectSchemaRelationshipPropertyPayload,
   extractManagedObjectSchemaRelationshipPropertyFields,

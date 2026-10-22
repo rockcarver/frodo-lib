@@ -15,7 +15,7 @@
 
 import * as ManagedObjectApi from '../api/ManagedObjectApi';
 import { getIdmServerVersionInfo } from '../api/ServerInfoApi';
-import { Frodo, frodo } from '../lib/FrodoLib';
+import type { Frodo } from '../lib/FrodoLib';
 import { getSemanticVersion } from '../ops/AuthenticateOps';
 import type { BrowserLoginPromptHandler } from '../ops/BrowserAuthenticateOps';
 import { determineCallerTrustTier } from '../ops/CallerTrustTierOps';
@@ -492,7 +492,7 @@ export type McpToolExecutionResult = {
 export type McpToolRuntimeOptions = {
   /**
    * Optional root Frodo instance used by the default resolver.
-   * Defaults to the library singleton `frodo`.
+   * The deprecated root-level adapter defaults this to the library singleton.
    */
   frodoRoot?: Frodo;
   /**
@@ -563,12 +563,14 @@ export type McpToolRuntime = {
  *
  * @param manifest Reduced tool manifest created by `buildToolManifest`.
  * @param capabilities Capability descriptors that back the manifest.
+ * @param frodoRoot Root Frodo instance used by the default resolver.
  * @param options Optional runtime customization hooks.
  * @returns Runtime object capable of executing manifest tool calls.
  */
 export function createToolRuntime(
   manifest: McpToolManifest,
   capabilities: McpCapabilityDescriptor[],
+  frodoRoot: Frodo,
   options: McpToolRuntimeOptions = {}
 ): McpToolRuntime {
   const byId = new Map<string, McpCapabilityDescriptor>(
@@ -578,7 +580,6 @@ export function createToolRuntime(
     manifest.genericTools,
     byId
   );
-  const frodoRoot = options.frodoRoot ?? frodo;
   const paginationWarningThreshold = options.paginationWarningThreshold ?? 1000;
   const resultWarningThresholdBytes =
     options.resultWarningThresholdBytes ?? 65536;
@@ -1103,7 +1104,7 @@ function normalizeDeploymentType(
  */
 export function resolveRequestScopedFrodo(
   context: McpRuntimeRequestContext,
-  frodoRoot: Frodo = frodo
+  frodoRoot: Frodo
 ): Frodo {
   if (!context?.auth) {
     throw new FrodoError('MCP runtime error: missing auth context.');

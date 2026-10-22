@@ -76,6 +76,20 @@ import {
  * edit to that file outside either API above.
  */
 export type ManagedObjectSchemaOps = {
+  setSchemaProperty: typeof setSchemaProperty;
+  removeSchemaProperty: typeof removeSchemaProperty;
+  parseSubPropertyPath: typeof parseSubPropertyPath;
+  navigateToPropertyContainer: typeof navigateToPropertyContainer;
+  navigatePropertyPath: typeof navigatePropertyPath;
+  MANAGED_OBJECT_SCHEMA_CREATABLE_PROPERTY_TYPES: typeof MANAGED_OBJECT_SCHEMA_CREATABLE_PROPERTY_TYPES;
+  buildManagedObjectSchemaPropertyPayload: typeof buildManagedObjectSchemaPropertyPayload;
+  extractManagedObjectSchemaPropertyFields: typeof extractManagedObjectSchemaPropertyFields;
+  buildManagedObjectTypeSchema: typeof buildManagedObjectTypeSchema;
+  MANAGED_OBJECT_TYPE_DEFAULT_ICON: typeof MANAGED_OBJECT_TYPE_DEFAULT_ICON;
+  buildManagedObjectSchemaRelationshipPropertyPayload: typeof buildManagedObjectSchemaRelationshipPropertyPayload;
+  extractManagedObjectSchemaRelationshipPropertyFields: typeof extractManagedObjectSchemaRelationshipPropertyFields;
+  toManagedObjectSchemaRelationshipReverseFields: typeof toManagedObjectSchemaRelationshipReverseFields;
+  inferManagedObjectSchemaRelationshipReverseIdentity: typeof inferManagedObjectSchemaRelationshipReverseIdentity;
   /**
    * Read managed object schema
    * @param {string} type managed object type, e.g. alpha_user or user
@@ -337,6 +351,20 @@ export type ManagedObjectSchemaOps = {
 
 export default (state: State): ManagedObjectSchemaOps => {
   return {
+    setSchemaProperty,
+    removeSchemaProperty,
+    parseSubPropertyPath,
+    navigateToPropertyContainer,
+    navigatePropertyPath,
+    MANAGED_OBJECT_SCHEMA_CREATABLE_PROPERTY_TYPES,
+    buildManagedObjectSchemaPropertyPayload,
+    extractManagedObjectSchemaPropertyFields,
+    buildManagedObjectTypeSchema,
+    MANAGED_OBJECT_TYPE_DEFAULT_ICON,
+    buildManagedObjectSchemaRelationshipPropertyPayload,
+    extractManagedObjectSchemaRelationshipPropertyFields,
+    toManagedObjectSchemaRelationshipReverseFields,
+    inferManagedObjectSchemaRelationshipReverseIdentity,
     async readManagedObjectSchema(
       type: string,
       refreshCache: boolean = false,

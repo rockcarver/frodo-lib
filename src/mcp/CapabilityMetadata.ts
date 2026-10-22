@@ -3381,6 +3381,51 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'utils.saveJsonToFile': { trustTier: 'full-trust' },
   'utils.saveTextToFile': { trustTier: 'full-trust' },
   'utils.saveToFile': { trustTier: 'full-trust' },
+  mcp: {
+    excluded: true,
+    notes: 'Facade orchestration helpers are not agent-facing operations.',
+  },
+  'utils.terminal': {
+    excluded: true,
+    notes:
+      'Terminal presentation and detection helpers are not agent capabilities.',
+  },
+  'idm.managed.schema.setSchemaProperty': {
+    excluded: true, // Pure schema builder helper, not a standalone tenant operation.
+  },
+  'idm.managed.schema.removeSchemaProperty': {
+    excluded: true, // Pure schema builder helper, not a standalone tenant operation.
+  },
+  'idm.managed.schema.parseSubPropertyPath': {
+    excluded: true, // Pure schema path parser, not a standalone tenant operation.
+  },
+  'idm.managed.schema.navigateToPropertyContainer': {
+    excluded: true, // Pure schema navigator, not a standalone tenant operation.
+  },
+  'idm.managed.schema.navigatePropertyPath': {
+    excluded: true, // Pure schema navigator, not a standalone tenant operation.
+  },
+  'idm.managed.schema.buildManagedObjectSchemaPropertyPayload': {
+    excluded: true, // Pure schema payload builder, not a standalone tenant operation.
+  },
+  'idm.managed.schema.extractManagedObjectSchemaPropertyFields': {
+    excluded: true, // Pure schema extractor, not a standalone tenant operation.
+  },
+  'idm.managed.schema.buildManagedObjectTypeSchema': {
+    excluded: true, // Pure schema payload builder, not a standalone tenant operation.
+  },
+  'idm.managed.schema.buildManagedObjectSchemaRelationshipPropertyPayload': {
+    excluded: true, // Pure schema payload builder, not a standalone tenant operation.
+  },
+  'idm.managed.schema.extractManagedObjectSchemaRelationshipPropertyFields': {
+    excluded: true, // Pure schema extractor, not a standalone tenant operation.
+  },
+  'idm.managed.schema.toManagedObjectSchemaRelationshipReverseFields': {
+    excluded: true, // Pure schema mapper, not a standalone tenant operation.
+  },
+  'idm.managed.schema.inferManagedObjectSchemaRelationshipReverseIdentity': {
+    excluded: true, // Pure schema inspector, not a standalone tenant operation.
+  },
 };
 
 /**

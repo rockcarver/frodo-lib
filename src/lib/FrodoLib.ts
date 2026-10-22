@@ -1,4 +1,24 @@
 // instantiable modules
+import { MCP_POLICY_PRESETS } from '../mcp/CapabilityPolicy';
+import { buildCapabilityInventory } from '../mcp/CapabilityRegistry';
+import type {
+  McpCapabilityDescriptor,
+  McpCapabilityInventoryOptions,
+} from '../mcp/CapabilityTypes';
+import { hydrateMcpDiscoveryContext } from '../mcp/DiscoveryHydration';
+import type { McpDiscoveryHydrationOptions } from '../mcp/DiscoveryHydration';
+import { createMcpService } from '../mcp/McpService';
+import type { McpServiceOptions } from '../mcp/McpService';
+import {
+  listMcpProfiles,
+  resolveMcpProfileSelection,
+} from '../mcp/ProfileRegistry';
+import type { McpProfileName } from '../mcp/ProfileRegistry';
+import {
+  getRealmFromContext,
+  resolveRequestScopedFrodo,
+} from '../mcp/ToolRuntime';
+import type { McpRuntimeRequestContext } from '../mcp/ToolRuntime';
 import AdminOps, { Admin } from '../ops/AdminOps';
 import AgentOps, { Agent } from '../ops/AgentOps';
 import AmConfigOps, { AmConfig } from '../ops/AmConfigOps';
@@ -120,6 +140,12 @@ import VersionUtils, { Version } from '../ops/VersionUtils';
 import ConstantsImpl, { Constants } from '../shared/Constants';
 import StateImpl, { State, StateInterface } from '../shared/State';
 import Base64Utils, { Base64 } from '../utils/Base64Utils';
+import {
+  FRODO_COLOR_THEME_ENV_KEY,
+  resolveThemeMode,
+  theme,
+  themeForMode,
+} from '../utils/ColorTheme';
 import CryptoUtils, { FrodoCrypto } from '../utils/CryptoUtils';
 import ExportImportUtils, { ExportImport } from '../utils/ExportImportUtils';
 import ForgeRockUtils, { FRUtils } from '../utils/ForgeRockUtils';
@@ -129,6 +155,15 @@ import JsonUtils, { Json } from '../utils/JsonUtils';
 import ScriptValidationUtils, {
   ScriptValidation,
 } from '../utils/ScriptValidationUtils';
+import {
+  detectTerminalBackgroundRgb,
+  matchBackgroundPreset,
+} from '../utils/TerminalBackgroundDetection';
+import {
+  ALL_ANSI_COLOR_NAMES,
+  contrastRatio,
+  TerminalContrastFilter,
+} from '../utils/TerminalContrast';
 
 /**
  * Frodo Library
@@ -222,6 +257,25 @@ export type Frodo = {
   info: Info;
   login: Authenticate;
 
+  mcp: {
+    createService(
+      options?: Omit<McpServiceOptions, 'frodoInstance'>
+    ): ReturnType<typeof createMcpService>;
+    hydrateDiscoveryContext(
+      options?: Omit<McpDiscoveryHydrationOptions, 'frodoInstance'>
+    ): ReturnType<typeof hydrateMcpDiscoveryContext>;
+    buildCapabilityInventory(
+      options?: McpCapabilityInventoryOptions
+    ): McpCapabilityDescriptor[];
+    listProfiles(): ReturnType<typeof listMcpProfiles>;
+    resolveProfileSelection(
+      name: McpProfileName
+    ): ReturnType<typeof resolveMcpProfileSelection>;
+    policyPresets: typeof MCP_POLICY_PRESETS;
+    resolveRequestScopedFrodo(requestContext: McpRuntimeRequestContext): Frodo;
+    getRealmFromContext(context: McpRuntimeRequestContext): string | undefined;
+  };
+
   oauth2oidc: {
     client: OAuth2Client;
     endpoint: OAuth2Oidc;
@@ -264,6 +318,17 @@ export type Frodo = {
       jose: Jose;
       json: Json;
       version: Version;
+      terminal: {
+        theme: typeof theme;
+        themeForMode: typeof themeForMode;
+        resolveThemeMode: typeof resolveThemeMode;
+        FRODO_COLOR_THEME_ENV_KEY: typeof FRODO_COLOR_THEME_ENV_KEY;
+        contrastRatio: typeof contrastRatio;
+        TerminalContrastFilter: typeof TerminalContrastFilter;
+        ALL_ANSI_COLOR_NAMES: typeof ALL_ANSI_COLOR_NAMES;
+        detectTerminalBackgroundRgb: typeof detectTerminalBackgroundRgb;
+        matchBackgroundPreset: typeof matchBackgroundPreset;
+      };
     };
 
   /**
@@ -407,7 +472,7 @@ export type Frodo = {
  */
 const FrodoLib = (config: StateInterface = {}): Frodo => {
   const state = StateImpl(config);
-  return {
+  const instance: Frodo = {
     state: state,
     admin: AdminOps(state),
     agent: AgentOps(state),
@@ -499,6 +564,20 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     info: InfoOps(state),
     login: AuthenticateOps(state),
 
+    mcp: {
+      createService: (options = {}) => createMcpService(instance, options),
+      hydrateDiscoveryContext: (options = {}) =>
+        hydrateMcpDiscoveryContext(instance, options),
+      buildCapabilityInventory: (options = {}) =>
+        buildCapabilityInventory(instance, options),
+      listProfiles: () => listMcpProfiles(),
+      resolveProfileSelection: (name) => resolveMcpProfileSelection(name),
+      policyPresets: MCP_POLICY_PRESETS,
+      resolveRequestScopedFrodo: (requestContext) =>
+        resolveRequestScopedFrodo(requestContext, instance),
+      getRealmFromContext: (context) => getRealmFromContext(context),
+    },
+
     oauth2oidc: {
       client: OAuth2ClientOps(state),
       endpoint: OAuth2OidcOps(state),
@@ -542,6 +621,17 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
       jose: JoseOps(state),
       json: JsonUtils(),
       version: VersionUtils(state),
+      terminal: {
+        theme,
+        themeForMode,
+        resolveThemeMode,
+        FRODO_COLOR_THEME_ENV_KEY,
+        contrastRatio,
+        TerminalContrastFilter,
+        ALL_ANSI_COLOR_NAMES,
+        detectTerminalBackgroundRgb,
+        matchBackgroundPreset,
+      },
     },
 
     createInstance,
@@ -551,6 +641,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     createInstanceWithBrowserLogin,
     createInstanceWithAccessToken,
   };
+  return instance;
 };
 
 function createInstance(config: StateInterface): Frodo {
