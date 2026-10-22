@@ -265,6 +265,11 @@ export interface FullImportOptions {
    */
   reUuidJourneys: boolean;
   /**
+   * Validate journeys before import. Defaults to true. Journeys are validated
+   * as a batch: a validation error rejects the whole journeys section.
+   */
+  validateJourneys?: boolean;
+  /**
    * Generate new UUIDs for all scripts during import.
    */
   reUuidScripts: boolean;
@@ -968,6 +973,7 @@ export async function importFullConfiguration({
 
   const {
     reUuidJourneys,
+    validateJourneys,
     reUuidScripts,
     reUuidCustomNodes,
     cleanServices,
@@ -1533,7 +1539,11 @@ export async function importFullConfiguration({
         importJourneys,
         {
           importData: importData.realm[realm],
-          options: { deps: false, reUuid: reUuidJourneys },
+          options: {
+            deps: false,
+            reUuid: reUuidJourneys,
+            validate: validateJourneys,
+          },
           resultCallback: errorCallback,
           state,
         },

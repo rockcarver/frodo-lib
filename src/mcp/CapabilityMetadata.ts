@@ -2476,6 +2476,29 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     // already in hand, not a standalone operation an agent could call.
     excluded: true,
   },
+  'authn.journey.validateJourneys': {
+    operationType: 'special',
+    objectType: 'Journey',
+    argumentMode: 'named',
+    parameterOverrides: {
+      journeyIds: {
+        description:
+          'Names of the journeys to validate. Omit it, or pass an empty array, to validate every journey. Do not pass null: omit the argument instead.',
+        schema: { type: 'array', items: { type: 'string' } },
+        examples: [['Login']],
+      },
+      journeysExport: {
+        description:
+          'Optional multi-journey export (the object returned by authn.journey.exportJourney / exportJourneys, possibly edited since) to validate offline instead of reading from the tenant. When supplied, nothing is read from the tenant.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+    },
+    supportsRealm: true,
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Validates journeys for referential integrity and returns findings (code, severity, journeyId, message, nodeId/targetNodeId/outcome); changes nothing. Errors mean the journey would fail import, warnings are advisory. Live mode (no journeysExport) reads the named journeys, or all of them, from the tenant. Export mode (journeysExport supplied) is offline: export, edit, then validate before importing.',
+  },
   'authn.journey.getTreeDescendents': {
     operationType: 'list',
     objectType: 'Journey',

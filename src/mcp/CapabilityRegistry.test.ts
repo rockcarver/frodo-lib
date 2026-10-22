@@ -505,6 +505,45 @@ describe('MCP capability foundation', () => {
     expect(getUnreviewedSpecialCapabilities()).toEqual([]);
   });
 
+  test('journey validation is one reviewed, low-risk, non-mutating capability', () => {
+    const capabilities = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['authn'],
+      includeUtils: false,
+    });
+    const byId = new Map(
+      capabilities.map((capability) => [capability.id, capability])
+    );
+    const validation = byId.get('authn.journey.validateJourneys');
+    expect(validation).toBeDefined();
+    expect(validation).toMatchObject({
+      mutating: false,
+      riskClass: 'low',
+      objectType: 'Journey',
+      argumentMode: 'named',
+      supportsRealm: true,
+    });
+    expect(
+      validation?.parameters?.map(({ name, required }) => ({ name, required }))
+    ).toEqual([
+      { name: 'journeyIds', required: false },
+      { name: 'journeysExport', required: false },
+    ]);
+    expect(validation?.parameters?.[0]?.schema).toEqual({
+      type: 'array',
+      items: { type: 'string' },
+    });
+    expect(validation?.parameters?.[0]?.examples).toEqual([['Login']]);
+    expect(validation?.parameters?.[1]?.schema).toEqual({
+      type: 'object',
+      additionalProperties: true,
+    });
+    expect(
+      [...byId.keys()].filter(
+        (id) => id.startsWith('authn.journey.validate') && id !== validation?.id
+      )
+    ).toEqual([]);
+  });
+
   test('never advertises an empty parameter contract when Help.ts reports required params', () => {
     // Regression guard for the script.getLibraryScriptNames bug class: a
     // capability must never end up with an empty/undefined parameter list

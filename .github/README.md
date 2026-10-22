@@ -60,6 +60,9 @@ version, with replacements — is maintained in the
   longer classifies journeys or nodes.
 - **5.x** deprecates the `./types/*` deep-import subpath (see
   [Using the library](#using-the-library)).
+- **5.x** journey imports now validate structural references by default; see
+  [Behavior changes](../MIGRATION.md#upgrading-to-5x) in the migration guide
+  for batch behavior, opt-outs, and the validation API.
 
 ### Deprecations
 
