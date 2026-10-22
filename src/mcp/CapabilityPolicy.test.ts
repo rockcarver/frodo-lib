@@ -7,8 +7,9 @@
  * anyway, because `applyCapabilityPolicy` checked both gates unconditionally.
  */
 
-import { buildCapabilityInventory, frodo } from '../index';
+import { frodo } from '../lib/FrodoLib';
 import { applyCapabilityPolicy, MCP_POLICY_PRESETS } from './CapabilityPolicy';
+import { buildCapabilityInventory } from './CapabilityRegistry';
 
 describe('special-kind capability policy gating', () => {
   // utils/factory are excluded at the profile layer, independent of this bug;

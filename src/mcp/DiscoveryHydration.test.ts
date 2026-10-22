@@ -1,11 +1,11 @@
 import { jest } from '@jest/globals';
-import { hydrateMcpDiscoveryContext } from '../index';
+import { hydrateMcpDiscoveryContext } from './DiscoveryHydration';
 
 describe('MCP discovery hydration', () => {
   test('hydrates both live catalogs concurrently', async () => {
     const onEvent = jest.fn();
-    const context = await hydrateMcpDiscoveryContext({
-      frodoInstance: {
+    const context = await hydrateMcpDiscoveryContext(
+      {
         state: { getDeploymentType: () => 'cloud' },
         idm: {
           config: {
@@ -17,9 +17,11 @@ describe('MCP discovery hydration', () => {
           },
         },
       } as any,
-      activeTarget: { host: 'https://example.test', profile: 'all' },
-      onEvent,
-    });
+      {
+        activeTarget: { host: 'https://example.test', profile: 'all' },
+        onEvent,
+      }
+    );
 
     expect(context).toEqual({
       managedObjectTypes: ['alpha_user'],
@@ -33,18 +35,16 @@ describe('MCP discovery hydration', () => {
 
   test('isolates catalog failures', async () => {
     const context = await hydrateMcpDiscoveryContext({
-      frodoInstance: {
-        state: { getDeploymentType: () => 'forgeops' },
-        idm: {
-          config: {
-            readManagedObjectTypes: jest.fn(async () => ['alpha_user']),
-            readConfigEntityStubs: jest.fn(async () => {
-              throw new Error('unavailable');
-            }),
-          },
+      state: { getDeploymentType: () => 'forgeops' },
+      idm: {
+        config: {
+          readManagedObjectTypes: jest.fn(async () => ['alpha_user']),
+          readConfigEntityStubs: jest.fn(async () => {
+            throw new Error('unavailable');
+          }),
         },
-      } as any,
-    });
+      },
+    } as any);
 
     expect(context.managedObjectTypes).toEqual(['alpha_user']);
     expect(context.managedObjectHydrationStatus).toBe('available');
@@ -53,8 +53,8 @@ describe('MCP discovery hydration', () => {
   });
 
   test('bounds catalog hydration with the configured timeout', async () => {
-    const context = await hydrateMcpDiscoveryContext({
-      frodoInstance: {
+    const context = await hydrateMcpDiscoveryContext(
+      {
         state: { getDeploymentType: () => 'cloud' },
         idm: {
           config: {
@@ -63,8 +63,8 @@ describe('MCP discovery hydration', () => {
           },
         },
       } as any,
-      timeoutMs: 1,
-    });
+      { timeoutMs: 1 }
+    );
 
     expect(context.managedObjectHydrationStatus).toBe('timed-out');
     expect(context.configEntityHydrationStatus).toBe('timed-out');
@@ -74,13 +74,11 @@ describe('MCP discovery hydration', () => {
     const readManagedObjectTypes = jest.fn();
     const readConfigEntityStubs = jest.fn();
     const context = await hydrateMcpDiscoveryContext({
-      frodoInstance: {
-        state: { getDeploymentType: () => 'classic' },
-        idm: {
-          config: { readManagedObjectTypes, readConfigEntityStubs },
-        },
-      } as any,
-    });
+      state: { getDeploymentType: () => 'classic' },
+      idm: {
+        config: { readManagedObjectTypes, readConfigEntityStubs },
+      },
+    } as any);
 
     expect(context.managedObjectHydrationStatus).toBe('not-applicable');
     expect(context.configEntityHydrationStatus).toBe('not-applicable');

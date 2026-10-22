@@ -1,7 +1,7 @@
 import {
   matchSemanticIdentifiers,
   normalizeSemanticIdentifier,
-} from '../index';
+} from './SemanticIdentifiers';
 
 describe('semantic identifier normalization', () => {
   test.each([

@@ -3,13 +3,29 @@
  */
 
 import { jest } from '@jest/globals';
+import { frodo } from '../lib/FrodoLib';
+import type { McpCapabilityDescriptor } from './CapabilityTypes';
+import type { McpToolManifest } from './ToolManifest';
 import {
-  createToolRuntime,
-  McpCapabilityDescriptor,
-  McpToolExecutionResult,
-  McpToolManifest,
-  McpToolRuntimeTraceEvent,
-} from '../index';
+  createToolRuntime as createToolRuntimeForRoot,
+  type McpToolExecutionResult,
+  type McpToolRuntimeOptions,
+  type McpToolRuntimeTraceEvent,
+} from './ToolRuntime';
+
+function createToolRuntime(
+  manifest: McpToolManifest,
+  capabilities: McpCapabilityDescriptor[],
+  options: McpToolRuntimeOptions = {}
+) {
+  const { frodoRoot = frodo, ...runtimeOptions } = options;
+  return createToolRuntimeForRoot(
+    manifest,
+    capabilities,
+    frodoRoot,
+    runtimeOptions
+  );
+}
 
 function makeDescriptor(
   overrides: Partial<McpCapabilityDescriptor> = {}
