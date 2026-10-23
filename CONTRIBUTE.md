@@ -96,6 +96,12 @@ Frodo Library adheres to the following folder and file structure:
 
 Most of Frodo Library's functionality is manipulating configuration of a Ping (formerly: ForgeRock) Identity Platform instance. Most of the configuration is stored in configuration and other objects, which can be managed individually.
 
+##### Public API surface
+
+The package root exports only `frodo`, `state`, `FrodoError`, and types. Add new runtime capabilities to the facade (`frodo.<domain>...`), not as package-root exports. Do not use wildcard value re-exports (`export * from`) in `src/index.ts`.
+
+Every new facade method needs a reviewed entry in `src/mcp/CapabilityMetadata.ts`; the capability registry test enforces this. Pure helpers are usually marked `excluded: true` with a reason.
+
 To create a good and consistent developer experience for library users, library developers should follow these conventions:
 
 ##### Managing objects - CRUDQ

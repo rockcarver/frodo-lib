@@ -61,5 +61,20 @@ module.exports = tseslint.config(
     rules: {
       'no-restricted-imports': 'off',
     },
+  },
+  {
+    files: ['src/index.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        'LabeledStatement',
+        'WithStatement',
+        {
+          selector: 'ExportAllDeclaration',
+          message:
+            'Add runtime capabilities to the facade, not via wildcard exports from the package root.',
+        },
+      ],
+    },
   }
 );
