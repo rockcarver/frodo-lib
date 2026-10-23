@@ -16,7 +16,7 @@ For a per-major summary of breaking changes and how to migrate, see the
 - Added `.github/agentic-workflows/scope.md` for the issue gate's scope check, providing guidelines for request evaluations once the feature is active (#769).
 
 ### Removed
-- Removed function and constant exports from the package root, retaining only `frodo`, `state`, and `FrodoError` as runtime exports. All existing type exports, including MCP types, remain available. Update imports to use explicit type-only exports instead of deprecated shims (#771).
+- **Removed every function and constant export from the package root.** The root now exports only `frodo`, `state` and `FrodoError` at runtime; all type exports remain, including the MCP types. These were exported in stable 4.12.0 without a deprecation notice, so this is a breaking change for 4.x. Use the facade instead: `frodo.mcp` (`createService`, `hydrateDiscoveryContext`, `buildCapabilityInventory`, `listProfiles`, `resolveProfileSelection`, `policyPresets`, `resolveRequestScopedFrodo`, `getRealmFromContext`), `frodo.utils.terminal` and `frodo.idm.managed.schema`. To target another instance, call the member on that instance (`frodo.createInstance({ ... }).mcp.createService()`). The unused `frodoInstance` and `frodoRoot` options were removed from the exported option types. `MIGRATION.md` lists all 59 removed names with their replacements (#771).
 
 ## [v5.0.0-11] - 2026-10-22
 
