@@ -98,6 +98,12 @@ Most of Frodo Library's functionality is manipulating configuration of a Ping (f
 
 To create a good and consistent developer experience for library users, library developers should follow these conventions:
 
+##### Public API surface
+
+The package root exports only `frodo`, `state`, `FrodoError`, and types. Add new runtime capabilities to the facade (`frodo.<domain>...`), not as package-root exports. Do not use wildcard value re-exports (`export * from`) in `src/index.ts`.
+
+Every new facade method needs a reviewed entry in `src/mcp/CapabilityMetadata.ts`; the capability registry test enforces this. Pure helpers are usually marked `excluded: true` with a reason.
+
 ##### Managing objects - CRUDQ
 
 Adopt CRUDQ naming for object manipulation:
