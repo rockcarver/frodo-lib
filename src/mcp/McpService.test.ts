@@ -7,11 +7,9 @@
  */
 
 import { jest } from '@jest/globals';
-import {
-  composeCapabilityPolicy,
-  createMcpService,
-  McpCapabilityDescriptor,
-} from '../index';
+import { frodo } from '../lib/FrodoLib';
+import type { McpCapabilityDescriptor } from './CapabilityTypes';
+import { composeCapabilityPolicy, createMcpService } from './McpService';
 
 /**
  * Builds a descriptor fixture for MCP service tests.
@@ -84,7 +82,7 @@ describe('composeCapabilityPolicy', () => {
 
 describe('createMcpService', () => {
   test('creates service with discovery tool in listTools output', () => {
-    const service = createMcpService({
+    const service = createMcpService(frodo, {
       inventoryOptions: { includeTopLevelDomains: ['authn'] },
       policyPreset: 'read-only',
     });
@@ -120,8 +118,7 @@ describe('createMcpService', () => {
       createInstanceWithAmsterAccount: jest.fn(),
     } as any;
 
-    const service = createMcpService({
-      frodoInstance: rootInstance,
+    const service = createMcpService(rootInstance, {
       policyPreset: 'read-only',
       inventoryOptions: {
         includeTopLevelDomains: ['authn'],
@@ -151,7 +148,7 @@ describe('createMcpService', () => {
   });
 
   test('listTools includes annotation hints for discovery and generic tools', () => {
-    const service = createMcpService({
+    const service = createMcpService(frodo, {
       inventoryOptions: { includeTopLevelDomains: ['authn'] },
       policyPreset: 'read-only',
     });
@@ -167,7 +164,7 @@ describe('createMcpService', () => {
   });
 
   test('supports policyOverride to exclude authn domain', () => {
-    const service = createMcpService({
+    const service = createMcpService(frodo, {
       inventoryOptions: { includeTopLevelDomains: ['authn'] },
       policyPreset: 'read-only',
       policyOverride: {
@@ -191,7 +188,7 @@ describe('createMcpService', () => {
   });
 
   test('agentic policy exposes canonical dispatch surface and not legacy CRUD tools', () => {
-    const service = createMcpService({
+    const service = createMcpService(frodo, {
       inventoryOptions: { includeTopLevelDomains: ['authn'] },
       policyPreset: 'agentic',
     });
@@ -208,8 +205,8 @@ describe('createMcpService', () => {
     const descriptor = makeDescriptor();
     const readJourney = jest.fn(async () => ({ ok: true }));
 
-    const service = createMcpService({
-      frodoInstance: {
+    const service = createMcpService(
+      {
         state: {},
         authn: { journey: { readJourney } },
         createInstance: jest.fn(),
@@ -217,22 +214,24 @@ describe('createMcpService', () => {
         createInstanceWithServiceAccount: jest.fn(),
         createInstanceWithAmsterAccount: jest.fn(),
       } as any,
-      policyPreset: 'admin',
-      runtimeOptions: {
-        resolveFrodoForRequest: async () =>
-          ({
-            login: { getTokens: jest.fn(async () => {}) },
-            authn: {
-              journey: {
-                readJourney,
+      {
+        policyPreset: 'admin',
+        runtimeOptions: {
+          resolveFrodoForRequest: async () =>
+            ({
+              login: { getTokens: jest.fn(async () => {}) },
+              authn: {
+                journey: {
+                  readJourney,
+                },
               },
-            },
-          }) as any,
-      },
-      inventoryOptions: {
-        includeTopLevelDomains: ['authn'],
-      },
-    });
+            }) as any,
+        },
+        inventoryOptions: {
+          includeTopLevelDomains: ['authn'],
+        },
+      }
+    );
 
     const result = await service.executeTool({
       toolName: 'frodo_dispatch_read_only',

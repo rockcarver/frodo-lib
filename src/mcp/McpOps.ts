@@ -16,10 +16,10 @@ import type { McpRuntimeRequestContext } from './ToolRuntime';
 
 export type Mcp = {
   createService(
-    options?: Omit<McpServiceOptions, 'frodoInstance'>
+    options?: McpServiceOptions
   ): ReturnType<typeof createMcpService>;
   hydrateDiscoveryContext(
-    options?: Omit<McpDiscoveryHydrationOptions, 'frodoInstance'>
+    options?: McpDiscoveryHydrationOptions
   ): ReturnType<typeof hydrateMcpDiscoveryContext>;
   buildCapabilityInventory(
     options?: McpCapabilityInventoryOptions

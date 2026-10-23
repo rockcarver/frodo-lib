@@ -1,238 +1,79 @@
 import { frodo, state } from './lib/FrodoLib';
-import * as Mcp from './mcp';
-import type { McpCapabilityDescriptor } from './mcp/CapabilityTypes';
-import { hydrateMcpDiscoveryContext as hydrateMcpDiscoveryContextForRoot } from './mcp/DiscoveryHydration';
-import type { McpDiscoveryHydrationOptions } from './mcp/DiscoveryHydration';
-import { createMcpService as createMcpServiceForRoot } from './mcp/McpService';
-import type { McpService, McpServiceOptions } from './mcp/McpService';
-import type { McpToolManifest } from './mcp/ToolManifest';
-import {
-  createToolRuntime as createToolRuntimeForRoot,
-  resolveRequestScopedFrodo as resolveRequestScopedFrodoForRoot,
-} from './mcp/ToolRuntime';
-import type {
-  McpRuntimeRequestContext,
-  McpToolRuntime,
-  McpToolRuntimeOptions,
-} from './mcp/ToolRuntime';
 import { FrodoError } from './ops/FrodoError';
-import * as ManagedObjectSchema from './ops/ManagedObjectSchemaOps';
-import * as ColorTheme from './utils/ColorTheme';
-import * as TerminalBackgroundDetection from './utils/TerminalBackgroundDetection';
-import * as TerminalContrast from './utils/TerminalContrast';
 
-/**
- * @deprecated Use the corresponding `frodo.mcp.*` member where available;
- * other MCP internals are not part of the facade.
- */
-export * from './mcp';
-
-/** @deprecated Use `frodo.mcp.createService()` instead. */
-export function createMcpService(options: McpServiceOptions = {}): McpService {
-  const { frodoInstance = frodo, ...serviceOptions } = options;
-  return createMcpServiceForRoot(frodoInstance, serviceOptions);
-}
-
-/** @deprecated Use `frodo.mcp.hydrateDiscoveryContext()` instead. */
-export function hydrateMcpDiscoveryContext(
-  options: McpDiscoveryHydrationOptions = {}
-) {
-  const { frodoInstance = frodo, ...hydrationOptions } = options;
-  return hydrateMcpDiscoveryContextForRoot(frodoInstance, hydrationOptions);
-}
-
-/** @deprecated Use `frodo.mcp.resolveRequestScopedFrodo()` instead. */
-export function resolveRequestScopedFrodo(
-  context: McpRuntimeRequestContext,
-  frodoRoot = frodo
-) {
-  return resolveRequestScopedFrodoForRoot(context, frodoRoot);
-}
-
-/**
- * @deprecated Internal MCP runtime; use `frodo.mcp.createService()` to
- * construct an MCP service.
- */
-export function createToolRuntime(
-  manifest: McpToolManifest,
-  capabilities: McpCapabilityDescriptor[],
-  options: McpToolRuntimeOptions = {}
-): McpToolRuntime {
-  const { frodoRoot = frodo, ...runtimeOptions } = options;
-  return createToolRuntimeForRoot(
-    manifest,
-    capabilities,
-    frodoRoot,
-    runtimeOptions
-  );
-}
-
-/** @deprecated Use `frodo.mcp.policyPresets` instead. */
-export const MCP_POLICY_PRESETS = Mcp.MCP_POLICY_PRESETS;
-/** @deprecated Internal MCP policy helper. */
-export const applyCapabilityPolicy = Mcp.applyCapabilityPolicy;
-/** @deprecated Internal MCP routing helper. */
-export const describeCapabilityRouting = Mcp.describeCapabilityRouting;
-/** @deprecated Internal MCP routing helper. */
-export const rankCapabilitiesForDeployment = Mcp.rankCapabilitiesForDeployment;
-/** @deprecated Internal MCP semantic helper. */
-export const MCP_AMBIGUOUS_OBJECT_CONCEPTS = Mcp.MCP_AMBIGUOUS_OBJECT_CONCEPTS;
-/** @deprecated Internal MCP semantic helper. */
-export const MCP_SEMANTIC_OBJECT_SYNONYMS = Mcp.MCP_SEMANTIC_OBJECT_SYNONYMS;
-/** @deprecated Internal MCP semantic helper. */
-export const descriptorPatternsSupportFamily =
-  Mcp.descriptorPatternsSupportFamily;
-/** @deprecated Internal MCP semantic helper. */
-export const discoverManagedObjectFamilies = Mcp.discoverManagedObjectFamilies;
-/** @deprecated Internal MCP semantic helper. */
-export const matchManagedObjectFamily = Mcp.matchManagedObjectFamily;
-/** @deprecated Internal MCP semantic helper. */
-export const normalizeSemanticObjectFamily = Mcp.normalizeSemanticObjectFamily;
-/** @deprecated Internal MCP semantic helper. */
-export const resolveSemanticObjectFamily = Mcp.resolveSemanticObjectFamily;
-/** @deprecated Internal MCP semantic helper. */
-export const MCP_SEMANTIC_TERM_SYNONYMS = Mcp.MCP_SEMANTIC_TERM_SYNONYMS;
-/** @deprecated Internal MCP semantic helper. */
-export const matchSemanticIdentifiers = Mcp.matchSemanticIdentifiers;
-/** @deprecated Internal MCP semantic helper. */
-export const normalizeSemanticIdentifier = Mcp.normalizeSemanticIdentifier;
-/** @deprecated Internal MCP profile helper. */
-export const capabilityMatchesAnyProfile = Mcp.capabilityMatchesAnyProfile;
-/** @deprecated Internal MCP profile helper. */
-export const capabilityMatchesDisabled = Mcp.capabilityMatchesDisabled;
-/** @deprecated Internal MCP profile helper. */
-export const getMcpProfileDefinition = Mcp.getMcpProfileDefinition;
-/** @deprecated Internal MCP profile helper. */
-export const listAllMcpProfiles = Mcp.listAllMcpProfiles;
-/** @deprecated Use `frodo.mcp.listProfiles()` instead. */
-export const listMcpProfiles = Mcp.listMcpProfiles;
-/** @deprecated Use `frodo.mcp.resolveProfileSelection()` instead. */
-export const resolveMcpProfileSelection = Mcp.resolveMcpProfileSelection;
-/** @deprecated Internal MCP docs helper. */
-export const FORGEOPS_DOMAIN_PRODUCT_MAP = Mcp.FORGEOPS_DOMAIN_PRODUCT_MAP;
-/** @deprecated Internal MCP docs helper. */
-export const classifyDomainProduct = Mcp.classifyDomainProduct;
-/** @deprecated Internal MCP docs helper. */
-export const parseAmDocsVersion = Mcp.parseAmDocsVersion;
-/** @deprecated Internal MCP docs helper. */
-export const parseIdmDocsVersion = Mcp.parseIdmDocsVersion;
-/** @deprecated Internal MCP docs helper. */
-export const resolveDocsContext = Mcp.resolveDocsContext;
-/** @deprecated Use `frodo.mcp.buildCapabilityInventory()` instead. */
-export const buildCapabilityInventory = Mcp.buildCapabilityInventory;
-/** @deprecated Internal MCP capability helper. */
-export const inferObjectType = Mcp.inferObjectType;
-/** @deprecated Internal MCP capability helper. */
-export const inferOperationType = Mcp.inferOperationType;
-/** @deprecated Internal MCP capability helper. */
-export const inferRiskClass = Mcp.inferRiskClass;
-/** @deprecated Internal MCP manifest helper. */
-export const buildToolManifest = Mcp.buildToolManifest;
-/** @deprecated Use `frodo.mcp.getRealmFromContext()` instead. */
-export const getRealmFromContext = Mcp.getRealmFromContext;
-/** @deprecated Internal MCP service helper. */
-export const composeCapabilityPolicy = Mcp.composeCapabilityPolicy;
-
-// Main library exports
 export { frodo, FrodoError, state };
 
-// Semantic color-intent theme (dark/light), consumed by frodo-cli and
-// available to any other consumer wanting readable colored output without
-// hardcoding a hue. See ColorTheme.ts's own doc comments for details.
-/** @deprecated Use `frodo.utils.terminal.theme()` instead. */
-export const theme = ColorTheme.theme;
-/** @deprecated Use `frodo.utils.terminal.themeForMode()` instead. */
-export const themeForMode = ColorTheme.themeForMode;
-/** @deprecated Use `frodo.utils.terminal.resolveThemeMode()` instead. */
-export const resolveThemeMode = ColorTheme.resolveThemeMode;
-/** @deprecated Use `frodo.utils.terminal.FRODO_COLOR_THEME_ENV_KEY` instead. */
-export const FRODO_COLOR_THEME_ENV_KEY = ColorTheme.FRODO_COLOR_THEME_ENV_KEY;
-export type { ColorThemeMode, Intent } from './utils/ColorTheme';
+export type {
+  McpCapabilityDescriptor,
+  McpCapabilityInventoryOptions,
+  McpCapabilityKind,
+  McpCapabilityOperationType,
+  McpCapabilityPolicy,
+  McpCapabilityPolicyPresetName,
+  McpCapabilityRiskClass,
+  McpDeploymentType,
+  McpToolAnnotations,
+  McpCapabilityRouting,
+  McpCapabilityRoutingStatus,
+  McpDiscoveryHydrationCatalog,
+  McpDiscoveryHydrationEvent,
+  McpDiscoveryHydrationOptions,
+  McpManagedObjectFamilyMatch,
+  McpSemanticObjectFamily,
+  McpSemanticObjectFamilyResolution,
+  McpSemanticIdentifierMatch,
+  McpDocsContext,
+  McpDocsContextForgeops,
+  McpDocsContextUnresolved,
+  McpDocsDomainProduct,
+  McpDocsProduct,
+  McpCanonicalTool,
+  McpCatalogHydrationStatus,
+  McpDiscoveryContext,
+  McpDiscoveryEntry,
+  McpDiscoveryTarget,
+  McpManagedObjectHydrationStatus,
+  McpGenericTool,
+  McpObjectTypeEntry,
+  McpToolManifest,
+  McpDiscoverArguments,
+  McpExecutionPaginationMetadata,
+  McpExecutionScopeMetadata,
+  McpGenericExecutionArguments,
+  McpRuntimeAdminAccountAuth,
+  McpRuntimeAuth,
+  McpRuntimeRequestContext,
+  McpRuntimeServiceAccountAuth,
+  McpRuntimeStateAuth,
+  McpSpecialExecutionArguments,
+  McpToolExecutionRequest,
+  McpToolExecutionResult,
+  McpToolExecutionMetadata,
+  McpToolRuntime,
+  McpToolRuntimeOptions,
+  McpToolRuntimeTraceCandidate,
+  McpToolRuntimeTraceCriteria,
+  McpToolRuntimeTraceEvent,
+  McpToolRuntimeTraceHandler,
+  McpService,
+  McpServiceOptions,
+  McpServiceToolDefinition,
+} from './mcp';
 
-// Objective, WCAG-based readability checking for the standard 16-color ANSI
-// palette, and best-effort actual terminal-background-color detection built
-// on top of it -- see TerminalContrast.ts/TerminalBackgroundDetection.ts's
-// own doc comments for details.
-/** @deprecated Use `frodo.utils.terminal.contrastRatio()` instead. */
-export const contrastRatio = TerminalContrast.contrastRatio;
-/** @deprecated Use `frodo.utils.terminal.TerminalContrastFilter` instead. */
-export const TerminalContrastFilter = TerminalContrast.TerminalContrastFilter;
-/** @deprecated Use `frodo.utils.terminal.TerminalContrastFilter` instead. */
-export type TerminalContrastFilter = TerminalContrast.TerminalContrastFilter;
-/** @deprecated Use `frodo.utils.terminal.ALL_ANSI_COLOR_NAMES` instead. */
-export const ALL_ANSI_COLOR_NAMES = TerminalContrast.ALL_ANSI_COLOR_NAMES;
+export type { ColorThemeMode, Intent } from './utils/ColorTheme';
 export type {
   AnsiColorName,
   TerminalBackground,
   Rgb,
 } from './utils/TerminalContrast';
-/** @deprecated Use `frodo.utils.terminal.detectTerminalBackgroundRgb()` instead. */
-export const detectTerminalBackgroundRgb =
-  TerminalBackgroundDetection.detectTerminalBackgroundRgb;
-/** @deprecated Use `frodo.utils.terminal.matchBackgroundPreset()` instead. */
-export const matchBackgroundPreset =
-  TerminalBackgroundDetection.matchBackgroundPreset;
+export type { TerminalContrastFilter } from './utils/TerminalContrast';
 export type { BackgroundPreset } from './utils/TerminalBackgroundDetection';
-
-// Flat (non-relationship) managed-object schema property support -- pure
-// helpers and shared types for building/parsing/navigating a property
-// definition, reused by consumers (e.g. frodo-cli) that need to preview a
-// change before committing it via frodo.idm.managed.schema's orchestration
-// functions. See ManagedObjectSchemaOps.ts's own doc comments for details.
-/** @deprecated Use `frodo.idm.managed.schema.buildManagedObjectSchemaPropertyPayload()` instead. */
-export const buildManagedObjectSchemaPropertyPayload =
-  ManagedObjectSchema.buildManagedObjectSchemaPropertyPayload;
-/** @deprecated Use `frodo.idm.managed.schema.extractManagedObjectSchemaPropertyFields()` instead. */
-export const extractManagedObjectSchemaPropertyFields =
-  ManagedObjectSchema.extractManagedObjectSchemaPropertyFields;
-/** @deprecated Use `frodo.idm.managed.schema.MANAGED_OBJECT_SCHEMA_CREATABLE_PROPERTY_TYPES` instead. */
-export const MANAGED_OBJECT_SCHEMA_CREATABLE_PROPERTY_TYPES =
-  ManagedObjectSchema.MANAGED_OBJECT_SCHEMA_CREATABLE_PROPERTY_TYPES;
-/** @deprecated Use `frodo.idm.managed.schema.navigatePropertyPath()` instead. */
-export const navigatePropertyPath = ManagedObjectSchema.navigatePropertyPath;
-/** @deprecated Use `frodo.idm.managed.schema.navigateToPropertyContainer()` instead. */
-export const navigateToPropertyContainer =
-  ManagedObjectSchema.navigateToPropertyContainer;
-/** @deprecated Use `frodo.idm.managed.schema.parseSubPropertyPath()` instead. */
-export const parseSubPropertyPath = ManagedObjectSchema.parseSubPropertyPath;
-/** @deprecated Use `frodo.idm.managed.schema.removeSchemaProperty()` instead. */
-export const removeSchemaProperty = ManagedObjectSchema.removeSchemaProperty;
-/** @deprecated Use `frodo.idm.managed.schema.setSchemaProperty()` instead. */
-export const setSchemaProperty = ManagedObjectSchema.setSchemaProperty;
 export type {
   ManagedObjectSchemaCreatablePropertyType,
   ManagedObjectSchemaPropertyFields,
   PropertyContainer,
 } from './ops/ManagedObjectSchemaOps';
-
-// Managed-object type-level (title/icon/description) create/update support
-// -- pure helpers and shared types, reused the same way as the flat-property
-// exports above. See ManagedObjectSchemaOps.ts's own doc comments.
-/** @deprecated Use `frodo.idm.managed.schema.buildManagedObjectTypeSchema()` instead. */
-export const buildManagedObjectTypeSchema =
-  ManagedObjectSchema.buildManagedObjectTypeSchema;
-/** @deprecated Use `frodo.idm.managed.schema.MANAGED_OBJECT_TYPE_DEFAULT_ICON` instead. */
-export const MANAGED_OBJECT_TYPE_DEFAULT_ICON =
-  ManagedObjectSchema.MANAGED_OBJECT_TYPE_DEFAULT_ICON;
 export type { ManagedObjectTypeFields } from './ops/ManagedObjectSchemaOps';
-
-// Relationship-property support -- pure helpers and shared types, reused
-// the same way as the flat-property exports above (e.g. so frodo-cli can
-// build its own current/proposed preview before committing a change via
-// frodo.idm.managed.schema's relationship-property orchestration
-// functions). See ManagedObjectSchemaOps.ts's own doc comments.
-/** @deprecated Use `frodo.idm.managed.schema.buildManagedObjectSchemaRelationshipPropertyPayload()` instead. */
-export const buildManagedObjectSchemaRelationshipPropertyPayload =
-  ManagedObjectSchema.buildManagedObjectSchemaRelationshipPropertyPayload;
-/** @deprecated Use `frodo.idm.managed.schema.extractManagedObjectSchemaRelationshipPropertyFields()` instead. */
-export const extractManagedObjectSchemaRelationshipPropertyFields =
-  ManagedObjectSchema.extractManagedObjectSchemaRelationshipPropertyFields;
-/** @deprecated Use `frodo.idm.managed.schema.inferManagedObjectSchemaRelationshipReverseIdentity()` instead. */
-export const inferManagedObjectSchemaRelationshipReverseIdentity =
-  ManagedObjectSchema.inferManagedObjectSchemaRelationshipReverseIdentity;
-/** @deprecated Use `frodo.idm.managed.schema.toManagedObjectSchemaRelationshipReverseFields()` instead. */
-export const toManagedObjectSchemaRelationshipReverseFields =
-  ManagedObjectSchema.toManagedObjectSchemaRelationshipReverseFields;
 export type {
   ManagedObjectSchemaRelationshipPropertyFields,
   ManagedObjectSchemaRelationshipReverseFields,

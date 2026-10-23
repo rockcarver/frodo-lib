@@ -52,11 +52,6 @@ export type McpServiceToolDefinition = {
  * Options for constructing an MCP service instance.
  */
 export type McpServiceOptions = {
-  /**
-   * Frodo instance to inspect and use as runtime factory root.
-   * The deprecated root-level adapter defaults this to the library singleton.
-   */
-  frodoInstance?: Frodo;
   /** Optional profile name to constrain the active capability universe. */
   profileName?: McpProfileName;
   /** Optional inventory-scoping controls (domains, utils visibility). */
@@ -68,7 +63,6 @@ export type McpServiceOptions = {
   /** Optional runtime customization hooks. */
   runtimeOptions?: Omit<
     McpToolRuntimeOptions,
-    | 'frodoRoot'
     | 'managedObjectTypes'
     | 'managedObjectHydrationStatus'
     | 'configEntityIds'
@@ -134,7 +128,7 @@ export function composeCapabilityPolicy(
  */
 export function createMcpService(
   frodoInstance: Frodo,
-  options: Omit<McpServiceOptions, 'frodoInstance'> = {}
+  options: McpServiceOptions = {}
 ): McpService {
   const profileSelection = options.profileName
     ? resolveMcpProfileSelection(options.profileName)

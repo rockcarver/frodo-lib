@@ -10,14 +10,11 @@
  * the full library surface.
  */
 
-import {
-  applyCapabilityPolicy,
-  buildCapabilityInventory,
-  buildToolManifest,
-  frodo,
-  MCP_POLICY_PRESETS,
-  McpToolManifest,
-} from '../index';
+import { frodo } from '../lib/FrodoLib';
+import { applyCapabilityPolicy, MCP_POLICY_PRESETS } from './CapabilityPolicy';
+import { buildCapabilityInventory } from './CapabilityRegistry';
+import { buildToolManifest } from './ToolManifest';
+import type { McpToolManifest } from './ToolManifest';
 
 describe('MCP tool manifest builder', () => {
   test('includes target metadata and catalog counts without catalog contents', () => {

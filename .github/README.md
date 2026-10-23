@@ -37,7 +37,7 @@ The per-file `./types/*` deep-import subpath is deprecated.
 
 ### Breaking changes and migration
 
-Full migration guidance — every removed and deprecated function per major
+Full migration guidance — every removed and deprecated value per major
 version, with replacements — is maintained in the
 [Migration Guide](../MIGRATION.md). Summary:
 
@@ -58,6 +58,11 @@ version, with replacements — is maintained in the
   `isCustomNode`, `getNodeClassification`, `NodeClassificationType`,
   `NodeClassification`) — removed without replacement, as the product no
   longer classifies journeys or nodes.
+- **5.0.0** removes function and constant exports from the package root.
+  Use the `frodo.mcp`, `frodo.utils.terminal`, and
+  `frodo.idm.managed.schema` facades; internal MCP helpers have no replacement.
+  The root retains only `frodo`, `state`, and `FrodoError` at runtime; type
+  exports remain available.
 - **5.x** deprecates the `./types/*` deep-import subpath (see
   [Using the library](#using-the-library)).
 - **5.x** journey imports now validate structural references by default; see
