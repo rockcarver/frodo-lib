@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { jest } from '@jest/globals';
 import { frodo, frodo as instance0, state as state0 } from '../index';
+import type { McpServiceOptions } from '../index';
 import Constants from '../shared/Constants';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 
@@ -104,6 +105,82 @@ describe('FrodoLib', () => {
     });
     expect(readJourney).toHaveBeenCalledWith('journey-123');
     expect(result.data).toEqual({ id: 'journey-123', found: true });
+  });
+
+  test('binds MCP discovery hydration to the facade instance', async () => {
+    const instance = frodo.createInstance({ host: 'https://instance1/am' });
+    const rootDeployment = jest
+      .spyOn(frodo.state, 'getDeploymentType')
+      .mockReturnValue('classic');
+    const instanceDeployment = jest
+      .spyOn(instance.state, 'getDeploymentType')
+      .mockReturnValue('classic');
+
+    await frodo.mcp.hydrateDiscoveryContext();
+    await instance.mcp.hydrateDiscoveryContext();
+
+    expect(rootDeployment).toHaveBeenCalledTimes(1);
+    expect(instanceDeployment).toHaveBeenCalledTimes(1);
+    rootDeployment.mockRestore();
+    instanceDeployment.mockRestore();
+  });
+
+  test('binds MCP inventory construction to the facade instance', () => {
+    const instance = frodo.createInstance({ host: 'https://instance1/am' });
+    Object.defineProperty(instance.authn.journey, 'readInstanceBindingProbe', {
+      value: jest.fn(),
+      enumerable: true,
+    });
+
+    const rootInventory = frodo.mcp.buildCapabilityInventory({
+      includeTopLevelDomains: ['authn'],
+    });
+    const instanceInventory = instance.mcp.buildCapabilityInventory({
+      includeTopLevelDomains: ['authn'],
+    });
+
+    expect(rootInventory.map(({ id }) => id)).toContain(
+      'authn.journey.readJourney'
+    );
+    expect(rootInventory.map(({ id }) => id)).not.toContain(
+      'authn.journey.readInstanceBindingProbe'
+    );
+    expect(instanceInventory.map(({ id }) => id)).toContain(
+      'authn.journey.readInstanceBindingProbe'
+    );
+  });
+
+  test('binds request-scoped resolution to the facade instance', () => {
+    const instance = frodo.createInstance({ host: 'https://instance1/am' });
+    const rootScoped = { marker: 'root' } as any;
+    const instanceScoped = { marker: 'instance' } as any;
+    const rootCreateInstance = jest
+      .spyOn(frodo, 'createInstance')
+      .mockReturnValue(rootScoped);
+    const instanceCreateInstance = jest
+      .spyOn(instance, 'createInstance')
+      .mockReturnValue(instanceScoped);
+    const context = {
+      auth: {
+        mode: 'state-config' as const,
+        config: { host: 'https://tenant/am' },
+      },
+    };
+
+    expect(frodo.mcp.resolveRequestScopedFrodo(context)).toBe(rootScoped);
+    expect(instance.mcp.resolveRequestScopedFrodo(context)).toBe(
+      instanceScoped
+    );
+    expect(rootCreateInstance).toHaveBeenCalledWith(context.auth.config);
+    expect(instanceCreateInstance).toHaveBeenCalledWith(context.auth.config);
+    rootCreateInstance.mockRestore();
+    instanceCreateInstance.mockRestore();
+  });
+
+  test('MCP service options do not accept an instance override', () => {
+    // @ts-expect-error The facade instance is selected by its receiver.
+    const options: McpServiceOptions = { frodoInstance: frodo };
+    expect(options).toEqual({ frodoInstance: frodo });
   });
 
   test('exposes journey validation through the Frodo facade', () => {

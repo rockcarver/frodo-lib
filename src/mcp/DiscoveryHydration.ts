@@ -18,7 +18,6 @@ export type McpDiscoveryHydrationEvent = {
 };
 
 export type McpDiscoveryHydrationOptions = {
-  frodoInstance?: Frodo;
   timeoutMs?: number;
   activeTarget?: McpDiscoveryTarget;
   onEvent?: (event: McpDiscoveryHydrationEvent) => void;
@@ -35,7 +34,7 @@ type CatalogHydrationResult = {
  */
 export async function hydrateMcpDiscoveryContext(
   frodoInstance: Frodo,
-  options: Omit<McpDiscoveryHydrationOptions, 'frodoInstance'> = {}
+  options: McpDiscoveryHydrationOptions = {}
 ): Promise<McpDiscoveryContext> {
   const deploymentType = frodoInstance.state.getDeploymentType();
   const activeTarget = options.activeTarget

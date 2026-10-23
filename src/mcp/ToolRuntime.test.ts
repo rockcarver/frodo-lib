@@ -16,15 +16,10 @@ import {
 function createToolRuntime(
   manifest: McpToolManifest,
   capabilities: McpCapabilityDescriptor[],
-  options: McpToolRuntimeOptions = {}
+  options: McpToolRuntimeOptions = {},
+  frodoRoot = frodo
 ) {
-  const { frodoRoot = frodo, ...runtimeOptions } = options;
-  return createToolRuntimeForRoot(
-    manifest,
-    capabilities,
-    frodoRoot,
-    runtimeOptions
-  );
+  return createToolRuntimeForRoot(manifest, capabilities, frodoRoot, options);
 }
 
 function makeDescriptor(
@@ -1911,12 +1906,6 @@ describe('MCP hybrid runtime', () => {
       makeManifest([descriptor]),
       [descriptor],
       {
-        frodoRoot: {
-          state: {
-            getLogApiKey: () => 'root-key-id',
-            getLogApiSecret: () => 'root-secret',
-          },
-        } as any,
         resolveFrodoForRequest: () =>
           ({
             state: {
@@ -1928,7 +1917,13 @@ describe('MCP hybrid runtime', () => {
             login: { getTokens: jest.fn(async () => {}) },
             cloud: { log: { fetch } },
           }) as any,
-      }
+      },
+      {
+        state: {
+          getLogApiKey: () => 'root-key-id',
+          getLogApiSecret: () => 'root-secret',
+        },
+      } as any
     );
 
     const result = await runtime.executeTool({
@@ -1965,12 +1960,6 @@ describe('MCP hybrid runtime', () => {
       makeManifest([descriptor]),
       [descriptor],
       {
-        frodoRoot: {
-          state: {
-            getLogApiKey: () => undefined,
-            getLogApiSecret: () => undefined,
-          },
-        } as any,
         resolveFrodoForRequest: () =>
           ({
             state: {
@@ -1982,7 +1971,13 @@ describe('MCP hybrid runtime', () => {
             login: { getTokens: jest.fn(async () => {}) },
             cloud: { log: { fetch } },
           }) as any,
-      }
+      },
+      {
+        state: {
+          getLogApiKey: () => undefined,
+          getLogApiSecret: () => undefined,
+        },
+      } as any
     );
 
     await expect(
@@ -2018,12 +2013,6 @@ describe('MCP hybrid runtime', () => {
       makeManifest([descriptor]),
       [descriptor],
       {
-        frodoRoot: {
-          state: {
-            getLogApiKey: () => 'root-key-id',
-            getLogApiSecret: () => 'root-secret',
-          },
-        } as any,
         resolveFrodoForRequest: () =>
           ({
             state: {
@@ -2035,7 +2024,13 @@ describe('MCP hybrid runtime', () => {
             login: { getTokens: jest.fn(async () => {}) },
             cloud: { log: { fetch } },
           }) as any,
-      }
+      },
+      {
+        state: {
+          getLogApiKey: () => 'root-key-id',
+          getLogApiSecret: () => 'root-secret',
+        },
+      } as any
     );
 
     const result = await runtime.executeTool({

@@ -491,10 +491,6 @@ export type McpToolExecutionResult = {
  */
 export type McpToolRuntimeOptions = {
   /**
-   * Root Frodo instance used by the deprecated root-level adapter.
-   */
-  frodoRoot?: Frodo;
-  /**
    * Optional custom resolver that returns a request-scoped Frodo instance.
    * When omitted, {@link resolveRequestScopedFrodo} is used.
    */
@@ -562,7 +558,7 @@ export type McpToolRuntime = {
  *
  * @param manifest Reduced tool manifest created by `buildToolManifest`.
  * @param capabilities Capability descriptors that back the manifest.
- * @param frodoRoot Root Frodo instance used by the default resolver.
+ * @param frodoRoot Frodo instance used by the default resolver.
  * @param options Optional runtime customization hooks.
  * @returns Runtime object capable of executing manifest tool calls.
  */
@@ -570,7 +566,7 @@ export function createToolRuntime(
   manifest: McpToolManifest,
   capabilities: McpCapabilityDescriptor[],
   frodoRoot: Frodo,
-  options: Omit<McpToolRuntimeOptions, 'frodoRoot'> = {}
+  options: McpToolRuntimeOptions = {}
 ): McpToolRuntime {
   const byId = new Map<string, McpCapabilityDescriptor>(
     capabilities.map((c) => [c.id, c])
