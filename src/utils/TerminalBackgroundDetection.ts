@@ -5,11 +5,12 @@
  * Support is real but inconsistent: well-supported in iTerm2, Kitty,
  * WezTerm, Alacritty, and VTE-based terminals (gnome-terminal); flaky or
  * absent over tmux (which caches the response until the client reattaches)
- * and on some Windows terminals; and simply silent forever on a terminal
- * that doesn't implement it at all -- which is why this always races the
- * response against a short timeout rather than waiting indefinitely, and
- * always restores stdin's raw-mode/listener state on both the success and
- * timeout paths.
+ * and skipped on Windows to avoid changing console input mode; and simply
+ * silent forever on a terminal that doesn't implement it at all -- which
+ * is why this always races the response against a short timeout rather than
+ * waiting indefinitely, and
+ * always restores the terminal's raw mode on both the success and timeout
+ * paths.
  *
  * Modeled closely on the equivalent query in the `os-theme` package (MIT,
  * https://www.npmjs.com/package/os-theme), which solves the same raw-mode/
@@ -21,6 +22,8 @@
  * a dark/light-only signal can't do.
  */
 
+import { closeSync, openSync } from 'node:fs';
+import { isatty, ReadStream } from 'node:tty';
 import type { Rgb } from './TerminalContrast';
 
 const ESC = '\x1b';
@@ -42,24 +45,38 @@ function hexChannelTo8Bit(hex: string): number {
 
 /**
  * Queries the terminal's actual background color via OSC 11. Resolves
- * `null` immediately, with no query attempted, when stdin/stdout aren't a
- * TTY (piped/scripted/CI usage) -- and resolves `null` after a short
- * timeout if the terminal never responds (unsupported terminal, or a
- * multiplexer/SSH chain that swallows the query).
+ * `null` immediately, with no query attempted, on Windows or when
+ * stdin/stdout aren't a TTY (piped/scripted/CI usage) -- and resolves `null`
+ * after a short timeout if the terminal never responds (unsupported terminal,
+ * or a multiplexer/SSH chain that swallows the query).
  */
 export function detectTerminalBackgroundRgb(): Promise<Rgb | null> {
-  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+  // Even accessing process.stdin initializes fd 0 in non-blocking mode.
+  // Windows cannot restore an existing console input mode via public Node APIs.
+  if (process.platform === 'win32' || !isatty(0) || !isatty(1)) {
     return Promise.resolve(null);
   }
+  // Reading from process.stdin makes fd 0 non-blocking, even after pause(),
+  // breaking later synchronous prompts. Use a separately opened terminal.
+  let fd: number;
+  let input: ReadStream;
+  try {
+    fd = openSync('/dev/tty', 'r');
+    input = new ReadStream(fd);
+  } catch {
+    if (fd !== undefined) closeSync(fd);
+    return Promise.resolve(null);
+  }
+  // On POSIX, libuv reopens the terminal; the stream owns only that new fd.
+  closeSync(fd);
   return new Promise((resolve) => {
-    const wasRaw = process.stdin.isRaw;
     let settled = false;
 
     const cleanup = () => {
       clearTimeout(timeout);
-      process.stdin.off('data', onData);
-      process.stdin.setRawMode(wasRaw);
-      if (!wasRaw) process.stdin.pause();
+      input.off('data', onData);
+      input.setRawMode(false);
+      input.destroy();
     };
 
     const settle = (result: Rgb | null) => {
@@ -82,10 +99,15 @@ export function detectTerminalBackgroundRgb(): Promise<Rgb | null> {
 
     const timeout = setTimeout(() => settle(null), 500);
 
-    process.stdin.setRawMode(true);
-    process.stdin.resume();
-    process.stdin.on('data', onData);
-    process.stdout.write(OSC_11_QUERY);
+    input.on('error', () => settle(null));
+    try {
+      input.setRawMode(true);
+      input.on('data', onData);
+      input.resume();
+      process.stdout.write(OSC_11_QUERY);
+    } catch {
+      settle(null);
+    }
   });
 }
 
