@@ -11,7 +11,12 @@ export type JourneyValidationCode =
   | 'UNREACHABLE_NODE'
   | 'UNREFERENCED_INNER_NODE'
   | 'UNREPRESENTED_NODE'
-  | 'PAGE_NODE_OUTCOME_MISMATCH';
+  | 'PAGE_NODE_OUTCOME_MISMATCH'
+  | 'NO_REACHABLE_TERMINAL'
+  | 'NODE_TYPE_MISMATCH'
+  | 'INNER_NODE_REFERENCED_BY_MULTIPLE_PAGES'
+  | 'NODE_ID_COLLISION'
+  | 'TREE_ID_MISMATCH';
 
 /**
  * A journey validation result. `severity` indicates whether the finding blocks
@@ -39,11 +44,17 @@ interface JourneyNodeDefinition {
   _id?: string;
   _type?: { _id?: string; version?: string };
   _outcomes?: { id?: string }[];
-  nodes?: { _id?: string }[];
+  nodes?: JourneyInnerNodeReference[];
 }
 
 interface JourneyNodeReference {
   connections?: Record<string, string>;
+  nodeType?: string;
+}
+
+interface JourneyInnerNodeReference {
+  _id?: string;
+  nodeType?: string;
 }
 
 /**
@@ -77,6 +88,11 @@ const JOURNEY_VALIDATION_SEVERITY: Record<
   UNREFERENCED_INNER_NODE: 'warning',
   UNREPRESENTED_NODE: 'warning',
   PAGE_NODE_OUTCOME_MISMATCH: 'warning',
+  NO_REACHABLE_TERMINAL: 'warning',
+  NODE_TYPE_MISMATCH: 'warning',
+  INNER_NODE_REFERENCED_BY_MULTIPLE_PAGES: 'warning',
+  NODE_ID_COLLISION: 'warning',
+  TREE_ID_MISMATCH: 'warning',
 };
 
 const BUILT_IN_GRAPH_NODE_IDS = [
@@ -84,6 +100,7 @@ const BUILT_IN_GRAPH_NODE_IDS = [
   'e301438c-0bd0-429c-ab0c-66126501069a',
   'startNode',
 ];
+const BUILT_IN_TERMINAL_NODE_IDS = BUILT_IN_GRAPH_NODE_IDS.slice(0, 2);
 
 export const JOURNEY_CONTAINER_NODE_TYPES = ['PageNode', 'CustomPageNode'];
 
@@ -225,12 +242,34 @@ function checkNodeDefinitionKeys(
   return findings;
 }
 
+function checkTreeNodeTypes(
+  journey: JourneyValidationInput
+): JourneyValidationFinding[] {
+  const findings: JourneyValidationFinding[] = [];
+  for (const [nodeId, reference] of Object.entries(journey.tree.nodes || {})) {
+    const nodeType = reference.nodeType;
+    const definitionType = journey.nodes?.[nodeId]?._type?._id;
+    if (nodeType && definitionType && nodeType !== definitionType) {
+      findings.push(
+        finding(
+          journey,
+          'NODE_TYPE_MISMATCH',
+          `Tree node '${nodeId}' declares node type '${nodeType}' but its definition has type '${definitionType}'`,
+          { nodeId }
+        )
+      );
+    }
+  }
+  return findings;
+}
+
 function checkNodeDefinitions(
   journey: JourneyValidationInput
 ): JourneyValidationFinding[] {
   return [
     ...checkTreeNodeDefinitions(journey),
     ...checkNodeDefinitionKeys(journey),
+    ...checkTreeNodeTypes(journey),
   ];
 }
 
@@ -309,10 +348,56 @@ function findUnreachableNodes(
     );
 }
 
+function checkReachableTerminal(
+  journey: JourneyValidationInput,
+  graphNodeIds: Set<string>
+): JourneyValidationFinding[] {
+  const treeNodes = journey.tree.nodes || {};
+  const entryNodeId = journey.tree.entryNodeId;
+  if (!entryNodeId || !graphNodeIds.has(entryNodeId)) {
+    return [];
+  }
+
+  const terminalNodeIds = new Set([
+    ...BUILT_IN_TERMINAL_NODE_IDS,
+    ...Object.keys(journey.tree.staticNodes || {}).filter(
+      (nodeId) => nodeId !== 'startNode'
+    ),
+  ]);
+  const reachableNodeIds = new Set<string>();
+  const pendingNodeIds = [entryNodeId];
+  while (pendingNodeIds.length > 0) {
+    const nodeId = pendingNodeIds.pop()!;
+    if (reachableNodeIds.has(nodeId)) {
+      continue;
+    }
+    reachableNodeIds.add(nodeId);
+    for (const targetNodeId of Object.values(
+      treeNodes[nodeId]?.connections || {}
+    )) {
+      if (graphNodeIds.has(targetNodeId)) {
+        pendingNodeIds.push(targetNodeId);
+      }
+    }
+  }
+
+  if ([...terminalNodeIds].some((nodeId) => reachableNodeIds.has(nodeId))) {
+    return [];
+  }
+  return [
+    finding(
+      journey,
+      'NO_REACHABLE_TERMINAL',
+      `No terminal node is reachable from entry node '${entryNodeId}'`,
+      { nodeId: entryNodeId }
+    ),
+  ];
+}
+
 function checkInnerNodeReferences(
   journey: JourneyValidationInput,
   pageNodeId: string,
-  references: { _id?: string }[],
+  references: JourneyInnerNodeReference[],
   innerNodeDefinitions: Record<string, JourneyNodeDefinition>,
   referencedInnerNodeIds: Set<string>
 ): JourneyValidationFinding[] {
@@ -335,6 +420,87 @@ function checkInnerNodeReferences(
     }
   }
   return findings;
+}
+
+function checkPageNodeInnerTypes(
+  journey: JourneyValidationInput,
+  innerNodeDefinitions: Record<string, JourneyNodeDefinition>
+): JourneyValidationFinding[] {
+  const findings: JourneyValidationFinding[] = [];
+  for (const [pageNodeId, pageNode] of Object.entries(journey.nodes || {})) {
+    if (!JOURNEY_CONTAINER_NODE_TYPES.includes(pageNode._type?._id || '')) {
+      continue;
+    }
+    for (const reference of pageNode.nodes || []) {
+      const innerNodeId = reference._id;
+      const nodeType = reference.nodeType;
+      const definitionType = innerNodeId
+        ? innerNodeDefinitions[innerNodeId]?._type?._id
+        : undefined;
+      if (
+        innerNodeId &&
+        nodeType &&
+        definitionType &&
+        nodeType !== definitionType
+      ) {
+        findings.push(
+          finding(
+            journey,
+            'NODE_TYPE_MISMATCH',
+            `Page Node '${pageNodeId}' child '${innerNodeId}' declares node type '${nodeType}' but its definition has type '${definitionType}'`,
+            { nodeId: pageNodeId, targetNodeId: innerNodeId }
+          )
+        );
+      }
+    }
+  }
+  return findings;
+}
+
+function checkInnerNodeReuse(
+  journey: JourneyValidationInput
+): JourneyValidationFinding[] {
+  const pageNodesByInnerNodeId = new Map<string, Set<string>>();
+  for (const [pageNodeId, pageNode] of Object.entries(journey.nodes || {})) {
+    if (!JOURNEY_CONTAINER_NODE_TYPES.includes(pageNode._type?._id || '')) {
+      continue;
+    }
+    for (const reference of pageNode.nodes || []) {
+      if (!reference._id) {
+        continue;
+      }
+      const pageNodeIds =
+        pageNodesByInnerNodeId.get(reference._id) || new Set<string>();
+      pageNodeIds.add(pageNodeId);
+      pageNodesByInnerNodeId.set(reference._id, pageNodeIds);
+    }
+  }
+  return [...pageNodesByInnerNodeId.entries()]
+    .filter(([, pageNodeIds]) => pageNodeIds.size > 1)
+    .map(([innerNodeId, pageNodeIds]) =>
+      finding(
+        journey,
+        'INNER_NODE_REFERENCED_BY_MULTIPLE_PAGES',
+        `Inner node '${innerNodeId}' is referenced by multiple Page Nodes: ${[...pageNodeIds].join(', ')}`,
+        { nodeId: innerNodeId }
+      )
+    );
+}
+
+function checkNodeIdCollisions(
+  journey: JourneyValidationInput
+): JourneyValidationFinding[] {
+  const innerNodeDefinitions = getInnerNodeDefinitions(journey);
+  return Object.keys(journey.nodes || {})
+    .filter((nodeId) => hasOwnKey(innerNodeDefinitions, nodeId))
+    .map((nodeId) =>
+      finding(
+        journey,
+        'NODE_ID_COLLISION',
+        `Node ID '${nodeId}' exists in both nodes and innerNodes`,
+        { nodeId }
+      )
+    );
 }
 
 function outcomeDifference(
@@ -483,6 +649,36 @@ export function validateJourneyReferences(
     ...checkNodeDefinitions(journey),
     ...checkEntryAndConnections(journey, graphNodeIds),
     ...findUnreachableNodes(journey, graphNodeIds),
+    ...checkReachableTerminal(journey, graphNodeIds),
     ...checkPageNodes(journey, innerNodeDefinitions),
+    ...checkPageNodeInnerTypes(journey, innerNodeDefinitions),
+    ...checkInnerNodeReuse(journey),
+    ...checkNodeIdCollisions(journey),
   ];
+}
+
+/**
+ * Validate tree IDs against their keys in a multi-journey export.
+ *
+ * @param journeys Trees indexed by their journey IDs.
+ * @returns Findings associated with mismatched export entries.
+ */
+export function validateJourneyExportKeys(
+  journeys: Record<string, JourneyValidationInput>
+): JourneyValidationFinding[] {
+  return Object.entries(journeys).flatMap(([journeyId, journey]) => {
+    if (journey.tree._id === journeyId) {
+      return [];
+    }
+    return [
+      {
+        ...finding(
+          journey,
+          'TREE_ID_MISMATCH',
+          `Export tree key '${journeyId}' does not match tree _id '${journey.tree._id}'`
+        ),
+        journeyId,
+      },
+    ];
+  });
 }

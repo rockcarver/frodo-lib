@@ -62,6 +62,7 @@ import {
 } from '../utils/ForgeRockUtils';
 import {
   JOURNEY_CONTAINER_NODE_TYPES,
+  validateJourneyExportKeys,
   validateJourneyReferences,
   type JourneyValidationFinding,
 } from '../utils/JourneyValidationUtils';
@@ -530,7 +531,10 @@ export interface TreeExportResolverInterface {
 function validateJourneysExport(
   journeys: MultiTreeExportInterface
 ): JourneyValidationFinding[] {
-  return Object.values(journeys.trees).flatMap(validateJourneyReferences);
+  return [
+    ...Object.values(journeys.trees).flatMap(validateJourneyReferences),
+    ...validateJourneyExportKeys(journeys.trees),
+  ];
 }
 
 function reportJourneyFindings(
@@ -1592,6 +1596,10 @@ export async function validateJourneys({
           : new FrodoError(`Error validating ${realm} journeys`, error)
       );
     }
+  }
+
+  if (journeysExport) {
+    findings.push(...validateJourneyExportKeys(journeysExport.trees));
   }
 
   for (const journeyId of ids || []) {

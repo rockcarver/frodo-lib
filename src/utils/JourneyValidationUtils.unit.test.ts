@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import {
+  validateJourneyExportKeys,
   validateJourneyReferences,
   type JourneyValidationInput,
 } from './JourneyValidationUtils';
@@ -142,6 +143,140 @@ describe('validateJourneyReferences', () => {
     };
 
     expect(validateJourneyReferences(journey)).toEqual([]);
+  });
+
+  test.each([
+    '70e691a5-1e33-4ac3-a356-e7b6d60d92e0',
+    'e301438c-0bd0-429c-ab0c-66126501069a',
+  ])('accepts a path to static terminal node %s', (terminalNodeId) => {
+    const journey: JourneyValidationInput = {
+      tree: {
+        _id: 'TerminalJourney',
+        entryNodeId: 'decision',
+        nodes: { decision: { connections: { done: terminalNodeId } } },
+        staticNodes: { [terminalNodeId]: {} },
+      },
+      nodes: {
+        decision: {
+          _id: 'decision',
+          _type: { _id: 'DecisionNode' },
+          _outcomes: [{ id: 'done' }],
+        },
+      },
+    };
+
+    expect(
+      validateJourneyReferences(journey).filter(
+        (finding) => finding.code === 'NO_REACHABLE_TERMINAL'
+      )
+    ).toEqual([]);
+  });
+
+  test('warns when the entry node has no connection to a terminal', () => {
+    const journey = validJourney();
+    journey.tree.nodes.page.connections = {};
+
+    expect(validateJourneyReferences(journey)).toContainEqual(
+      expect.objectContaining({
+        code: 'NO_REACHABLE_TERMINAL',
+        severity: 'warning',
+        nodeId: 'page',
+      })
+    );
+  });
+
+  test('warns when the only exit from a journey is a loop', () => {
+    const journey = validJourney();
+    journey.tree.nodes['node-2'].connections.done = 'page';
+
+    expect(validateJourneyReferences(journey)).toContainEqual(
+      expect.objectContaining({
+        code: 'NO_REACHABLE_TERMINAL',
+        severity: 'warning',
+        nodeId: 'page',
+      })
+    );
+  });
+
+  test('warns when tree and inner node references declare incorrect node types', () => {
+    const journey = validJourney();
+    journey.tree.nodes.page.nodeType = 'DecisionNode';
+    journey.nodes.page._type._id = 'PageNode';
+    journey.nodes.page.nodes[0].nodeType = 'WrongInnerNode';
+    journey.innerNodes['inner-1']._type = { _id: 'InnerNode' };
+
+    expect(
+      validateJourneyReferences(journey).filter(
+        (finding) => finding.code === 'NODE_TYPE_MISMATCH'
+      )
+    ).toMatchObject([
+      { severity: 'warning', nodeId: 'page' },
+      { severity: 'warning', nodeId: 'page', targetNodeId: 'inner-1' },
+    ]);
+  });
+
+  test('warns when an inner node is reused or its ID collides with a node ID', () => {
+    const journey = validJourney();
+    journey.nodes.otherPage = {
+      _id: 'otherPage',
+      _type: { _id: 'PageNode' },
+      nodes: [{ _id: 'inner-1' }],
+    };
+    journey.nodes['inner-1'] = { _id: 'inner-1' };
+
+    expect(
+      validateJourneyReferences(journey)
+        .filter(
+          (finding) =>
+            finding.code === 'INNER_NODE_REFERENCED_BY_MULTIPLE_PAGES' ||
+            finding.code === 'NODE_ID_COLLISION'
+        )
+        .map((finding) => finding.code)
+    ).toEqual(
+      expect.arrayContaining([
+        'INNER_NODE_REFERENCED_BY_MULTIPLE_PAGES',
+        'NODE_ID_COLLISION',
+      ])
+    );
+  });
+
+  test('healthy cloud-style and classic journeys have no new graph warnings', () => {
+    const newCodes = [
+      'NO_REACHABLE_TERMINAL',
+      'NODE_TYPE_MISMATCH',
+      'INNER_NODE_REFERENCED_BY_MULTIPLE_PAGES',
+      'NODE_ID_COLLISION',
+      'TREE_ID_MISMATCH',
+    ];
+    const classicJourney: JourneyValidationInput = {
+      tree: {
+        _id: 'ClassicJourney',
+        entryNodeId: 'decision',
+        nodes: {
+          decision: {
+            connections: {
+              success: '70e691a5-1e33-4ac3-a356-e7b6d60d92e0',
+            },
+            nodeType: 'DecisionNode',
+          },
+        },
+      },
+      nodes: {
+        decision: {
+          _id: 'decision',
+          _type: { _id: 'DecisionNode' },
+          _outcomes: [{ id: 'success' }],
+        },
+      },
+    };
+
+    for (const journey of [validJourney(), classicJourney]) {
+      expect(
+        validateJourneyReferences(journey).filter((finding) =>
+          newCodes.includes(finding.code)
+        )
+      ).toEqual([]);
+    }
   });
 
   test('supports the legacy lowercase innernodes export property', () => {
@@ -290,6 +425,59 @@ describe('validateJourneyReferences', () => {
         ).toEqual([]);
       }
     }
+  });
+
+  test('checked-in journey fixtures have no new warnings except known incomplete journeys', () => {
+    const fixtureDirectory = join(
+      process.cwd(),
+      'src/test/mocks/JourneyOps/importJourney'
+    );
+    const allowedIncompleteFixtures = [
+      'FrodoTestJourney10.journey.json',
+      'FrodoTestJourney10NoCoords.journey.json',
+      'FrodoTestJourney11.journey.json',
+    ];
+    const newCodes = new Set([
+      'NO_REACHABLE_TERMINAL',
+      'NODE_TYPE_MISMATCH',
+      'INNER_NODE_REFERENCED_BY_MULTIPLE_PAGES',
+      'NODE_ID_COLLISION',
+      'TREE_ID_MISMATCH',
+    ]);
+    const warnings: { fixture: string; code: string }[] = [];
+
+    for (const file of readdirSync(fixtureDirectory)
+      .filter((candidate) => candidate.endsWith('.journey.json'))
+      .sort()) {
+      const exportData = JSON.parse(
+        readFileSync(join(fixtureDirectory, file), 'utf8')
+      );
+      if (!exportData.tree) {
+        for (const result of validateJourneyExportKeys(exportData.trees)) {
+          if (newCodes.has(result.code)) {
+            warnings.push({ fixture: file, code: result.code });
+          }
+        }
+      }
+      const journeys: JourneyValidationInput[] = exportData.tree
+        ? [exportData]
+        : Object.values(exportData.trees);
+      for (const journey of journeys) {
+        for (const result of validateJourneyReferences(journey)) {
+          if (newCodes.has(result.code)) {
+            warnings.push({ fixture: file, code: result.code });
+          }
+        }
+      }
+    }
+
+    expect(
+      warnings.sort((left, right) => left.fixture.localeCompare(right.fixture))
+    ).toEqual(
+      allowedIncompleteFixtures
+        .map((fixture) => ({ fixture, code: 'NO_REACHABLE_TERMINAL' }))
+        .sort((left, right) => left.fixture.localeCompare(right.fixture))
+    );
   });
 
   test('reports only the missing entry error for the known imperfect journey', () => {

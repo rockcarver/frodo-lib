@@ -65,7 +65,7 @@ function validationState(): any {
 
 function journeyExport(
   journeyId: string,
-  targetNodeId: string = 'startNode'
+  targetNodeId: string = '70e691a5-1e33-4ac3-a356-e7b6d60d92e0'
 ): any {
   return {
     tree: {
@@ -351,6 +351,25 @@ describe('JourneyOps versioning unit coverage', () => {
     expect(printMessageMock).not.toHaveBeenCalled();
   });
 
+  test('validateJourneys reports tree IDs that do not match export keys', async () => {
+    const journeys = multiJourneyExport();
+    journeys.trees.HealthyJourney.tree._id = 'DifferentJourneyId';
+
+    const findings = await JourneyOps.validateJourneys({
+      journeyIds: ['BrokenJourney'],
+      journeysExport: journeys,
+      state: validationState(),
+    });
+
+    expect(findings).toContainEqual(
+      expect.objectContaining({
+        code: 'TREE_ID_MISMATCH',
+        severity: 'warning',
+        journeyId: 'HealthyJourney',
+      })
+    );
+  });
+
   test('validateJourneys aggregates missing and blank offline IDs', async () => {
     await expect(
       JourneyOps.validateJourneys({
@@ -480,7 +499,18 @@ describe('JourneyOps versioning unit coverage', () => {
           journeyIds: journeyIds as string[] | undefined,
           state: validationState(),
         })
-      ).resolves.toEqual([]);
+      ).resolves.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: 'NO_REACHABLE_TERMINAL',
+            journeyId: 'HealthyJourney',
+          }),
+          expect.objectContaining({
+            code: 'NO_REACHABLE_TERMINAL',
+            journeyId: 'BrokenJourney',
+          }),
+        ])
+      );
       expect(getTreeMock).toHaveBeenCalledTimes(2);
       getTreeMock.mockClear();
     }
