@@ -50,12 +50,17 @@ npm run dev
 
 ### Before submitting a PR
 
-Before you submit a PR, make sure your code follows the frodo code formatting conventions and all the existing and your new unit tests are passing.
+Before you submit a PR, make sure your code follows the frodo code formatting conventions, type checks, and all the existing and your new tests are passing.
 
 ```console
 npm run check
+npx tsc --noEmit
 npm test
 ```
+
+`npm test` runs on the sources (ts-jest), so no build is needed first; `npm run build` is only needed to check the bundle, for example after a dependency change. Run a subset with `npm run test:only -- <path pattern>`. Always go through these scripts: a bare `npx jest` fails because it lacks the `--experimental-vm-modules` flag. The directory you clone into must be named `frodo-lib`, because `src/utils/AutoSetupPolly.ts` finds the recordings through that path segment.
+
+Do not edit `CHANGELOG.md` in a PR. It is generated at release time from what merged since the last release (the `Generate and promote AI changelog` step of `.github/workflows/pipeline.yml`), so write a clear PR title and description. The typedoc output in `docs/` is regenerated and committed by the same release job, so do not edit it either.
 
 ### Testing with recorded HTTP traffic
 
@@ -66,30 +71,45 @@ Unit tests in frodo-lib replay recorded HTTP responses instead of calling a real
 Frodo Library adheres to the following folder and file structure:
 
 ```preformated
-├── dist                     Build output. CommonJS files go here.
-│   ├── esm                  Build output. ESM files go here.
-├── docs                     Typedoc generated documentation.
+├── dist                     Build output (generated, gitignored): index.js
+│                            (CommonJS), index.mjs (ESM) and their type
+│                            declarations.
+├── docs                     Typedoc generated documentation (committed by the
+│                            release job).
 ├── examples                 Sample code how to use the library.
 ├── resources                Resource files.
+├── scripts                  Build scripts: help generation, the types
+│                            deprecation banner, the axios types patch.
 ├── src                      Source files.
-│   ├── api                  Api layer modules. Abstraction of platform
+│   ├── api                  Api layer modules. Abstraction of platform
 │   │   │                    REST APIs.
-│   │   └── cloud            Cloud api layer modules.
-│   ├── ext                  External modules, which cannot be consumed
-│   │                        as npm packages.
-│   ├── lib                  Home of FrodoLib.ts.
-│   ├── ops                  Ops layer modules. This is the library layer.
+│   │   ├── classic          Classic deployment api layer modules.
+│   │   └── cloud            Cloud api layer modules.
+│   ├── ext                  External modules, which cannot be consumed
+│   │                        as npm packages.
+│   ├── lib                  Home of FrodoLib.ts (the facade) and the
+│   │                        generated Help.ts.
+│   ├── mcp                  Capability registry, policy and tool runtime
+│   │                        behind frodo-cli's MCP server.
+│   ├── ops                  Ops layer modules. This is the library layer.
 │   │   │                    Business logic goes here.
-│   │   ├── cloud            Cloud ops layer modules.
-│   │   └── templates        Templates of different object types and schema.
-│   ├── shared               Shared modules.
-│   ├── test                 Unit tests and test resources.
-│   │   ├── mock-recordings  Mock recordings (Polly.js).
-│   │   ├── mocks            Old mock engine and mock files still in use
-│   │   │                    for come tests.
-│   │   └── snapshots        Snapshot files (Jest).
-│   └── utils                Utility modules.
-└── types                    Type definitions.
+│   │   ├── classic          Classic ops layer modules.
+│   │   ├── cloud            Cloud ops layer modules.
+│   │   ├── internal         Helpers shared by ops modules. Not exposed on
+│   │   │                    the facade.
+│   │   └── templates        Templates of different object types and schema.
+│   ├── shared               Shared modules (state, constants).
+│   ├── test                 Test resources. Tests sit next to the module they
+│   │   │                    test.
+│   │   ├── mock-recordings  Mock recordings (Polly.js).
+│   │   ├── mocks            Old mock engine and mock files still in use
+│   │   │                    for some tests.
+│   │   ├── setup            Staging helpers for recorded tests.
+│   │   ├── snapshots        Snapshot files (Jest).
+│   │   └── utils            Test utilities.
+│   └── utils                Utility modules.
+├── test                     Jest setup (Polly replay integrity guard).
+└── types                    Type declarations (generated, gitignored).
 ```
 
 #### Code conventions
@@ -102,7 +122,7 @@ To create a good and consistent developer experience for library users, library 
 
 The package root exports only `frodo`, `state`, `FrodoError`, and types. Add new runtime capabilities to the facade (`frodo.<domain>...`), not as package-root exports. Do not use wildcard value re-exports (`export * from`) in `src/index.ts`.
 
-Every new facade method needs a reviewed entry in `src/mcp/CapabilityMetadata.ts`; the capability registry test enforces this. Pure helpers are usually marked `excluded: true` with a reason.
+The MCP capability registry infers a method's operation type from its name prefix: `create`, `count`, `read` (a plural name reads all), `update`, `delete`, `query` or `search`, `list`, `export` and `import`. Any other name is a "special" capability and needs a reviewed entry in `src/mcp/CapabilityMetadata.ts`; the capability registry test fails until it has one (pure helpers are usually marked `excluded: true` with a reason). A conventionally named method only needs an entry when the inferred defaults are wrong.
 
 ##### Managing objects - CRUDQ
 
@@ -115,6 +135,8 @@ Adopt CRUDQ naming for object manipulation:
 | update | updateJourney                 | Update object if it already exists, create it otherwise. |
 | delete | deleteJourney, deleteJourneys | Delete one or all objects of a kind.                     |
 | query  | queryJourneys                 | Query objects.                                           |
+| export | exportJourney, exportJourneys | Export one or all objects of a kind.                     |
+| import | importJourney, importJourneys | Import one or all objects of a kind.                     |
 
 ##### Managing properties
 
@@ -137,3 +159,20 @@ Some objects support status. Avoid using getters and setters for status if possi
 ##### Everything else
 
 Pick meaningful function names. It's OK for them to be long, as long as they convey their purpose.
+
+### Writing a new ops module
+
+Adding support for another kind of platform object follows the same steps every time. Copy a neighbour, for example `src/api/ScriptTypeApi.ts` and `src/ops/ScriptTypeOps.ts`.
+
+1. **The api layer.** `src/api/<Name>Api.ts` (in `cloud/` or `classic/` when the endpoints exist for one deployment type only) holds the URL templates, the API version, the skeleton types and one function per endpoint. Each function takes one options object that ends in `state` and sends the request through a `generate*Api` helper from `BaseApi.ts`.
+2. **The ops layer.** `src/ops/<Name>Ops.ts` (same `cloud/` and `classic/` rule) holds the business logic. It exports a `type <Name>` with one method signature per public function, each with TSDoc (`@param`, `@returns`); a default export `(state: State): <Name> => ({ ... })` that delegates to the standalone exported functions; and those functions, which take one options object ending in `state`. Wrap a failure from the api layer in `throw new FrodoError('Error reading X', error)` so the cause is kept; a bare `Error` is for argument guards only. Print through `src/utils/Console.ts` (`printMessage`, `verboseMessage`, `debugMessage`, `createProgressIndicator`), never `console.*`.
+3. **Register it** in `src/lib/FrodoLib.ts`: import the factory and the type, add the type to `Frodo`, and add the instance in `FrodoLib()`. A module that is not registered cannot be reached by library users.
+4. **Name the methods with the convention** (see above). A method with any other name needs a reviewed entry in `src/mcp/CapabilityMetadata.ts`.
+5. **Regenerate the help metadata.** The TSDoc of the public type feeds `src/lib/Help.ts` (the parameter descriptions the MCP capability registry reports). Run `npm run generate-help` (`npm run build` does it too) and commit the result; never edit `Help.ts` by hand.
+6. **Test it.** A `<Name>Ops.unit.test.ts` with fakes needs no tenant. A recorded `<Name>Ops.test.ts` calls `autoSetupPolly()` and replays HTTP from `src/test/mock-recordings`; recording needs a real tenant (`npm run test:record <Name>`, see [RECORD_REPLAY.md](RECORD_REPLAY.md) and the header of any recorded test), so say in the PR when a test still needs one. Snapshots are updated only for an expected change.
+7. **Migration.** A removed or deprecated public function goes into the target major's section of [MIGRATION.md](MIGRATION.md), and the "Breaking changes and migration" summary in [.github/README.md](.github/README.md) stays short and links there.
+8. **Check.** `npm run check`, `npx tsc --noEmit` and `npm run test:only -- <Name>`.
+
+### Working with coding agents
+
+`AGENTS.md` at the repository root and the files in `.github/instructions/` give coding agents (GitHub Copilot and others) the short version of this guide: the build and test commands, the hard rules, and checklists that load when a matching file is edited. They link back here for the detail, so keep this guide current and treat those files as an index into it. When a rule changes, change it here first and then in the instruction file that points at it.
