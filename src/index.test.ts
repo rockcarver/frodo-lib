@@ -7,7 +7,7 @@ describe('package root exports', () => {
     const expected = ['FrodoError', 'frodo', 'state'];
     if (actual.join(',') !== expected.join(',')) {
       throw new Error(
-        `Unexpected package root runtime exports: ${actual.join(', ')}. New capabilities belong on the facade (frodo.<domain>...), not at the package root. See CONTRIBUT\u0045.md.`
+        `Unexpected package root runtime exports: ${actual.join(', ')}. New capabilities belong on the facade (frodo.<domain>...), not at the package root. See CONTRIBUT.md.`
       );
     }
   });

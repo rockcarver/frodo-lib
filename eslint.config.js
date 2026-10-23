@@ -70,7 +70,7 @@ module.exports = tseslint.config(
         'LabeledStatement',
         'WithStatement',
         {
-          selector: 'ExportAllDeclaration',
+          selector: "ExportAllDeclaration[exportKind!='type']",
           message:
             'Add runtime capabilities to the facade, not via wildcard exports from the package root.',
         },
