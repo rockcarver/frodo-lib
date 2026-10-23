@@ -10,6 +10,14 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-12] - 2026-10-23
+
+### Added
+- Added `.github/agentic-workflows/scope.md` for the issue gate's scope check, providing guidelines for request evaluations once the feature is active (#769).
+
+### Removed
+- Removed function and constant exports from the package root, retaining only `frodo`, `state`, and `FrodoError` as runtime exports. All existing type exports, including MCP types, remain available. Update imports to use explicit type-only exports instead of deprecated shims (#771).
+
 ## [v5.0.0-11] - 2026-10-22
 
 ### Added
@@ -2703,6 +2711,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-12]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-11...v5.0.0-12
 [v5.0.0-11]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-10...v5.0.0-11
 [v5.0.0-10]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-9...v5.0.0-10
 [v5.0.0-9]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-8...v5.0.0-9
