@@ -219,6 +219,30 @@ describe('JourneyOps versioning unit coverage', () => {
     expect(bulkImportMessage).toMatchObject({ type: 'warn' });
   });
 
+  test('importJourneys warns when an export key differs from the tree _id', async () => {
+    const state = {
+      getVerbose: () => false,
+      getDeploymentType: () => 'onprem',
+    } as any;
+    const journey = journeyExport('RealId');
+    journey.tree.entryNodeId = 'missing-entry';
+
+    await expect(
+      JourneyOps.importJourneys({
+        importData: { trees: { WrongKey: journey } },
+        options: { reUuid: false, deps: false },
+        state,
+      })
+    ).rejects.toThrow('[MISSING_ENTRY_NODE]');
+
+    expect(printMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: '1 warning in journey WrongKey',
+        type: 'warn',
+      })
+    );
+  });
+
   test('importJourneys names all journeys with validation errors', async () => {
     const invalidJourney = (journeyId: string) => ({
       tree: {
@@ -355,19 +379,43 @@ describe('JourneyOps versioning unit coverage', () => {
     const journeys = multiJourneyExport();
     journeys.trees.HealthyJourney.tree._id = 'DifferentJourneyId';
 
-    const findings = await JourneyOps.validateJourneys({
-      journeyIds: ['BrokenJourney'],
+    const selectedFindings = await JourneyOps.validateJourneys({
+      journeyIds: ['HealthyJourney'],
       journeysExport: journeys,
       state: validationState(),
     });
 
-    expect(findings).toContainEqual(
+    expect(selectedFindings).toContainEqual(
       expect.objectContaining({
         code: 'TREE_ID_MISMATCH',
         severity: 'warning',
         journeyId: 'HealthyJourney',
       })
     );
+
+    const unselectedFindings = await JourneyOps.validateJourneys({
+      journeyIds: ['BrokenJourney'],
+      journeysExport: journeys,
+      state: validationState(),
+    });
+    expect(
+      unselectedFindings.filter(
+        (finding) => finding.code === 'TREE_ID_MISMATCH'
+      )
+    ).toEqual([]);
+  });
+
+  test('validateJourneys ignores malformed unselected export entries', async () => {
+    const journeys = multiJourneyExport();
+    journeys.trees.UnselectedMalformedJourney = {};
+
+    const findings = await JourneyOps.validateJourneys({
+      journeyIds: ['HealthyJourney'],
+      journeysExport: journeys,
+      state: validationState(),
+    });
+
+    expect(findings).toEqual([]);
   });
 
   test('validateJourneys aggregates missing and blank offline IDs', async () => {
@@ -487,7 +535,7 @@ describe('JourneyOps versioning unit coverage', () => {
         result: [{ _id: 'HealthyJourney' }, { _id: 'BrokenJourney' }],
       });
       getTreeMock.mockImplementation(
-        async ({ id }: { id: string }) => journeyExport(id, 'startNode').tree
+        async ({ id }: { id: string }) => journeyExport(id).tree
       );
       readNodeMock.mockImplementation(
         async ({ nodeId }: { nodeId: string }) =>
@@ -499,18 +547,7 @@ describe('JourneyOps versioning unit coverage', () => {
           journeyIds: journeyIds as string[] | undefined,
           state: validationState(),
         })
-      ).resolves.toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            code: 'NO_REACHABLE_TERMINAL',
-            journeyId: 'HealthyJourney',
-          }),
-          expect.objectContaining({
-            code: 'NO_REACHABLE_TERMINAL',
-            journeyId: 'BrokenJourney',
-          }),
-        ])
-      );
+      ).resolves.toEqual([]);
       expect(getTreeMock).toHaveBeenCalledTimes(2);
       getTreeMock.mockClear();
     }

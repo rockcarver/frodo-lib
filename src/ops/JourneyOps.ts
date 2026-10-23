@@ -1598,10 +1598,6 @@ export async function validateJourneys({
     }
   }
 
-  if (journeysExport) {
-    findings.push(...validateJourneyExportKeys(journeysExport.trees));
-  }
-
   for (const journeyId of ids || []) {
     const message = `Error validating ${realm} journey '${journeyId}'`;
     if (typeof journeyId !== 'string' || !journeyId.trim()) {
@@ -1622,7 +1618,10 @@ export async function validateJourneys({
         );
         continue;
       }
-      findings.push(...validateJourneyReferences(journey));
+      findings.push(
+        ...validateJourneyReferences(journey),
+        ...validateJourneyExportKeys({ [journeyId]: journey })
+      );
       continue;
     }
 
