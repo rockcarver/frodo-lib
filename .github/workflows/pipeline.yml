@@ -47,18 +47,40 @@ permissions:
   id-token: write
       
 jobs:
-  # Classifies a PR as code or non-code so the long test jobs can be skipped
-  # for docs and automation-only changes. This cannot be done with
-  # `paths-ignore` on the pull_request trigger: the required checks would stay
-  # "expected" forever. Skipped jobs count as passing for required checks.
-  # Fails safe: anything not on the allowlist, any API error, and every
-  # non-PR event (push, workflow_dispatch, releases) is treated as code.
+  # Classifies a PR so the long test jobs can be skipped for changes that touch
+  # no code, and decides whether the fast guidance job has to run. This cannot
+  # be done with `paths-ignore` on the pull_request trigger: the required
+  # checks would stay "expected" forever. Skipped jobs count as passing for
+  # required checks. The rules live in .github/scripts/classify-changes.sh
+  # (records 0012 and 0016 of rockcarver/frodo, PIPELINE.md).
+  # Fails safe: anything not on the allowlist, any API error, a missing
+  # classifier and every non-PR event (push, workflow_dispatch, releases) is
+  # treated as code.
   changes:
     name: 'Detect code changes'
     runs-on: ubuntu-latest
+    # Only reads the file list of the pull request and one script.
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       code: ${{ steps.classify.outputs.code }}
+      guidance: ${{ steps.classify.outputs.guidance }}
     steps:
+      # The classifier comes from the commit the PR targets, never from the PR:
+      # a PR that edits it is classified by the trusted version, and the script
+      # itself counts as code. While the script does not exist on the base
+      # commit (the PR that adds it) the step below finds none and the run
+      # counts as code.
+      - name: Check out the classifier
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          sparse-checkout: .github/scripts/classify-changes.sh
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
       - name: Classify changed files
         id: classify
         env:
@@ -67,25 +89,54 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
         run: |
-          code=true
-          if [ "${EVENT}" = "pull_request" ]; then
-            if files=$(gh api "repos/${REPO}/pulls/${PR}/files" --paginate \
-                --jq '.[] | .filename, (.previous_filename // empty)'); then
-              count=$(printf '%s\n' "${files}" | grep -c . || true)
-              # The files API caps at 3000 entries; treat that as "unknown".
-              if [ "${count}" -gt 0 ] && [ "${count}" -lt 3000 ]; then
-                safe='^(docs/|[^/]+\.md$|LICENSE|\.github/(ISSUE_TEMPLATE/|agentic-workflows/|aw/|concierge\.yml$|scripts/|workflows/[^/]+\.(ya?ml|md)$|CODEOWNERS$|dependabot\.yml$|copilot-instructions\.md$))'
-                # Any workflow except this pipeline is non-code: it cannot change
-                # what these jobs build or test.
-                if ! printf '%s\n' "${files}" | grep -Ev "${safe}" | grep -q . \
-                    && ! printf '%s\n' "${files}" | grep -qx '.github/workflows/pipeline.yml'; then
-                  code=false
-                fi
-              fi
-            fi
+          result=$'code=true\nguidance=false'
+          if [ "${EVENT}" = "pull_request" ] \
+              && files=$(gh api "repos/${REPO}/pulls/${PR}/files" --paginate \
+                --jq '.[] | .filename, (.previous_filename // empty)') \
+              && out=$(printf '%s\n' "${files}" | bash .github/scripts/classify-changes.sh); then
+            result="${out}"
           fi
-          echo "code=${code}"
-          echo "code=${code}" >> "$GITHUB_OUTPUT"
+          echo "${result}"
+          echo "${result}" >> "$GITHUB_OUTPUT"
+
+  # Runs the tests that validate files the code filter treats as non-code:
+  # decision records, skills, the agent entry points and the other root
+  # Markdown. It runs whenever such a file changes (the classifier decides),
+  # also when the long test matrix is skipped, so that an invalid record or
+  # skill still blocks the merge. A code change runs the same tests again in
+  # the full suite; this job only gives the answer sooner. `Test gate` waits
+  # for it. Which tests: PIPELINE.md, "Validate guidance".
+  guidance:
+    name: 'Validate guidance'
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.guidance == 'true'
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          # Use PR head repo/ref for forked PRs; default to current repo/ref for push/workflow_dispatch.
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
+          repository: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # These tests run on the sources and need no build (AGENTS.md).
+      - name: Validate decision records, skills and policy files
+        run: |
+          npm run test:only -- --runTestsByPath \
+            src/agentSkills.test.ts \
+            src/decisionRecords.test.ts \
+            src/index.test.ts
 
   build:
     name: Build
@@ -270,19 +321,32 @@ jobs:
   # cancelled/skipped unexpectedly.
   test-gate:
     name: 'Test gate'
-    needs: [build, changes, test]
+    needs: [build, changes, test, guidance]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
-      - name: Fail if any test matrix leg did not succeed
+      - name: Fail if any test matrix leg or the guidance job did not succeed
         run: |
           build='${{ needs.build.result }}'
           changes='${{ needs.changes.result }}'
           code='${{ needs.changes.outputs.code }}'
+          guidance_wanted='${{ needs.changes.outputs.guidance }}'
           result='${{ needs.test.result }}'
-          echo "build=${build} changes=${changes} code=${code} test=${result}"
+          guidance='${{ needs.guidance.result }}'
+          echo "build=${build} changes=${changes} code=${code} test=${result} guidance_wanted=${guidance_wanted} guidance=${guidance}"
           if [ "${changes}" != "success" ]; then
             echo "::error::Change detection did not succeed"
+            exit 1
+          fi
+          # The guidance job runs exactly when the classifier asked for it, and
+          # then it must succeed: a skipped long matrix does not skip validation.
+          if [ "${guidance_wanted}" = "true" ]; then
+            expected_guidance=success
+          else
+            expected_guidance=skipped
+          fi
+          if [ "${guidance}" != "${expected_guidance}" ]; then
+            echo "::error::Expected guidance result '${expected_guidance}', got '${guidance}'"
             exit 1
           fi
           if [ "${code}" = "true" ]; then

@@ -13,11 +13,13 @@ described in the job sections that follow.)
 
 ```mermaid
 flowchart TD
-    PR["PR to main<br/>or push to main"] --> CH["Detect code changes<br/>(skips tests for docs-only PRs)"]
+    PR["PR to main<br/>or push to main"] --> CH["Detect code changes<br/>(classify-changes.sh)"]
     PR --> B["Build<br/>(version bump, build.zip)<br/>required check"]
-    B --> T["Test (22 / 24 / 26)<br/>+ squid proxy leg"]
+    CH --> G["Validate guidance<br/>(records, skills, AGENTS.md)"]
+    B --> T["Test (22 / 24 / 26)<br/>+ squid proxy leg<br/>(skipped when no code changed)"]
     B --> CP["Cross-Platform Tests<br/>(credential file permissions)"]
     T --> TG["Test gate<br/>required check"]
+    G --> TG
 
     subgraph RELPATH ["Release path (manual workflow_dispatch only)"]
         B2["Build"] --> NR["npm-release<br/>(trusted publish, dual publish)"]
@@ -78,19 +80,62 @@ the admin bypass admits. The GitHub Actions app cannot be a bypass actor —
 ### Detect code changes
 
 `Detect code changes` runs first on every event. For pull requests it lists the
-changed files through the API and sets `code=false` only when **every** file is
-on a docs-and-automation allowlist (root `*.md`, `docs/`, `LICENSE`, issue
-templates, the agentic-workflow definitions, scripts and every workflow file under
-`.github/workflows/` except `pipeline.yml` itself). Anything else counts as
-code, including `pipeline.yml`, `package.json` and the lockfile. API errors,
-more than 3000 changed files, pushes, `workflow_dispatch` and release runs all
-resolve to `code=true`, so the filter can only ever skip work, never hide it.
+changed files through the API (a renamed file under both names) and hands the
+list to [`.github/scripts/classify-changes.sh`](.github/scripts/classify-changes.sh),
+which prints two results:
+
+- `code=false` only when **every** file is on the non-code list: root `*.md`,
+  `docs/`, `LICENSE`, `decisions/`, `.claude/skills/`, and under `.github/`
+  the issue templates, the agentic-workflow definitions, `aw/`, `concierge.yml`,
+  `instructions/`, `scripts/`, every workflow file except `pipeline.yml`,
+  `CODEOWNERS`, `dependabot.yml` and `copilot-instructions.md`. Anything else
+  counts as code, including `package.json`, the lockfile, `scripts/`, `src/`,
+  `pipeline.yml` and the classifier itself. API errors, more than 3000
+  changed files, a missing classifier, pushes, `workflow_dispatch` and
+  release runs all resolve to `code=true`, so the filter can only ever skip
+  work, never hide it.
+- `guidance=true` when a file changed that a validation test reads (see
+  [Validate guidance](#validate-guidance)): `decisions/`, `.claude/skills/`,
+  `.github/instructions/` or any Markdown file in the repository root. It is
+  independent of `code`.
+
+The script is read from the commit the pull request **targets**, never from
+the pull request itself: a change to the classifier is classified by the
+version on `main`, which counts the script as code. The pull request that adds
+or changes the script therefore always runs the full suite, and its fixture
+test (`src/classifyChanges.test.ts`) runs in it. The job holds only
+`contents: read` and `pull-requests: read`.
 
 When `code=false`, `Test` and `Cross-Platform Tests` are skipped. `Build` still runs (it is a
 required check and also lints and builds). Skipped required jobs count as
 passing, and the gate job(s) accept a skip only when `code=false` and `Build`
 succeeded. Filtering cannot use `paths-ignore` on the `pull_request` trigger,
-because required checks would stay "expected" forever.
+because required checks would stay "expected" forever. The rules are decided in
+[rockcarver/frodo record 0012](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0012-merging-is-gated-by-a-stable-set-of-required-checks.md)
+and [record 0016](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0016-changes-that-are-not-code-still-run-the-checks-that-validate-them.md);
+the procedure for changing them is the skill
+[change-the-ci-pipeline](.claude/skills/change-the-ci-pipeline/SKILL.md).
+
+### Validate guidance
+
+`Validate guidance` runs when the classifier says `guidance=true`, also when
+the long test matrix is skipped. It installs dependencies (no build) and runs
+only the tests that validate files the filter treats as non-code:
+
+- `src/agentSkills.test.ts`: every skill in `.claude/skills/`, the files and
+  scripts it cites, `AGENTS.md`;
+- `src/decisionRecords.test.ts`: every record in `decisions/`;
+- `src/index.test.ts`: the contributor guide the export guard points at.
+
+A code change runs the same tests again in the full suite, so this job only
+gives the answer sooner. `src/pipelineWorkflow.test.ts` fails when a test that
+reads a guidance file is missing from the job's list; the path list it
+implies is `GUIDANCE` in the classifier. A pull request that adds a new kind
+of validated file adds its path to the classifier in the same pull request.
+Known limit: a skill may cite any file in the repository, and a non-code pull
+request that renames or deletes a cited file outside the guidance paths (for
+example a workflow file) is only caught when the next code change runs the
+full suite.
 
 ### Build
 
@@ -129,6 +174,12 @@ The job uses `if: ${{ !cancelled() }}` so it still runs (and fails) when a
 matrix leg is cancelled or skipped, which a plain `needs` alone would
 silently accept. A skip is only accepted when `Detect code changes` reported
 `code=false` and `Build` succeeded; otherwise the gate expects `success`.
+
+`Test gate` also waits for `Validate guidance`: when the classifier asked for
+it (`guidance=true`) the job must have succeeded, and when it did not, the job
+must have been skipped. A skipped long matrix therefore never skips the
+validation, and the required checks stay `Build`, `Test gate` and the
+cross-platform check, so no ruleset change was needed.
 
 ### npm-release
 
