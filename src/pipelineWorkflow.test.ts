@@ -10,7 +10,7 @@ import path from 'node:path';
  * covers every test that reads a guidance file, and "Test gate" fails when
  * guidance was expected and did not succeed. It runs the real shell of the
  * "Test gate" step and of the classify step with the workflow expressions
- * filled in. Records 0012 and 0016 of rockcarver/frodo, PIPELINE.md.
+ * filled in. Core 0012 and core 0016, PIPELINE.md.
  */
 
 const ROOT = process.cwd();

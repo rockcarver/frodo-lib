@@ -7,7 +7,7 @@ description: "Change how frodo-lib's pull request pipeline decides what to run: 
 
 # Change the CI pipeline
 
-`pipeline.yml` builds, tests and releases the library, and a pull request controls the copy of it that runs for that pull request, so a change to it is reviewed line by line. This skill is the order of the steps and the traps. The rules are binding records, which you link and never restate: [umbrella record 0012: merging into main is gated by a stable set of required checks](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0012-merging-is-gated-by-a-stable-set-of-required-checks.md) and [umbrella record 0016: changes that are not code still run the checks that validate them](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0016-changes-that-are-not-code-still-run-the-checks-that-validate-them.md). How the jobs fit together is in [PIPELINE.md](../../../PIPELINE.md); the tools underneath are in [BUILD-ENV.md](../../../BUILD-ENV.md).
+`pipeline.yml` builds, tests and releases the library, and a pull request controls the copy of it that runs for that pull request, so a change to it is reviewed line by line. This skill is the order of the steps and the traps. The rules are binding records, which you link and never restate: [core 0012: merging into main is gated by a stable set of required checks](../../../decisions/core/0012-merging-is-gated-by-a-stable-set-of-required-checks.md) and [core 0016: changes that are not code still run the checks that validate them](../../../decisions/core/0016-changes-that-are-not-code-still-run-the-checks-that-validate-them.md). How the jobs fit together is in [PIPELINE.md](../../../PIPELINE.md); the tools underneath are in [BUILD-ENV.md](../../../BUILD-ENV.md).
 
 ## How the filter works
 

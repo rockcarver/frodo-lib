@@ -14,7 +14,7 @@ Write one for a lasting decision: something a maintainer would be surprised to s
 Where it goes:
 
 - Concerns only frodo-lib: here, in `decisions/` at the repository root. The other repositories keep records in a `decisions` folder inside `docs`; here `docs/` is typedoc output that `npm run doc` wipes (checked), so the folder moved up.
-- Spans frodo-lib, frodo-cli or the Homebrew tap: in the umbrella repository, [rockcarver/frodo](https://github.com/rockcarver/frodo/tree/main/docs/decisions). Read its README there for the steps, the `repos:` front matter key and its validator command. Do not copy a cross-repo record into this folder. When a new umbrella record binds this repository, add its one-sentence row to the "Decisions that span repositories" table in `decisions/README.md` in the same change set: the gates read this repository only and never the umbrella.
+- Spans frodo-lib and frodo-cli: a core record, written once as the same file in `core/` of every repository it binds ([core 0018](../../../decisions/core/0018-core-decision-records-are-kept-in-each-repository.md)): `decisions/core/` here, docs/decisions/core/ in frodo-cli. That is one pull request per repository with an identical file; follow "Core records" below. The umbrella repository rockcarver/frodo is archived: do not add records there.
 - Not sure: ask a maintainer in the issue or pull request before you write it.
 
 ## Steps
@@ -28,12 +28,12 @@ Where it goes:
    - `decision-makers:` a list, normally `maintainers`. No personal names or e-mail addresses.
    - `applies-to:` path globs the decision governs, where that helps (`src/mcp/**`).
    - `issues:` related issues as `owner/repo#123`.
-   - `repos:` is accepted but not required in this repository.
+   - `repos:` is accepted but not required for a record of this repository, and required for a core record.
 
    Lists are `- item` lines under the key. No other key, no repeated key, no inline lists.
 5. **Write the body.** A `# Title` line, then `## Context and problem statement` (what forced the decision, two or three sentences), `## Decision` (the rules a contributor or agent can follow, with paths in backticks) and `## Consequences` (what changes, what gets harder, what to watch). Optional, in this order after those: `## Known deviations` (where reality does not match yet) and `## Alternatives considered`. Aim for under 40 lines; 60 is the hard limit. Each section needs content.
 6. **Index it.** Add a row to the table in `decisions/README.md`: `| 0004 | [Title](0004-short-title.md) | proposed |`. The status text in the row must match the record's status exactly.
-7. **Superseding.** A changed decision is a new record. In the old record change only the status to `superseded by NNNN` (the one edit allowed besides typos), update its index row, and say in the new record's context what changed and why. Never edit an accepted record's decision, and never renumber.
+7. **Superseding.** A changed decision is a new record. In the old record change only the status to `superseded by NNNN` (the one edit allowed besides typos and a `Known deviations` section, a status note that may be added, edited or removed in the pull request that fixes the deviation or opens its tracking issue, saying so in the description: [core 0018](../../../decisions/core/0018-core-decision-records-are-kept-in-each-repository.md)), update its index row, and say in the new record's context what changed and why. Never edit an accepted record's decision, and never renumber.
 8. **Make it findable.** If the record binds agents, add it to the `Decisions` section of `AGENTS.md` once it is accepted. If a rule needs a checklist at edit time, put the checklist in the matching file under `.github/instructions/` and link the record instead of copying the rule, so the rule lives in one place.
 9. **Check.**
 
@@ -43,6 +43,17 @@ Where it goes:
    ```
 
    Both run the same validator (checked: a copy of the template left unfilled fails with a bad date and a missing index row; the unchanged folder passes). It checks the file name, numbers, front matter, the three sections in order, status values, the index rows and links, length, and obvious credential shapes. It cannot judge the content, so do the screen below yourself.
+
+## Core records
+
+A core record is one decision that binds several repositories. Its file is identical in each, so a change to it is a change in every one of them.
+
+1. **Pick the number** in `decisions/core/`: the next one after the highest. Core numbers are separate from this repository's own records, count from `0001`, are never reused and have no gaps. Cite a core record as "core NNNN" with a link, never as a bare number: both numberings start at `0001`.
+2. **Write the file** as in the steps above, starting from `decisions/template.md`, and give it `repos:` (every repository it binds, as `rockcarver/<name>`; at least one of frodo-cli and frodo-lib). Write `applies-to:` globs that are right in each repository, listing both layouts when they differ. Do not put anything specific to one repository into the text.
+3. **Index it** with a row in the "Core decisions" table of `decisions/README.md`: the number linked as `[core NNNN](core/NNNN-short-title.md)`, the title, the status and the `applies-to` globs in backticks, or `repository-wide` when there are none. The gates read this table, then open the records whose `applies-to` matches the change. The row of a record that does not bind this repository says "not this repository".
+4. **Open the same file in frodo-cli** with its own row in the decisions README of that repository, and merge both pull requests together. `.github/workflows/core-records-drift.yml` compares the two folders every week and fails the run on any difference; to check by hand, run `node .github/scripts/check-core-records-drift.mjs --sibling-dir ../frodo-cli/docs/decisions/core` against a checkout of frodo-cli.
+5. **Superseding** works as above, and the status change of the old record is made in every repository. Never edit an accepted core record, except its `## Known deviations` section: edit or remove it in the pull request that fixes the deviation, in every repository that holds the record ([core 0018](../../../decisions/core/0018-core-decision-records-are-kept-in-each-repository.md)).
+6. **Check** with `node scripts/validate-decision-records.mjs decisions/core --core decisions/README.md rockcarver/frodo-lib`. `npm run test:only -- src/decisionRecords.test.ts` runs the same check.
 
 ## Sensitivity screen
 

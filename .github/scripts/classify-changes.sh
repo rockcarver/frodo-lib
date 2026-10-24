@@ -31,10 +31,11 @@ ALWAYS_CODE='^(\.github/workflows/pipeline\.yml|\.github/scripts/classify-change
 
 # Files read by a validation test: src/agentSkills.test.ts reads the skills,
 # AGENTS.md and every repository path a skill cites; src/decisionRecords.test.ts
-# reads decisions/; src/index.test.ts reads CONTRIBUTE.md. Root Markdown covers
-# the entry points and the documents skills link; add a path here, in the same
-# pull request, when a new test reads a new kind of file.
-GUIDANCE='^(decisions/|\.claude/skills/|\.github/instructions/|[^/]+\.md$)'
+# reads decisions/ (core records included), the core records drift check and its
+# workflow; src/index.test.ts reads CONTRIBUTE.md. Root Markdown covers the entry
+# points and the documents skills link; add a path here, in the same pull
+# request, when a new test reads a new kind of file.
+GUIDANCE='^(decisions/|\.claude/skills/|\.github/instructions/|\.github/scripts/check-core-records-drift\.mjs$|\.github/workflows/core-records-drift\.yml$|[^/]+\.md$)'
 
 count=0
 code=false

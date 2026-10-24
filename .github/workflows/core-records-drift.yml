@@ -1,0 +1,29 @@
+name: 'Core records drift'
+
+# The core decision records (core 0018) are the same files in frodo-cli and
+# frodo-lib. This compares this repository's core/ folder with the sibling's
+# every week and fails the run when they differ. It only reads, and it opens no
+# issue: a red run in the Actions tab is the signal. See decisions/README.md.
+
+on:
+  schedule:
+    - cron: '23 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    name: 'Compare core records'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Compare with the sibling repository
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/scripts/check-core-records-drift.mjs

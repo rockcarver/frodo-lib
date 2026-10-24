@@ -5,7 +5,7 @@ description: Review a pull request written by a coding agent (GitHub Copilot or 
 
 # Review a Copilot pull request hands-on
 
-A plausible description and a green pipeline are not a review. You fetch the branch, read the whole diff, run it and try to break it. You review; a maintainer stays the last lever ([umbrella decision 0002](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0002-a-maintainer-stays-the-last-lever-on-agent-work.md)): you never merge, never approve workflow runs and never post to the pull request unless the maintainer asked you to. The issue and plan gates behind agent work are described in [umbrella decision 0004](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0004-the-repo-concierge-runs-the-issue-plan-and-pr-gates.md); do not add or remove gate labels.
+A plausible description and a green pipeline are not a review. You fetch the branch, read the whole diff, run it and try to break it. You review; a maintainer stays the last lever ([core 0002](../../../decisions/core/0002-a-maintainer-stays-the-last-lever-on-agent-work.md)): you never merge, never approve workflow runs and never post to the pull request unless the maintainer asked you to. The issue and plan gates behind agent work are described in [core 0004](../../../decisions/core/0004-the-repo-concierge-runs-the-issue-plan-and-pr-gates.md); do not add or remove gate labels.
 
 The rules the pull request must follow: [AGENTS.md](../../../AGENTS.md), [CONTRIBUTE.md](../../../CONTRIBUTE.md), the records in [decisions/](../../../decisions/README.md) and the files in [.github/instructions/](../../../.github/instructions/tests.instructions.md). To set up, build and run tests use the build-the-lib skill.
 
@@ -53,14 +53,14 @@ If the branch is behind, merge `origin/main` into a scratch branch and run the c
 | `src/lib/Help.ts` | Generated from TSDoc (decisions/0003). The diff must follow from the TSDoc diff and nothing else. |
 | `src/test/mock-recordings/**`, `src/test/snapshots/**` | Never changed to turn a run green (decisions/0002). Recordings come only from a real recording run: is there a reason and a stated source? Read the diff for sensitive data (create-test-recordings skill). |
 | `src/mcp/CapabilityMetadata.ts`, `src/mcp/contract-gap-baseline.json` | The baseline stays `[]` (decisions/0001). Do `mutating` and `riskClass` tell the truth? |
-| `decisions/**` | An accepted record is not edited except for typos; a changed decision is a new record (record-a-decision skill). |
+| `decisions/**` | An accepted record is not edited except for typos and for a Known deviations section (a status note, edited in the pull request that fixes the deviation); a changed decision is a new record (record-a-decision skill). |
 
 ## 3. Read the whole diff
 
 `git diff origin/main...pr-<N> -- . ':!src/test/mock-recordings' ':!src/test/snapshots'`, then the recordings and snapshots on their own. Questions that find real problems:
 
 - Does it solve the issue, and only that? Unrelated edits, reformatting and drive-by renames are findings.
-- Right layer? The library is the brain: logic in `src/ops/`, requests in `src/api/`, nothing tied to a terminal ([umbrella decision 0001](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0001-library-is-the-brain-cli-is-a-thin-wrapper.md)). A new capability goes on the `frodo` facade and is registered in `src/lib/FrodoLib.ts`, never on the package root ([umbrella decision 0007](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0007-public-api-only-through-the-frodo-facade.md), [public-api](../../../.github/instructions/public-api.instructions.md), [ops-modules](../../../.github/instructions/ops-modules.instructions.md)).
+- Right layer? The library is the brain: logic in `src/ops/`, requests in `src/api/`, nothing tied to a terminal ([core 0001](../../../decisions/core/0001-library-is-the-brain-cli-is-a-thin-wrapper.md)). A new capability goes on the `frodo` facade and is registered in `src/lib/FrodoLib.ts`, never on the package root ([core 0007](../../../decisions/core/0007-public-api-only-through-the-frodo-facade.md), [public-api](../../../.github/instructions/public-api.instructions.md), [ops-modules](../../../.github/instructions/ops-modules.instructions.md)).
 - Names follow CRUDQ, otherwise a reviewed metadata entry exists. Every method of the public type has TSDoc and `Help.ts` is regenerated. Errors are `FrodoError` with the cause kept, output goes through `src/utils/Console.ts`. A removed public function has a MIGRATION.md entry.
 - Edge cases the author did not think about: empty input, missing realm, classic versus cloud deployment, errors from the server, concurrent calls.
 - Design intent that lives in the issue author's head is not in the plan. When the behaviour has more than one reasonable answer, ask the maintainer; do not decide.

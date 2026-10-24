@@ -96,8 +96,9 @@ which prints two results:
   work, never hide it.
 - `guidance=true` when a file changed that a validation test reads (see
   [Validate guidance](#validate-guidance)): `decisions/`, `.claude/skills/`,
-  `.github/instructions/` or any Markdown file in the repository root. It is
-  independent of `code`.
+  `.github/instructions/`, the core records drift check
+  (`.github/scripts/check-core-records-drift.mjs`) and its workflow, or any
+  Markdown file in the repository root. It is independent of `code`.
 
 The script is read from the commit the pull request **targets**, never from
 the pull request itself: a change to the classifier is classified by the
@@ -111,8 +112,8 @@ required check and also lints and builds). Skipped required jobs count as
 passing, and the gate job(s) accept a skip only when `code=false` and `Build`
 succeeded. Filtering cannot use `paths-ignore` on the `pull_request` trigger,
 because required checks would stay "expected" forever. The rules are decided in
-[rockcarver/frodo record 0012](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0012-merging-is-gated-by-a-stable-set-of-required-checks.md)
-and [record 0016](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0016-changes-that-are-not-code-still-run-the-checks-that-validate-them.md);
+[core 0012](decisions/core/0012-merging-is-gated-by-a-stable-set-of-required-checks.md)
+and [core 0016](decisions/core/0016-changes-that-are-not-code-still-run-the-checks-that-validate-them.md);
 the procedure for changing them is the skill
 [change-the-ci-pipeline](.claude/skills/change-the-ci-pipeline/SKILL.md).
 
@@ -124,7 +125,10 @@ only the tests that validate files the filter treats as non-code:
 
 - `src/agentSkills.test.ts`: every skill in `.claude/skills/`, the files and
   scripts it cites, `AGENTS.md`;
-- `src/decisionRecords.test.ts`: every record in `decisions/`;
+- `src/decisionRecords.test.ts`: every record in `decisions/` and in
+  `decisions/core/` (the core records, with their index), the weekly core
+  records drift check and its workflow (`core-records-drift.yml`, which only
+  reads and compares `decisions/core/` with frodo-cli's);
 - `src/index.test.ts`: the contributor guide the export guard points at.
 
 A code change runs the same tests again in the full suite, so this job only

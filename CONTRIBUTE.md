@@ -177,7 +177,7 @@ Adding support for another kind of platform object follows the same steps every 
 
 ### Decision records
 
-Lasting decisions are written down in [decisions/](decisions/README.md) (decisions that span frodo-lib, frodo-cli and the Homebrew tap are in [rockcarver/frodo](https://github.com/rockcarver/frodo/tree/main/docs/decisions)). Accepted records are binding until a newer record supersedes them, so read the ones near your change, and when your pull request changes a decided behaviour, add a record or supersede one in the same pull request. `npm test` checks the records' front matter, sections and index. The folder is `decisions/` and not `docs/decisions/` because `docs/` here is regenerated typedoc output.
+Lasting decisions are written down in [decisions/](decisions/README.md) (decisions that span frodo-lib and frodo-cli are core records, the same files in both repositories, in [decisions/core/](decisions/core/)). Accepted records are binding until a newer record supersedes them, so read the ones near your change, and when your pull request changes a decided behaviour, add a record or supersede one in the same pull request. `npm test` checks the records' front matter, sections and index. The folder is `decisions/` and not `docs/decisions/` because `docs/` here is regenerated typedoc output.
 
 ### Working with coding agents
 

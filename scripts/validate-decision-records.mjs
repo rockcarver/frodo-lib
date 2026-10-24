@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 // Validates decision records (see decisions/README.md or docs/decisions/README.md).
-// No dependencies. Usage: node validate-decision-records.mjs <dir> [--repos]
+// No dependencies. Usage:
+//   node validate-decision-records.mjs <dir> [--repos]
+//   node validate-decision-records.mjs <dir>/core --core <index.md> <owner/repo>
+// The second form checks the core records (the same files in every repository
+// they bind, core 0018): their index is a section of the repository's own
+// decisions README, <owner/repo> is the repository running the check.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -57,14 +62,27 @@ function validDate(value) {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
 }
 
-/** Returns a list of problems, empty when every record is valid. */
-export function validateDecisionRecords({ dir, requireRepos = false }) {
+const REPO_SLUG = /^rockcarver\/[a-z0-9][a-z0-9.-]*$/;
+const CODE_REPOS = ['rockcarver/frodo-cli', 'rockcarver/frodo-lib'];
+
+/**
+ * Returns a list of problems, empty when every record is valid. With `core`
+ * ({ indexFile, repo }) the folder is a core folder: no README.md or
+ * template.md in it, `repos:` is required, and the index is the "Core
+ * decisions" table in `indexFile`, whose rows link `core/NNNN-title.md`.
+ */
+export function validateDecisionRecords({ dir, requireRepos = false, core = null }) {
   const problems = [];
   if (!fs.existsSync(dir)) return [`${dir} does not exist`];
   const all = fs.readdirSync(dir).filter((f) => f.endsWith('.md')).sort();
-  for (const required of ['README.md', 'template.md']) {
-    if (!all.includes(required)) problems.push(`${required} is missing`);
+  if (!core) {
+    for (const required of ['README.md', 'template.md']) {
+      if (!all.includes(required)) problems.push(`${required} is missing`);
+    }
+  } else if (!fs.existsSync(core.indexFile)) {
+    problems.push(`${core.indexFile} is missing`);
   }
+  if (core) requireRepos = true;
   const records = [];
   for (const file of all) {
     if (file === 'README.md' || file === 'template.md') continue;
@@ -83,8 +101,12 @@ export function validateDecisionRecords({ dir, requireRepos = false }) {
     if (n !== i + 1) problems.push(`numbers must be contiguous from 0001: expected ${String(i + 1).padStart(4, '0')}, found ${String(n).padStart(4, '0')}`);
   });
   const numberSet = new Set(numbers);
-  const readme = all.includes('README.md') ? fs.readFileSync(path.join(dir, 'README.md'), 'utf8') : '';
+  const indexFile = core ? core.indexFile : path.join(dir, 'README.md');
+  const readme = fs.existsSync(indexFile) && (core || all.includes('README.md')) ? fs.readFileSync(indexFile, 'utf8') : '';
+  const indexName = core ? core.indexFile : 'README.md';
   const statusOf = {};
+  const appliesOf = {};
+  const reposOf = {};
   for (const { file, number } of records) {
     const text = fs.readFileSync(path.join(dir, file), 'utf8');
     const fail = (msg) => problems.push(`${file}: ${msg}`);
@@ -115,6 +137,14 @@ export function validateDecisionRecords({ dir, requireRepos = false }) {
       }
     }
     if (typeof data.date === 'string' && !validDate(data.date)) fail(`date "${data.date}" must be a real YYYY-MM-DD date`);
+    if (core) {
+      appliesOf[file] = Array.isArray(data['applies-to']) ? data['applies-to'] : [];
+      if (Array.isArray(data.repos)) {
+        reposOf[file] = data.repos;
+        for (const r of data.repos) if (!REPO_SLUG.test(r)) fail(`repos entry "${r}" must look like rockcarver/<repository>`);
+        if (!data.repos.some((r) => CODE_REPOS.includes(r))) fail(`repos must name at least one repository that keeps core records (${CODE_REPOS.join(', ')})`);
+      }
+    }
     const first = body.find((l) => l.trim() !== '');
     if (!first || !/^# \S/.test(first)) fail('the body must start with a "# Title" heading');
     const headings = body.filter((l) => /^## /.test(l)).map((l) => l.slice(3).trim());
@@ -130,20 +160,52 @@ export function validateDecisionRecords({ dir, requireRepos = false }) {
       if (content.length === 0) fail(`section "${l.trim()}" is empty`);
     });
   }
+  const target = (file) => (core ? `core/${file}` : file);
   for (const { file } of records) {
-    const row = readme.split('\n').find((l) => l.includes(`(${file})`));
-    if (!row) problems.push(`README.md: the index has no row linking ${file}`);
-    else if (statusOf[file] && !row.includes(statusOf[file])) problems.push(`README.md: the index row for ${file} does not show the status "${statusOf[file]}"`);
+    const row = readme.split('\n').find((l) => l.includes(`(${target(file)})`) && (!core || l.startsWith('|')));
+    if (!row) problems.push(`${indexName}: the index has no row linking ${target(file)}`);
+    else {
+      if (statusOf[file] && !row.includes(statusOf[file])) problems.push(`${indexName}: the index row for ${file} does not show the status "${statusOf[file]}"`);
+      if (core && file in appliesOf) {
+        // The gates open records by applies-to, so the row must carry it.
+        for (const glob of appliesOf[file]) {
+          if (!row.includes(`\`${glob}\``)) problems.push(`${indexName}: the index row for ${file} does not show applies-to \`${glob}\``);
+        }
+        if (appliesOf[file].length === 0 && !row.includes('repository-wide')) problems.push(`${indexName}: the index row for ${file} must say "repository-wide" (the record has no applies-to)`);
+        if (reposOf[file] && !reposOf[file].includes(core.repo) && !row.includes('not this repository')) {
+          problems.push(`${indexName}: ${file} does not bind ${core.repo}, so its index row must say "not this repository"`);
+        }
+      }
+    }
   }
-  for (const link of readme.matchAll(/\((\d{4}-[a-z0-9-]+\.md)\)/g)) {
-    if (!records.some((r) => r.file === link[1])) problems.push(`README.md: the index links ${link[1]}, which does not exist`);
+  const linkPattern = core ? /\(core\/(\d{4}-[a-z0-9-]+\.md)\)/g : /\((\d{4}-[a-z0-9-]+\.md)\)/g;
+  for (const link of readme.matchAll(linkPattern)) {
+    if (!records.some((r) => r.file === link[1])) problems.push(`${indexName}: the index links ${target(link[1])}, which does not exist`);
+  }
+  if (core) {
+    // A core record is copied unchanged between repositories, so a relative link
+    // may only point at another file of core/ that exists.
+    for (const { file } of records) {
+      const text = fs.readFileSync(path.join(dir, file), 'utf8');
+      for (const m of text.matchAll(/\]\(([^)\s]+)\)/g)) {
+        const link = m[1].split('#')[0];
+        if (!link || /^[a-z][a-z0-9+.-]*:/i.test(link)) continue;
+        if (!fs.existsSync(path.resolve(dir, link))) problems.push(`${file}: the link "${m[1]}" does not point at a file`);
+      }
+    }
   }
   return problems;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const dir = process.argv[2] || 'docs/decisions';
-  const problems = validateDecisionRecords({ dir, requireRepos: process.argv.includes('--repos') });
+  const at = process.argv.indexOf('--core');
+  const core = at < 0 ? null : { indexFile: process.argv[at + 1], repo: process.argv[at + 2] };
+  if (core && (!core.indexFile || !core.repo)) {
+    console.error('usage: validate-decision-records.mjs <dir> --core <index.md> <owner/repo>');
+    process.exit(2);
+  }
+  const problems = validateDecisionRecords({ dir, requireRepos: process.argv.includes('--repos'), core });
   for (const p of problems) console.error(`::error::${p}`);
   console.log(problems.length === 0 ? `decision records in ${dir}: ok` : `${problems.length} problem(s) in ${dir}`);
   process.exit(problems.length === 0 ? 0 : 1);
