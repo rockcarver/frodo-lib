@@ -53,7 +53,7 @@ If the branch is behind, merge `origin/main` into a scratch branch and run the c
 | `src/lib/Help.ts` | Generated from TSDoc (decisions/0003). The diff must follow from the TSDoc diff and nothing else. |
 | `src/test/mock-recordings/**`, `src/test/snapshots/**` | Never changed to turn a run green (decisions/0002). Recordings come only from a real recording run: is there a reason and a stated source? Read the diff for sensitive data (create-test-recordings skill). |
 | `src/mcp/CapabilityMetadata.ts`, `src/mcp/contract-gap-baseline.json` | The baseline stays `[]` (decisions/0001). Do `mutating` and `riskClass` tell the truth? |
-| `decisions/**` | An accepted record is not edited except for typos; a changed decision is a new record (record-a-decision skill). |
+| `decisions/**` | An accepted record is not edited except for typos and for a Known deviations section (a status note, edited in the pull request that fixes the deviation); a changed decision is a new record (record-a-decision skill). |
 
 ## 3. Read the whole diff
 

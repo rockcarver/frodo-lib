@@ -625,6 +625,58 @@ describe('core records', () => {
   });
 });
 
+describe('a Known deviations section is a status note (core 0018)', () => {
+  const read = (...parts: string[]): string =>
+    fs.readFileSync(path.resolve(process.cwd(), ...parts), 'utf8');
+  const rule18 = read(
+    'decisions/core/0018-core-decision-records-are-kept-in-each-repository.md'
+  );
+  const readme = read('decisions/README.md');
+
+  test('core 0018 lets the pull request that fixes a deviation edit or remove it, without a new record', () => {
+    expect(rule18).toMatch(/status note, not part of the decision/);
+    expect(rule18).toMatch(
+      /tracking issue and the commit it was written against/
+    );
+    expect(rule18).toMatch(
+      /added, edited or removed, without a new record, in the pull request that fixes the deviation or opens its tracking issue/
+    );
+    expect(rule18).toMatch(/Nothing else in an accepted record changes\./);
+    expect(rule18).toMatch(/The one exception is a Known deviations section/);
+  });
+  test('the README rule names the exception and links core 0018', () => {
+    const line =
+      readme
+        .split('\n')
+        .find((l) => l.startsWith('- An accepted record is not edited')) ?? '';
+    expect(line).toMatch(
+      /except for typos and for a `Known deviations` section/
+    );
+    expect(line).toMatch(
+      /\]\(core\/0018-core-decision-records-are-kept-in-each-repository\.md\)/
+    );
+  });
+  test('the README index row of core 0018 says so in its rule sentence', () => {
+    const row =
+      readme.split('\n').find((l) => /^\|\s*\[core 0018\]\(/.test(l)) ?? '';
+    expect(row).toMatch(/Known deviations section is a status note/);
+  });
+  test('the record-a-decision skill states the exception, with a link to core 0018', () => {
+    const skill = read('.claude/skills/record-a-decision/SKILL.md');
+    expect(skill).toMatch(/besides typos and a `Known deviations` section/);
+    expect(skill).toMatch(
+      /saying so in the description: \[core 0018\]\(\.\.\/\.\.\/\.\.\/decisions\/core\/0018-core-decision-records-are-kept-in-each-repository\.md\)\)/
+    );
+    expect(skill).toMatch(/except its `## Known deviations` section/);
+  });
+  test('the review skill does not call every edit of a record wrong', () => {
+    const review = read('.claude/skills/review-a-copilot-pr/SKILL.md');
+    expect(review).toMatch(
+      /except for typos and for a Known deviations section/
+    );
+  });
+});
+
 describe('core records drift check', () => {
   const tmp = (files: Record<string, string>): string => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'core-drift-'));
