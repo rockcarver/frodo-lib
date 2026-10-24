@@ -13,7 +13,7 @@ npm run test:only -- <path pattern>    # for example src/mcp/CapabilityRegistry.
 npm test                               # the whole suite
 ```
 
-Tests run on the sources, so they need no build. Always go through `npm run test:only` or `npm test`: a bare `npx jest` fails because it lacks the `--experimental-vm-modules` flag. The directory you clone into must be named `frodo-lib`: `src/utils/AutoSetupPolly.ts` finds the recordings through that path segment, and every recorded test fails without it.
+Tests run on the sources, so they need no build, except two tests in `src/api/BaseApi.connectionReuse.test.ts` that start a child process against `dist/` (run `npm run build` once before the first full `npm test`). Always go through `npm run test:only` or `npm test`: a bare `npx jest` fails because it lacks the `--experimental-vm-modules` flag. The directory you clone into must be named `frodo-lib`: `src/utils/AutoSetupPolly.ts` finds the recordings through that path segment, and every recorded test fails without it.
 
 ## Rules
 
@@ -32,6 +32,10 @@ Tests run on the sources, so they need no build. Always go through `npm run test
 Accepted records are binding for humans and agents until a newer record supersedes them. If your task conflicts with one, stop and say so in the issue or pull request. A pull request that changes a decided behaviour adds or supersedes a record. This repository's records are in [decisions/](decisions/README.md), not `docs/` (regenerated typedoc output).
 
 Cross-repo records in [rockcarver/frodo](https://github.com/rockcarver/frodo/tree/main/docs/decisions): [0001 The library is the brain, the CLI a thin wrapper](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0001-library-is-the-brain-cli-is-a-thin-wrapper.md) · [0002 A maintainer stays the last lever](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0002-a-maintainer-stays-the-last-lever-on-agent-work.md) · [0003 Guidance lives in the repository](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0003-guidance-for-agents-and-contributors-lives-in-the-repository.md) · [0004 The Repo Concierge gates](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0004-the-repo-concierge-runs-the-issue-plan-and-pr-gates.md) · [0005 Releases are started by a maintainer](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0005-releases-are-started-by-a-maintainer-through-the-pipeline.md) · [0006 No runtime dependencies](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0006-published-packages-have-no-runtime-dependencies.md) · [0007 Public API only through the facade](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0007-public-api-only-through-the-frodo-facade.md). [0009 Let the callback handler return a promise](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0009-let-the-callback-handler-return-a-promise.md) is proposed, not yet binding.
+
+## Procedures
+
+Step-by-step procedures for recurring work are skills in [.claude/skills/](.claude/skills), which Claude Code and the GitHub Copilot cloud agent load on demand: `build-the-lib`, `create-test-recordings` (maintainers only), `record-a-decision` and `review-a-copilot-pr`. A skill links the binding records and instruction files and never restates them.
 
 ## Where things live
 
