@@ -747,27 +747,57 @@ describe('core records drift check', () => {
     has(q.out, '::error::a.md differs');
     q = quiet();
     expect(await drift.run(['--self', 'rockcarver/frodo'], {}, q.io)).toBe(2);
+    has(q.out, 'must be one of');
+    q = quiet();
     expect(
       await drift.run(
-        ['--self', 'rockcarver/frodo-lib', '--local', '/nonexistent-core'],
+        [
+          '--self',
+          'rockcarver/frodo-lib',
+          '--local',
+          '/nonexistent-core',
+          '--sibling-dir',
+          same,
+        ],
         {},
-        quiet().io
+        q.io
       )
     ).toBe(2);
+    has(q.out, '/nonexistent-core does not exist');
+    q = quiet();
     expect(
-      await drift.run(
-        [...base, '--sibling-dir', '/nonexistent-core'],
-        {},
-        quiet().io
-      )
+      await drift.run([...base, '--sibling-dir', '/nonexistent-core'], {}, q.io)
     ).toBe(2);
+    has(q.out, 'could not read the core records of rockcarver/frodo-cli');
+  });
+  test('without options it uses GITHUB_REPOSITORY and the GitHub API, and never the network in tests', async () => {
+    const mine = drift.readFolder(CORE_DIR);
+    const requested: string[] = [];
+    const answer = (entries: Record<string, string>) => async (url: string) => {
+      requested.push(url);
+      return {
+        ok: true,
+        status: 200,
+        json: async () =>
+          Object.entries(entries).map(([name, sha]) => ({
+            type: 'file',
+            name,
+            sha,
+          })),
+      };
+    };
+    const env = { GITHUB_REPOSITORY: LIB, GITHUB_TOKEN: 'x' };
+    let q = quiet();
+    expect(await drift.run([], env, q.io, answer(mine))).toBe(0);
+    expect(requested).toEqual([
+      'https://api.github.com/repos/rockcarver/frodo-cli/contents/docs/decisions/core?ref=main',
+    ]);
+    q = quiet();
     expect(
-      await drift.run(
-        [],
-        { GITHUB_REPOSITORY: 'rockcarver/frodo-lib' },
-        quiet().io
-      )
-    ).toBe(2);
+      await drift.run([], env, q.io, answer({ ...mine, '0099-extra.md': 'x' }))
+    ).toBe(1);
+    has(q.out, '0099-extra.md is in rockcarver/frodo-cli but missing in');
+    expect(await drift.run([], {}, quiet().io, answer(mine))).toBe(2);
   });
 
   describe('the weekly workflow', () => {

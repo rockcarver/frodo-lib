@@ -73,7 +73,7 @@ export function compareFolders({ local, remote, self, sibling }) {
   return problems;
 }
 
-export async function run(argv, env, io = console) {
+export async function run(argv, env, io = console, fetchImpl = fetch) {
   const option = (name) => {
     const at = argv.indexOf(name);
     return at < 0 ? undefined : argv[at + 1];
@@ -94,7 +94,7 @@ export async function run(argv, env, io = console) {
     const siblingDir = option('--sibling-dir');
     remote = siblingDir
       ? readFolder(siblingDir)
-      : await readRemoteFolder({ repo: sibling, dir: CORE_DIRS[sibling], ref: option('--ref'), token: env.GITHUB_TOKEN });
+      : await readRemoteFolder({ repo: sibling, dir: CORE_DIRS[sibling], ref: option('--ref'), token: env.GITHUB_TOKEN, fetchImpl });
   } catch (error) {
     io.error(`::error::could not read the core records of ${sibling}: ${error.message}`);
     return 2;
