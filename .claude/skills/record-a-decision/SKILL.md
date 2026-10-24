@@ -14,7 +14,7 @@ Write one for a lasting decision: something a maintainer would be surprised to s
 Where it goes:
 
 - Concerns only frodo-lib: here, in `decisions/` at the repository root. The other repositories keep records in a `decisions` folder inside `docs`; here `docs/` is typedoc output that `npm run doc` wipes (checked), so the folder moved up.
-- Spans frodo-lib, frodo-cli or the Homebrew tap: in the umbrella repository, [rockcarver/frodo](https://github.com/rockcarver/frodo/tree/main/docs/decisions). Read its README there for the steps, the `repos:` front matter key and its validator command. Do not copy a cross-repo record into this folder.
+- Spans frodo-lib, frodo-cli or the Homebrew tap: in the umbrella repository, [rockcarver/frodo](https://github.com/rockcarver/frodo/tree/main/docs/decisions). Read its README there for the steps, the `repos:` front matter key and its validator command. Do not copy a cross-repo record into this folder. When a new umbrella record binds this repository, add its one-sentence row to the "Decisions that span repositories" table in `decisions/README.md` in the same change set: the gates read this repository only and never the umbrella.
 - Not sure: ask a maintainer in the issue or pull request before you write it.
 
 ## Steps
