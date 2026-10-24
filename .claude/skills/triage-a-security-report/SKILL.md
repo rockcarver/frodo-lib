@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 # Triage a security report
 
-Security reports and unsolicited security fixes are handled by a maintainer, never by an agent ([umbrella record 0017](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0017-security-reports-and-fixes-are-handled-privately-by-a-maintainer.md)). This skill is the procedure for the maintainer, or for an assistant working under their direct instruction, when a report or a "security fix" pull request arrives. It produces an assessment and a drafted reply. It does not publish, approve, merge or file anything unless the maintainer says so for that step. The policy for outsiders is [SECURITY.md](../../../SECURITY.md), and its threat model is the yardstick: the library trusts its caller, and the person who runs the application that embeds it is trusted.
+Security reports and unsolicited security fixes are handled by a maintainer, never by an agent ([core 0017](../../../decisions/core/0017-security-reports-and-fixes-are-handled-privately-by-a-maintainer.md)). This skill is the procedure for the maintainer, or for an assistant working under their direct instruction, when a report or a "security fix" pull request arrives. It produces an assessment and a drafted reply. It does not publish, approve, merge or file anything unless the maintainer says so for that step. The policy for outsiders is [SECURITY.md](../../../SECURITY.md), and its threat model is the yardstick: the library trusts its caller, and the person who runs the application that embeds it is trusted.
 
 ## 1. Stop rules (read these first)
 

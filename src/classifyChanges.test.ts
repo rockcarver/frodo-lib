@@ -3,9 +3,9 @@ import path from 'node:path';
 
 /*
  * Pins .github/scripts/classify-changes.sh, the classifier behind the
- * "Detect code changes" job of .github/workflows/pipeline.yml (records 0012 and
- * 0016 of rockcarver/frodo, PIPELINE.md). The script can only skip work, never
- * hide it, so most cases here are about what must count as code.
+ * "Detect code changes" job of .github/workflows/pipeline.yml (core 0012 and
+ * core 0016, PIPELINE.md). The script can only skip work, never hide it, so
+ * most cases here are about what must count as code.
  */
 
 const SCRIPT = path.resolve(
@@ -182,7 +182,16 @@ describe('classify-changes.sh', () => {
   describe('guidance', () => {
     const guidance: [string, string][] = [
       ['a decision record', 'decisions/0014-a-new-rule.md'],
+      ['a core decision record', 'decisions/core/0019-a-new-rule.md'],
       ['the records template', 'decisions/template.md'],
+      [
+        'the core records drift check',
+        '.github/scripts/check-core-records-drift.mjs',
+      ],
+      [
+        'the core records drift workflow',
+        '.github/workflows/core-records-drift.yml',
+      ],
       ['a skill', '.claude/skills/build-the-lib/SKILL.md'],
       ['an instruction file', '.github/instructions/tests.instructions.md'],
       ['AGENTS.md', 'AGENTS.md'],
@@ -199,6 +208,7 @@ describe('classify-changes.sh', () => {
       ['a source file', 'src/ops/JourneyOps.ts'],
       ['the pipeline', '.github/workflows/pipeline.yml'],
       ['a concierge workflow', '.github/workflows/janitor.yml'],
+      ['another concierge script', '.github/scripts/janitor.mjs'],
       ['the concierge pin', '.github/concierge.yml'],
       ['generated docs', 'docs/classes/Foo.html'],
       ['the licence', 'LICENSE'],

@@ -22,12 +22,9 @@ const NOT_IN_GIT = ['dist', 'types', 'node_modules'];
 const PATH_LIKE =
   /^\.?[A-Za-z0-9_@-][A-Za-z0-9_.@-]*(?:\/[A-Za-z0-9_.@-]+)+\/?$/;
 const FILE_EXTENSION = /\.(?:md|json|mjs|cjs|mts|ts|js|ya?ml)$/;
-const UMBRELLA_URL =
-  /https:\/\/github\.com\/rockcarver\/frodo\/blob\/main\/docs\/decisions\//;
-const UMBRELLA_RECORD = new RegExp(
-  `${UMBRELLA_URL.source}(\\d{4}-[a-z0-9-]+\\.md)`,
-  'g'
-);
+// The umbrella repository is archived (core 0018): living files cite core records.
+const ARCHIVED_UMBRELLA =
+  /https:\/\/github\.com\/rockcarver\/frodo\/(?:blob|tree)\//;
 const SECRET =
   /(ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,})/;
 const EMAIL =
@@ -107,15 +104,12 @@ function checkSkills(root: string): string[] {
   const agents = fs.existsSync(agentsFile)
     ? fs.readFileSync(agentsFile, 'utf8')
     : '';
-  // The "Decisions that span repositories" table of decisions/README.md
-  // states every umbrella record that binds this repository (the gates read
-  // this repository only), so a skill may link any of them.
-  const readmeFile = path.join(root, 'decisions', 'README.md');
-  const decisionsReadme = fs.existsSync(readmeFile)
-    ? fs.readFileSync(readmeFile, 'utf8')
-    : '';
   const recordsDir = path.join(root, 'decisions');
   const records = fs.existsSync(recordsDir) ? fs.readdirSync(recordsDir) : [];
+  // Core records (decisions/core/) bind several repositories and are cited as
+  // "core NNNN" (core 0018).
+  const coreDir = path.join(recordsDir, 'core');
+  const coreRecords = fs.existsSync(coreDir) ? fs.readdirSync(coreDir) : [];
 
   const dirs = fs
     .readdirSync(skillsDir, { withFileTypes: true })
@@ -219,21 +213,26 @@ function checkSkills(root: string): string[] {
         fail(`cites decisions/${m[1]}, which does not exist`);
       }
     }
-    for (const m of text.matchAll(/umbrella (?:decision|record) (\d{4})/g)) {
-      // Both repositories number their records from 0001: a bare number is ambiguous.
-      const linked = new RegExp(
-        `\\[[^\\]]*umbrella (?:decision|record) ${m[1]}[^\\]]*\\]\\(${UMBRELLA_URL.source}${m[1]}-`
-      );
-      if (!linked.test(text)) {
-        fail(`cites umbrella record ${m[1]} without linking it`);
+    for (const m of text
+      .replace(/https?:\/\/\S+/g, '')
+      .matchAll(/decisions\/core\/(\d{4})\b/g)) {
+      if (!coreRecords.some((r) => r.startsWith(`${m[1]}-`))) {
+        fail(`cites decisions/core/${m[1]}, which does not exist`);
       }
     }
-    for (const m of text.matchAll(UMBRELLA_RECORD)) {
-      if (!agents.includes(m[0]) && !decisionsReadme.includes(m[0])) {
-        fail(
-          `links the umbrella record ${m[1]}, which neither AGENTS.md nor decisions/README.md lists`
-        );
+    for (const m of text.matchAll(/\bcore (?:decision |record )?(\d{4})\b/g)) {
+      // This repository and the core records both number from 0001: a bare number is ambiguous.
+      const linked = new RegExp(
+        `\\[[^\\]]*core (?:decision |record )?${m[1]}[^\\]]*\\]\\([^)\\s]*decisions/core/${m[1]}-[a-z0-9-]+\\.md\\)`
+      );
+      if (!linked.test(text)) {
+        fail(`cites core record ${m[1]} without linking it`);
       }
+    }
+    if (ARCHIVED_UMBRELLA.test(text)) {
+      fail(
+        'links the archived umbrella repository: cite the core record instead (core 0018)'
+      );
     }
 
     if (SECRET.test(text)) fail('looks like it contains a credential');
@@ -276,6 +275,7 @@ function fixture(mutate: (files: Files) => void = () => {}): string {
     }),
     'AGENTS.md': 'Procedures: do-things\n',
     'decisions/0001-first.md': '# one\n',
+    'decisions/core/0002-a-thing.md': '# two\n',
     'src/real.ts': 'export {};\n',
     '.claude/skills/do-things/SKILL.md': SKILL(),
   };
@@ -456,55 +456,65 @@ test('paths and links must point at files that exist', () => {
     'does not point at a file'
   );
 });
-test('cited records must exist and umbrella records must be listed', () => {
+test('cited records must exist', () => {
   has(
     check(skill(SKILL({}, 'See decisions/0007.\n'))),
     'decisions/0007, which does not exist'
   );
   expect(check(skill(SKILL({}, 'See decisions/0001.\n')))).toEqual([]);
+  has(
+    check(skill(SKILL({}, 'See decisions/core/0007.\n'))),
+    'decisions/core/0007, which does not exist'
+  );
+  expect(check(skill(SKILL({}, 'See decisions/core/0002.\n')))).toEqual([]);
+});
+test('a core record is cited with a link, not a bare number', () => {
+  const link = '../../../decisions/core/0002-a-thing.md';
+  expect(check(skill(SKILL({}, `See [core 0002](${link}).\n`)))).toEqual([]);
+  expect(
+    check(skill(SKILL({}, `See [core decision 0002: a thing](${link}).\n`)))
+  ).toEqual([]);
+  has(
+    check(skill(SKILL({}, 'See core 0002.\n'))),
+    'cites core record 0002 without linking it'
+  );
+  has(
+    check(skill(SKILL({}, `See [core 0003](${link}).\n`))),
+    'cites core record 0003 without linking it'
+  );
+  has(
+    check(skill(SKILL({}, `See core 0002 and [core 0003](${link}).\n`))),
+    'cites core record 0002 without linking it'
+  );
+  has(
+    check(
+      skill(
+        SKILL({}, `See [core 0002](../../../decisions/core/0009-gone.md).\n`)
+      )
+    ),
+    'does not point at a file'
+  );
+});
+test('skills do not link the archived umbrella repository', () => {
   const url =
     'https://github.com/rockcarver/frodo/blob/main/docs/decisions/0002-a-thing.md';
   has(
     check(skill(SKILL({}, `See [it](${url}).\n`))),
-    'which neither AGENTS.md nor decisions/README.md lists'
-  );
-  expect(
-    check((f) => {
-      f['AGENTS.md'] = `Procedures: do-things. ${url}\n`;
-      skill(SKILL({}, `See [it](${url}).\n`))(f);
-    })
-  ).toEqual([]);
-  expect(
-    check((f) => {
-      f['decisions/README.md'] = `| [0002](${url}) | A rule. | accepted |\n`;
-      skill(SKILL({}, `See [it](${url}).\n`))(f);
-    })
-  ).toEqual([]);
-});
-test('an umbrella record is cited with a link, not a bare number', () => {
-  const url =
-    'https://github.com/rockcarver/frodo/blob/main/docs/decisions/0002-a-thing.md';
-  const listed = (body: string) => (f: Files) => {
-    f['AGENTS.md'] = `Procedures: do-things. ${url}\n`;
-    skill(SKILL({}, body))(f);
-  };
-  expect(check(listed(`See [umbrella decision 0002](${url}).\n`))).toEqual([]);
-  has(
-    check(listed(`See umbrella decision 0002 (${url}).\n`)),
-    'cites umbrella record 0002 without linking it'
-  );
-  has(
-    check(listed(`See [umbrella decision 0003](${url}).\n`)),
-    'cites umbrella record 0003 without linking it'
+    'links the archived umbrella repository'
   );
   has(
     check(
-      listed(
-        `See umbrella decision 0002 and [umbrella decision 0003](${url}).\n`
+      skill(
+        SKILL({}, 'See https://github.com/rockcarver/frodo/tree/main/docs.\n')
       )
     ),
-    'cites umbrella record 0002 without linking it'
+    'links the archived umbrella repository'
   );
+  expect(
+    check(
+      skill(SKILL({}, 'Clone https://github.com/rockcarver/frodo-lib.git.\n'))
+    )
+  ).toEqual([]);
 });
 test('skills are public: no credentials, e-mail addresses or tenant hosts', () => {
   has(check(skill(SKILL({}, `token ghp_${'a'.repeat(30)}\n`))), 'credential');
