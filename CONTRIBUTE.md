@@ -62,6 +62,8 @@ npm test
 
 Do not edit `CHANGELOG.md` in a PR. It is generated at release time from what merged since the last release (the `Generate and promote AI changelog` step of `.github/workflows/pipeline.yml`), so write a clear PR title and description. The typedoc output in `docs/` is regenerated and committed by the same release job, so do not edit it either.
 
+A pull request that changes only documentation, decision records, skills or instruction files skips the long test matrix; a fast `Validate guidance` job still checks the records, the skills and `AGENTS.md`, and `Test gate` waits for it. Any other file starts the full suite. [PIPELINE.md](PIPELINE.md) lists what counts as which.
+
 ### Testing with recorded HTTP traffic
 
 Unit tests in frodo-lib replay recorded HTTP responses instead of calling a real environment, and consumers such as frodo-cli use the same machinery for their own tests. The [record and replay developer guide](RECORD_REPLAY.md) covers both the process-wide mechanism (`FRODO_MOCK`) that tools use and the in-process Jest helper (`autoSetupPolly()`, `FRODO_POLLY_MODE`) that frodo-lib's own tests use. Read it before changing anything in `src/utils/SetupPollyForFrodoLib.ts`, `src/utils/PollyUtils.ts` or `src/utils/AutoSetupPolly.ts`, and update it in the same PR.
@@ -181,4 +183,4 @@ Lasting decisions are written down in [decisions/](decisions/README.md) (decisio
 
 `AGENTS.md` at the repository root and the files in `.github/instructions/` give coding agents (GitHub Copilot and others) the short version of this guide: the build and test commands, the hard rules, and checklists that load when a matching file is edited. They link back here for the detail, so keep this guide current and treat those files as an index into it. When a rule changes, change it here first and then in the instruction file that points at it.
 
-Step-by-step procedures (build the library, record tests, write a decision record, review an agent's pull request) are skills in [.claude/skills/](.claude/skills), which Claude Code and the GitHub Copilot cloud agent load on demand. They link the rules above and never restate them.
+Step-by-step procedures (build the library, record tests, write a decision record, review an agent's pull request, change the CI pipeline) are skills in [.claude/skills/](.claude/skills), which Claude Code and the GitHub Copilot cloud agent load on demand. They link the rules above and never restate them.
