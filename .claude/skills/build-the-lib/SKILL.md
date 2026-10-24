@@ -124,3 +124,5 @@ Before you open a pull request run what Build and Test run: `npm run build`, `np
 - The build fails on a clean tree with Node 22 or later and the right directory name, and BUILD-ENV.md does not explain it.
 - A snapshot or recording changed and you cannot say why.
 - Your change needs a new package: `dependencies` stays empty and a shipped import goes in `devDependencies` (dependencies instruction file), which a maintainer should confirm.
+
+A scratch line that proves the guidance path (to be deleted).
