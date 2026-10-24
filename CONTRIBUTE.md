@@ -173,6 +173,10 @@ Adding support for another kind of platform object follows the same steps every 
 7. **Migration.** A removed or deprecated public function goes into the target major's section of [MIGRATION.md](MIGRATION.md), and the "Breaking changes and migration" summary in [.github/README.md](.github/README.md) stays short and links there.
 8. **Check.** `npm run check`, `npx tsc --noEmit` and `npm run test:only -- <Name>`.
 
+### Decision records
+
+Lasting decisions are written down in [decisions/](decisions/README.md) (decisions that span frodo-lib, frodo-cli and the Homebrew tap are in [rockcarver/frodo](https://github.com/rockcarver/frodo/tree/main/docs/decisions)). Accepted records are binding until a newer record supersedes them, so read the ones near your change, and when your pull request changes a decided behaviour, add a record or supersede one in the same pull request. `npm test` checks the records' front matter, sections and index. The folder is `decisions/` and not `docs/decisions/` because `docs/` here is regenerated typedoc output.
+
 ### Working with coding agents
 
 `AGENTS.md` at the repository root and the files in `.github/instructions/` give coding agents (GitHub Copilot and others) the short version of this guide: the build and test commands, the hard rules, and checklists that load when a matching file is edited. They link back here for the detail, so keep this guide current and treat those files as an index into it. When a rule changes, change it here first and then in the instruction file that points at it.
