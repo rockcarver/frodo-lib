@@ -22,8 +22,12 @@ const NOT_IN_GIT = ['dist', 'types', 'node_modules'];
 const PATH_LIKE =
   /^\.?[A-Za-z0-9_@-][A-Za-z0-9_.@-]*(?:\/[A-Za-z0-9_.@-]+)+\/?$/;
 const FILE_EXTENSION = /\.(?:md|json|mjs|cjs|mts|ts|js|ya?ml)$/;
-const UMBRELLA_RECORD =
-  /https:\/\/github\.com\/rockcarver\/frodo\/blob\/main\/docs\/decisions\/(\d{4}-[a-z0-9-]+\.md)/g;
+const UMBRELLA_URL =
+  /https:\/\/github\.com\/rockcarver\/frodo\/blob\/main\/docs\/decisions\//;
+const UMBRELLA_RECORD = new RegExp(
+  `${UMBRELLA_URL.source}(\\d{4}-[a-z0-9-]+\\.md)`,
+  'g'
+);
 const SECRET =
   /(ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,})/;
 const EMAIL =
@@ -206,6 +210,15 @@ function checkSkills(root: string): string[] {
       .matchAll(/decisions\/(\d{4})\b/g)) {
       if (!records.some((r) => r.startsWith(`${m[1]}-`))) {
         fail(`cites decisions/${m[1]}, which does not exist`);
+      }
+    }
+    for (const m of text.matchAll(/umbrella (?:decision|record) (\d{4})/g)) {
+      // Both repositories number their records from 0001: a bare number is ambiguous.
+      const linked = new RegExp(
+        `\\[[^\\]]*umbrella (?:decision|record) ${m[1]}[^\\]]*\\]\\(${UMBRELLA_URL.source}${m[1]}-`
+      );
+      if (!linked.test(text)) {
+        fail(`cites umbrella record ${m[1]} without linking it`);
       }
     }
     for (const m of text.matchAll(UMBRELLA_RECORD)) {
@@ -454,6 +467,31 @@ test('cited records must exist and umbrella records must be listed', () => {
       skill(SKILL({}, `See [it](${url}).\n`))(f);
     })
   ).toEqual([]);
+});
+test('an umbrella record is cited with a link, not a bare number', () => {
+  const url =
+    'https://github.com/rockcarver/frodo/blob/main/docs/decisions/0002-a-thing.md';
+  const listed = (body: string) => (f: Files) => {
+    f['AGENTS.md'] = `Procedures: do-things. ${url}\n`;
+    skill(SKILL({}, body))(f);
+  };
+  expect(check(listed(`See [umbrella decision 0002](${url}).\n`))).toEqual([]);
+  has(
+    check(listed(`See umbrella decision 0002 (${url}).\n`)),
+    'cites umbrella record 0002 without linking it'
+  );
+  has(
+    check(listed(`See [umbrella decision 0003](${url}).\n`)),
+    'cites umbrella record 0003 without linking it'
+  );
+  has(
+    check(
+      listed(
+        `See umbrella decision 0002 and [umbrella decision 0003](${url}).\n`
+      )
+    ),
+    'cites umbrella record 0002 without linking it'
+  );
 });
 test('skills are public: no credentials, e-mail addresses or tenant hosts', () => {
   has(check(skill(SKILL({}, `token ghp_${'a'.repeat(30)}\n`))), 'credential');

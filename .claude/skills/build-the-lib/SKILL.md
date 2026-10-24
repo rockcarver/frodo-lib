@@ -115,7 +115,7 @@ npm link ../frodo-lib
 - **Detect code changes**, then **Build**: `npm ci`, `npm run build`, `npm run doc` (output not committed), `npm run check`, a critical-level audit.
 - **Test (26, 24, 22)**: `npm test` directly and once more through a proxy, then `npm audit --omit=dev --audit-level high`; **Test gate** aggregates the matrix.
 - **Cross-Platform Tests**: a subset of the credential-file-permission tests on Linux, macOS and Windows; **Cross-Platform gate** aggregates them.
-- Release jobs only run when a maintainer starts the pipeline by hand (umbrella decision 0005, see AGENTS.md).
+- Release jobs only run when a maintainer starts the pipeline by hand ([umbrella decision 0005](https://github.com/rockcarver/frodo/blob/main/docs/decisions/0005-releases-are-started-by-a-maintainer-through-the-pipeline.md)).
 
 Before you open a pull request run what Build and Test run: `npm run build`, `npm run check`, `npx tsc --noEmit` and `npm test`.
 
