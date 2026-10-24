@@ -129,26 +129,28 @@ export type Authenticate = {
    *
    * - `idmAdminClient` (cloud built-in) answers 302 → cloud
    * - `idm-admin-ui` (ForgeOps built-in) answers 302 → forgeops
-   * - neither exists → classic (by elimination)
+   * - both answer 400 (neither client exists) → classic
+   * - anything else (no answer, a 404 or 403, an HTML page, both redirecting)
+   *   is inconclusive: `conclusive` is false and `deploymentType` is
+   *   'classic' only for backward compatibility
    *
    * A 302 means "client exists AND its registered redirect URI matches" —
    * the same clients with an unregistered redirect answer 400
    * `redirect_uri_mismatch`, and an unknown client answers 400
    * `invalid_client`. Verified live (2026-10-12) against a real AIC tenant
-   * (302/400) and a real ForgeOps deployment (400/302); classic follows
-   * from elimination exactly as `determineDeploymentType()`'s
-   * authenticated probe falls back to it.
+   * (302/400) and a real ForgeOps deployment (400/302). Classic is
+   * inferred from two 400 answers and has not been verified live.
    *
    * Intended for pre-auth flows: prompts and previews that want the
    * deployment type (realm map, cloud-only gating, help text) before any
    * login is possible — e.g. a host that appears on the command line or
    * via an env variable with no saved connection profile.
    *
-   * NOTE: reads nothing from `state` except the connection settings that
-   * shape the HTTP calls (allow-insecure, proxies, header overrides);
-   * never writes to it. Safe to call at any time.
+   * Each request times out after 8 seconds. NOTE: reads nothing from `state`
+   * except the connection settings that shape the HTTP calls (allow-insecure,
+   * proxies, header overrides); never writes to it. Safe to call at any time.
    * @param {string} host the AM base URL to probe, e.g. `https://cdk.iam.example.com/am`
-   * @returns {Promise<DeploymentTypeProbe>} the detected deployment type plus the raw per-client responses (for callers that want to log or branch on the evidence)
+   * @returns {Promise<DeploymentTypeProbe>} the detected deployment type, whether the evidence supports it (`conclusive`), plus the raw per-client responses (for callers that want to log or branch on the evidence)
    */
   probeDeploymentType(host: string): Promise<DeploymentTypeProbe>;
 };
@@ -286,8 +288,22 @@ export type UserSessionMetaType = AuthenticateSuccessResponse & {
  * `Authenticate.probeDeploymentType()`).
  */
 export type DeploymentTypeProbe = {
-  /** 'cloud' | 'forgeops' | 'classic' — classic by elimination. */
+  /**
+   * 'cloud' | 'forgeops' | 'classic'. 'classic' is also what an inconclusive
+   * probe returns, for backward compatibility: check `conclusive` before
+   * trusting it.
+   */
   deploymentType: string;
+  /**
+   * True when the evidence supports `deploymentType`: exactly one built-in
+   * client redirected to the login (cloud or forgeops), or both clients
+   * answered 400 (an AM that has neither built-in client: classic). False
+   * when the host did not answer or answered something that is not
+   * AM-shaped (404, 403, an HTML page, a redirect elsewhere, both clients
+   * redirecting). An unreachable or mistyped host is inconclusive, not
+   * classic.
+   */
+  conclusive: boolean;
   /** The raw per-client evidence the type was derived from. */
   responses: {
     /** Probe with the cloud built-in client (`idmAdminClient`). */
@@ -301,6 +317,10 @@ type MFAResult = {
   factor: string;
   supported: boolean;
 };
+
+// The probe is a pre-login convenience: an unreachable host should fail in
+// seconds, not after the 30 second default of the HTTP client.
+const PROBE_TIMEOUT_MS = 8000;
 
 let adminClientId = fidcClientId;
 
@@ -563,9 +583,11 @@ async function determineDeploymentType(state: State): Promise<string> {
  * `frodo.login.probeDeploymentType` —
  * see the `Authenticate.probe` doc for the full contract). Two parallel
  * POSTs to `/oauth2/authorize`, one per built-in admin client, no
- * cookie/CSRF; the 302 pattern identifies cloud/forgeops, everything
- * else is classic by elimination. Verified live 2026-10-12 against a
- * real AIC tenant (302/400) and a real ForgeOps deployment (400/302).
+ * cookie/CSRF; the 302 pattern identifies cloud/forgeops, two 400s are
+ * classic, and anything else (no answer, not AM-shaped) is inconclusive
+ * (`conclusive: false`). The cloud and ForgeOps signals were verified live
+ * 2026-10-12 against a real AIC tenant (302/400) and a real ForgeOps
+ * deployment (400/302); the classic 400/400 signal is not verified live.
  *
  * NOT a replacement for `determineDeploymentType()` — that runs
  * authenticated, inside the login flow, and also honors an explicitly
@@ -603,6 +625,7 @@ async function probeDeploymentType({
         data: bodyFormData,
         config: {
           maxRedirects: 0,
+          timeout: PROBE_TIMEOUT_MS,
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         },
         state,
@@ -629,30 +652,36 @@ async function probeDeploymentType({
   ]);
 
   let deploymentType = Constants.CLASSIC_DEPLOYMENT_TYPE_KEY;
+  let conclusive = false;
   if (idmAdminClient.redirected && !idmAdminUi.redirected) {
     deploymentType = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
+    conclusive = true;
     verboseMessage({
       message: theme(state).emphasis(`ForgeRock Identity Cloud`) + ` detected.`,
       state,
     });
   } else if (!idmAdminClient.redirected && idmAdminUi.redirected) {
     deploymentType = Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
+    conclusive = true;
     verboseMessage({
       message: theme(state).emphasis(`ForgeOps deployment`) + ` detected.`,
       state,
     });
-  } else {
+  } else if (idmAdminClient.status === 400 && idmAdminUi.status === 400) {
+    // an AM that knows neither built-in client answers both with 400
+    conclusive = true;
     verboseMessage({
       message: theme(state).emphasis(`Classic deployment`) + ` detected.`,
       state,
     });
   }
   debugMessage({
-    message: `AuthenticateOps.probeDeploymentType: end [type=${deploymentType}]`,
+    message: `AuthenticateOps.probeDeploymentType: end [type=${deploymentType}, conclusive=${conclusive}]`,
     state,
   });
   return {
     deploymentType,
+    conclusive,
     responses: { idmAdminClient, idmAdminUi },
   };
 }
