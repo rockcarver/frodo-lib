@@ -239,7 +239,12 @@ pushes attribute to the dispatching user, so the admin-role bypass covers
 release bot commits.
 
 **paths-ignore**: deliberately absent from `pull_request` triggers — a PR
-whose required checks never run could never merge.
+whose required checks never run could never merge. Docs-only and guidance-only
+PRs skip the long test matrix through the `Detect code changes` job instead
+(`.github/scripts/classify-changes.sh`), and a fast `Validate guidance` job
+still runs the tests that validate decision records, skills and the root
+Markdown files; `Test gate` waits for it. Details in
+[PIPELINE.md](PIPELINE.md).
 
 ---
 
@@ -280,4 +285,5 @@ whose required checks never run could never merge.
 | 2026-10-05 | Root type exports: `src/index.ts` re-exports all 120 cli-consumed data-model type names from the root entry; `./types/*` subpath deprecated (node10-resolution only, dies in TS 7) — removal planned for a future major                                             | #687            |
 | 2026-10-05 | `premajor` release-type option in pipeline dispatch (X.0.0-1 train for the next major; first exercised by the 5.0.0-1 release)                                                                                                                                      | #688            |
 | 2026-10-10 | Dependency-placement rule documented (§2.2): shipped-code imports go in `devDependencies` (inlined; tsup `noExternal`/tsdown `deps.alwaysBundle` are the force-inline escape hatches, never needed here) and `dependencies` stays empty — zero-dep design, empty audit surface. Confirmed as convention when cli #772 hit the inverse trap (`@inquirer/*` as dependencies → tsdown externalized → SEA `ERR_UNKNOWN_BUILTIN_MODULE`)                                                                                                   | cli #772 (doc)  |
+| 2026-10-24 | Code filter moved into `.github/scripts/classify-changes.sh`; records, skills and instruction files count as non-code and a fast `Validate guidance` job (gated into `Test gate`) validates them                                                                                                                                                                                                                                                                                                                                      | this PR         |
 | planned    | Polly→nock — DEFERRED (deep record-harness coupling; revisit on Node 28 or real breakage)                                                                                                                                                                           | —               |
