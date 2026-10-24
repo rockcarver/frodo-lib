@@ -126,3 +126,5 @@ Before you open a pull request run what Build and Test run: `npm run build`, `np
 - Your change needs a new package: `dependencies` stays empty and a shipped import goes in `devDependencies` (dependencies instruction file), which a maintainer should confirm.
 
 A scratch line that proves the guidance path (to be deleted).
+
+Run `npm run this-script-does-not-exist` (scratch error, to be deleted).
