@@ -420,6 +420,45 @@ export async function hasToken({
   }
 }
 
+/**
+ * Whether the cache holds a token of this type for the current host that
+ * readToken() would return: same location, same freshness rule (it must
+ * still have Constants.TOKEN_FRESHNESS_BUFFER_MS to live). Looks at the
+ * cache file only. It decrypts nothing, so it needs no master key and has no
+ * side effect; a token that passes may still fail to decrypt or be revoked
+ * by the server, which only the real read can tell.
+ * @param {object} params parameters object
+ * @param {tokenType} params.tokenType token type
+ * @param {State} params.state library state
+ * @returns {boolean} true if a fresh token of this type is cached for the current host
+ */
+export function hasFreshTokenEntry({
+  tokenType,
+  state,
+}: {
+  tokenType: tokenType;
+  state: State;
+}): boolean {
+  try {
+    const filename = getTokenCachePath({ state });
+    if (!fs.existsSync(filename)) return false;
+    const tokenCache: TokenCacheInterface = JSON.parse(
+      fs.readFileSync(filename, 'utf8')
+    );
+    const entries = get(tokenCache, [
+      getHostKey(state),
+      getRealmKey(),
+      getTypeKey(tokenType),
+      getSubjectKey(tokenType, state),
+    ]);
+    if (!entries) return false;
+    const exp = Math.max(...Object.keys(entries).map((k) => parseInt(k, 10)));
+    return exp - Date.now() > Constants.TOKEN_FRESHNESS_BUFFER_MS;
+  } catch {
+    return false;
+  }
+}
+
 export async function hasUserSessionToken({
   state,
 }: {

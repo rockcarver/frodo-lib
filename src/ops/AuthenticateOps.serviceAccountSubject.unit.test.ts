@@ -38,6 +38,7 @@ jest.unstable_mockModule('./JoseOps', () => ({
 // ./JoseOps — stubbing it out entirely avoids having to also replicate
 // its own JoseOps dependency surface.
 jest.unstable_mockModule('./ConnectionProfileOps', () => ({
+  findSavedConnectionTarget: () => undefined,
   getConnectionProfile: jest.fn(async () => {
     throw new Error('getConnectionProfile mock not configured');
   }),

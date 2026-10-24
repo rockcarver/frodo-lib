@@ -522,3 +522,225 @@ describe('getTokens() reuses a cached browser-login session instead of a fresh i
     expect(runInteractiveAuthorizationCodeFlow).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('a cached browser-login session is found whatever the command line named the host', () => {
+  const promptHandler = jest.fn(async () => {});
+  const URL_HOST = 'https://openam-session-reuse.example.com/am';
+  let cachePath: string;
+  let profilesPath: string;
+
+  beforeAll(() => {
+    fs.mkdirSync(TMP_DIR, { recursive: true });
+    fs.writeFileSync(resolve(TMP_DIR, 'masterkey.key'), 'test-master-key');
+  });
+
+  afterAll(() => {
+    fs.rmSync(TMP_DIR, { recursive: true, force: true });
+  });
+
+  beforeEach(() => {
+    runInteractiveAuthorizationCodeFlow.mockReset();
+    getTokenInfo.mockReset();
+    authorize.mockReset();
+    cachePath = resolve(TMP_DIR, `${Math.random()}.TokenCache.json`);
+    profilesPath = resolve(TMP_DIR, `${Math.random()}.Connections.json`);
+  });
+
+  const loginResult = (expiresInMs = 1_800_000) => ({
+    access_token: fakeAccessTokenJwt('jdoe'),
+    token_type: 'Bearer',
+    scope: 'fr:idm:*',
+    expires_in: expiresInMs / 1000,
+    expires: Date.now() + expiresInMs,
+  });
+
+  /** A first login against the full URL puts a session in the cache. */
+  async function seedSession(expiresInMs?: number) {
+    runInteractiveAuthorizationCodeFlow.mockResolvedValueOnce(
+      loginResult(expiresInMs)
+    );
+    await getTokens({
+      state: freshState({ cachePath, deploymentType: 'cloud' }),
+      autoRefresh: false,
+      promptHandler,
+    });
+    runInteractiveAuthorizationCodeFlow.mockClear();
+  }
+
+  /** A later invocation: same cache, nothing but a host on the command line. */
+  function laterState(host: string, authMode?: 'interactive') {
+    const state = StateImpl({ host });
+    state.setUseTokenCache(true);
+    state.setTokenCachePath(cachePath);
+    state.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+    state.setConnectionProfilesPath(profilesPath);
+    if (authMode) state.setAuthMode(authMode);
+    state.setBrowserLoginClientId('my-browser-client');
+    return state;
+  }
+
+  async function saveProfile(deploymentType?: string, alias?: string) {
+    const { saveConnectionProfile } = await import('./ConnectionProfileOps');
+    const state = laterState(URL_HOST);
+    if (deploymentType) state.setDeploymentType(deploymentType);
+    if (alias) state.setAlias(alias);
+    await saveConnectionProfile({ host: URL_HOST, state });
+  }
+
+  const probeAsCloud = () =>
+    authorize.mockImplementation(async (args: any) => {
+      const clientId = String(args.data.match(/client_id=([^&]+)/)?.[1]);
+      throw {
+        response:
+          clientId === 'idmAdminClient'
+            ? { status: 302, headers: { location: `${URL_HOST}/UI/Login` } }
+            : { status: 400, headers: {} },
+      };
+    });
+
+  test('1: --browser with an alias and no --type reuses the session cached under the full URL, without a probe', async () => {
+    await seedSession();
+    await saveProfile('cloud', 'reuse-alias');
+
+    const tokens = await getTokens({
+      state: laterState('reuse-alias', 'interactive'),
+      autoRefresh: false,
+      promptHandler,
+    });
+
+    expect(tokens.subject).toBe('jdoe');
+    expect(tokens.host).toBe(URL_HOST);
+    expect(runInteractiveAuthorizationCodeFlow).not.toHaveBeenCalled();
+    expect(authorize).not.toHaveBeenCalled();
+  });
+
+  test('2: --browser with the full URL, no profile and no --type learns the type by probe and reuses the session', async () => {
+    await seedSession();
+    probeAsCloud();
+
+    const tokens = await getTokens({
+      state: laterState(URL_HOST, 'interactive'),
+      autoRefresh: false,
+      promptHandler,
+    });
+
+    expect(tokens.subject).toBe('jdoe');
+    expect(authorize).toHaveBeenCalledTimes(2);
+    expect(runInteractiveAuthorizationCodeFlow).not.toHaveBeenCalled();
+  });
+
+  test('3: --browser with no cached session probes for the type and then logs in', async () => {
+    probeAsCloud();
+    runInteractiveAuthorizationCodeFlow.mockResolvedValueOnce(loginResult());
+
+    const state = laterState(URL_HOST, 'interactive');
+    const tokens = await getTokens({
+      state,
+      autoRefresh: false,
+      promptHandler,
+    });
+
+    expect(tokens.subject).toBe('jdoe');
+    expect(state.getDeploymentType()).toBe('cloud');
+    expect(runInteractiveAuthorizationCodeFlow).toHaveBeenCalledTimes(1);
+  });
+
+  test('4: a command with no --browser and a saved profile without a type learns it by probe, but only because a session is cached', async () => {
+    await seedSession();
+    await saveProfile(undefined);
+    probeAsCloud();
+
+    const tokens = await getTokens({
+      state: laterState(URL_HOST),
+      autoRefresh: false,
+      promptHandler,
+    });
+
+    expect(tokens.subject).toBe('jdoe');
+    expect(authorize).toHaveBeenCalledTimes(2);
+    expect(runInteractiveAuthorizationCodeFlow).not.toHaveBeenCalled();
+  });
+
+  test('5: a command that has no cached session never pays for a probe', async () => {
+    await saveProfile(undefined);
+    probeAsCloud();
+
+    await expect(
+      getTokens({
+        state: laterState(URL_HOST),
+        autoRefresh: false,
+        promptHandler,
+      })
+    ).rejects.toBeDefined();
+
+    expect(authorize).not.toHaveBeenCalled();
+  });
+
+  test('6: --credential browser with an alias finds the cached session', async () => {
+    await seedSession();
+    await saveProfile('cloud', 'reuse-alias');
+
+    const tokens = await getTokens({
+      state: laterState('reuse-alias'),
+      autoRefresh: false,
+      credentialOverride: 'browser',
+      promptHandler,
+    });
+
+    expect(tokens.subject).toBe('jdoe');
+    expect(runInteractiveAuthorizationCodeFlow).not.toHaveBeenCalled();
+  });
+
+  describe('hasCachedBrowserSession()', () => {
+    const check = (host: string, state = laterState('unused')) =>
+      AuthenticateOpsFacade(state).hasCachedBrowserSession(host);
+    let AuthenticateOpsFacade: any;
+    beforeAll(async () => {
+      AuthenticateOpsFacade = (await import('./AuthenticateOps')).default;
+    });
+
+    test('7: true for a fresh session, by URL, alias or substring, and it changes nothing on the state', async () => {
+      await seedSession();
+      await saveProfile('cloud', 'reuse-alias');
+      const state = laterState('unused');
+
+      expect(check(URL_HOST, state)).toBe(true);
+      expect(check('reuse-alias', state)).toBe(true);
+      expect(check('session-reuse', state)).toBe(true);
+      expect(state.getHost()).toBe('unused');
+      expect(state.getDeploymentType()).toBeUndefined();
+    });
+
+    test('8: false without a cache, for another host and when caching is off', async () => {
+      expect(check(URL_HOST)).toBe(false);
+      await seedSession();
+      expect(check('https://openam-other.example.com/am')).toBe(false);
+      const off = laterState('unused');
+      off.setUseTokenCache(false);
+      expect(check(URL_HOST, off)).toBe(false);
+    });
+
+    test('9: a session with less than 30 seconds left does not count, one with more does', async () => {
+      await seedSession(20_000);
+      expect(check(URL_HOST)).toBe(false);
+      await seedSession(120_000);
+      expect(check(URL_HOST)).toBe(true);
+    });
+
+    test('10: agrees with the real cache read about the 30 second headroom', async () => {
+      const { readToken } = await import('./TokenCacheOps');
+      await seedSession(20_000);
+      const stale = laterState(URL_HOST);
+      expect(check(URL_HOST, stale)).toBe(false);
+      await expect(
+        readToken({ tokenType: 'browserUserBearer', state: stale })
+      ).rejects.toBeDefined();
+      await seedSession(120_000);
+      const fresh = laterState(URL_HOST);
+      expect(check(URL_HOST, fresh)).toBe(true);
+      await expect(
+        readToken({ tokenType: 'browserUserBearer', state: fresh })
+      ).resolves.toBeDefined();
+    });
+  });
+});

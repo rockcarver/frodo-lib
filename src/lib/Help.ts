@@ -970,6 +970,16 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<DeploymentTypeProbe>} the detected deployment type, whether the evidence supports it (`conclusive`), plus the raw per-client responses (for callers that want to log or branch on the evidence)",
   },
   {
+    typeName: "Authenticate",
+    methodName: "hasCachedBrowserSession",
+    signature: "hasCachedBrowserSession(host: string): boolean",
+    description: "Whether a browser-login session is cached for the host and would be reused: the cache holds one for the host's full URL (an alias or a unique substring of a saved profile is resolved to it) that is still fresh, with the same 30 seconds of headroom the cache read requires. Reads the local cache file only: no network call, nothing decrypted, nothing written to `state`. A session that passes can still be refused by the server later; `getTokens()` then falls back to its own login. Intended for callers that decide whether a command still needs input (a prompt, a connection form) before they log in.",
+    params: [
+      { name: "host", type: "string", description: "host URL, unique substring or alias of a saved connection profile", required: true },
+    ],
+    returns: "{boolean} true if a fresh browser-login session is cached for the host",
+  },
+  {
     typeName: "AuthenticationSettings",
     methodName: "readAuthenticationSettings",
     signature: "readAuthenticationSettings( globalConfig: boolean ): Promise<AuthenticationSettingsSkeleton>",

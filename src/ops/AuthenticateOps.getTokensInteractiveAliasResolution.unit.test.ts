@@ -73,6 +73,20 @@ jest.unstable_mockModule('./UserOps', () => ({
   readUser,
 }));
 
+// With no type from the caller or a saved profile, browser login asks the
+// anonymous probe; this host does not answer, which is inconclusive.
+const authorize = jest.fn(async (_args?: any): Promise<any> => {
+  throw new Error('getaddrinfo ENOTFOUND');
+});
+jest.unstable_mockModule('./OAuth2OidcOps', () => ({
+  authorize,
+  accessToken: jest.fn(),
+  accessTokenRfc7523AuthZGrant: jest.fn(),
+  deviceAuthorizationRequest: jest.fn(),
+  getTokenInfo: jest.fn(),
+  clientCredentialsGrant: jest.fn(),
+}));
+
 // ConnectionProfileOps.ts is deliberately NOT mocked here — this test needs
 // the real save/load round trip and the real alias/substring matching in
 // findConnectionProfiles().
@@ -259,7 +273,7 @@ describe('getTokensInteractive() resolves a non-URL host before use', () => {
     expect(invocationState.getDeploymentType()).toBe('cloud');
   });
 
-  test('6: an already-full URL with no saved profile and no explicit type still fails clearly', async () => {
+  test('6: an already-full URL with no saved profile, no explicit type and an inconclusive probe still fails clearly', async () => {
     const invocationState = StateImpl({
       host: 'https://openam-no-profile-no-type.forgeblocks.com/am',
     });
@@ -274,7 +288,154 @@ describe('getTokensInteractive() resolves a non-URL host before use', () => {
     }
     expect(caught).toBeDefined();
     expect(caught.originalErrors?.[0]?.message).toMatch(
-      /Browser login requires a known deployment type/
+      /could not determine the deployment type of https:\/\/openam-no-profile-no-type\.forgeblocks\.com\/am/
     );
+    expect(authorize).toHaveBeenCalledTimes(2);
+  });
+
+  const cloudAnswers = (clientId: string) => {
+    throw {
+      response:
+        clientId === 'idmAdminClient'
+          ? {
+              status: 302,
+              headers: {
+                location: 'https://x.example.com/am/UI/Login?realm=/',
+              },
+            }
+          : { status: 400, headers: {} },
+    };
+  };
+  const answerAs = (answer: (clientId: string) => never) =>
+    authorize.mockImplementation(async (args: any) =>
+      answer(String(args.data.match(/client_id=([^&]+)/)?.[1]))
+    );
+  const successfulLogin = () =>
+    runInteractiveAuthorizationCodeFlow.mockResolvedValueOnce({
+      access_token: fakeAccessTokenJwt('jdoe'),
+      token_type: 'Bearer',
+      scope: 'fr:am:* fr:idm:*',
+      expires_in: 1800,
+      expires: Date.now() + 1_800_000,
+    });
+
+  test('7: no type anywhere: the anonymous probe finds cloud and the login goes ahead', async () => {
+    authorize.mockReset();
+    answerAs(cloudAnswers);
+    successfulLogin();
+    const invocationState = StateImpl({
+      host: 'https://openam-probed.forgeblocks.com/am',
+    });
+    invocationState.setConnectionProfilesPath(connectionProfilesPath);
+    invocationState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+
+    await getTokensInteractive({ state: invocationState, promptHandler });
+
+    expect(authorize).toHaveBeenCalledTimes(2);
+    expect(invocationState.getDeploymentType()).toBe('cloud');
+    expect(runInteractiveAuthorizationCodeFlow).toHaveBeenCalledTimes(1);
+  });
+
+  test('8: an explicit type never probes', async () => {
+    authorize.mockReset();
+    successfulLogin();
+    const invocationState = StateImpl({
+      host: 'https://openam-explicit.forgeblocks.com/am',
+    });
+    invocationState.setConnectionProfilesPath(connectionProfilesPath);
+    invocationState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+
+    await getTokensInteractive({
+      state: invocationState,
+      deploymentType: 'cloud',
+      promptHandler,
+    });
+
+    expect(authorize).not.toHaveBeenCalled();
+  });
+
+  test("9: a full URL finds its saved profile: the profile's type is used and the probe is not", async () => {
+    const saveState = StateImpl({ host });
+    saveState.setConnectionProfilesPath(connectionProfilesPath);
+    saveState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+    saveState.setDeploymentType('cloud');
+    await saveConnectionProfile({ host, state: saveState });
+    authorize.mockReset();
+    successfulLogin();
+
+    const invocationState = StateImpl({ host });
+    invocationState.setConnectionProfilesPath(connectionProfilesPath);
+    invocationState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+
+    await getTokensInteractive({ state: invocationState, promptHandler });
+
+    expect(invocationState.getDeploymentType()).toBe('cloud');
+    expect(authorize).not.toHaveBeenCalled();
+  });
+
+  test("10: the saved profile's connection settings are adopted, its credentials are not", async () => {
+    const insecureHost = 'https://openam-insecure.forgeblocks.com/am';
+    const saveState = StateImpl({ host: insecureHost });
+    saveState.setConnectionProfilesPath(connectionProfilesPath);
+    saveState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+    saveState.setDeploymentType('cloud');
+    saveState.setAllowInsecureConnection(true);
+    saveState.setAuthenticationHeaderOverrides({ 'X-Gateway': 'ok' });
+    saveState.setUsername('saved.user');
+    saveState.setPassword('saved-password');
+    await saveConnectionProfile({ host: insecureHost, state: saveState });
+    successfulLogin();
+
+    const invocationState = StateImpl({ host: insecureHost });
+    invocationState.setConnectionProfilesPath(connectionProfilesPath);
+    invocationState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+
+    await getTokensInteractive({ state: invocationState, promptHandler });
+
+    expect(invocationState.getAllowInsecureConnection()).toBe(true);
+    expect(invocationState.getAuthenticationHeaderOverrides()).toEqual({
+      'X-Gateway': 'ok',
+    });
+    expect(invocationState.getPassword()).toBeUndefined();
+  });
+
+  test('11: classic is chosen only when the probe is conclusive', async () => {
+    // both clients answer 400: an AM without the built-in clients
+    authorize.mockReset();
+    answerAs(() => {
+      throw { response: { status: 400, headers: {} } };
+    });
+    const conclusive = StateImpl({
+      host: 'https://openam-classic.example.com/am',
+    });
+    conclusive.setConnectionProfilesPath(connectionProfilesPath);
+    conclusive.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+    await getTokensInteractive({ state: conclusive, promptHandler }).catch(
+      () => undefined
+    );
+    expect(conclusive.getDeploymentType()).toBe('classic');
+
+    // a 404 everywhere: not an AM, no type, a clear error
+    authorize.mockReset();
+    answerAs(() => {
+      throw { response: { status: 404, headers: {} } };
+    });
+    const inconclusive = StateImpl({
+      host: 'https://not-an-am.example.com/am',
+    });
+    inconclusive.setConnectionProfilesPath(connectionProfilesPath);
+    inconclusive.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+    await expect(
+      getTokensInteractive({ state: inconclusive, promptHandler })
+    ).rejects.toMatchObject({
+      originalErrors: [
+        expect.objectContaining({
+          message: expect.stringMatching(
+            /could not determine the deployment type/
+          ),
+        }),
+      ],
+    });
+    expect(inconclusive.getDeploymentType()).toBeUndefined();
   });
 });

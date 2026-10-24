@@ -2983,6 +2983,12 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     // to an agent, so excluded rather than classified.
     excluded: true,
   },
+  'login.hasCachedBrowserSession': {
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Reads the local token cache file only: whether a fresh browser-login session is cached for a host. No network call, nothing decrypted, no state written.',
+  },
   'login.probeDeploymentType': {
     mutating: false,
     riskClass: 'low',

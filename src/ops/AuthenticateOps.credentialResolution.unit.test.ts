@@ -9,6 +9,7 @@ const saveConnectionProfile = jest.fn(
 );
 
 jest.unstable_mockModule('./ConnectionProfileOps', () => ({
+  findSavedConnectionTarget: () => undefined,
   getConnectionProfile,
   loadConnectionProfile,
   saveConnectionProfile,
