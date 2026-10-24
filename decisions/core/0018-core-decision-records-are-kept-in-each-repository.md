@@ -15,25 +15,25 @@ repos:
 
 ## Context and problem statement
 
-Decisions that bind more than one repository were recorded once, in the umbrella repository rockcarver/frodo. That repository holds no code, is seldom opened and has no branch protection, although it held the rules that matter most (core 0002, 0012, 0017). The Repo Concierge's gates read one repository only, so every repository also restated each umbrella record in a one-sentence table. A decision across two repositories took three pull requests, and nothing could check the links between them.
+Sixteen of the first seventeen cross-repository records bind both frodo-cli and frodo-lib. They lived in the umbrella repository rockcarver/frodo, which holds no code, is rarely opened and has no required checks. The Repo Concierge's gates read only the repository they run in, so each repository also restated every record in one sentence, and one cross-repository decision took three pull requests.
 
 ## Decision
 
-- A decision that binds more than one repository is written once as a file in `core/` of every repository it binds: `docs/decisions/core/` in frodo-cli, `decisions/core/` in frodo-lib. The file is identical in each. A decision about one repository stays in that repository's own records.
-- Core records are cited as "core NNNN" and linked by relative path. Their numbers count up from 0001 inside `core/`, are never reused and have no gaps. They are separate from the numbering of the repository's own records.
-- An accepted core record is not edited. A new core record supersedes it, and the status change is made in every repository in the same change set.
-- Each repository's decisions README lists the core records in its index with their `applies-to`, so the gates, which read one repository only, find them.
-- A weekly check compares `core/` in frodo-cli and frodo-lib and fails on any difference or missing file.
-- The umbrella repository rockcarver/frodo is archived. It stays readable as the history of core 0001 to 0017.
-- This partly supersedes core 0003: only its sentence saying that decisions spanning repositories live in the umbrella repository. Every other rule of core 0003 stands.
+- A decision that binds more than one repository is a core record: one file in the `core/` folder of every repository it binds (`docs/decisions/core/` in frodo-cli, `decisions/core/` in frodo-lib; the Homebrew tap holds the ones that bind it), with the same name and the same text in each.
+- Cite a core record as "core NNNN", never as "NNNN" alone: each repository's own records have their own numbers. The index of each repository lists the core records with their `applies-to`.
+- Numbers inside `core/` count up from 0001, are never reused and have no gaps. A new core record takes the next free number in every repository, in one pull request per repository.
+- Accepted core records are not edited. A new core record supersedes an old one; the old one's status line is the only change, and it is made in every repository.
+- A weekly check compares each repository's `core/` with its sibling's and fails the run on a missing file or a difference. It opens no issues.
+- The umbrella repository rockcarver/frodo is archived. Its records stay readable there as history and are not updated.
+- This record supersedes one sentence of core 0003, the one that says decisions spanning repositories live in the umbrella repository. The rest of core 0003 stays in force, and so does its status.
 
 ## Consequences
 
-- A core record costs one pull request per repository it binds, with the same file in each.
-- Core 0001 to 0017 were copied from the umbrella without change, including their mentions of the umbrella. Read those as history.
-- Core 0008 binds frodo-cli and the Homebrew tap, not frodo-lib. It is kept in both code repositories so that the two folders stay identical.
+- A cross-repository decision costs one pull request in each repository instead of three, and the gates, the validators and the skills read the full record next to the code.
+- The two repositories can differ between the merge of one pull request and the merge of its pair. The weekly check finds a pair that stays apart, so merge the two pull requests together.
+- Records that cite "umbrella NNNN" keep working through the archived repository. New text says "core NNNN" and links the local file.
+- A repository that starts using core records copies the whole `core/` folder and adds the index.
 
 ## Alternatives considered
 
-- Keep the umbrella as the only copy: the gates cannot read it, and it needs its own protection and upkeep for the sake of a few files.
-- Keep the umbrella and mirror it into each repository by automation: more machinery, and the dormant repository stays a dependency.
+Keep the umbrella repository as the single home: no copies, but a dormant repository without required checks would hold the strongest rules, and the gates cannot read it. Mirror the umbrella into each repository automatically: the full text everywhere, but a sync workflow to build and a dormant repository to keep.
