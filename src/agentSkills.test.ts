@@ -107,6 +107,13 @@ function checkSkills(root: string): string[] {
   const agents = fs.existsSync(agentsFile)
     ? fs.readFileSync(agentsFile, 'utf8')
     : '';
+  // The "Decisions that span repositories" table of decisions/README.md
+  // states every umbrella record that binds this repository (the gates read
+  // this repository only), so a skill may link any of them.
+  const readmeFile = path.join(root, 'decisions', 'README.md');
+  const decisionsReadme = fs.existsSync(readmeFile)
+    ? fs.readFileSync(readmeFile, 'utf8')
+    : '';
   const recordsDir = path.join(root, 'decisions');
   const records = fs.existsSync(recordsDir) ? fs.readdirSync(recordsDir) : [];
 
@@ -222,9 +229,9 @@ function checkSkills(root: string): string[] {
       }
     }
     for (const m of text.matchAll(UMBRELLA_RECORD)) {
-      if (!agents.includes(m[0])) {
+      if (!agents.includes(m[0]) && !decisionsReadme.includes(m[0])) {
         fail(
-          `links the umbrella record ${m[1]}, which AGENTS.md does not list`
+          `links the umbrella record ${m[1]}, which neither AGENTS.md nor decisions/README.md lists`
         );
       }
     }
@@ -459,11 +466,17 @@ test('cited records must exist and umbrella records must be listed', () => {
     'https://github.com/rockcarver/frodo/blob/main/docs/decisions/0002-a-thing.md';
   has(
     check(skill(SKILL({}, `See [it](${url}).\n`))),
-    'which AGENTS.md does not list'
+    'which neither AGENTS.md nor decisions/README.md lists'
   );
   expect(
     check((f) => {
       f['AGENTS.md'] = `Procedures: do-things. ${url}\n`;
+      skill(SKILL({}, `See [it](${url}).\n`))(f);
+    })
+  ).toEqual([]);
+  expect(
+    check((f) => {
+      f['decisions/README.md'] = `| [0002](${url}) | A rule. | accepted |\n`;
       skill(SKILL({}, `See [it](${url}).\n`))(f);
     })
   ).toEqual([]);
