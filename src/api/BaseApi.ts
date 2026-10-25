@@ -18,6 +18,7 @@ import StateImpl, { AmCredentialOverride, State } from '../shared/State';
 import { getUserAgent } from '../shared/Version';
 import { curlirizeMessage, printMessage } from '../utils/Console';
 import { mergeDeep } from '../utils/JsonUtils';
+import { attachNameResolutionDiagnosis } from '../utils/NetworkDiagnosisUtils';
 import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
 
 export type ResourceConfig = { apiVersion?: string };
@@ -141,6 +142,17 @@ function createAxiosInstance(
   if (!!globalRetryConfig || !!requestRetryConfig) {
     axiosRetry(axiosInstance, requestRetryConfig ?? globalRetryConfig);
   }
+
+  // A host name that cannot be resolved says only ENOTFOUND, whether the name is
+  // mistyped, DNS is down or the process may not use the network at all. Added
+  // after axios-retry's handler, so it runs once the retries are over.
+  axiosInstance.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      await attachNameResolutionDiagnosis(error);
+      return Promise.reject(error);
+    }
+  );
 
   return axiosInstance;
 }
