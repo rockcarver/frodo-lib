@@ -2983,11 +2983,17 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     // to an agent, so excluded rather than classified.
     excluded: true,
   },
+  'login.hasCachedBrowserSession': {
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Reads the local token cache file only: whether a fresh browser-login session is cached for a host. No network call, nothing decrypted, no state written.',
+  },
   'login.probeDeploymentType': {
     mutating: false,
     riskClass: 'low',
     notes:
-      'Anonymous pre-auth probe of an AM host: two unauthenticated POSTs to /oauth2/authorize (the built-in admin client ids) to classify the deployment type (cloud/forgeops/classic). No credentials sent, no token returned, no state written — reads only publicly reachable endpoint behavior.',
+      'Anonymous pre-auth probe of an AM host: two unauthenticated POSTs to /oauth2/authorize (the built-in admin client ids) to classify the deployment type (cloud/forgeops/classic), with a `conclusive` flag that is false when the host did not answer or is not an AM. No credentials sent, no token returned, no state written — reads only publicly reachable endpoint behavior.',
   },
 
   'am.config.createConfigEntityExportTemplate': {

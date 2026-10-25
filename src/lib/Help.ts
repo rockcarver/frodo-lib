@@ -963,11 +963,21 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Authenticate",
     methodName: "probeDeploymentType",
     signature: "probeDeploymentType(host: string): Promise<DeploymentTypeProbe>",
-    description: "Anonymous deployment-type probe: identifies the deployment type of a host WITHOUT any credentials or session — two POSTs to `/oauth2/authorize` with the built-in admin client ids (no cookie, no CSRF token) and elimination: - `idmAdminClient` (cloud built-in) answers 302 → cloud - `idm-admin-ui` (ForgeOps built-in) answers 302 → forgeops - neither exists → classic (by elimination) A 302 means \"client exists AND its registered redirect URI matches\" — the same clients with an unregistered redirect answer 400 `redirect_uri_mismatch`, and an unknown client answers 400 `invalid_client`. Verified live (2026-10-12) against a real AIC tenant (302/400) and a real ForgeOps deployment (400/302); classic follows from elimination exactly as `determineDeploymentType()`'s authenticated probe falls back to it. Intended for pre-auth flows: prompts and previews that want the deployment type (realm map, cloud-only gating, help text) before any login is possible — e.g. a host that appears on the command line or via an env variable with no saved connection profile. NOTE: reads nothing from `state` except the connection settings that shape the HTTP calls (allow-insecure, proxies, header overrides); never writes to it. Safe to call at any time.",
+    description: "Anonymous deployment-type probe: identifies the deployment type of a host WITHOUT any credentials or session — two POSTs to `/oauth2/authorize` with the built-in admin client ids (no cookie, no CSRF token) and elimination: - `idmAdminClient` (cloud built-in) answers 302 → cloud - `idm-admin-ui` (ForgeOps built-in) answers 302 → forgeops - both answer 400 (neither client exists) → classic - anything else (no answer, a 404 or 403, an HTML page, both redirecting) is inconclusive: `conclusive` is false and `deploymentType` is 'classic' only for backward compatibility A 302 means \"client exists AND its registered redirect URI matches\" — the same clients with an unregistered redirect answer 400 `redirect_uri_mismatch`, and an unknown client answers 400 `invalid_client`. Verified live (2026-10-12) against a real AIC tenant (302/400) and a real ForgeOps deployment (400/302). Classic is inferred from two 400 answers and has not been verified live. Intended for pre-auth flows: prompts and previews that want the deployment type (realm map, cloud-only gating, help text) before any login is possible — e.g. a host that appears on the command line or via an env variable with no saved connection profile. Each request times out after 8 seconds. NOTE: reads nothing from `state` except the connection settings that shape the HTTP calls (allow-insecure, proxies, header overrides); never writes to it. Safe to call at any time.",
     params: [
       { name: "host", type: "string", description: "the AM base URL to probe, e.g. `https://cdk.iam.example.com/am`", required: true },
     ],
-    returns: "{Promise<DeploymentTypeProbe>} the detected deployment type plus the raw per-client responses (for callers that want to log or branch on the evidence)",
+    returns: "{Promise<DeploymentTypeProbe>} the detected deployment type, whether the evidence supports it (`conclusive`), plus the raw per-client responses (for callers that want to log or branch on the evidence)",
+  },
+  {
+    typeName: "Authenticate",
+    methodName: "hasCachedBrowserSession",
+    signature: "hasCachedBrowserSession(host: string): boolean",
+    description: "Whether a browser-login session is cached for the host and would be reused: the cache holds one for the host's full URL (an alias or a unique substring of a saved profile is resolved to it) that is still fresh, with the same 30 seconds of headroom the cache read requires. Reads the local cache file only: no network call, nothing decrypted, nothing written to `state`. A session that passes can still be refused by the server later; `getTokens()` then falls back to its own login. Intended for callers that decide whether a command still needs input (a prompt, a connection form) before they log in.",
+    params: [
+      { name: "host", type: "string", description: "host URL, unique substring or alias of a saved connection profile", required: true },
+    ],
+    returns: "{boolean} true if a fresh browser-login session is cached for the host",
   },
   {
     typeName: "AuthenticationSettings",

@@ -10,7 +10,9 @@
  *
  * - fidc client 302s, forgeops client doesn't -> cloud
  * - forgeops client 302s, fidc client doesn't -> forgeops
- * - neither 302s (both 400 invalid_client, or unreachable) -> classic
+ * - both clients answer 400 (invalid_client) -> classic
+ * - anything else (no answer, 404, 403, an HTML page, a redirect elsewhere,
+ *   both redirecting) -> inconclusive (`conclusive: false`)
  *
  * The 302-vs-400 signals themselves were verified live (2026-10-12)
  * against a real AIC tenant and a real ForgeOps deployment; these tests
@@ -71,6 +73,7 @@ describe('AuthenticateOps.probeDeploymentType (frodo.login.probeDeploymentType)'
       StateImpl({ host: HOST, useTokenCache: false })
     ).probeDeploymentType(HOST);
     expect(result.deploymentType).toBe('cloud');
+    expect(result.conclusive).toBe(true);
     expect(result.responses.idmAdminClient).toEqual({
       status: 302,
       redirected: true,
@@ -96,6 +99,7 @@ describe('AuthenticateOps.probeDeploymentType (frodo.login.probeDeploymentType)'
       StateImpl({ host: HOST, useTokenCache: false })
     ).probeDeploymentType(HOST);
     expect(result.deploymentType).toBe('forgeops');
+    expect(result.conclusive).toBe(true);
     expect(result.responses.idmAdminClient.redirected).toBe(false);
     expect(result.responses.idmAdminUi.redirected).toBe(true);
   });
@@ -107,11 +111,12 @@ describe('AuthenticateOps.probeDeploymentType (frodo.login.probeDeploymentType)'
       StateImpl({ host: HOST, useTokenCache: false })
     ).probeDeploymentType(HOST);
     expect(result.deploymentType).toBe('classic');
+    expect(result.conclusive).toBe(true);
     expect(result.responses.idmAdminClient.redirected).toBe(false);
     expect(result.responses.idmAdminUi.redirected).toBe(false);
   });
 
-  test('unreachable host: both probes fail without a response -> classic', async () => {
+  test('unreachable host: both probes fail without a response -> inconclusive', async () => {
     authorize.mockImplementationOnce(async () => {
       throw new Error('getaddrinfo ENOTFOUND');
     });
@@ -121,9 +126,89 @@ describe('AuthenticateOps.probeDeploymentType (frodo.login.probeDeploymentType)'
     const result = await AuthenticateOps(
       StateImpl({ host: HOST, useTokenCache: false })
     ).probeDeploymentType(HOST);
+    // still 'classic' for backward compatibility, but not to be trusted
     expect(result.deploymentType).toBe('classic');
+    expect(result.conclusive).toBe(false);
     expect(result.responses.idmAdminClient.status).toBeUndefined();
     expect(result.responses.idmAdminUi.status).toBeUndefined();
+  });
+
+  test.each([
+    ['both 404 (not an AM)', [404, 404]],
+    ['both 403 (a gateway or WAF)', [403, 403]],
+    ['one 400 and one 404', [400, 404]],
+  ])('inconclusive: %s', async (_name, statuses) => {
+    authorize.mockImplementationOnce(authorizeThrow(statuses[0]));
+    authorize.mockImplementationOnce(authorizeThrow(statuses[1]));
+    const result = await AuthenticateOps(
+      StateImpl({ host: HOST, useTokenCache: false })
+    ).probeDeploymentType(HOST);
+    expect(result.conclusive).toBe(false);
+  });
+
+  test('inconclusive: a 302 that does not go to the AM login (a captive portal)', async () => {
+    const elsewhere = () => {
+      throw {
+        response: {
+          status: 302,
+          headers: { location: 'https://portal.example.net/accept-terms' },
+        },
+      };
+    };
+    authorize.mockImplementationOnce(elsewhere);
+    authorize.mockImplementationOnce(elsewhere);
+    const result = await AuthenticateOps(
+      StateImpl({ host: HOST, useTokenCache: false })
+    ).probeDeploymentType(HOST);
+    expect(result.conclusive).toBe(false);
+  });
+
+  test('inconclusive: both clients redirect to the login', async () => {
+    const toLogin = () => {
+      throw {
+        response: {
+          status: 302,
+          headers: { location: `${HOST}/UI/Login?realm=/` },
+        },
+      };
+    };
+    authorize.mockImplementationOnce(toLogin);
+    authorize.mockImplementationOnce(toLogin);
+    const result = await AuthenticateOps(
+      StateImpl({ host: HOST, useTokenCache: false })
+    ).probeDeploymentType(HOST);
+    expect(result.conclusive).toBe(false);
+  });
+
+  test('conclusive: one client redirects even if the other call fails', async () => {
+    authorize
+      .mockImplementationOnce(async () => {
+        throw {
+          response: {
+            status: 302,
+            headers: { location: `${HOST}/UI/Login?realm=/` },
+          },
+        };
+      })
+      .mockImplementationOnce(async () => {
+        throw new Error('socket hang up');
+      });
+    const result = await AuthenticateOps(
+      StateImpl({ host: HOST, useTokenCache: false })
+    ).probeDeploymentType(HOST);
+    expect(result.deploymentType).toBe('cloud');
+    expect(result.conclusive).toBe(true);
+  });
+
+  test('each request times out after 8 seconds', async () => {
+    authorize.mockImplementationOnce(authorizeThrow(400));
+    authorize.mockImplementationOnce(authorizeThrow(400));
+    await AuthenticateOps(
+      StateImpl({ host: HOST, useTokenCache: false })
+    ).probeDeploymentType(HOST);
+    for (const call of authorize.mock.calls) {
+      expect((call[0] as any).config.timeout).toBe(8000);
+    }
   });
 
   test('requests are ANONYMOUS: no cookie header, csrf left empty', async () => {

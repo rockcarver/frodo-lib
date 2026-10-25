@@ -25,6 +25,7 @@ const saveConnectionProfile = jest.fn(
 );
 
 jest.unstable_mockModule('./ConnectionProfileOps', () => ({
+  findSavedConnectionTarget: () => undefined,
   getConnectionProfile,
   loadConnectionProfile,
   saveConnectionProfile,
@@ -38,6 +39,20 @@ const readUser = jest.fn(async (_args?: any): Promise<any> => ({}));
 
 jest.unstable_mockModule('./UserOps', () => ({
   readUser,
+}));
+
+// With no type from the command line or a saved profile, browser login now
+// asks the anonymous probe: a host that does not answer is inconclusive.
+const authorize = jest.fn(async (_args?: any): Promise<any> => {
+  throw new Error('getaddrinfo ENOTFOUND');
+});
+jest.unstable_mockModule('./OAuth2OidcOps', () => ({
+  authorize,
+  accessToken: jest.fn(),
+  accessTokenRfc7523AuthZGrant: jest.fn(),
+  deviceAuthorizationRequest: jest.fn(),
+  getTokenInfo: jest.fn(),
+  clientCredentialsGrant: jest.fn(),
 }));
 
 const { getTokens } = await import('./AuthenticateOps');
@@ -71,6 +86,7 @@ describe("getTokens()'s browser-login (authMode: 'interactive') branch", () => {
   test('1: Throws a clear error when no promptHandler is supplied', async () => {
     const state = StateImpl({
       host: 'https://openam-example.forgeblocks.com/am',
+      deploymentType: 'cloud',
     });
 
     const error = await getUnderlyingError(
@@ -87,17 +103,18 @@ describe("getTokens()'s browser-login (authMode: 'interactive') branch", () => {
     });
     const promptHandler = jest.fn(async () => {});
 
-    // No deploymentType is set on this bare state, so getTokensInteractive()
-    // itself will reject before ever reaching a real network call — that's
-    // fine, it still proves getTokens() actually attempted delegation
-    // rather than silently falling through to service-account/Amster/
-    // password credential resolution (none of which are configured here and
-    // would otherwise fail with a completely different error).
+    // No deploymentType is set on this bare state and the probe (mocked)
+    // gets no answer, so getTokensInteractive() itself rejects before ever
+    // reaching a real login — that's fine, it still proves getTokens()
+    // actually attempted delegation rather than silently falling through to
+    // service-account/Amster/password credential resolution (none of which
+    // are configured here and would otherwise fail with a completely
+    // different error).
     const error = await getUnderlyingError(
       getTokens({ state, autoRefresh: false, promptHandler })
     );
 
-    expect(error.message).toMatch(/known deployment type/);
+    expect(error.message).toMatch(/could not determine the deployment type/);
   });
 
   test('3: An authMode set to interactive before getTokens() is called (e.g. a CLI --browser flag) skips connection-profile lookup entirely, even for a brand-new host with no saved profile', async () => {
@@ -119,6 +136,6 @@ describe("getTokens()'s browser-login (authMode: 'interactive') branch", () => {
     // ever reaching the interactive branch.
     expect(loadConnectionProfile).not.toHaveBeenCalled();
     expect(getConnectionProfile).not.toHaveBeenCalled();
-    expect(error.message).toMatch(/known deployment type/);
+    expect(error.message).toMatch(/could not determine the deployment type/);
   });
 });

@@ -16,6 +16,7 @@ import { State } from '../shared/State';
 import { theme } from '../utils/ColorTheme';
 import { debugMessage, printMessage, verboseMessage } from '../utils/Console';
 import { isValidUrl, parseUrl } from '../utils/ExportImportUtils';
+import { mergeDeep } from '../utils/JsonUtils';
 import { decodeJwtPayload } from '../utils/JwtUtils';
 import { createPkcePair } from '../utils/PkceUtils';
 import {
@@ -41,6 +42,7 @@ import {
   SERVICE_ACCOUNT_DEFAULT_SCOPES,
 } from './cloud/ServiceAccountOps';
 import {
+  findSavedConnectionTarget,
   getConnectionProfile,
   loadConnectionProfile,
   saveConnectionProfile,
@@ -64,6 +66,7 @@ import { resolveAvailableScope } from './RequiredScopesOps';
 import { getSessionInfo } from './SessionOps';
 import {
   getRecordedSubject,
+  hasFreshTokenEntry,
   hasSaBearerToken,
   hasToken,
   hasUserBearerToken,
@@ -129,28 +132,45 @@ export type Authenticate = {
    *
    * - `idmAdminClient` (cloud built-in) answers 302 → cloud
    * - `idm-admin-ui` (ForgeOps built-in) answers 302 → forgeops
-   * - neither exists → classic (by elimination)
+   * - both answer 400 (neither client exists) → classic
+   * - anything else (no answer, a 404 or 403, an HTML page, both redirecting)
+   *   is inconclusive: `conclusive` is false and `deploymentType` is
+   *   'classic' only for backward compatibility
    *
    * A 302 means "client exists AND its registered redirect URI matches" —
    * the same clients with an unregistered redirect answer 400
    * `redirect_uri_mismatch`, and an unknown client answers 400
    * `invalid_client`. Verified live (2026-10-12) against a real AIC tenant
-   * (302/400) and a real ForgeOps deployment (400/302); classic follows
-   * from elimination exactly as `determineDeploymentType()`'s
-   * authenticated probe falls back to it.
+   * (302/400) and a real ForgeOps deployment (400/302). Classic is
+   * inferred from two 400 answers and has not been verified live.
    *
    * Intended for pre-auth flows: prompts and previews that want the
    * deployment type (realm map, cloud-only gating, help text) before any
    * login is possible — e.g. a host that appears on the command line or
    * via an env variable with no saved connection profile.
    *
-   * NOTE: reads nothing from `state` except the connection settings that
-   * shape the HTTP calls (allow-insecure, proxies, header overrides);
-   * never writes to it. Safe to call at any time.
+   * Each request times out after 8 seconds. NOTE: reads nothing from `state`
+   * except the connection settings that shape the HTTP calls (allow-insecure,
+   * proxies, header overrides); never writes to it. Safe to call at any time.
    * @param {string} host the AM base URL to probe, e.g. `https://cdk.iam.example.com/am`
-   * @returns {Promise<DeploymentTypeProbe>} the detected deployment type plus the raw per-client responses (for callers that want to log or branch on the evidence)
+   * @returns {Promise<DeploymentTypeProbe>} the detected deployment type, whether the evidence supports it (`conclusive`), plus the raw per-client responses (for callers that want to log or branch on the evidence)
    */
   probeDeploymentType(host: string): Promise<DeploymentTypeProbe>;
+  /**
+   * Whether a browser-login session is cached for the host and would be
+   * reused: the cache holds one for the host's full URL (an alias or a unique
+   * substring of a saved profile is resolved to it) that is still fresh,
+   * with the same 30 seconds of headroom the cache read requires. Reads the
+   * local cache file only: no network call, nothing decrypted, nothing
+   * written to `state`. A session that passes can still be refused by the
+   * server later; `getTokens()` then falls back to its own login.
+   *
+   * Intended for callers that decide whether a command still needs input
+   * (a prompt, a connection form) before they log in.
+   * @param {string} host host URL, unique substring or alias of a saved connection profile
+   * @returns {boolean} true if a fresh browser-login session is cached for the host
+   */
+  hasCachedBrowserSession(host: string): boolean;
 };
 
 export default (state: State): Authenticate => {
@@ -183,6 +203,9 @@ export default (state: State): Authenticate => {
     },
     async probeDeploymentType(host: string) {
       return probeDeploymentType({ host, state });
+    },
+    hasCachedBrowserSession(host: string) {
+      return hasCachedBrowserSession({ host, state });
     },
   };
 };
@@ -286,8 +309,22 @@ export type UserSessionMetaType = AuthenticateSuccessResponse & {
  * `Authenticate.probeDeploymentType()`).
  */
 export type DeploymentTypeProbe = {
-  /** 'cloud' | 'forgeops' | 'classic' — classic by elimination. */
+  /**
+   * 'cloud' | 'forgeops' | 'classic'. 'classic' is also what an inconclusive
+   * probe returns, for backward compatibility: check `conclusive` before
+   * trusting it.
+   */
   deploymentType: string;
+  /**
+   * True when the evidence supports `deploymentType`: exactly one built-in
+   * client redirected to the login (cloud or forgeops), or both clients
+   * answered 400 (an AM that has neither built-in client: classic). False
+   * when the host did not answer or answered something that is not
+   * AM-shaped (404, 403, an HTML page, a redirect elsewhere, both clients
+   * redirecting). An unreachable or mistyped host is inconclusive, not
+   * classic.
+   */
+  conclusive: boolean;
   /** The raw per-client evidence the type was derived from. */
   responses: {
     /** Probe with the cloud built-in client (`idmAdminClient`). */
@@ -301,6 +338,10 @@ type MFAResult = {
   factor: string;
   supported: boolean;
 };
+
+// The probe is a pre-login convenience: an unreachable host should fail in
+// seconds, not after the 30 second default of the HTTP client.
+const PROBE_TIMEOUT_MS = 8000;
 
 let adminClientId = fidcClientId;
 
@@ -563,9 +604,11 @@ async function determineDeploymentType(state: State): Promise<string> {
  * `frodo.login.probeDeploymentType` —
  * see the `Authenticate.probe` doc for the full contract). Two parallel
  * POSTs to `/oauth2/authorize`, one per built-in admin client, no
- * cookie/CSRF; the 302 pattern identifies cloud/forgeops, everything
- * else is classic by elimination. Verified live 2026-10-12 against a
- * real AIC tenant (302/400) and a real ForgeOps deployment (400/302).
+ * cookie/CSRF; the 302 pattern identifies cloud/forgeops, two 400s are
+ * classic, and anything else (no answer, not AM-shaped) is inconclusive
+ * (`conclusive: false`). The cloud and ForgeOps signals were verified live
+ * 2026-10-12 against a real AIC tenant (302/400) and a real ForgeOps
+ * deployment (400/302); the classic 400/400 signal is not verified live.
  *
  * NOT a replacement for `determineDeploymentType()` — that runs
  * authenticated, inside the login flow, and also honors an explicitly
@@ -603,6 +646,7 @@ async function probeDeploymentType({
         data: bodyFormData,
         config: {
           maxRedirects: 0,
+          timeout: PROBE_TIMEOUT_MS,
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         },
         state,
@@ -629,30 +673,36 @@ async function probeDeploymentType({
   ]);
 
   let deploymentType = Constants.CLASSIC_DEPLOYMENT_TYPE_KEY;
+  let conclusive = false;
   if (idmAdminClient.redirected && !idmAdminUi.redirected) {
     deploymentType = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
+    conclusive = true;
     verboseMessage({
       message: theme(state).emphasis(`ForgeRock Identity Cloud`) + ` detected.`,
       state,
     });
   } else if (!idmAdminClient.redirected && idmAdminUi.redirected) {
     deploymentType = Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
+    conclusive = true;
     verboseMessage({
       message: theme(state).emphasis(`ForgeOps deployment`) + ` detected.`,
       state,
     });
-  } else {
+  } else if (idmAdminClient.status === 400 && idmAdminUi.status === 400) {
+    // an AM that knows neither built-in client answers both with 400
+    conclusive = true;
     verboseMessage({
       message: theme(state).emphasis(`Classic deployment`) + ` detected.`,
       state,
     });
   }
   debugMessage({
-    message: `AuthenticateOps.probeDeploymentType: end [type=${deploymentType}]`,
+    message: `AuthenticateOps.probeDeploymentType: end [type=${deploymentType}, conclusive=${conclusive}]`,
     state,
   });
   return {
     deploymentType,
+    conclusive,
     responses: { idmAdminClient, idmAdminUi },
   };
 }
@@ -1924,7 +1974,9 @@ export async function getTokens({
   // browser-launching context of its own, so this only fires when the
   // caller supplies a promptHandler. Every other existing getTokens() caller
   // is unaffected, since they never set/load this authMode.
-  async function tryBrowserLogin(): Promise<Tokens | undefined> {
+  async function tryBrowserLogin(
+    phase: 'before-profile' | 'after-profile'
+  ): Promise<Tokens | undefined> {
     // Every successful exit below funnels through here so a browser-login
     // session — exactly the scope-limited tiers 4/5 item 21's hierarchy
     // cares about most — gets the same escalation ladder a non-interactive
@@ -1955,7 +2007,15 @@ export async function getTokens({
     // `preferredCredential: 'browser'`/legacy `authMode: 'interactive'`)
     // and falling straight through to the non-interactive priority chain.
     if (credentialOverride === 'browser') {
-      const reused = await tryReuseCachedBrowserSession({ state });
+      // The caller asked for the cached session by name, so look for it
+      // under the full host URL and the type the saved profile gives, not
+      // under an alias that no session was ever cached with. No saved
+      // profile or an ambiguous alias is no reason to fail differently.
+      adoptSavedBrowserLoginTarget({ state });
+      const reused = await tryReuseCachedBrowserSession({
+        state,
+        learnType: true,
+      });
       if (reused) {
         return withEscalation(reused);
       }
@@ -2001,7 +2061,16 @@ export async function getTokens({
       if (forceLoginAsUser) {
         return undefined;
       }
-      const reused = await tryReuseCachedBrowserSession({ state });
+      // Before the profile is loaded the type is usually unknown, and a hit
+      // here would skip loading the profile (log API key, header overrides).
+      // After it, an unknown type may be learned, unless the command line
+      // brought its own credentials, which a cached session must not beat.
+      const reused = await tryReuseCachedBrowserSession({
+        state,
+        learnType:
+          phase === 'after-profile' &&
+          (usingConnectionProfile || !hasExplicitCredentials(state)),
+      });
       return reused ? withEscalation(reused) : undefined;
     }
     // Unlike every other auth mode's own cache check (see e.g.
@@ -2009,6 +2078,10 @@ export async function getTokens({
     // itself — deliberately, since an explicit `frodo login` must always
     // perform a real login. This is the only place that shortcut belongs:
     // getTokens()'s implicit/silent path, used by every other command.
+    // The login target (full URL, type, connection settings) comes from the
+    // saved profile and, last, from an anonymous probe, so a session cached
+    // for this host is found whatever the command line named it.
+    await resolveBrowserLoginTarget({ state });
     const reused = await tryReuseCachedBrowserSession({ state });
     if (reused) {
       return withEscalation(reused);
@@ -2056,7 +2129,7 @@ export async function getTokens({
     // on a host never seen before), and attempting profile lookup first
     // would needlessly fail for it.
     {
-      const tokens = await tryBrowserLogin();
+      const tokens = await tryBrowserLogin('before-profile');
       if (tokens) return tokens;
     }
 
@@ -2137,7 +2210,7 @@ export async function getTokens({
     // its primary AM-domain access, so there's no need to pay for that
     // lookup's network call before launching an interactive flow.
     {
-      const tokens = await tryBrowserLogin();
+      const tokens = await tryBrowserLogin('after-profile');
       if (tokens) return tokens;
     }
 
@@ -2404,9 +2477,11 @@ export async function getTokens({
 
 export type BrowserLoginOptions = {
   /**
-   * Deployment type to authenticate against. Required — unlike `getTokens()`,
-   * there is no AM session yet at the start of a browser login for
-   * `determineDeploymentType()` to probe with, so it can't be auto-detected.
+   * Deployment type to authenticate against. Optional: when omitted it is the
+   * type already in `state`, then the one a saved connection profile for the
+   * host holds, then what the anonymous probe finds (only a conclusive
+   * answer counts; see `probeDeploymentType()`). Browser login fails with a
+   * clear error when none of them gives a type.
    */
   deploymentType?: string;
   /** Use the OAuth2 Device Authorization Grant instead of a loopback redirect. */
@@ -2796,6 +2871,148 @@ function buildBrowserTokenRefreshHandler({
 }
 
 /**
+ * Whether the state already carries a credential of its own (a username or
+ * password, a service account or an Amster key), whether the command line,
+ * the environment or a loaded connection profile gave it.
+ * @param {State} state library state
+ * @returns {boolean} true if the state holds a credential
+ */
+function hasExplicitCredentials(state: State): boolean {
+  return (
+    state.getUsername() != null ||
+    state.getPassword() != null ||
+    !!state.getServiceAccountId() ||
+    !!state.getServiceAccountJwk() ||
+    !!state.getAmsterPrivateKey()
+  );
+}
+
+/**
+ * Whether a fresh browser-login session is cached for the host. See
+ * `Authenticate.hasCachedBrowserSession()`.
+ * @param {object} params parameters object
+ * @param {string} params.host host URL, unique substring or alias
+ * @param {State} params.state library state
+ * @returns {boolean} true if a fresh browser-login session is cached for the host
+ */
+function hasCachedBrowserSession({
+  host,
+  state,
+}: {
+  host: string;
+  state: State;
+}): boolean {
+  if (!host || !state.getUseTokenCache()) return false;
+  const original = state.getHost();
+  try {
+    state.setHost(findSavedConnectionTarget({ host, state })?.tenant ?? host);
+    return hasFreshTokenEntry({ tokenType: 'browserUserBearer', state });
+  } finally {
+    state.setHost(original);
+  }
+}
+
+/**
+ * Adopts what the one saved profile matching the host says about where to
+ * log in: the full host URL (so an alias or a substring becomes the URL a
+ * session is cached under), the connection settings that shape the HTTP
+ * calls, and the deployment type when none is set yet. Never reads or adopts
+ * a credential: a browser login ignores the profile's configured ones. Does
+ * nothing when no single saved profile matches.
+ * @param {object} params parameters object
+ * @param {State} params.state library state
+ * @returns {string | undefined} the deployment type the saved profile holds, if any
+ */
+function adoptSavedBrowserLoginTarget({
+  state,
+}: {
+  state: State;
+}): string | undefined {
+  const saved = findSavedConnectionTarget({ host: state.getHost(), state });
+  if (!saved) return undefined;
+  state.setHost(saved.tenant);
+  if (
+    saved.allowInsecureConnection !== undefined &&
+    !state.getAllowInsecureConnection()
+  ) {
+    state.setAllowInsecureConnection(saved.allowInsecureConnection);
+  }
+  if (
+    saved.authenticationHeaderOverrides &&
+    Object.keys(saved.authenticationHeaderOverrides).length > 0
+  ) {
+    state.setAuthenticationHeaderOverrides(
+      mergeDeep(
+        state.getAuthenticationHeaderOverrides(),
+        saved.authenticationHeaderOverrides
+      )
+    );
+  }
+  if (!state.getDeploymentType() && saved.deploymentType) {
+    state.setDeploymentType(saved.deploymentType);
+  }
+  return saved.deploymentType;
+}
+
+/**
+ * Learns the deployment type of the host in `state` with the anonymous
+ * probe. Only a conclusive answer counts: a host that did not answer, or is
+ * not an AM, gives no type.
+ * @param {object} params parameters object
+ * @param {State} params.state library state
+ * @returns {Promise<string | undefined>} the deployment type, or undefined if the probe was inconclusive
+ */
+async function learnDeploymentTypeByProbe({
+  state,
+}: {
+  state: State;
+}): Promise<string | undefined> {
+  if (!isValidUrl(state.getHost())) return undefined;
+  const probe = await probeDeploymentType({ host: state.getHost(), state });
+  return probe.conclusive ? probe.deploymentType : undefined;
+}
+
+/**
+ * Resolves where a browser login goes and writes it to `state`: the full
+ * host URL and the connection settings from the saved profile (an alias or a
+ * substring becomes its URL; a full URL is looked up too), then the
+ * deployment type from, in this order, the explicit option, the type already
+ * in `state` (`--type`), the saved profile and the anonymous probe. Throws
+ * when no type can be established.
+ * @param {object} params parameters object
+ * @param {State} params.state library state
+ * @param {string} params.deploymentType explicit deployment type, if the caller has one
+ * @returns {Promise<string>} the deployment type
+ */
+async function resolveBrowserLoginTarget({
+  state,
+  deploymentType,
+}: {
+  state: State;
+  deploymentType?: string;
+}): Promise<string> {
+  let savedType = adoptSavedBrowserLoginTarget({ state });
+  if (!isValidUrl(state.getHost())) {
+    // an alias or a substring that matches no single profile: the lookup
+    // below throws the precise reason
+    const conn = await getConnectionProfile({ state });
+    state.setHost(conn.tenant);
+    savedType = conn.deploymentType;
+  }
+  let resolved = deploymentType || state.getDeploymentType() || savedType;
+  if (!resolved) {
+    resolved = await learnDeploymentTypeByProbe({ state });
+  }
+  if (!resolved) {
+    throw new FrodoError(
+      `Browser login could not determine the deployment type of ${state.getHost()}: pass --type cloud, forgeops or classic, or save a connection profile for this host with a deployment type set.`
+    );
+  }
+  state.setDeploymentType(resolved);
+  return resolved;
+}
+
+/**
  * On a cache hit, restores a previously-obtained browser-login session onto
  * `state` — re-running the exact same derived-state wiring
  * (`applyInteractiveToken`/`buildBrowserTokenRefreshHandler`) that a fresh
@@ -2808,7 +3025,7 @@ function buildBrowserTokenRefreshHandler({
  * Returns `undefined` on a miss — nothing cached, the cached bearer token
  * itself is stale (`readToken()` already enforces
  * `Constants.TOKEN_FRESHNESS_BUFFER_MS`), the deployment type isn't known
- * yet, or applying the restored token fails for any reason (e.g. a
+ * and can't be learned, or applying the restored token fails for any reason (e.g. a
  * session-capture AM session that's since been invalidated server-side) —
  * so the caller falls through to a real interactive login. Deliberately
  * never called from `getTokensInteractive()` itself: an explicit
@@ -2817,15 +3034,32 @@ function buildBrowserTokenRefreshHandler({
  */
 async function tryReuseCachedBrowserSession({
   state,
+  learnType = false,
 }: {
   state: State;
+  /**
+   * When the deployment type is not known, learn it with the anonymous probe
+   * if (and only if) a fresh browser session is cached for the host: the
+   * cache is found without the type, applying the token needs it.
+   */
+  learnType?: boolean;
 }): Promise<Tokens | undefined> {
   if (!state.getUseTokenCache()) {
     return undefined;
   }
-  const deploymentType = state.getDeploymentType();
+  let deploymentType = state.getDeploymentType();
   if (!deploymentType) {
-    return undefined;
+    if (
+      !learnType ||
+      !hasFreshTokenEntry({ tokenType: 'browserUserBearer', state })
+    ) {
+      return undefined;
+    }
+    deploymentType = await learnDeploymentTypeByProbe({ state });
+    if (!deploymentType) {
+      return undefined;
+    }
+    state.setDeploymentType(deploymentType);
   }
   let token: AccessTokenMetaType;
   try {
@@ -2906,32 +3140,21 @@ export async function getTokensInteractive({
       throw new FrodoError(`No host specified`);
     }
 
-    // Resolve an alias/unique-substring host (e.g. `frodo login myhost
-    // --browser`) to its full URL the same way getTokens()'s implicit path
-    // already does — but scoped to non-credential fields only. Unlike
-    // getTokens(), getTokensInteractive() is deliberately the "always do a
-    // real interactive login, ignore what's cached/configured" entry point,
-    // so this must not adopt the profile's saved *credential* fields
-    // (service account, username/password, etc.) the way getTokens() does.
-    // deploymentType is not a credential, though — it's structural metadata
-    // (which OAuth2 flow to run), so resolving it here doesn't compromise
-    // that contract, and it means a saved profile's deployment type covers
-    // `login --browser <alias>` the same way it already covers every other
-    // command instead of forcing a redundant --type on the command line.
-    let conn: Awaited<ReturnType<typeof getConnectionProfile>> | undefined;
-    if (!isValidUrl(state.getHost())) {
-      conn = await getConnectionProfile({ state });
-      state.setHost(conn.tenant);
-    }
-
-    const resolvedDeploymentType =
-      deploymentType || state.getDeploymentType() || conn?.deploymentType;
-    if (!resolvedDeploymentType) {
-      throw new FrodoError(
-        `Browser login requires a known deployment type: pass --type, or save a connection profile for this host with a deployment type set.`
-      );
-    }
-    state.setDeploymentType(resolvedDeploymentType);
+    // Resolve where to log in: the full URL and connection settings from the
+    // saved profile (an alias, a substring or the URL itself), then the
+    // deployment type from the explicit option, `--type`, the profile and
+    // last the anonymous probe. getTokensInteractive() is deliberately the
+    // "always do a real interactive login, ignore what's cached/configured"
+    // entry point, so none of the profile's *credentials* (service account,
+    // username/password, ...) are adopted the way getTokens() does. The
+    // deployment type is not a credential: it is structural metadata (which
+    // OAuth2 flow to run), so a saved profile's type covers `login --browser
+    // <alias or URL>` like every other command instead of forcing a
+    // redundant --type on the command line.
+    const resolvedDeploymentType = await resolveBrowserLoginTarget({
+      state,
+      deploymentType,
+    });
 
     let token: AccessTokenMetaType;
     // The real username already resolved during token application, if any

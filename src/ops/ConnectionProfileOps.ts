@@ -524,6 +524,57 @@ export async function initConnectionProfiles({ state }: { state: State }) {
 }
 
 /**
+ * The connection-shaping fields of the one saved profile that matches a host,
+ * for the login paths that must not read credentials: the full host URL, the
+ * deployment type, whether to allow an insecure connection and the
+ * authentication header overrides. Reads the profiles file only. It decrypts
+ * nothing and needs no master key.
+ * @param {string} host host url, unique substring, or alias
+ * @param {State} state library state
+ * @returns the fields, or undefined when there is no profiles file, no match, more than one match or the file cannot be read
+ */
+export function findSavedConnectionTarget({
+  host,
+  state,
+}: {
+  host: string;
+  state: State;
+}):
+  | {
+      tenant: string;
+      deploymentType?: string;
+      allowInsecureConnection?: boolean;
+      authenticationHeaderOverrides?: Record<string, string>;
+    }
+  | undefined {
+  if (!host) return undefined;
+  try {
+    const filename = getConnectionProfilesPath({ state });
+    if (!fs.statSync(filename, { throwIfNoEntry: false })) return undefined;
+    const profiles = findConnectionProfiles({
+      connectionProfiles: JSON.parse(fs.readFileSync(filename, 'utf8')),
+      host,
+      state,
+    });
+    if (profiles.length !== 1) return undefined;
+    const {
+      tenant,
+      deploymentType,
+      allowInsecureConnection,
+      authenticationHeaderOverrides,
+    } = profiles[0];
+    return {
+      tenant,
+      deploymentType,
+      allowInsecureConnection,
+      authenticationHeaderOverrides,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Get connection profile by host
  * @param {string} host host tenant, host url, unique substring, or alias
  * @param {State} state library state
