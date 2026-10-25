@@ -1,7 +1,7 @@
 import util from 'util';
 import { State } from '../../shared/State';
 import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
-import { generateEnvApi } from '../BaseApi';
+import { generateAmApi } from '../BaseApi';
 
 const serviceAccountScopes = '%s/environment/scopes/service-accounts';
 
@@ -34,16 +34,13 @@ export async function getServiceAccountScopes({
     serviceAccountScopes,
     getHostOnlyUrl(state.getHost())
   );
-  const { data } = await generateEnvApi({
+  // Not a public endpoint: without a credential it answers 401, and so does
+  // a browser login's primary token. It is an AM-domain call: a session
+  // login sends its cookie, a browser login the token exchanged for fr:am:*
+  // (the exchange's default when no scope is named). Before any credential
+  // exists (a service account's first login) no header is sent, as before.
+  const { data } = await generateAmApi({
     resource: getApiConfig(),
-    requestOverride: state.getCookieValue()
-      ? {
-          headers: {
-            Cookie: `${state.getCookieName()}=${state.getCookieValue()}`,
-          },
-        }
-      : undefined,
-    // Public discovery endpoint by design — no token/scope required.
     requiredScopes: [],
     state,
   }).get(urlString, {

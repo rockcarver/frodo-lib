@@ -5,15 +5,11 @@ import {
 import { State } from '../../shared/State';
 import { FrodoError } from '../FrodoError';
 
-// Deliberately given `requiredScopes: []` at the api layer
-// (api/cloud/EnvServiceAccountScopesApi.ts's call to generateEnvApi())
-// rather than a real scope. This is a public scope-catalog discovery
-// endpoint: `getServiceAccountScopes()` only conditionally attaches a
-// session cookie (when one already exists on `state`) and never attaches a
-// bearer token at all — by design, no token with scopes and no session are
-// required to call it. Confirmed by code inspection; not yet independently
-// confirmed against a live tenant that the endpoint truly accepts a fully
-// unauthenticated call.
+// The api layer (api/cloud/EnvServiceAccountScopesApi.ts) reads this catalog
+// with the AM-domain credential and no scope assertion: a session cookie, or
+// under browser login the token exchanged for fr:am:*. It answers 401 to a
+// call without a credential and to a browser login's primary token, as seen
+// against a live tenant.
 
 export type EnvServiceAccountScopes = {
   /**
