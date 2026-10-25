@@ -58,6 +58,9 @@ export type EntitySubInfo = {
   deployments?: string[];
   queryFilter?: string;
   action?: string;
+  // Identity Cloud answers every request for this entity in the root realm with 403 (never 200 in any
+  // recording of a cloud tenant). A full export that only lists the root realm skips it there.
+  deniedInCloudRootRealm?: boolean;
   // Some AM endpoints (e.g. /serverinfo/*, confirmed on PingOne Advanced
   // Identity Cloud) are only reachable unauthenticated -- PingOne AIC's edge
   // rejects the exact same request with a 400 the moment ANY Authorization

@@ -1,16 +1,6 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`ConfigOps Cloud Tests exportFullConfiguration() 1: Export everything with string arrays, decoding variables, including journey coordinates and default scripts 1`] = `
-"Error Exporting Social Identity Providers
-  Error exporting / realm providers
-    Error reading / realm providers
-      Network error:
-        URL: https://openam-frodo-dev.forgeblocks.com/am/json/realms/root/realm-config/services/SocialIdentityProviders?_action=nextdescendents
-        Status: 403
-        Code: ERR_BAD_REQUEST"
-`;
-
-exports[`ConfigOps Cloud Tests exportFullConfiguration() 1: Export everything with string arrays, decoding variables, including journey coordinates and default scripts 2`] = `
 {
   "global": {
     "agent": undefined,
@@ -71586,9 +71576,9 @@ Note that for required parameters that are not specified in the options will use
   "meta": Any<Object>,
   "realm": {
     "root": {
-      "agent": {},
-      "agentGroup": {},
-      "application": {},
+      "agent": undefined,
+      "agentGroup": undefined,
+      "application": undefined,
       "applicationTypes": {
         "authenticationApplicationType": {
           "_id": "authenticationApplicationType",
@@ -71639,7 +71629,7 @@ Note that for required parameters that are not specified in the options will use
           "searchIndex": "org.forgerock.openam.uma.UmaPolicySearchIndex",
         },
       },
-      "authentication": null,
+      "authentication": undefined,
       "conditionTypes": {
         "AMIdentityMembership": {
           "_id": "AMIdentityMembership",
@@ -77288,15 +77278,10 @@ Note that for required parameters that are not specified in the options will use
           "uuid": "d60b7a71-1dc6-44a5-8e48-e4b9d92dee8b",
         },
       },
-      "saml": {
-        "cot": {},
-        "hosted": {},
-        "metadata": {},
-        "remote": {},
-      },
+      "saml": undefined,
       "script": undefined,
-      "secretstore": {},
-      "service": {},
+      "secretstore": undefined,
+      "service": undefined,
       "subjectAttributes": {
         "undefined": "iplanet-am-user-login-status",
       },
@@ -78199,7 +78184,7 @@ Note that for required parameters that are not specified in the options will use
         },
       },
       "trees": undefined,
-      "trustedJwtIssuer": {},
+      "trustedJwtIssuer": undefined,
     },
     "root-alpha": {
       "agent": {},
@@ -106716,16 +106701,6 @@ Note that for required parameters that are not specified in the options will use
 `;
 
 exports[`ConfigOps Cloud Tests exportFullConfiguration() 2: Export everything without string arrays, decoding variables, excluding journey coordinates and default scripts 1`] = `
-"Error Exporting Social Identity Providers
-  Error exporting / realm providers
-    Error reading / realm providers
-      Network error:
-        URL: https://openam-frodo-dev.forgeblocks.com/am/json/realms/root/realm-config/services/SocialIdentityProviders?_action=nextdescendents
-        Status: 403
-        Code: ERR_BAD_REQUEST"
-`;
-
-exports[`ConfigOps Cloud Tests exportFullConfiguration() 2: Export everything without string arrays, decoding variables, excluding journey coordinates and default scripts 2`] = `
 {
   "global": {
     "agent": undefined,
@@ -178225,9 +178200,9 @@ main();
   "meta": Any<Object>,
   "realm": {
     "root": {
-      "agent": {},
-      "agentGroup": {},
-      "application": {},
+      "agent": undefined,
+      "agentGroup": undefined,
+      "application": undefined,
       "applicationTypes": {
         "authenticationApplicationType": {
           "_id": "authenticationApplicationType",
@@ -178278,7 +178253,7 @@ main();
           "searchIndex": "org.forgerock.openam.uma.UmaPolicySearchIndex",
         },
       },
-      "authentication": null,
+      "authentication": undefined,
       "conditionTypes": {
         "AMIdentityMembership": {
           "_id": "AMIdentityMembership",
@@ -183927,15 +183902,10 @@ main();
           "uuid": "d60b7a71-1dc6-44a5-8e48-e4b9d92dee8b",
         },
       },
-      "saml": {
-        "cot": {},
-        "hosted": {},
-        "metadata": {},
-        "remote": {},
-      },
+      "saml": undefined,
       "script": undefined,
-      "secretstore": {},
-      "service": {},
+      "secretstore": undefined,
+      "service": undefined,
       "subjectAttributes": {
         "undefined": "iplanet-am-user-login-status",
       },
@@ -184838,7 +184808,7 @@ main();
         },
       },
       "trees": undefined,
-      "trustedJwtIssuer": {},
+      "trustedJwtIssuer": undefined,
     },
     "root-alpha": {
       "agent": {},
@@ -202731,16 +202701,6 @@ outcome="outcome";
 `;
 
 exports[`ConfigOps Cloud Tests exportFullConfiguration() 3: Export only importable config with string arrays, decoding variables, including journey coordinates and default scripts 1`] = `
-"Error Exporting Social Identity Providers
-  Error exporting / realm providers
-    Error reading / realm providers
-      Network error:
-        URL: https://openam-frodo-dev.forgeblocks.com/am/json/realms/root/realm-config/services/SocialIdentityProviders?_action=nextdescendents
-        Status: 403
-        Code: ERR_BAD_REQUEST"
-`;
-
-exports[`ConfigOps Cloud Tests exportFullConfiguration() 3: Export only importable config with string arrays, decoding variables, including journey coordinates and default scripts 2`] = `
 {
   "global": {
     "agent": undefined,
@@ -219952,10 +219912,10 @@ Note that for required parameters that are not specified in the options will use
   "meta": Any<Object>,
   "realm": {
     "root": {
-      "agent": {},
-      "agentGroup": {},
-      "application": {},
-      "authentication": null,
+      "agent": undefined,
+      "agentGroup": undefined,
+      "application": undefined,
+      "authentication": undefined,
       "idp": undefined,
       "managedApplication": {},
       "policy": {
@@ -225228,15 +225188,10 @@ Note that for required parameters that are not specified in the options will use
           "uuid": "d60b7a71-1dc6-44a5-8e48-e4b9d92dee8b",
         },
       },
-      "saml": {
-        "cot": {},
-        "hosted": {},
-        "metadata": {},
-        "remote": {},
-      },
+      "saml": undefined,
       "script": undefined,
-      "secretstore": {},
-      "service": {},
+      "secretstore": undefined,
+      "service": undefined,
       "theme": {
         "428c0384-ddb6-4860-bc65-91db96a65854": {
           "_id": "428c0384-ddb6-4860-bc65-91db96a65854",
@@ -226022,7 +225977,7 @@ Note that for required parameters that are not specified in the options will use
         },
       },
       "trees": undefined,
-      "trustedJwtIssuer": {},
+      "trustedJwtIssuer": undefined,
     },
     "root-alpha": {
       "agent": {},
@@ -340265,16 +340220,6 @@ Note that for required parameters that are not specified in the options will use
 `;
 
 exports[`ConfigOps IGA Cloud Tests exportFullConfiguration() 0: Export everything including IGA configuration 1`] = `
-"Error Exporting Social Identity Providers
-  Error exporting / realm providers
-    Error reading / realm providers
-      Network error:
-        URL: https://openam-frodo-dev.forgeblocks.com/am/json/realms/root/realm-config/services/SocialIdentityProviders?_action=nextdescendents
-        Status: 403
-        Code: ERR_BAD_REQUEST"
-`;
-
-exports[`ConfigOps IGA Cloud Tests exportFullConfiguration() 0: Export everything including IGA configuration 2`] = `
 {
   "global": {
     "agent": undefined,
@@ -430967,9 +430912,9 @@ Note that for required parameters that are not specified in the options will use
   "meta": Any<Object>,
   "realm": {
     "root": {
-      "agent": {},
-      "agentGroup": {},
-      "application": {},
+      "agent": undefined,
+      "agentGroup": undefined,
+      "application": undefined,
       "applicationTypes": {
         "authenticationApplicationType": {
           "_id": "authenticationApplicationType",
@@ -431020,7 +430965,7 @@ Note that for required parameters that are not specified in the options will use
           "searchIndex": "org.forgerock.openam.uma.UmaPolicySearchIndex",
         },
       },
-      "authentication": null,
+      "authentication": undefined,
       "conditionTypes": {
         "AMIdentityMembership": {
           "_id": "AMIdentityMembership",
@@ -436669,15 +436614,10 @@ Note that for required parameters that are not specified in the options will use
           "uuid": "d60b7a71-1dc6-44a5-8e48-e4b9d92dee8b",
         },
       },
-      "saml": {
-        "cot": {},
-        "hosted": {},
-        "metadata": {},
-        "remote": {},
-      },
+      "saml": undefined,
       "script": undefined,
-      "secretstore": {},
-      "service": {},
+      "secretstore": undefined,
+      "service": undefined,
       "subjectAttributes": {
         "undefined": "iplanet-am-user-login-status",
       },
@@ -437580,7 +437520,7 @@ Note that for required parameters that are not specified in the options will use
         },
       },
       "trees": undefined,
-      "trustedJwtIssuer": {},
+      "trustedJwtIssuer": undefined,
     },
     "root-alpha": {
       "agent": {},

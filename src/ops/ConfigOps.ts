@@ -35,7 +35,10 @@ import {
   getMetadata,
   importWithErrorHandling,
 } from '../utils/ExportImportUtils';
-import { getRealmUsingExportFormat } from '../utils/ForgeRockUtils';
+import {
+  getRealmUsingExportFormat,
+  skipsDeniedRootRealmRequests,
+} from '../utils/ForgeRockUtils';
 import {
   exportAgentGroups,
   exportAgents,
@@ -735,20 +738,29 @@ export async function exportFullConfiguration({
         continue;
       }
       state.setRealm(currentRealm);
+      // Identity Cloud denies (403) the exports guarded by `requestable` in its root realm; the authorization
+      // config (policies, policy sets, resource types) can be read there and is not guarded
+      const requestable = !skipsDeniedRootRealmRequests({
+        realm: currentRealm,
+        onlyRealm,
+        state,
+      });
       // Export saml2 providers and circle of trusts
       let saml = (
         (await exportWithErrorHandling(
           exportSaml2Providers,
           stateObj,
           'SAML2 Providers',
-          resultCallback
+          resultCallback,
+          requestable
         )) as CirclesOfTrustExportInterface
       )?.saml;
       const cotExport = await exportWithErrorHandling(
         exportCirclesOfTrust,
         stateObj,
         'Circle of Trusts',
-        resultCallback
+        resultCallback,
+        requestable
       );
       if (saml) {
         saml.cot = cotExport?.saml.cot;
@@ -761,7 +773,8 @@ export async function exportFullConfiguration({
             exportAgentGroups,
             stateObj,
             'Agent Groups',
-            resultCallback
+            resultCallback,
+            requestable
           )
         )?.agentGroup,
         agent: (
@@ -769,7 +782,8 @@ export async function exportFullConfiguration({
             exportAgents,
             realmStateObj,
             'Agents',
-            resultCallback
+            resultCallback,
+            requestable
           )
         )?.agent,
         application: (
@@ -780,7 +794,8 @@ export async function exportFullConfiguration({
               state,
             },
             'OAuth2 Client Applications',
-            resultCallback
+            resultCallback,
+            requestable
           )
         )?.application,
         authentication: (
@@ -788,7 +803,8 @@ export async function exportFullConfiguration({
             exportAuthenticationSettings,
             realmStateObj,
             'Authentication Settings',
-            resultCallback
+            resultCallback,
+            requestable
           )
         )?.authentication,
         idp: (
@@ -796,7 +812,8 @@ export async function exportFullConfiguration({
             exportSocialIdentityProviders,
             stateObj,
             'Social Identity Providers',
-            resultCallback
+            resultCallback,
+            requestable
           )
         )?.idp,
         trees: (
@@ -812,7 +829,8 @@ export async function exportFullConfiguration({
               state,
             },
             'Journeys',
-            resultCallback
+            resultCallback,
+            requestable
           )
         )?.trees,
         managedApplication: (
@@ -871,7 +889,8 @@ export async function exportFullConfiguration({
               state,
             },
             'Scripts',
-            resultCallback
+            resultCallback,
+            requestable
           )
         )?.script,
         secretstore: (
@@ -879,7 +898,8 @@ export async function exportFullConfiguration({
             exportSecretStores,
             realmStateObj,
             'Secret Stores',
-            resultCallback
+            resultCallback,
+            requestable
           )
         )?.secretstore,
         service: (
@@ -887,7 +907,8 @@ export async function exportFullConfiguration({
             exportServices,
             realmStateObj,
             'Services',
-            resultCallback
+            resultCallback,
+            requestable
           )
         )?.service,
         theme: (
@@ -909,7 +930,8 @@ export async function exportFullConfiguration({
               state,
             },
             'Trusted JWT Issuers',
-            resultCallback
+            resultCallback,
+            requestable
           )
         )?.trustedJwtIssuer,
         ...config?.realm[realm],
