@@ -23,6 +23,7 @@ import {
 import {
   getRealmsForExport,
   getRealmUsingExportFormat,
+  skipsDeniedRootRealmRequests,
 } from '../utils/ForgeRockUtils';
 import { ExportMetaData, ResultCallback } from './OpsTypes';
 
@@ -129,6 +130,7 @@ const AM_ENTITIES: Record<string, EntityInfo> = {
       version: '2.0',
       importWithId: true,
       queryFilter: TRUE_QUERY_FILTER,
+      deniedInCloudRootRealm: true,
     },
     global: {
       path: '/global-config/authentication/chains',
@@ -138,7 +140,11 @@ const AM_ENTITIES: Record<string, EntityInfo> = {
     deployments: ALL_DEPLOYMENTS,
   },
   authenticationModules: {
-    realm: { path: '/realm-config/authentication/modules', version: '2.0' },
+    realm: {
+      path: '/realm-config/authentication/modules',
+      version: '2.0',
+      deniedInCloudRootRealm: true,
+    },
     global: {
       path: '/global-config/authentication/modules',
       version: '1.0',
@@ -168,7 +174,11 @@ const AM_ENTITIES: Record<string, EntityInfo> = {
     readonly: true,
   },
   secrets: {
-    realm: { path: '/realm-config/secrets', version: '2.0' },
+    realm: {
+      path: '/realm-config/secrets',
+      version: '2.0',
+      deniedInCloudRootRealm: true,
+    },
     global: {
       path: '/global-config/secrets',
       version: '1.0',
@@ -215,6 +225,7 @@ const AM_ENTITIES: Record<string, EntityInfo> = {
       version: '2.0',
       importWithId: true,
       queryFilter: TRUE_QUERY_FILTER,
+      deniedInCloudRootRealm: true,
     },
     global: {
       path: '/global-config/webhooks',
@@ -229,6 +240,7 @@ const AM_ENTITIES: Record<string, EntityInfo> = {
       path: '/realm-config/federation/entityproviders/ws',
       version: '2.0',
       importWithId: true,
+      deniedInCloudRootRealm: true,
     },
     deployments: ALL_DEPLOYMENTS,
     queryFilter: TRUE_QUERY_FILTER,
@@ -344,6 +356,20 @@ export async function getConfigEntities({
         ) {
           debugMessage({
             message: `AmConfigOps.getConfigEntities: skipping realm: ${activeRealm}`,
+            state,
+          });
+          continue;
+        }
+        if (
+          entityInfo.realm.deniedInCloudRootRealm &&
+          skipsDeniedRootRealmRequests({
+            realm: stateRealms[i],
+            onlyRealm,
+            state,
+          })
+        ) {
+          debugMessage({
+            message: `AmConfigOps.getConfigEntities: skipping '${key}' in the root realm, which Identity Cloud denies`,
             state,
           });
           continue;
