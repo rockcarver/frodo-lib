@@ -20,11 +20,11 @@ import {
 } from './JoseOps';
 import { accessTokenRfc7523AuthZGrant } from './OAuth2OidcOps';
 import { updateOAuth2TrustedJwtIssuer } from './OAuth2TrustedJwtIssuerOps';
-import templateIpAddresses from './templates/autoaccess/IPAddresses.json';
-import templateUserAgents from './templates/autoaccess/UserAgents.json';
-import templateUsernames from './templates/autoaccess/Usernames.json';
-import OAUTH2_CLIENT from './templates/OAuth2ClientTemplate.json';
-import OAUTH2_ISSUER from './templates/OAuth2TrustedJwtIssuerTemplate.json';
+import templateIpAddresses from './templates/autoaccess/IPAddresses.json' with { type: 'json' };
+import templateUserAgents from './templates/autoaccess/UserAgents.json' with { type: 'json' };
+import templateUsernames from './templates/autoaccess/Usernames.json' with { type: 'json' };
+import OAUTH2_CLIENT from './templates/OAuth2ClientTemplate.json' with { type: 'json' };
+import OAUTH2_ISSUER from './templates/OAuth2TrustedJwtIssuerTemplate.json' with { type: 'json' };
 
 export type Admin = {
   generateRfc7523AuthZGrantArtefacts(
