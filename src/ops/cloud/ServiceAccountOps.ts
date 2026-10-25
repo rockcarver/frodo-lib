@@ -15,6 +15,11 @@ import { hasFeature } from './FeatureOps';
 export type ServiceAccount = {
   /**
    * Check if service accounts are available
+   * @deprecated since v5.0.0. The answer is not authoritative: it comes from
+   * the tenant's feature list, which the admin UI does not consult before it
+   * shows service accounts, and a failed read looks the same as a missing
+   * feature. Create the service account and handle the error instead; frodo-cli
+   * no longer calls this.
    * @returns {Promise<boolean>} true if service accounts are available, false otherwise
    */
   isServiceAccountsFeatureAvailable(): Promise<boolean>;
@@ -148,6 +153,11 @@ export type ServiceAccountType = IdObjectSkeletonInterface & {
 
 /**
  * Check if service accounts are available
+ * @deprecated since v5.0.0. The answer is not authoritative: it comes from
+ * the tenant's feature list, which the admin UI does not consult before it
+ * shows service accounts, and a failed read looks the same as a missing
+ * feature. Create the service account and handle the error instead; frodo-cli
+ * no longer calls this.
  * @returns {Promise<boolean>} true if service accounts are available, false otherwise
  */
 export async function isServiceAccountsFeatureAvailable({

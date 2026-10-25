@@ -59,6 +59,13 @@ import { type TreeSkeleton } from '@rockcarver/frodo-lib/types/api/TreeApi';
 import { type TreeSkeleton } from '@rockcarver/frodo-lib';
 ```
 
+`frodo.cloud.serviceAccount.isServiceAccountsFeatureAvailable()` is
+**deprecated** since 5.0.0. It answers from the tenant's feature list, which is
+not authoritative for service accounts: the admin UI does not consult it
+before it shows them, and a failed read of the list is indistinguishable from
+a missing feature. Create the service account and handle the error instead.
+frodo-cli no longer calls it.
+
 ## Upgrading to 4.x
 
 ### From 3.x
