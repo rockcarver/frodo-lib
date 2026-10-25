@@ -54,7 +54,15 @@ export async function readFeatures({
     const { result } = await _getFeatures({ state });
     state.setFeatures(JSON.parse(JSON.stringify(result)));
   } catch (error) {
-    debugMessage({ message: error.response?.data, state });
+    // The list is optional information, so a failed read is not thrown, but
+    // it must be visible in the debug output: callers cannot tell it from a
+    // tenant that has no features.
+    debugMessage({
+      message: `FeatureOps.readFeatures: could not read the feature list, assuming none: ${error.message}${
+        error.response?.status ? ` (HTTP ${error.response.status})` : ''
+      }${error.response?.data ? ` ${JSON.stringify(error.response.data)}` : ''}`,
+      state,
+    });
     state.setFeatures([]);
   }
   return state.getFeatures();
