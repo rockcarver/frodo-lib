@@ -876,11 +876,14 @@ export async function saveConnectionProfile({
     // alias
     if (state.getAlias()) {
       const alias = state.getAlias();
-      // check for unique alias
-      for (const profile in profiles) {
-        if (profiles[profile].alias === alias) {
+      // check for unique alias: the profile being updated may keep its own
+      for (const existingTenant in profiles) {
+        if (
+          existingTenant !== profile.tenant &&
+          profiles[existingTenant].alias === alias
+        ) {
           throw new FrodoError(
-            `Alias '${alias}' is already in use by connection profile '${profile}'. Please use a unique alias.`
+            `Alias '${alias}' is already in use by connection profile '${existingTenant}'. Please use a unique alias.`
           );
         }
       }
@@ -908,9 +911,11 @@ export async function saveConnectionProfile({
       profile.adminClientRedirectUri = state.getAdminClientRedirectUri();
 
     // browser login — none of these are secrets, so no encoding needed.
-    // Deliberately never writes username/encodedPassword for a browser-login
-    // profile: state.getUsername()/getPassword() are simply never set for
-    // that auth mode, so the checks below already omit them naturally.
+    // A browser login never sets a password, so a browser-login profile
+    // carries no encodedPassword. It does carry a username: the login
+    // records the resolved subject via state.setUsername() (see
+    // tryBrowserLogin in AuthenticateOps.ts), and the user account check
+    // below saves it.
     //
     // profile.authMode is deliberately never written here anymore (frozen
     // legacy-read-only, see its own field comment) -- it used to mirror

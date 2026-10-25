@@ -340,6 +340,93 @@ describe('ConnectionProfileOps', () => {
       }
       expect.assertions(3);
     });
+
+    test(`6: Save an existing connection again with its own alias`, async () => {
+      const host = exampleHost;
+      const alias = 'own-alias';
+
+      state.setConnectionProfilesPath(connectionProfilePath1);
+      state.setHost(host);
+      state.setAlias(alias);
+      state.setUsername(exampleUsername);
+      state.setPassword(examplePassword);
+      state.setDeploymentType(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY);
+      await ConnectionProfileOps.saveConnectionProfile({ host, state });
+
+      // the second save updates the profile, it does not conflict with itself
+      state.setLogApiKey('example-log-api-key-id');
+      state.setLogApiSecret('example-log-api-secret');
+      await ConnectionProfileOps.saveConnectionProfile({ host, state });
+
+      const connections = JSON.parse(
+        fs.readFileSync(connectionProfilePath1, 'utf8')
+      );
+      expect(Object.keys(connections)).toEqual([host]);
+      expect(connections[host].alias).toEqual(alias);
+      expect(connections[host].logApiKey).toEqual('example-log-api-key-id');
+      expect(connections[host].encodedLogApiSecret).toBeTruthy();
+
+      state.setLogApiKey(undefined);
+      state.setLogApiSecret(undefined);
+    });
+
+    test(`7: Save an existing connection addressed by its alias with that same alias`, async () => {
+      const host = exampleHost;
+      const alias = 'addressed-by-alias';
+
+      state.setConnectionProfilesPath(connectionProfilePath1);
+      state.setHost(host);
+      state.setAlias(alias);
+      state.setUsername(exampleUsername);
+      state.setPassword(examplePassword);
+      state.setDeploymentType(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY);
+      await ConnectionProfileOps.saveConnectionProfile({ host, state });
+
+      state.setHost(alias);
+      await ConnectionProfileOps.saveConnectionProfile({ host: alias, state });
+
+      const connections = JSON.parse(
+        fs.readFileSync(connectionProfilePath1, 'utf8')
+      );
+      expect(Object.keys(connections)).toEqual([host]);
+      expect(connections[host].alias).toEqual(alias);
+    });
+
+    test(`8: Fail to give an existing connection the alias of another connection`, async () => {
+      const host1 = 'https://openam-tenant1.forgeblocks.com/am';
+      const host2 = 'https://openam-tenant2.forgeblocks.com/am';
+      const alias1 = 'first-alias';
+      const alias2 = 'second-alias';
+
+      state.setConnectionProfilesPath(connectionProfilePath1);
+      state.setUsername(exampleUsername);
+      state.setPassword(examplePassword);
+      state.setDeploymentType(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY);
+      state.setHost(host1);
+      state.setAlias(alias1);
+      await ConnectionProfileOps.saveConnectionProfile({ host: host1, state });
+      state.setHost(host2);
+      state.setAlias(alias2);
+      await ConnectionProfileOps.saveConnectionProfile({ host: host2, state });
+
+      // host2 exists and holds alias2; taking alias1 from host1 must still fail
+      state.setAlias(alias1);
+      await expect(
+        ConnectionProfileOps.saveConnectionProfile({ host: host2, state })
+      ).rejects.toMatchObject({
+        originalErrors: [
+          expect.objectContaining({
+            message: `Alias '${alias1}' is already in use by connection profile '${host1}'. Please use a unique alias.`,
+          }),
+        ],
+      });
+
+      const connections = JSON.parse(
+        fs.readFileSync(connectionProfilePath1, 'utf8')
+      );
+      expect(connections[host1].alias).toEqual(alias1);
+      expect(connections[host2].alias).toEqual(alias2);
+    });
   });
 
   describe('loadConnectionProfileByHost()', () => {

@@ -1,6 +1,5 @@
 import util from 'util';
 import { IdObjectSkeletonInterface } from '../../api/ApiTypes';
-import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateAmApi } from '../BaseApi';
@@ -25,9 +24,14 @@ export async function getFeatures({ state }: { state: State }): Promise<{
     envInfoURLTemplate,
     getHostOnlyUrl(state.getHost())
   );
+  // An AM-domain endpoint: a session login sends its cookie, and a browser
+  // login needs the token exchanged for fr:am:* (the exchange's default when
+  // no scope is named). Asking for fr:idm:* here, as this call once did, or
+  // sending the browser login's primary token, is answered 401 and the
+  // feature list came back empty. No scope is asserted for a bearer token.
   const { data } = await generateAmApi({
     resource: getApiConfig(),
-    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requiredScopes: [],
     state,
   }).get(urlString, {
     withCredentials: true,
