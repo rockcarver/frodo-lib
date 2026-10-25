@@ -10,6 +10,23 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-13] - 2026-10-25
+
+### Added
+- Browser login no longer requires the `--type` flag and can find the session cached for the host. It resolves the full host URL and connection settings from the saved profile that matches the host, using an alias, a unique substring, or the URL itself (#820).
+- Journey validation now warns when the entry node cannot reach Success, Failure, or a static terminal node. It also reports graph and export ID inconsistencies as warnings without blocking import or export (#780).
+
+### Changed
+- The deployment-type probe now reports whether its answer is conclusive, improving clarity in deployment diagnostics (commit dcaa0fbef).
+
+### Deprecated
+- `isServiceAccountsFeatureAvailable()` is now deprecated. Consider using alternative methods for checking service account feature availability (commit 0463ba1a4).
+
+### Fixed
+- `readFeatures()` now provides a reason when no features are found, distinguishing between a failed read and a tenant without features. This resolves issues where a browser login on a working tenant appeared as a tenant without service accounts in frodo-cli (#818).
+- Fixed an issue where `saveConnectionProfile()` would fail when saving an existing connection profile with its own alias. The check now skips the profile being updated (#817).
+- Resolved an issue where reading the feature list and service account scopes required the AM credential. Calls to `<host>/feature` and `<host>/environment/scopes/service-accounts` now correctly respond with 200 when using the token exchanged for `fr:am:*` (#819).
+
 ## [v5.0.0-12] - 2026-10-23
 
 ### Added
@@ -2711,6 +2728,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-13]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-12...v5.0.0-13
 [v5.0.0-12]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-11...v5.0.0-12
 [v5.0.0-11]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-10...v5.0.0-11
 [v5.0.0-10]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-9...v5.0.0-10
