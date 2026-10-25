@@ -126,6 +126,10 @@ export class FrodoError extends Error {
           combinedMessage += `\n${indent}` + originalError.message;
           break;
       }
+      // a failed host name lookup carries what is wrong, see NetworkDiagnosisUtils
+      const diagnosis = originalError['nameResolutionDiagnosis'];
+      if (diagnosis?.message)
+        combinedMessage += `\n${indent}${diagnosis.message}`;
     });
     // if (this.originalErrors.slice(-1))
     //   combinedMessage += '\n  ' + this.originalErrors.slice(-1)[0].stack;
