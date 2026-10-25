@@ -13,6 +13,7 @@ The folder is `decisions/` at the repository root, not `docs/decisions/` as in t
 - An accepted record is not edited, except for typos and for a `Known deviations` section, a status note that may be added, edited or removed, without a new record, in the pull request that fixes the deviation or opens its tracking issue ([core 0018](core/0018-core-decision-records-are-kept-in-each-repository.md)). A changed decision is a new record: set the old record's status to `superseded by NNNN` and update the index.
 - A pull request that changes a decided behaviour adds or supersedes a record in the same pull request.
 - Records are public. No credentials, tenant names, security-incident details or personal information.
+- Write a record so it stays true: state the rule, not a value that changes. Leave out "currently", "now", "the latest" and any current version, count, size or line number. Say "e.g." or "for example" when an example helps, and date a fact that explains the decision ("on 2026-10-24 the pin was ..."). An accepted record is not edited to keep up with such a fact, so it must not contain one.
 - `applies-to:` lists path globs where that helps; `issues:` lists related issues as `owner/repo#N`.
 
 ## Writing one
