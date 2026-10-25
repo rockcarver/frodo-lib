@@ -17,7 +17,7 @@ What forced a decision? Two or three sentences, no history lesson.
 
 ## Decision
 
-What we decided, as rules a contributor or agent can follow.
+What we decided, as rules a contributor or agent can follow. State the rule, not a value that changes: no "currently", no current versions or counts.
 
 ## Consequences
 
