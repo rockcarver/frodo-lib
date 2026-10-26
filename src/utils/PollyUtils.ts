@@ -75,10 +75,9 @@ export function filterRecording(
   // to keep recordings the same whether or not a proxy was used, we must remove the proxy from the url
   if (recording.request?.url) {
     recording.request.url = cleanupProxyRequestUrl(recording.request.url);
-    if (useDefaultHost && state) {
-      const splitHost = state.getHost().split('/');
-      recording.request.url = recording.request.url.replaceAll(
-        splitHost[splitHost.length - 2],
+    if (useDefaultHost) {
+      recording.request.url = obfuscateHostsString(
+        recording.request.url,
         'openam-frodo-dev.forgeblocks.com'
       );
     }
@@ -88,11 +87,14 @@ export function filterRecording(
   if (recording.request?.headers) {
     recording.request.headers.forEach(obfuscateHeader);
     if (useDefaultHost) {
-      const hostHeaders = recording.request.headers.filter(
-        (h) => h.name === 'host'
-      );
-      for (const header of hostHeaders) {
-        header.value = 'openam-frodo-dev.forgeblocks.com';
+      for (const header of recording.request.headers) {
+        header.value =
+          header.name === 'host'
+            ? 'openam-frodo-dev.forgeblocks.com'
+            : obfuscateHostsString(
+                header.value,
+                'openam-frodo-dev.forgeblocks.com'
+              );
       }
     }
   }
@@ -112,6 +114,17 @@ export function filterRecording(
   // response headers
   if (recording.response?.headers) {
     recording.response.headers.forEach(obfuscateHeader);
+    if (useDefaultHost) {
+      for (const header of recording.response.headers) {
+        header.value =
+          header.name === 'host'
+            ? 'openam-frodo-dev.forgeblocks.com'
+            : obfuscateHostsString(
+                header.value,
+                'openam-frodo-dev.forgeblocks.com'
+              );
+      }
+    }
   }
 
   // response body
@@ -237,4 +250,11 @@ export function cleanupProxyRequestUrl(url: string): string {
   const count = results.length;
   if (count <= 1) return url;
   return url.substring(url.lastIndexOf(results[1]));
+}
+
+export function obfuscateHostsString(
+  str: string,
+  obfuscatedHost: string
+): string {
+  return str.replace(/(https?:\/\/)[^/\s)\]]+/g, `$1${obfuscatedHost}`);
 }

@@ -1,0 +1,293 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`EnvPromotionOps Wait tests 0: Lock environment 1`] = `
+{
+  "description": "Environment locked",
+  "lowerEnv": {
+    "promotionId": "bb757dc6-0646-47d7-b63c-c7c6b5668ad7",
+    "proxyState": "locked",
+    "state": "locked",
+  },
+  "promotionId": "bb757dc6-0646-47d7-b63c-c7c6b5668ad7",
+  "result": "locked",
+  "upperEnv": {
+    "promotionId": "bb757dc6-0646-47d7-b63c-c7c6b5668ad7",
+    "proxyState": "locked",
+    "state": "locked",
+  },
+}
+`;
+
+exports[`EnvPromotionOps Wait tests 1: Dry-run promotion 1`] = `
+{
+  "result": "Promotion process initiated successfully",
+}
+`;
+
+exports[`EnvPromotionOps Wait tests 2: Real promotion 1`] = `
+{
+  "result": "Promotion process initiated successfully",
+}
+`;
+
+exports[`EnvPromotionOps Wait tests 3: Rollback promotion 1`] = `
+{
+  "result": "Rollback process initiated successfully",
+}
+`;
+
+exports[`EnvPromotionOps Wait tests 4: Unlock environment 1`] = `
+{
+  "description": "Environment unlocked",
+  "lowerEnv": {
+    "proxyState": "unlocked",
+    "state": "unlocked",
+  },
+  "result": "unlocked",
+  "upperEnv": {
+    "proxyState": "unlocked",
+    "state": "unlocked",
+  },
+}
+`;
+
+exports[`EnvPromotionOps lockEnvironment() 1: Lock environment without waiting 1`] = `
+{
+  "description": "Environment lock in progress",
+  "promotionId": "b9f60096-36c5-45d1-9599-4ed905ade8c6",
+  "result": "locking",
+}
+`;
+
+exports[`EnvPromotionOps promoteConfiguration() 1: Dry-run promotion 1`] = `
+{
+  "result": "Promotion process initiated successfully",
+}
+`;
+
+exports[`EnvPromotionOps promoteConfiguration() 2: Real promotion 1`] = `
+{
+  "result": "Promotion process initiated successfully",
+}
+`;
+
+exports[`EnvPromotionOps readLastPromotionReport() 1: Read last promotion report 1`] = `
+{
+  "createdDate": "2026-10-26T15:52:03Z",
+  "promoter": "test@trivir.com",
+  "promotionId": "3f3f8781-b7a2-4ad8-8275-2d790b84c9e7",
+  "report": {
+    "AMConfig": [
+      {
+        "configChange": {
+          "added": [
+            {
+              "name": "PromotionTest",
+              "realm": "/alpha",
+            },
+          ],
+        },
+        "configItem": "Scripts",
+      },
+    ],
+    "IDMConfig": [
+      {
+        "configChange": {
+          "added": [
+            {
+              "name": "endpoint-PromotionTest",
+            },
+          ],
+        },
+        "configItem": "IDM Custom Endpoints",
+      },
+    ],
+  },
+  "reportId": "5d24292f-922d-4c63-95c2-3980fb7d7909",
+  "reportName": "Report_2026-10-26T15-52+00Z_dryrun=false_3f3f8781-b7a2-4ad8-8275-2d790b84c9e7",
+  "type": "promotion",
+}
+`;
+
+exports[`EnvPromotionOps readLockStatus() 1: Read lock status 1`] = `
+{
+  "description": "Environment unlocked",
+  "lowerEnv": {
+    "proxyState": "unlocked",
+    "state": "unlocked",
+  },
+  "result": "unlocked",
+  "upperEnv": {
+    "proxyState": "unlocked",
+    "state": "unlocked",
+  },
+}
+`;
+
+exports[`EnvPromotionOps readLockStatus() 2: Read lock status (local lock only) 1`] = `
+{
+  "description": "Environment unlocked",
+  "result": "unlocked",
+}
+`;
+
+exports[`EnvPromotionOps readPromotionReport() 1: Read promotion report 1`] = `
+{
+  "createdDate": "2026-10-26T15:27:12Z",
+  "dryRun": true,
+  "promoter": "test@trivir.com",
+  "promotionId": "ffd23bba-4da0-49a6-b025-f1f0adb573b5",
+  "report": {
+    "AMConfig": [
+      {
+        "configChange": {
+          "added": [
+            {
+              "name": "PromotionTest",
+              "realm": "/alpha",
+            },
+          ],
+        },
+        "configItem": "Scripts",
+      },
+    ],
+    "IDMConfig": [
+      {
+        "configChange": {
+          "added": [
+            {
+              "name": "endpoint-PromotionTest",
+            },
+          ],
+        },
+        "configItem": "IDM Custom Endpoints",
+      },
+    ],
+  },
+  "reportId": "9b827cbd-d19b-4a5c-a78e-1d383b811d95",
+  "reportName": "Report_2026-10-26T15-27+00Z_dryrun=true_ffd23bba-4da0-49a6-b025-f1f0adb573b5",
+  "type": "promotion",
+}
+`;
+
+exports[`EnvPromotionOps readPromotionReports() 1: Read promotion reports 1`] = `
+[
+  {
+    "createdDate": "2026-10-26T15:52:03Z",
+    "dryRun": false,
+    "promoter": "test@trivir.com",
+    "promotionId": "3f3f8781-b7a2-4ad8-8275-2d790b84c9e7",
+    "reportId": "5d24292f-922d-4c63-95c2-3980fb7d7909",
+    "type": "promotion",
+  },
+  {
+    "createdDate": "2026-10-26T15:27:12Z",
+    "dryRun": true,
+    "promoter": "test@trivir.com",
+    "promotionId": "ffd23bba-4da0-49a6-b025-f1f0adb573b5",
+    "reportId": "9b827cbd-d19b-4a5c-a78e-1d383b811d95",
+    "type": "promotion",
+  },
+]
+`;
+
+exports[`EnvPromotionOps readPromotionStatus() 1: Read promotion status 1`] = `
+{
+  "blockingError": false,
+  "globalLock": "UNLOCKED",
+  "message": "Environment unlocked",
+  "status": "UNLOCKED",
+  "timeStamp": "2026-10-21T16:11:56Z",
+}
+`;
+
+exports[`EnvPromotionOps rollbackPromotion() 1: Rollback promotion 1`] = `
+{
+  "result": "Rollback process initiated successfully",
+}
+`;
+
+exports[`EnvPromotionOps runProvisionalPromotionReport() 1: Run provisional promotion report 1`] = `
+{
+  "createdDate": "2026-10-22T21:19:36Z",
+  "promoter": "provisional-report",
+  "promotionDescription": "provisional report",
+  "promotionId": "provisional-report",
+  "report": {
+    "AMConfig": [
+      {
+        "configChange": {
+          "added": [
+            {
+              "name": "PromotionTest",
+              "realm": "/alpha",
+            },
+          ],
+        },
+        "configItem": "Scripts",
+      },
+    ],
+    "IDMConfig": [
+      {
+        "configChange": {
+          "added": [
+            {
+              "name": "endpoint-PromotionTest",
+            },
+          ],
+        },
+        "configItem": "IDM Custom Endpoints",
+      },
+    ],
+  },
+  "reportId": "4439e840-3a1d-4a9b-9044-90e04bedf939",
+  "reportName": "Report_2026-10-22T21-19+00Z_dryrun=false_provisional-report",
+  "type": "provisional",
+}
+`;
+
+exports[`EnvPromotionOps runProvisionalRollbackReport() 1: Run provisional rollback report 1`] = `
+{
+  "createdDate": "2026-10-26T16:32:29Z",
+  "promoter": "provisional-rollback-report",
+  "promotionDescription": "Provisional rollback report",
+  "promotionId": "provisional-rollback-report",
+  "report": {
+    "AMConfig": [
+      {
+        "configChange": {
+          "deleted": [
+            {
+              "name": "0c04af69-f1e7-4288-a0e6-cefbbc1dbdd3",
+            },
+          ],
+        },
+        "configItem": "Scripts",
+      },
+    ],
+    "IDMConfig": [
+      {
+        "configChange": {
+          "deleted": [
+            {
+              "name": "endpoint-PromotionTest",
+            },
+          ],
+        },
+        "configItem": "IDM Custom Endpoints",
+      },
+    ],
+  },
+  "reportId": "91173390-7c4e-427e-b1dc-e5a9ff0babed",
+  "reportName": "Report_2026-10-26T16-32+00Z_dryrun=false_provisional-rollback-report",
+  "type": "provisional-rollback",
+}
+`;
+
+exports[`EnvPromotionOps unlockEnvironment() 1: Unlock environment without waiting 1`] = `
+{
+  "description": "Environment unlock in progress",
+  "promotionId": "3808a54e-de0c-4550-a85b-e3295afc3e44",
+  "result": "unlocking",
+}
+`;

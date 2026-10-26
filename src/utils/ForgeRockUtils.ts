@@ -1,7 +1,13 @@
 import { getRealms } from '../ops/RealmOps';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
-import { debugMessage } from '../utils/Console';
+import {
+  createProgressIndicator,
+  debugMessage,
+  stopProgressIndicator,
+  updateProgressIndicator,
+} from '../utils/Console';
+import { sleep } from '../utils/FrodoUtils';
 
 export type FRUtils = {
   applyNameCollisionPolicy(name: string): string;
@@ -88,6 +94,12 @@ export default (state: State): FRUtils => {
       return getHostOnlyUrl(url);
     },
   };
+};
+
+export type WaitCompleted = {
+  status?: string;
+  isComplete: boolean;
+  isError?: boolean;
 };
 
 /**
@@ -291,4 +303,135 @@ export function getIdmBaseUrl(state: State): string {
     return state.getIdmHost();
   }
   return `${getHostOnlyUrl(state.getHost())}/openidm`;
+}
+
+/**
+ * Initiate an update and optionally wait for it to complete.
+ * @param {() => Promise<any>} initiateUpdate Function that initiates the update.
+ * @param {() => Promise<WaitCompleted>} isComplete Function that checks the update's completion and error status.
+ * @param {string} initialMessage Initial message for the progress indicator.
+ * @param {string} noWaitSuccessMessage Success message when not waiting for completion.
+ * @param {(isCompleted: WaitCompleted, runtime: number) => string} updateMessage Function that generates progress messages during polling.
+ * @param {(isCompleted: WaitCompleted, runtime: number) => string} waitSuccessMessage Function that generates the completion message.
+ * @param {(isCompleted: WaitCompleted, runtime: number) => string} timeoutMessage Function that generates the timeout message.
+ * @param {(isCompleted: WaitCompleted, runtime: number) => string} errorMessage Function that generates the error message when the update reports an error.
+ * @param {boolean} wait Whether to wait for the update to complete (default: false).
+ * @param {number} timeout Maximum waiting time in milliseconds (default: 600000).
+ * @param {number} pollInterval Time between status checks in milliseconds (default: 5000).
+ * @param {number} maxConsecutiveWaitErrors Maximum consecutive polling errors allowed (default: 3).
+ * @param {State} state The library state.
+ * @returns {Promise<boolean>} True if initiated successfully and, when waiting, completed without errors or timeout; false otherwise.
+ */
+export async function waitForUpdate({
+  initiateUpdate,
+  isComplete,
+  initialMessage = 'Applying update...',
+  noWaitSuccessMessage = 'Update being applied.',
+  updateMessage = (isCompleted, runtime) =>
+    `${isCompleted.status} (${Math.round(runtime / 1000)}s)`,
+  waitSuccessMessage = (isCompleted, runtime) =>
+    `Update completed in ${Math.round(
+      runtime / 1000
+    )}s with final status: ${isCompleted.status}`,
+  timeoutMessage = (isCompleted, runtime) =>
+    `Timeout occurred in ${Math.round(
+      runtime / 1000
+    )}s with final status: ${isCompleted.status}`,
+  errorMessage = (isCompleted, runtime) =>
+    `Error occurred in ${Math.round(
+      runtime / 1000
+    )}s with final status: ${isCompleted.status}`,
+  wait = false,
+  timeout = 10 * 60 * 1000,
+  pollInterval = 5000,
+  maxConsecutiveWaitErrors = 3,
+  state,
+}: {
+  initiateUpdate: () => Promise<any>;
+  isComplete: () => Promise<WaitCompleted>;
+  initialMessage?: string;
+  noWaitSuccessMessage?: string;
+  updateMessage?: (isCompleted: WaitCompleted, runtime: number) => string;
+  waitSuccessMessage?: (isCompleted: WaitCompleted, runtime: number) => string;
+  timeoutMessage?: (isCompleted: WaitCompleted, runtime: number) => string;
+  errorMessage?: (isCompleted: WaitCompleted, runtime: number) => string;
+  wait?: boolean;
+  timeout?: number;
+  pollInterval?: number;
+  maxConsecutiveWaitErrors?: number;
+  state: State;
+}): Promise<boolean> {
+  if (timeout <= 0 || pollInterval <= 0) {
+    throw new Error('Timeout and polling interval must be positive.');
+  }
+  const indicatorId = createProgressIndicator({
+    total: undefined,
+    message: initialMessage,
+    type: 'indeterminate',
+    state,
+  });
+  try {
+    await initiateUpdate();
+    if (!wait) {
+      stopProgressIndicator({
+        id: indicatorId,
+        message: noWaitSuccessMessage,
+        status: 'success',
+        state,
+      });
+      return true;
+    }
+    const start = Date.now();
+    let runtime = 0;
+    let errors = 0;
+    let isCompleted = await isComplete();
+    while (!isCompleted.isComplete && start + timeout > Date.now()) {
+      try {
+        await sleep(pollInterval);
+        isCompleted = await isComplete();
+
+        // reset errors after successful isComplete call
+        errors = 0;
+
+        runtime = Date.now() - start;
+        updateProgressIndicator({
+          id: indicatorId,
+          message: updateMessage(isCompleted, runtime),
+          state,
+        });
+      } catch (e) {
+        if (++errors > maxConsecutiveWaitErrors) throw e;
+        runtime = Date.now() - start;
+        updateProgressIndicator({
+          id: indicatorId,
+          message: `${
+            e.message
+          } - retry ${errors}/${maxConsecutiveWaitErrors} (${Math.round(runtime / 1000)}s)`,
+          state,
+        });
+      }
+    }
+    const isTimedOut = runtime >= timeout;
+    stopProgressIndicator({
+      id: indicatorId,
+      message: (isCompleted.isError
+        ? errorMessage
+        : isTimedOut
+          ? timeoutMessage
+          : waitSuccessMessage)(isCompleted, runtime),
+      status: isCompleted.isError ? 'fail' : isTimedOut ? 'warn' : 'success',
+      state,
+    });
+    return !isTimedOut && !isCompleted.isError;
+  } catch (e) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error: ${e.response?.data?.code || e} - ${
+        e.response?.data?.message
+      }`,
+      status: 'fail',
+      state,
+    });
+    return false;
+  }
 }
