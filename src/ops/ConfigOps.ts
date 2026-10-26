@@ -418,7 +418,7 @@ export async function exportFullConfiguration({
       includeReadOnly,
       onlyRealm,
       onlyGlobal,
-      errorCallback,
+      resultCallback,
       state,
     },
     'AM Config Entities',
