@@ -1025,7 +1025,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "LoopbackRedirectListener",
     methodName: "waitForCallback",
     signature: "waitForCallback(timeoutMs?: number): Promise<LoopbackCallbackResult>",
-    description: "/** Await the single inbound redirect, or reject on timeout. */",
+    description: "Await the single valid inbound redirect, or reject on timeout. Requests that are not a valid redirect are ignored; the timeout error lists them.",
     params: [],
     returns: "",
   },
