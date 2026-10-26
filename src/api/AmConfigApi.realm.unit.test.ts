@@ -1,11 +1,17 @@
 import { jest } from '@jest/globals';
 import { AxiosError } from 'axios';
 
-const request = jest.fn<(url: string) => Promise<{ data: { _id: string } }>>();
+type Request = (url: string) => Promise<{ data: { _id: string } }>;
+// one mock per HTTP method, so a test can tell which method a call used
+const mocks = {
+  GET: jest.fn<Request>(),
+  POST: jest.fn<Request>(),
+  PUT: jest.fn<Request>(),
+};
 const generate = () => ({
-  get: request,
-  post: request,
-  put: request,
+  get: mocks.GET,
+  post: mocks.POST,
+  put: mocks.PUT,
 });
 jest.unstable_mockModule('./BaseApi', () => ({
   generateAmApi: generate,
@@ -28,10 +34,14 @@ const HOST = 'https://tenant.example.com/am';
 const entity = { _id: 'example' };
 
 beforeEach(() => {
-  request.mockReset();
+  Object.values(mocks).forEach((mock) => mock.mockReset());
 });
 
-describe.each(['GET', 'POST', 'PUT'])('%s config entity', (method) => {
+describe.each(['GET', 'POST', 'PUT'] as const)('%s config entity', (method) => {
+  const request = mocks[method];
+  const otherMethods = Object.entries(mocks)
+    .filter(([name]) => name !== method)
+    .map(([, mock]) => mock);
   test.each([
     ['/alpha', '/realms/root/realms/alpha'],
     ['/', '/realms/root'],
@@ -97,6 +107,7 @@ describe.each(['GET', 'POST', 'PUT'])('%s config entity', (method) => {
       });
       expect(state.getRealm()).toBe('/bravo');
       expect(request).toHaveBeenCalledTimes(2);
+      otherMethods.forEach((mock) => expect(mock).not.toHaveBeenCalled());
     }
   );
 });
@@ -114,5 +125,5 @@ test('skips a put without entity data without changing the realm', async () => {
     })
   ).resolves.toBeUndefined();
   expect(state.getRealm()).toBe('/bravo');
-  expect(request).not.toHaveBeenCalled();
+  Object.values(mocks).forEach((mock) => expect(mock).not.toHaveBeenCalled());
 });
