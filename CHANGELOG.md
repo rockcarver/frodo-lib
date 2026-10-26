@@ -10,6 +10,15 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-14] - 2026-10-26
+
+### Fixed
+- Restored the active realm after a full export or import fails, ensuring the caller's realm is correctly set even when an error occurs during the realm loop (#839).
+- Fixed an issue where failed AM config requests left the active realm changed, causing subsequent operations to target the wrong realm. The realm is now restored in a `finally` block (#836).
+- Resolved an issue where a single AM config entity read failure caused full exports to discard all entities. The export process now continues and reports individual failures correctly (#835).
+- Improved error messaging for unresolved host names, providing clearer diagnostics when a host cannot be resolved (#826).
+- Stopped requesting root realm configuration that Identity Cloud denies, reducing unnecessary failed requests during full configuration exports (#831).
+
 ## [v5.0.0-13] - 2026-10-25
 
 ### Added
@@ -2728,6 +2737,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-14]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-13...v5.0.0-14
 [v5.0.0-13]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-12...v5.0.0-13
 [v5.0.0-12]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-11...v5.0.0-12
 [v5.0.0-11]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-10...v5.0.0-11
