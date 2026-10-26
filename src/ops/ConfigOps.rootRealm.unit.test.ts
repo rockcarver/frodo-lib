@@ -74,6 +74,25 @@ const empty = {
 /** The fake tenant: what Identity Cloud answers, whichever way the library asks. */
 function answer(method: string, url: string) {
   requests.push({ method, url });
+  if (failedEntityUrl && url.split('?')[0] === failedEntityUrl) {
+    throw new AxiosError(
+      'Request failed with status code 500',
+      'ERR_BAD_RESPONSE',
+      { url } as never,
+      undefined,
+      {
+        status: 500,
+        statusText: 'Internal Server Error',
+        headers: {},
+        config: {} as never,
+        data: {
+          code: 500,
+          reason: 'Internal Server Error',
+          message: 'Entity read failed',
+        },
+      }
+    );
+  }
   if (url.includes('/json/global-config/realms/?_queryFilter=true')) {
     return { data: { ...empty, result: realms, resultCount: realms.length } };
   }
@@ -83,9 +102,24 @@ function answer(method: string, url: string) {
   ) {
     throw forbidden(url);
   }
+  if (
+    failedEntityUrl &&
+    /\/(applicationtypes|realm-config\/authentication\/chains|realm-config\/webhooks|realm-config\/federation\/entityproviders\/ws|serverinfo\/version)(\?|$)/.test(
+      url
+    )
+  ) {
+    return {
+      data: {
+        ...empty,
+        result: [{ _id: 'retained-entity', name: 'Retained entity' }],
+        resultCount: 1,
+      },
+    };
+  }
   return { data: { ...empty } };
 }
 let fakeTenantIsCloud = true;
+let failedEntityUrl: string;
 
 function fakeAxios() {
   return {
@@ -166,14 +200,14 @@ async function exportFull(
   requests.length = 0;
   reported.length = 0;
   const state = newState(deployment, activeRealm);
-  await exportFullConfiguration({
+  const config = await exportFullConfiguration({
     options: { ...exportOptions, ...options },
     resultCallback: (error) => {
       if (error) reported.push(String(error.getCombinedMessage()));
     },
     state,
   });
-  return state;
+  return config;
 }
 
 // Everything the root realm of Identity Cloud denies, as the fake tenant sees it.
@@ -183,6 +217,53 @@ const rootRequestsDenied = () =>
 
 beforeEach(() => {
   fakeTenantIsCloud = true;
+  failedEntityUrl = undefined;
+});
+
+describe('a full export with a failed AM config entity read', () => {
+  test.each(['cloud', 'classic', 'forgeops'])(
+    'reports the error and retains the other entities on %s',
+    async (deployment) => {
+      fakeTenantIsCloud = deployment === 'cloud';
+      failedEntityUrl = `${HOST}/json/realms/root/realms/alpha/realm-config/webhooks`;
+      const config = await exportFull(deployment, '/alpha', {
+        includeReadOnly: true,
+      });
+
+      expect(
+        reported.filter((message) => message.includes('webhookService'))
+      ).toEqual([expect.stringContaining('Entity read failed')]);
+      expect(reported).not.toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('Error Exporting AM Config Entities'),
+        ])
+      );
+      const retained = {
+        'retained-entity': {
+          _id: 'retained-entity',
+          name: 'Retained entity',
+        },
+      };
+      for (const realm of ['root', 'root-alpha', 'root-bravo']) {
+        expect(config.realm[realm].applicationTypes).toEqual(retained);
+      }
+      for (const realm of ['alpha', 'bravo']) {
+        expect(inRealm(realm)).toContain(
+          'GET /realm-config/federation/entityproviders/ws'
+        );
+        expect(config.realm[`root-${realm}`].authenticationChains).toEqual(
+          retained
+        );
+        expect(config.realm[`root-${realm}`].wsEntity).toEqual(retained);
+      }
+      expect(config.realm['root-alpha'].webhookService).toBeUndefined();
+      expect(config.realm['root-bravo'].webhookService).toEqual(retained);
+      expect(requests.map((request) => request.url)).toContain(
+        `${HOST}/json/serverinfo/version`
+      );
+      expect(config.global.serverVersion).toEqual(retained);
+    }
+  );
 });
 
 describe('a full export on Identity Cloud', () => {
