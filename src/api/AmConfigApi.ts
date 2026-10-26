@@ -136,13 +136,14 @@ export async function getConfigEntity({
         })
       ).data;
     }
-    state.setRealm(currentRealm);
     return data;
   } catch (error) {
     throw new FrodoError(
       `Error getting config entity from resource path '${urlString}'`,
       error
     );
+  } finally {
+    state.setRealm(currentRealm);
   }
 }
 
@@ -193,12 +194,13 @@ export async function putConfigEntity({
       withCredentials: true,
       headers: ifMatch ? { 'If-Match': ifMatch } : {},
     });
-    state.setRealm(currentRealm);
     return data;
   } catch (error) {
     throw new FrodoError(
       `Error putting config entity at resource path '${urlString}'`,
       error
     );
+  } finally {
+    state.setRealm(currentRealm);
   }
 }
