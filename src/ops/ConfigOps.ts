@@ -728,224 +728,228 @@ export async function exportFullConfiguration({
   if (!onlyGlobal || onlyRealm) {
     // Export realm configs
     const activeRealm = state.getRealm();
-    for (const realm of Object.keys(config?.realm ?? {})) {
-      const currentRealm = getRealmUsingExportFormat(realm);
-      if (
-        onlyRealm &&
-        (activeRealm.startsWith('/') ? activeRealm : '/' + activeRealm) !==
-          currentRealm
-      ) {
-        continue;
-      }
-      state.setRealm(currentRealm);
-      // Identity Cloud denies (403) the exports guarded by `requestable` in its root realm; the authorization
-      // config (policies, policy sets, resource types) can be read there and is not guarded
-      const requestable = !skipsDeniedRootRealmRequests({
-        realm: currentRealm,
-        onlyRealm,
-        state,
-      });
-      // Export saml2 providers and circle of trusts
-      let saml = (
-        (await exportWithErrorHandling(
-          exportSaml2Providers,
+    // restore the realm also when an error leaves the loop (no result callback)
+    try {
+      for (const realm of Object.keys(config?.realm ?? {})) {
+        const currentRealm = getRealmUsingExportFormat(realm);
+        if (
+          onlyRealm &&
+          (activeRealm.startsWith('/') ? activeRealm : '/' + activeRealm) !==
+            currentRealm
+        ) {
+          continue;
+        }
+        state.setRealm(currentRealm);
+        // Identity Cloud denies (403) the exports guarded by `requestable` in its root realm; the authorization
+        // config (policies, policy sets, resource types) can be read there and is not guarded
+        const requestable = !skipsDeniedRootRealmRequests({
+          realm: currentRealm,
+          onlyRealm,
+          state,
+        });
+        // Export saml2 providers and circle of trusts
+        let saml = (
+          (await exportWithErrorHandling(
+            exportSaml2Providers,
+            stateObj,
+            'SAML2 Providers',
+            resultCallback,
+            requestable
+          )) as CirclesOfTrustExportInterface
+        )?.saml;
+        const cotExport = await exportWithErrorHandling(
+          exportCirclesOfTrust,
           stateObj,
-          'SAML2 Providers',
+          'Circle of Trusts',
           resultCallback,
           requestable
-        )) as CirclesOfTrustExportInterface
-      )?.saml;
-      const cotExport = await exportWithErrorHandling(
-        exportCirclesOfTrust,
-        stateObj,
-        'Circle of Trusts',
-        resultCallback,
-        requestable
-      );
-      if (saml) {
-        saml.cot = cotExport?.saml.cot;
-      } else {
-        saml = cotExport?.saml;
-      }
-      realmConfig[realm] = {
-        agentGroup: (
-          await exportWithErrorHandling(
-            exportAgentGroups,
-            stateObj,
-            'Agent Groups',
-            resultCallback,
-            requestable
-          )
-        )?.agentGroup,
-        agent: (
-          await exportWithErrorHandling(
-            exportAgents,
-            realmStateObj,
-            'Agents',
-            resultCallback,
-            requestable
-          )
-        )?.agent,
-        application: (
-          await exportWithErrorHandling(
-            exportOAuth2Clients,
-            {
-              options: { deps: false, useStringArrays },
-              state,
-            },
-            'OAuth2 Client Applications',
-            resultCallback,
-            requestable
-          )
-        )?.application,
-        authentication: (
-          await exportWithErrorHandling(
-            exportAuthenticationSettings,
-            realmStateObj,
-            'Authentication Settings',
-            resultCallback,
-            requestable
-          )
-        )?.authentication,
-        idp: (
-          await exportWithErrorHandling(
-            exportSocialIdentityProviders,
-            stateObj,
-            'Social Identity Providers',
-            resultCallback,
-            requestable
-          )
-        )?.idp,
-        trees: (
-          await exportWithErrorHandling(
-            exportJourneys,
-            {
-              options: {
-                deps: false,
-                useStringArrays,
-                coords,
+        );
+        if (saml) {
+          saml.cot = cotExport?.saml.cot;
+        } else {
+          saml = cotExport?.saml;
+        }
+        realmConfig[realm] = {
+          agentGroup: (
+            await exportWithErrorHandling(
+              exportAgentGroups,
+              stateObj,
+              'Agent Groups',
+              resultCallback,
+              requestable
+            )
+          )?.agentGroup,
+          agent: (
+            await exportWithErrorHandling(
+              exportAgents,
+              realmStateObj,
+              'Agents',
+              resultCallback,
+              requestable
+            )
+          )?.agent,
+          application: (
+            await exportWithErrorHandling(
+              exportOAuth2Clients,
+              {
+                options: { deps: false, useStringArrays },
+                state,
               },
-              resultCallback: errorCallback,
-              state,
-            },
-            'Journeys',
-            resultCallback,
-            requestable
-          )
-        )?.trees,
-        managedApplication: (
-          await exportWithErrorHandling(
-            exportApplications,
-            {
-              options: { deps: false, useStringArrays },
-              state,
-            },
-            'Applications',
-            resultCallback,
-            isIdmDeployment
-          )
-        )?.managedApplication,
-        policy: (
-          await exportWithErrorHandling(
-            exportPolicies,
-            {
-              options: { deps: false, prereqs: false, useStringArrays },
-              state,
-            },
-            'Policies',
-            resultCallback
-          )
-        )?.policy,
-        policyset: (
-          await exportWithErrorHandling(
-            exportPolicySets,
-            {
-              options: { deps: false, prereqs: false, useStringArrays },
-              state,
-            },
-            'Policy Sets',
-            resultCallback
-          )
-        )?.policyset,
-        resourcetype: (
-          await exportWithErrorHandling(
-            exportResourceTypes,
-            stateObj,
-            'Resource Types',
-            resultCallback
-          )
-        )?.resourcetype,
-        saml,
-        script: (
-          await exportWithErrorHandling(
-            exportScripts,
-            {
-              options: {
-                deps: false,
-                includeDefault,
-                useStringArrays,
+              'OAuth2 Client Applications',
+              resultCallback,
+              requestable
+            )
+          )?.application,
+          authentication: (
+            await exportWithErrorHandling(
+              exportAuthenticationSettings,
+              realmStateObj,
+              'Authentication Settings',
+              resultCallback,
+              requestable
+            )
+          )?.authentication,
+          idp: (
+            await exportWithErrorHandling(
+              exportSocialIdentityProviders,
+              stateObj,
+              'Social Identity Providers',
+              resultCallback,
+              requestable
+            )
+          )?.idp,
+          trees: (
+            await exportWithErrorHandling(
+              exportJourneys,
+              {
+                options: {
+                  deps: false,
+                  useStringArrays,
+                  coords,
+                },
+                resultCallback: errorCallback,
+                state,
               },
-              resultCallback: errorCallback,
-              state,
-            },
-            'Scripts',
-            resultCallback,
-            requestable
-          )
-        )?.script,
-        secretstore: (
-          await exportWithErrorHandling(
-            exportSecretStores,
-            realmStateObj,
-            'Secret Stores',
-            resultCallback,
-            requestable
-          )
-        )?.secretstore,
-        service: (
-          await exportWithErrorHandling(
-            exportServices,
-            realmStateObj,
-            'Services',
-            resultCallback,
-            requestable
-          )
-        )?.service,
-        theme: (
-          await exportWithErrorHandling(
-            exportThemes,
-            {
-              state,
-            },
-            'Themes',
-            resultCallback,
-            isIdmDeployment
-          )
-        )?.theme,
-        trustedJwtIssuer: (
-          await exportWithErrorHandling(
-            exportOAuth2TrustedJwtIssuers,
-            {
-              options: { deps: false, useStringArrays },
-              state,
-            },
-            'Trusted JWT Issuers',
-            resultCallback,
-            requestable
-          )
-        )?.trustedJwtIssuer,
-        ...config?.realm[realm],
-      };
-      //Clean up realm duplicates
-      if (
-        realmConfig[realm].service &&
-        realmConfig[realm].service['SocialIdentityProviders']
-      ) {
-        delete realmConfig[realm].service['SocialIdentityProviders']
-          .nextDescendents;
+              'Journeys',
+              resultCallback,
+              requestable
+            )
+          )?.trees,
+          managedApplication: (
+            await exportWithErrorHandling(
+              exportApplications,
+              {
+                options: { deps: false, useStringArrays },
+                state,
+              },
+              'Applications',
+              resultCallback,
+              isIdmDeployment
+            )
+          )?.managedApplication,
+          policy: (
+            await exportWithErrorHandling(
+              exportPolicies,
+              {
+                options: { deps: false, prereqs: false, useStringArrays },
+                state,
+              },
+              'Policies',
+              resultCallback
+            )
+          )?.policy,
+          policyset: (
+            await exportWithErrorHandling(
+              exportPolicySets,
+              {
+                options: { deps: false, prereqs: false, useStringArrays },
+                state,
+              },
+              'Policy Sets',
+              resultCallback
+            )
+          )?.policyset,
+          resourcetype: (
+            await exportWithErrorHandling(
+              exportResourceTypes,
+              stateObj,
+              'Resource Types',
+              resultCallback
+            )
+          )?.resourcetype,
+          saml,
+          script: (
+            await exportWithErrorHandling(
+              exportScripts,
+              {
+                options: {
+                  deps: false,
+                  includeDefault,
+                  useStringArrays,
+                },
+                resultCallback: errorCallback,
+                state,
+              },
+              'Scripts',
+              resultCallback,
+              requestable
+            )
+          )?.script,
+          secretstore: (
+            await exportWithErrorHandling(
+              exportSecretStores,
+              realmStateObj,
+              'Secret Stores',
+              resultCallback,
+              requestable
+            )
+          )?.secretstore,
+          service: (
+            await exportWithErrorHandling(
+              exportServices,
+              realmStateObj,
+              'Services',
+              resultCallback,
+              requestable
+            )
+          )?.service,
+          theme: (
+            await exportWithErrorHandling(
+              exportThemes,
+              {
+                state,
+              },
+              'Themes',
+              resultCallback,
+              isIdmDeployment
+            )
+          )?.theme,
+          trustedJwtIssuer: (
+            await exportWithErrorHandling(
+              exportOAuth2TrustedJwtIssuers,
+              {
+                options: { deps: false, useStringArrays },
+                state,
+              },
+              'Trusted JWT Issuers',
+              resultCallback,
+              requestable
+            )
+          )?.trustedJwtIssuer,
+          ...config?.realm[realm],
+        };
+        //Clean up realm duplicates
+        if (
+          realmConfig[realm].service &&
+          realmConfig[realm].service['SocialIdentityProviders']
+        ) {
+          delete realmConfig[realm].service['SocialIdentityProviders']
+            .nextDescendents;
+        }
       }
+    } finally {
+      state.setRealm(activeRealm);
     }
-    state.setRealm(activeRealm);
   }
 
   const fullConfig = {
@@ -1356,261 +1360,265 @@ export async function importFullConfiguration({
   });
   // Import to realms
   const currentRealm = state.getRealm();
-  for (const realm of Object.keys(importData.realm)) {
-    state.setRealm(getRealmUsingExportFormat(realm));
-    indicatorId = createProgressIndicator({
-      total: 17,
-      message: `Importing everything for ${realm} realm...`,
-      state,
-    });
-    // Order of imports matter here since we want dependencies to be imported first. For example, journeys depend on a lot of things, so they are last, and many things depend on scripts, so they are first.
-    response.push(
-      await importWithErrorHandling(
-        importScripts,
-        {
-          scriptName: '',
-          importData: importData.realm[realm],
-          options: {
-            deps: false,
-            reUuid: reUuidScripts,
-            includeDefault,
+  // restore the realm also when an error leaves the loop (no result callback)
+  try {
+    for (const realm of Object.keys(importData.realm)) {
+      state.setRealm(getRealmUsingExportFormat(realm));
+      indicatorId = createProgressIndicator({
+        total: 17,
+        message: `Importing everything for ${realm} realm...`,
+        state,
+      });
+      // Order of imports matter here since we want dependencies to be imported first. For example, journeys depend on a lot of things, so they are last, and many things depend on scripts, so they are first.
+      response.push(
+        await importWithErrorHandling(
+          importScripts,
+          {
+            scriptName: '',
+            importData: importData.realm[realm],
+            options: {
+              deps: false,
+              reUuid: reUuidScripts,
+              includeDefault,
+            },
+            validate: false,
+            resultCallback: errorCallback,
+            state,
           },
-          validate: false,
-          resultCallback: errorCallback,
-          state,
-        },
-        indicatorId,
-        'Scripts',
-        resultCallback,
-        !!importData.realm[realm].script
-      )
-    );
-    response.push(
-      await importWithErrorHandling(
-        importThemes,
-        {
-          importData: importData.realm[realm],
-          state,
-        },
-        indicatorId,
-        'Themes',
-        resultCallback,
-        isIdmDeployment && !!importData.realm[realm].theme
-      )
-    );
-    response.push(
-      await importWithErrorHandling(
-        importSecretStores,
-        {
-          importData: importData.realm[realm],
-          globalConfig: false,
-          secretStoreId: '',
-          state,
-        },
-        indicatorId,
-        'Secret Stores',
-        resultCallback,
-        !!importData.realm[realm].secretstore
-      )
-    );
-    response.push(
-      await importWithErrorHandling(
-        importAgentGroups,
-        { importData: importData.realm[realm], state },
-        indicatorId,
-        'Agent Groups',
-        resultCallback,
-        !!importData.realm[realm].agentGroup
-      )
-    );
-    response.push(
-      await importWithErrorHandling(
-        importAgents,
-        { importData: importData.realm[realm], globalConfig: false, state },
-        indicatorId,
-        'Agents',
-        resultCallback,
-        !!importData.realm[realm].agent
-      )
-    );
-    response.push(
-      await importWithErrorHandling(
-        importResourceTypes,
-        {
-          importData: importData.realm[realm],
-          state,
-        },
-        indicatorId,
-        'Resource Types',
-        resultCallback,
-        !!importData.realm[realm].resourcetype
-      )
-    );
-    response.push(
-      await importWithErrorHandling(
-        importCirclesOfTrust,
-        {
-          importData: importData.realm[realm],
-          state,
-        },
-        indicatorId,
-        'Circles of Trust',
-        resultCallback,
-        !!importData.realm[realm].saml && !!importData.realm[realm].saml.cot
-      )
-    );
-    response.push(
-      await importWithErrorHandling(
-        importSaml2Providers,
-        {
-          importData: importData.realm[realm],
-          options: { deps: false },
-          state,
-        },
-        indicatorId,
-        'Saml2 Providers',
-        resultCallback,
-        !!importData.realm[realm].saml
-      )
-    );
-    response.push(
-      await importWithErrorHandling(
-        importSocialIdentityProviders,
-        {
-          importData: importData.realm[realm],
-          options: { deps: false },
-          state,
-        },
-        indicatorId,
-        'Social Identity Providers',
-        resultCallback,
-        !!importData.realm[realm].idp
-      )
-    );
-    response.push(
-      await importWithErrorHandling(
-        importOAuth2Clients,
-        {
-          importData: importData.realm[realm],
-          options: { deps: false },
-          state,
-        },
-        indicatorId,
-        'OAuth2 Clients',
-        resultCallback,
-        !!importData.realm[realm].application
-      )
-    );
-    response.push(
-      await importWithErrorHandling(
-        importOAuth2TrustedJwtIssuers,
-        {
-          importData: importData.realm[realm],
-          state,
-        },
-        indicatorId,
-        'Trusted JWT Issuers',
-        resultCallback,
-        !!importData.realm[realm].trustedJwtIssuer
-      )
-    );
-    response.push(
-      await importWithErrorHandling(
-        importApplications,
-        {
-          importData: importData.realm[realm],
-          options: { deps: false },
-          state,
-        },
-        indicatorId,
-        'Applications',
-        resultCallback,
-        isIdmDeployment && !!importData.realm[realm].managedApplication
-      )
-    );
-    response.push(
-      await importWithErrorHandling(
-        importPolicySets,
-        {
-          importData: importData.realm[realm],
-          options: { deps: false, prereqs: false },
-          state,
-        },
-        indicatorId,
-        'Policy Sets',
-        resultCallback,
-        !!importData.realm[realm].policyset
-      )
-    );
-    response.push(
-      await importWithErrorHandling(
-        importPolicies,
-        {
-          importData: importData.realm[realm],
-          options: { deps: false, prereqs: false },
-          state,
-        },
-        indicatorId,
-        'Policies',
-        resultCallback,
-        !!importData.realm[realm].policy
-      )
-    );
-    response.push(
-      await importWithErrorHandling(
-        importJourneys,
-        {
-          importData: importData.realm[realm],
-          options: {
-            deps: false,
-            reUuid: reUuidJourneys,
-            validate: validateJourneys,
+          indicatorId,
+          'Scripts',
+          resultCallback,
+          !!importData.realm[realm].script
+        )
+      );
+      response.push(
+        await importWithErrorHandling(
+          importThemes,
+          {
+            importData: importData.realm[realm],
+            state,
           },
-          resultCallback: errorCallback,
-          state,
-        },
-        indicatorId,
-        'Journeys',
-        resultCallback,
-        !!importData.realm[realm].trees
-      )
-    );
-    response.push(
-      await importWithErrorHandling(
-        importServices,
-        {
-          importData: importData.realm[realm],
-          options: { clean: cleanServices, global: false, realm: true },
-          state,
-        },
-        indicatorId,
-        'Services',
-        resultCallback,
-        !!importData.realm[realm].service
-      )
-    );
-    response.push(
-      await importWithErrorHandling(
-        importAuthenticationSettings,
-        {
-          importData: importData.realm[realm],
-          globalConfig: false,
-          state,
-        },
-        indicatorId,
-        'Authentication Settings',
-        resultCallback,
-        !!importData.realm[realm].authentication
-      )
-    );
-    stopProgressIndicator({
-      id: indicatorId,
-      message: `Finished Importing Everything to ${realm} realm!`,
-      status: 'success',
-      state,
-    });
+          indicatorId,
+          'Themes',
+          resultCallback,
+          isIdmDeployment && !!importData.realm[realm].theme
+        )
+      );
+      response.push(
+        await importWithErrorHandling(
+          importSecretStores,
+          {
+            importData: importData.realm[realm],
+            globalConfig: false,
+            secretStoreId: '',
+            state,
+          },
+          indicatorId,
+          'Secret Stores',
+          resultCallback,
+          !!importData.realm[realm].secretstore
+        )
+      );
+      response.push(
+        await importWithErrorHandling(
+          importAgentGroups,
+          { importData: importData.realm[realm], state },
+          indicatorId,
+          'Agent Groups',
+          resultCallback,
+          !!importData.realm[realm].agentGroup
+        )
+      );
+      response.push(
+        await importWithErrorHandling(
+          importAgents,
+          { importData: importData.realm[realm], globalConfig: false, state },
+          indicatorId,
+          'Agents',
+          resultCallback,
+          !!importData.realm[realm].agent
+        )
+      );
+      response.push(
+        await importWithErrorHandling(
+          importResourceTypes,
+          {
+            importData: importData.realm[realm],
+            state,
+          },
+          indicatorId,
+          'Resource Types',
+          resultCallback,
+          !!importData.realm[realm].resourcetype
+        )
+      );
+      response.push(
+        await importWithErrorHandling(
+          importCirclesOfTrust,
+          {
+            importData: importData.realm[realm],
+            state,
+          },
+          indicatorId,
+          'Circles of Trust',
+          resultCallback,
+          !!importData.realm[realm].saml && !!importData.realm[realm].saml.cot
+        )
+      );
+      response.push(
+        await importWithErrorHandling(
+          importSaml2Providers,
+          {
+            importData: importData.realm[realm],
+            options: { deps: false },
+            state,
+          },
+          indicatorId,
+          'Saml2 Providers',
+          resultCallback,
+          !!importData.realm[realm].saml
+        )
+      );
+      response.push(
+        await importWithErrorHandling(
+          importSocialIdentityProviders,
+          {
+            importData: importData.realm[realm],
+            options: { deps: false },
+            state,
+          },
+          indicatorId,
+          'Social Identity Providers',
+          resultCallback,
+          !!importData.realm[realm].idp
+        )
+      );
+      response.push(
+        await importWithErrorHandling(
+          importOAuth2Clients,
+          {
+            importData: importData.realm[realm],
+            options: { deps: false },
+            state,
+          },
+          indicatorId,
+          'OAuth2 Clients',
+          resultCallback,
+          !!importData.realm[realm].application
+        )
+      );
+      response.push(
+        await importWithErrorHandling(
+          importOAuth2TrustedJwtIssuers,
+          {
+            importData: importData.realm[realm],
+            state,
+          },
+          indicatorId,
+          'Trusted JWT Issuers',
+          resultCallback,
+          !!importData.realm[realm].trustedJwtIssuer
+        )
+      );
+      response.push(
+        await importWithErrorHandling(
+          importApplications,
+          {
+            importData: importData.realm[realm],
+            options: { deps: false },
+            state,
+          },
+          indicatorId,
+          'Applications',
+          resultCallback,
+          isIdmDeployment && !!importData.realm[realm].managedApplication
+        )
+      );
+      response.push(
+        await importWithErrorHandling(
+          importPolicySets,
+          {
+            importData: importData.realm[realm],
+            options: { deps: false, prereqs: false },
+            state,
+          },
+          indicatorId,
+          'Policy Sets',
+          resultCallback,
+          !!importData.realm[realm].policyset
+        )
+      );
+      response.push(
+        await importWithErrorHandling(
+          importPolicies,
+          {
+            importData: importData.realm[realm],
+            options: { deps: false, prereqs: false },
+            state,
+          },
+          indicatorId,
+          'Policies',
+          resultCallback,
+          !!importData.realm[realm].policy
+        )
+      );
+      response.push(
+        await importWithErrorHandling(
+          importJourneys,
+          {
+            importData: importData.realm[realm],
+            options: {
+              deps: false,
+              reUuid: reUuidJourneys,
+              validate: validateJourneys,
+            },
+            resultCallback: errorCallback,
+            state,
+          },
+          indicatorId,
+          'Journeys',
+          resultCallback,
+          !!importData.realm[realm].trees
+        )
+      );
+      response.push(
+        await importWithErrorHandling(
+          importServices,
+          {
+            importData: importData.realm[realm],
+            options: { clean: cleanServices, global: false, realm: true },
+            state,
+          },
+          indicatorId,
+          'Services',
+          resultCallback,
+          !!importData.realm[realm].service
+        )
+      );
+      response.push(
+        await importWithErrorHandling(
+          importAuthenticationSettings,
+          {
+            importData: importData.realm[realm],
+            globalConfig: false,
+            state,
+          },
+          indicatorId,
+          'Authentication Settings',
+          resultCallback,
+          !!importData.realm[realm].authentication
+        )
+      );
+      stopProgressIndicator({
+        id: indicatorId,
+        message: `Finished Importing Everything to ${realm} realm!`,
+        status: 'success',
+        state,
+      });
+    }
+  } finally {
+    state.setRealm(currentRealm);
   }
-  state.setRealm(currentRealm);
   // Import everything else
   indicatorId = createProgressIndicator({
     total: 1,
