@@ -61,12 +61,22 @@ export type LoopbackResultPage = {
   failure?: string;
 };
 
+/**
+ * Why the loopback listener ignored a request to the callback path instead of
+ * taking it for the login redirect.
+ */
+export type LoopbackIgnoredReason =
+  'method_not_allowed' | 'state_missing' | 'state_mismatch';
+
 export type LoopbackRedirectListener = {
   /** The exact redirect_uri to use in the authorize request. */
   redirectUri: string;
   /** The loopback port the listener bound to. */
   port: number;
-  /** Await the single inbound redirect, or reject on timeout. */
+  /**
+   * Await the single valid inbound redirect, or reject on timeout. Requests
+   * that are not a valid redirect are ignored; the timeout error lists them.
+   */
   waitForCallback(timeoutMs?: number): Promise<LoopbackCallbackResult>;
   /** Stop listening. Safe to call more than once. */
   close(): void;
@@ -81,17 +91,20 @@ export function generateStateNonce(): string {
 
 /**
  * Start a short-lived, loopback-only (`127.0.0.1`) HTTP listener that
- * catches exactly one OAuth2 authorization_code redirect and validates the
- * returned `state` parameter against `expectedState` with a constant-time
- * comparison before resolving.
+ * catches the one OAuth2 authorization_code redirect of a login: a GET to the
+ * callback path whose `state` parameter matches `expectedState` (constant-time
+ * comparison).
  *
  * @remarks
  * Mirrors the loopback-redirect pattern `aic-mcp-server` and `gcloud auth
  * login` both use: a real browser is directed here by the authorization
  * server, not by this process, so the listener only ever needs to accept
- * one inbound request before shutting itself down. Binds an OS-assigned
- * ephemeral port by default; pass `preferredPort` for an OAuth2 client
- * whose redirect URI is registered against one fixed port.
+ * one valid inbound request before shutting itself down. Any other request to
+ * the callback path (a stale tab, a stray browser request, another web page)
+ * gets an error response and is ignored, so it cannot end the login while
+ * the real redirect is still on its way. Binds an OS-assigned ephemeral
+ * port by default; pass `preferredPort` for an OAuth2 client whose redirect
+ * URI is registered against one fixed port.
  */
 export async function startLoopbackRedirectListener({
   preferredPort,
@@ -126,6 +139,8 @@ export async function startLoopbackRedirectListener({
   // awaited (e.g. the caller times out via a different mechanism first)
   callbackPromise.catch(() => undefined);
 
+  const ignoredRequests = new Map<LoopbackIgnoredReason, number>();
+
   const server = http.createServer((req, res) => {
     handleLoopbackRequest({
       req,
@@ -134,6 +149,8 @@ export async function startLoopbackRedirectListener({
       expectedState,
       resultPage,
       resolveCallback,
+      ignoreRequest: (reason) =>
+        ignoredRequests.set(reason, (ignoredRequests.get(reason) ?? 0) + 1),
       state,
     });
   });
@@ -172,9 +189,16 @@ export async function startLoopbackRedirectListener({
       timeoutMs: number = DEFAULT_INTERACTIVE_LOGIN_TIMEOUT_MS
     ): Promise<LoopbackCallbackResult> {
       const timeoutHandle = setTimeout(() => {
+        const ignored = [...ignoredRequests]
+          .map(([reason, count]) => `${reason} (${count})`)
+          .join(', ');
         rejectCallback(
           new FrodoError(
-            `Timed out after ${Math.round(timeoutMs / 1000)}s waiting for the browser login to complete.`
+            `Timed out after ${Math.round(timeoutMs / 1000)}s waiting for the browser login to complete.${
+              ignored
+                ? ` Ignored requests to the callback URL: ${ignored}.`
+                : ''
+            }`
           )
         );
       }, timeoutMs);
@@ -408,6 +432,7 @@ function handleLoopbackRequest({
   expectedState,
   resultPage,
   resolveCallback,
+  ignoreRequest,
   state,
 }: {
   req: IncomingMessage;
@@ -416,6 +441,7 @@ function handleLoopbackRequest({
   expectedState: string;
   resultPage?: LoopbackResultPage;
   resolveCallback: (result: LoopbackCallbackResult) => void;
+  ignoreRequest: (reason: LoopbackIgnoredReason) => void;
   state?: State;
 }): void {
   const url = new URL(req.url ?? '/', 'http://127.0.0.1');
@@ -427,6 +453,19 @@ function handleLoopbackRequest({
     return;
   }
 
+  // The browser reaches this URL by a redirect, which is always a GET.
+  if (req.method !== 'GET') {
+    ignoreRequest('method_not_allowed');
+    if (state) {
+      debugMessage({
+        message: `BrowserAuthenticateOps.handleLoopbackRequest: ignored ${req.method} request [method_not_allowed]`,
+        state,
+      });
+    }
+    res.writeHead(405, { Allow: 'GET' }).end();
+    return;
+  }
+
   const code = url.searchParams.get('code') ?? undefined;
   const receivedState = url.searchParams.get('state') ?? undefined;
   const error = url.searchParams.get('error') ?? undefined;
@@ -435,47 +474,34 @@ function handleLoopbackRequest({
 
   // An error redirect isn't guaranteed to echo `state` back, so treat the
   // error itself as authoritative rather than failing state validation too.
+  //
+  // There is deliberately no Origin/Referer check: the redirect comes from
+  // the login page, so Referer is the tenant (or whichever identity provider
+  // the user signed in with) and differs per deployment and per login. The
+  // state nonce and PKCE are what authenticate the callback.
   const stateOk = error
     ? true
     : constantTimeEquals(receivedState, expectedState);
-  const originOk = isSameOriginIfPresent(req);
 
   if (state) {
     debugMessage({
-      message: `BrowserAuthenticateOps.handleLoopbackRequest: received callback [stateOk=${stateOk}, originOk=${originOk}, error=${error ?? 'none'}]`,
+      message: `BrowserAuthenticateOps.handleLoopbackRequest: received callback [stateOk=${stateOk}, error=${error ?? 'none'}]`,
       state,
     });
   }
 
-  if (!originOk || !stateOk) {
+  if (!stateOk) {
+    ignoreRequest(
+      receivedState === undefined ? 'state_missing' : 'state_mismatch'
+    );
     res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(renderResultPage({ success: false, resultPage }));
-    resolveCallback({
-      error: error ?? 'state_mismatch',
-      errorDescription:
-        errorDescription ??
-        'The login callback could not be verified. Please try again.',
-    });
     return;
   }
 
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(renderResultPage({ success: !error, resultPage }));
   resolveCallback({ code, state: receivedState, error, errorDescription });
-}
-
-/** True unless a present `Origin`/`Referer` header points somewhere other than this loopback listener. */
-function isSameOriginIfPresent(req: IncomingMessage): boolean {
-  const originOrReferer = req.headers['origin'] || req.headers['referer'];
-  if (!originOrReferer) {
-    return true;
-  }
-  try {
-    const url = new URL(String(originOrReferer));
-    return url.hostname === '127.0.0.1' || url.hostname === 'localhost';
-  } catch {
-    return false;
-  }
 }
 
 function constantTimeEquals(
