@@ -8,6 +8,7 @@ import {
 } from '../../api/cloud/EnvCertificatesApi';
 import { State } from '../../shared/State';
 import { debugMessage } from '../../utils/Console';
+import { sleep } from '../../utils/FrodoUtils';
 import { FrodoError } from '../FrodoError';
 
 const defaultInterval = 5000;
@@ -440,10 +441,6 @@ export async function isCertificateLive({
   } catch (error) {
     throw new FrodoError(`Error reading certificate ${certificateId}`, error);
   }
-}
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function deleteCertificate({

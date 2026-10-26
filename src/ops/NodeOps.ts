@@ -36,6 +36,7 @@ import {
 } from '../utils/Console';
 import { getMetadata, getResult } from '../utils/ExportImportUtils';
 import { applyNameCollisionPolicy } from '../utils/ForgeRockUtils';
+import { sleep } from '../utils/FrodoUtils';
 import { eq, gt, lt } from '../utils/SemverUtils';
 import { FrodoError, isNotFoundError } from './FrodoError';
 import { ExportMetaData, ResultCallback } from './OpsTypes';
@@ -1318,7 +1319,7 @@ export async function importCustomNodes({
         }
         // wait 100 milliseconds before retrying
         if (!loaded) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          await sleep(100);
         }
       } while (!loaded && retries-- > 0);
     }

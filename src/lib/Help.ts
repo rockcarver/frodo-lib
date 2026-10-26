@@ -8405,6 +8405,16 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{string} absolute path to the Frodo home directory",
   },
   {
+    typeName: "FrodoUtils",
+    methodName: "sleep",
+    signature: "sleep(ms: number): Promise<void>",
+    description: "Helper function that returns a promise after a specified time. Used for sleeping Frodo execution.",
+    params: [
+      { name: "ms", type: "number", description: "Number of milliseconds to sleep", required: true },
+    ],
+    returns: "{Promise<void>} The promise that is fulfilled after the specified number of milliseconds",
+  },
+  {
     typeName: "HelpUtils",
     methodName: "getHelpMetadata",
     signature: "getHelpMetadata(): MethodHelpDoc[]",

@@ -6,6 +6,7 @@ import { AxiosError } from 'axios';
 import { DeviceAuthorizationResponseType } from '../api/OAuth2OIDCApi';
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
+import { sleep } from '../utils/FrodoUtils';
 import { decodeJwtPayload } from '../utils/JwtUtils';
 import { createPkcePair } from '../utils/PkceUtils';
 import { FrodoError } from './FrodoError';
@@ -622,10 +623,4 @@ function extractOAuthErrorCode(error: unknown): string | undefined {
     return data?.error;
   }
   return undefined;
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
 }

@@ -24,6 +24,7 @@
 import type { AxiosRequestConfig } from 'axios';
 import Constants from '../shared/Constants';
 import StateImpl from '../shared/State';
+import { sleep } from '../utils/FrodoUtils';
 import { generateAmApi, generateEnvApi, generateIdmApi } from './BaseApi';
 
 function capturingAdapter(capture: { config?: AxiosRequestConfig }): any {
@@ -176,7 +177,7 @@ describe('BaseApi credential interceptor — generateAmApi (session cookie)', ()
     let refreshCalls = 0;
     state.setTokenRefreshHandler(async () => {
       refreshCalls++;
-      await new Promise((r) => setTimeout(r, 20));
+      await sleep(20);
       state.setUserSessionTokenMeta({
         tokenId: 'refreshed-session',
         realm: '/',
