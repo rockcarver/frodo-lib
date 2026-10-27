@@ -164,13 +164,13 @@ jobs:
       - name: 'Prepare Version Bump'
         id: version-bump
         if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
-        uses: vscheuber/version-bump-action@v1
+        uses: gearsnlevers/version-bump-action@v1
         with:
           release-type: ${{ github.event.inputs.release-type }}
 
       - name: Release preflight checks
         if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
-        uses: vscheuber/release-preflight-action@v1
+        uses: gearsnlevers/release-preflight-action@v1
         with:
           candidate-version: ${{ steps.version-bump.outputs.newVersion }}
           candidate-tag: ${{ steps.version-bump.outputs.newTag }}
@@ -191,7 +191,7 @@ jobs:
 
       - name: Update package manifests for release
         if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
-        uses: vscheuber/manifest-version-update-action@v1
+        uses: gearsnlevers/manifest-version-update-action@v1
         with:
           version: ${{ steps.version-bump.outputs.newVersion }}
 
@@ -488,7 +488,7 @@ jobs:
 
       - name: Publish package
         id: npm-publish
-        uses: vscheuber/npm-trusted-publish-action@v1
+        uses: gearsnlevers/npm-trusted-publish-action@v1
         with:
           release-type: ${{ github.event.inputs.release-type }}
           package-name: '@rockcarver/frodo-lib'
@@ -572,7 +572,7 @@ jobs:
 
       - name: Generate and promote AI changelog
         id: changelog
-        uses: vscheuber/ai-changelog-action@v1
+        uses: gearsnlevers/ai-changelog-action@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           llm-api-key: ${{ secrets.OPENAI_API_KEY }}
