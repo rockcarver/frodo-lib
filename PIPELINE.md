@@ -146,8 +146,8 @@ full suite.
 Build does the following:
 
 - Uses deep checkout with tags (`fetch-depth: 0`, `fetch-tags: true`)
-- Computes next version with `vscheuber/version-bump-action@v1` (manual release runs)
-- Updates manifests with `vscheuber/manifest-version-update-action@v1` (manual release runs)
+- Computes next version with `gearsnlevers/version-bump-action@v1` (manual release runs)
+- Updates manifests with `gearsnlevers/manifest-version-update-action@v1` (manual release runs)
 - Runs `npm run check` (ESLint 10 + Prettier, including import order) and a
   critical-level security audit
 - Builds library + docs and uploads `build.zip`
@@ -187,7 +187,7 @@ cross-platform check, so no ruleset change was needed.
 
 ### npm-release
 
-`npm-release` runs for manual release executions on `main` and uses trusted publishing via `vscheuber/npm-trusted-publish-action@v1`.
+`npm-release` runs for manual release executions on `main` and uses trusted publishing via `gearsnlevers/npm-trusted-publish-action@v1`.
 
 For stable release types (`patch`, `minor`, `major`), it performs dual publish:
 
@@ -200,7 +200,7 @@ For `prerelease`, it publishes to `next`.
 
 Release job (needs build + npm-release):
 
-- Generates and promotes changelog content with `vscheuber/ai-changelog-action@v1`
+- Generates and promotes changelog content with `gearsnlevers/ai-changelog-action@v1`
 - Commits changelog/version/docs changes to `main` (pushed as the
   `FRODO_CI_PAT` identity — the repository admin the ruleset's bypass
   covers; a plain `GITHUB_TOKEN` push would be rejected by the required
