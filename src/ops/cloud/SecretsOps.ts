@@ -225,6 +225,18 @@ export type Secret = {
     version: string
   ): Promise<VersionOfSecretSkeleton>;
   /**
+   * Find the versions of a secret that pruneVersionsOfSecret would delete, without deleting anything
+   * @param {string} secretId secret id/name
+   * @param {boolean} keepLoaded true to keep the currently loaded secret versions regardless of if they are active or not. Default: false
+   * @param {boolean} keepDeactivated true to keep the deactivated versions and only prune the active versions that aren't the latest version. Default: false
+   * @returns {Promise<VersionOfSecretSkeleton[]>} a promise that resolves to the version objects that would be pruned
+   */
+  findVersionsToPrune(
+    secretId: string,
+    keepLoaded?: boolean,
+    keepDeactivated?: boolean
+  ): Promise<VersionOfSecretSkeleton[]>;
+  /**
    * Prune versions of secret that are not the latest secret version
    * @param {string} secretId secret id/name
    * @param {boolean} keepLoaded true to keep the currently loaded secret versions regardless of if they are active or not. Default: false
@@ -365,6 +377,18 @@ export default (state: State): Secret => {
     },
     async deleteVersionOfSecret(secretId: string, version: string) {
       return _deleteVersionOfSecret({ secretId, version, state });
+    },
+    async findVersionsToPrune(
+      secretId: string,
+      keepLoaded: boolean = false,
+      keepDeactivated: boolean = false
+    ): Promise<VersionOfSecretSkeleton[]> {
+      return findVersionsToPrune({
+        secretId,
+        keepLoaded,
+        keepDeactivated,
+        state,
+      });
     },
     async pruneVersionsOfSecret(
       secretId: string,
@@ -1348,6 +1372,80 @@ export async function updateSecretDescription({
 }
 
 /**
+ * Select the versions of a secret that pruning deletes: every version except
+ * the active one and the ones already destroyed, and except the loaded and/or
+ * deactivated ones when keepLoaded/keepDeactivated ask for that. The one place
+ * that decides, shared by findVersionsToPrune and pruneVersionsOfSecret so a
+ * preview can never differ from the deletion.
+ * @param {SecretSkeleton} secret the secret, for its active and loaded version
+ * @param {VersionOfSecretSkeleton[]} versions all versions of the secret
+ * @param {boolean} keepLoaded true to keep the currently loaded secret versions regardless of if they are active or not
+ * @param {boolean} keepDeactivated true to keep the deactivated versions
+ * @returns {VersionOfSecretSkeleton[]} the versions to prune
+ */
+export function selectVersionsToPrune({
+  secret,
+  versions,
+  keepLoaded = false,
+  keepDeactivated = false,
+}: {
+  secret: Pick<SecretSkeleton, 'activeVersion' | 'loadedVersion'>;
+  versions: VersionOfSecretSkeleton[];
+  keepLoaded?: boolean;
+  keepDeactivated?: boolean;
+}): VersionOfSecretSkeleton[] {
+  return versions.filter((v) => {
+    const isActive = v.version === secret.activeVersion;
+    const isDestroyed = v.status === 'DESTROYED';
+    const isLoaded =
+      keepLoaded && (v.loaded || secret.loadedVersion === v.version);
+    const isDeactivated = keepDeactivated && v.status === 'DISABLED';
+    return !isActive && !isDestroyed && !isLoaded && !isDeactivated;
+  });
+}
+
+/**
+ * Find the versions of a secret that pruneVersionsOfSecret would delete, without deleting anything
+ * @param {string} secretId secret id/name
+ * @param {boolean} keepLoaded true to keep the currently loaded secret versions regardless of if they are active or not. Default: false
+ * @param {boolean} keepDeactivated true to keep the deactivated versions and only prune the active versions that aren't the latest version. Default: false
+ * @returns {Promise<VersionOfSecretSkeleton[]>} a promise that resolves to the version objects that would be pruned
+ */
+export async function findVersionsToPrune({
+  secretId,
+  keepLoaded = false,
+  keepDeactivated = false,
+  state,
+}: {
+  secretId: string;
+  keepLoaded?: boolean;
+  keepDeactivated?: boolean;
+  state: State;
+}): Promise<VersionOfSecretSkeleton[]> {
+  try {
+    debugMessage({
+      message: `SecretsOps.findVersionsToPrune: start`,
+      state,
+    });
+    const secret = await readSecret({ secretId, state });
+    const versions = await readVersionsOfSecret({ secretId, state });
+    const found = selectVersionsToPrune({
+      secret,
+      versions,
+      keepLoaded,
+      keepDeactivated,
+    });
+    debugMessage({ message: `SecretsOps.findVersionsToPrune: end`, state });
+    return found;
+  } catch (error) {
+    throw new FrodoError(
+      `Error finding versions of secret ${secretId} to prune`,
+      error
+    );
+  }
+}
+
+/**
  * Prune versions of secret that are not the latest secret version
  * @param {string} secretId secret id/name
  * @param {boolean} keepLoaded true to keep the currently loaded secret versions regardless of if they are active or not. Default: false
@@ -1376,16 +1474,12 @@ export async function pruneVersionsOfSecret({
     });
     const secret = await readSecret({ secretId, state });
     const pruned = [];
-    const versions = (await readVersionsOfSecret({ secretId, state })).filter(
-      (v) => {
-        const isActive = v.version === secret.activeVersion;
-        const isDestroyed = v.status === 'DESTROYED';
-        const isLoaded =
-          keepLoaded && (v.loaded || secret.loadedVersion === v.version);
-        const isDeactivated = keepDeactivated && v.status === 'DISABLED';
-        return !isActive && !isDestroyed && !isLoaded && !isDeactivated;
-      }
-    );
+    const versions = selectVersionsToPrune({
+      secret,
+      versions: await readVersionsOfSecret({ secretId, state }),
+      keepLoaded,
+      keepDeactivated,
+    });
     indicatorId = createProgressIndicator({
       total: versions.length,
       message: `Pruning versions of secret ${secretId}...`,
