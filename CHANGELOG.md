@@ -10,6 +10,14 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-15] - 2026-10-28
+
+### Added
+- Introduced `frodo.cloud.secret.findVersionsToPrune(secretId, keepLoaded?, keepDeactivated?)`, which performs a dry run of `pruneVersionsOfSecret`. This function identifies the secret versions that would be deleted without actually deleting them, allowing users to preview changes before execution (#847).
+
+### Fixed
+- Resolved an issue in the browser-login callback check that incorrectly rejected valid redirects due to a `state_mismatch` error on the first login attempt when no session existed on the tenant. This fix ensures the callback URL's state is correctly validated, preventing unnecessary rejections (#841).
+
 ## [v5.0.0-14] - 2026-10-26
 
 ### Fixed
@@ -2737,6 +2745,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-15]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-14...v5.0.0-15
 [v5.0.0-14]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-13...v5.0.0-14
 [v5.0.0-13]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-12...v5.0.0-13
 [v5.0.0-12]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-11...v5.0.0-12
