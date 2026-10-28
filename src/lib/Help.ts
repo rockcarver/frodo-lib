@@ -6728,6 +6728,18 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Secret",
+    methodName: "findVersionsToPrune",
+    signature: "findVersionsToPrune( secretId: string, keepLoaded?: boolean, keepDeactivated?: boolean ): Promise<VersionOfSecretSkeleton[]>",
+    description: "Find the versions of a secret that pruneVersionsOfSecret would delete, without deleting anything",
+    params: [
+      { name: "secretId", type: "string", description: "secret id/name", required: true },
+      { name: "keepLoaded", type: "boolean", description: "true to keep the currently loaded secret versions regardless of if they are active or not. Default: false", required: false },
+      { name: "keepDeactivated", type: "boolean", description: "true to keep the deactivated versions and only prune the active versions that aren't the latest version. Default: false", required: false },
+    ],
+    returns: "{Promise<VersionOfSecretSkeleton[]>} a promise that resolves to the version objects that would be pruned",
+  },
+  {
+    typeName: "Secret",
     methodName: "pruneVersionsOfSecret",
     signature: "pruneVersionsOfSecret( secretId: string, keepLoaded?: boolean, keepDeactivated?: boolean, resultCallback?: ResultCallback<VersionOfSecretSkeleton> ): Promise<VersionOfSecretSkeleton[]>",
     description: "Prune versions of secret that are not the latest secret version",

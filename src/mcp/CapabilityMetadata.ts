@@ -2721,6 +2721,13 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
 
   'cloud.secret.disableVersionOfSecret': { mutating: true, destructive: true },
   'cloud.secret.enableVersionOfSecret': { mutating: true },
+  'cloud.secret.findVersionsToPrune': {
+    operationType: 'list',
+    objectType: 'VersionOfSecret',
+    mutating: false,
+    notes:
+      'Dry run of cloud.secret.pruneVersionsOfSecret: reads the secret and its versions and returns the version metadata that pruning would delete. Deletes nothing and returns no secret values. riskClass is left to inference, which keeps the secret-keyword match.',
+  },
   'cloud.secret.pruneVersionsOfSecret': {
     mutating: true,
     destructive: true,
