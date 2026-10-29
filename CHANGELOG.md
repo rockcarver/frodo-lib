@@ -10,6 +10,11 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-16] - 2026-10-29
+
+### Fixed
+- Corrected `getAccessTokenUrl` to retain a non-default port in the RFC7523 audience. Previously, the port appeared twice in the URL, causing incorrect URL formation. This fix ensures the URL is correctly constructed with the appropriate port (#855).
+
 ## [v5.0.0-15] - 2026-10-28
 
 ### Added
@@ -2745,6 +2750,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-16]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-15...v5.0.0-16
 [v5.0.0-15]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-14...v5.0.0-15
 [v5.0.0-14]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-13...v5.0.0-14
 [v5.0.0-13]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-12...v5.0.0-13
