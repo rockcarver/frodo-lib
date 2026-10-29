@@ -1683,7 +1683,8 @@ export function getAccessTokenUrl(state: State) {
     getCurrentRealmPath(state)
   );
   const url = new URL(accessTokenURL);
-  const urlWithPort = `${url.protocol}//${url.host}:${
+  // url.host already carries a non-default port, so build from the hostname
+  const urlWithPort = `${url.protocol}//${url.hostname}:${
     url.port ? url.port : url.protocol === 'https:' ? '443' : '80'
   }${url.pathname}`;
   return urlWithPort;
