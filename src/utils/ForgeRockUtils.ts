@@ -307,6 +307,14 @@ export function getIdmBaseUrl(state: State): string {
 
 /**
  * Initiate an update and optionally wait for it to complete.
+ *
+ * The status is first checked one poll interval after the update was
+ * initiated, not right away: a service may still report the state from before
+ * the update for a moment, which would look like a finished update. The wait
+ * ends when the update reports it is complete, or when the timeout has passed,
+ * whichever comes first; a wait that ends by the timeout is never reported as
+ * a success.
+ *
  * @param {() => Promise<any>} initiateUpdate Function that initiates the update.
  * @param {() => Promise<WaitCompleted>} isComplete Function that checks the update's completion and error status.
  * @param {string} initialMessage Initial message for the progress indicator.
@@ -319,6 +327,7 @@ export function getIdmBaseUrl(state: State): string {
  * @param {number} timeout Maximum waiting time in milliseconds (default: 600000).
  * @param {number} pollInterval Time between status checks in milliseconds (default: 5000).
  * @param {number} maxConsecutiveWaitErrors Maximum consecutive polling errors allowed (default: 3).
+ * @param {(error: unknown) => void} onError Called with the error that ended the update (it could not be initiated, or polling kept failing), so the caller can wrap it instead of losing its cause.
  * @param {State} state The library state.
  * @returns {Promise<boolean>} True if initiated successfully and, when waiting, completed without errors or timeout; false otherwise.
  */
@@ -345,6 +354,7 @@ export async function waitForUpdate({
   timeout = 10 * 60 * 1000,
   pollInterval = 5000,
   maxConsecutiveWaitErrors = 3,
+  onError,
   state,
 }: {
   initiateUpdate: () => Promise<any>;
@@ -359,6 +369,7 @@ export async function waitForUpdate({
   timeout?: number;
   pollInterval?: number;
   maxConsecutiveWaitErrors?: number;
+  onError?: (error: unknown) => void;
   state: State;
 }): Promise<boolean> {
   if (timeout <= 0 || pollInterval <= 0) {
@@ -382,36 +393,39 @@ export async function waitForUpdate({
       return true;
     }
     const start = Date.now();
-    let runtime = 0;
     let errors = 0;
-    let isCompleted = await isComplete();
-    while (!isCompleted.isComplete && start + timeout > Date.now()) {
+    let isCompleted: WaitCompleted = { isComplete: false };
+    while (!isCompleted.isComplete && Date.now() - start < timeout) {
+      // never sleep past the deadline, but still check once at the deadline
+      await sleep(Math.min(pollInterval, timeout - (Date.now() - start)));
       try {
-        await sleep(pollInterval);
         isCompleted = await isComplete();
 
         // reset errors after successful isComplete call
         errors = 0;
 
-        runtime = Date.now() - start;
         updateProgressIndicator({
           id: indicatorId,
-          message: updateMessage(isCompleted, runtime),
+          message: updateMessage(isCompleted, Date.now() - start),
           state,
         });
       } catch (e) {
         if (++errors > maxConsecutiveWaitErrors) throw e;
-        runtime = Date.now() - start;
         updateProgressIndicator({
           id: indicatorId,
           message: `${
             e.message
-          } - retry ${errors}/${maxConsecutiveWaitErrors} (${Math.round(runtime / 1000)}s)`,
+          } - retry ${errors}/${maxConsecutiveWaitErrors} (${Math.round(
+            (Date.now() - start) / 1000
+          )}s)`,
           state,
         });
       }
     }
-    const isTimedOut = runtime >= timeout;
+    const runtime = Date.now() - start;
+    // The deadline passing is not the same as not being done: only an update
+    // that never reported completion has timed out.
+    const isTimedOut = !isCompleted.isComplete;
     stopProgressIndicator({
       id: indicatorId,
       message: (isCompleted.isError
@@ -424,10 +438,12 @@ export async function waitForUpdate({
     });
     return !isTimedOut && !isCompleted.isError;
   } catch (e) {
+    onError?.(e);
+    const detail = e.response?.data?.message;
     stopProgressIndicator({
       id: indicatorId,
-      message: `Error: ${e.response?.data?.code || e} - ${
-        e.response?.data?.message
+      message: `Error: ${e.response?.data?.code || e.message || e}${
+        detail ? ` - ${detail}` : ''
       }`,
       status: 'fail',
       state,
