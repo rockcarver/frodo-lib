@@ -36,6 +36,7 @@ import {
   importWithErrorHandling,
 } from '../utils/ExportImportUtils';
 import {
+  getRealmsForExport,
   getRealmUsingExportFormat,
   skipsDeniedRootRealmRequests,
 } from '../utils/ForgeRockUtils';
@@ -262,11 +263,27 @@ export interface FullExportOptions {
    */
   onlyCustom: boolean;
   /**
-   * Include static configuration.
+   * Include static configuration. Default: true.
+   *
+   * Static configuration is what an environment promotion carries from one
+   * environment to the next: AM config entities, realms, script types, scripts,
+   * journeys, authentication settings, services, secret stores, social identity
+   * providers, themes, email templates, IDM config entities, mappings, and custom
+   * nodes.
+   *
+   * Leaving both this and `includeDynamic` out (or passing `true` for both)
+   * exports everything. Passing `false` for both exports nothing.
    */
   includeStatic?: boolean;
   /**
-   * Include dynamic configuration.
+   * Include dynamic configuration. Default: true.
+   *
+   * Dynamic configuration is what changes at run time in the environment where
+   * it is made and is not promoted: servers, sites, agents and agent groups,
+   * OAuth2 clients, trusted JWT issuers, SAML providers and circles of trust,
+   * policies, policy sets, resource types, managed applications, internal roles,
+   * ESV secrets and variables, telemetry, and the IGA objects (certification
+   * templates, events, glossary schemas, request forms and types, workflows).
    */
   includeDynamic?: boolean;
 }
@@ -314,11 +331,27 @@ export interface FullImportOptions {
    */
   onlyCustom: boolean;
   /**
-   * Include static configuration.
+   * Include static configuration. Default: true.
+   *
+   * Static configuration is what an environment promotion carries from one
+   * environment to the next: AM config entities, realms, script types, scripts,
+   * journeys, authentication settings, services, secret stores, social identity
+   * providers, themes, email templates, IDM config entities, mappings, and custom
+   * nodes.
+   *
+   * Leaving both this and `includeDynamic` out (or passing `true` for both)
+   * imports everything. Passing `false` for both imports nothing.
    */
   includeStatic?: boolean;
   /**
-   * Include dynamic configuration.
+   * Include dynamic configuration. Default: true.
+   *
+   * Dynamic configuration is what changes at run time in the environment where
+   * it is made and is not promoted: servers, sites, agents and agent groups,
+   * OAuth2 clients, trusted JWT issuers, SAML providers and circles of trust,
+   * policies, policy sets, resource types, managed applications, internal roles,
+   * ESV secrets and variables, telemetry, and the IGA objects (certification
+   * templates, events, glossary schemas, request forms and types, workflows).
    */
   includeDynamic?: boolean;
 }
@@ -420,8 +453,8 @@ export async function exportFullConfiguration({
     onlyRealm,
     onlyGlobal,
     onlyCustom,
-    includeStatic,
-    includeDynamic,
+    includeStatic = true,
+    includeDynamic = true,
   } = options;
   const stateObj = { state };
   const globalStateObj = { globalConfig: true, state };
@@ -755,9 +788,23 @@ export async function exportFullConfiguration({
   if (!onlyGlobal || onlyRealm) {
     // Export realm configs
     const activeRealm = state.getRealm();
+    // The realms to export are those of the AM config entities export. That
+    // export is skipped when static configuration is not wanted, but the
+    // realm-level dynamic configuration (OAuth2 clients, agents, policies,
+    // SAML providers, ...) still needs its realms, so ask for them directly.
+    const exportRealms = includeStatic
+      ? Object.keys(config?.realm ?? {})
+      : includeDynamic
+        ? ((await exportWithErrorHandling(
+            getRealmsForExport,
+            { state },
+            'Realms',
+            resultCallback
+          )) ?? [])
+        : [];
     // restore the realm also when an error leaves the loop (no result callback)
     try {
-      for (const realm of Object.keys(config?.realm ?? {})) {
+      for (const realm of exportRealms) {
         const currentRealm = getRealmUsingExportFormat(realm);
         if (
           onlyRealm &&
@@ -1039,8 +1086,8 @@ export async function importFullConfiguration({
     includeActiveValues,
     source,
     onlyCustom,
-    includeStatic,
-    includeDynamic,
+    includeStatic = true,
+    includeDynamic = true,
   } = options;
 
   const errorCallback = getErrorCallback(resultCallback);
