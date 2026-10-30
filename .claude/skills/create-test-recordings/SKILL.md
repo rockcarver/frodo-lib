@@ -78,7 +78,7 @@ Copy a neighbour (`src/api/AgentApi.test.ts` has the header comment with the who
 6. Replay: `npm run test:only -- <path>` must pass with no snapshot written, obsolete or updated. Then run the neighbouring suites that share helpers.
 7. Review (next section), then commit the recordings and snapshots together with the test change.
 
-If a test needs a new recording and nobody with access is at hand: write the test, say in the pull request that it needs a recording, and stop. Do not copy another recording, do not edit one by hand and do not lower the replay check.
+If a test needs a new recording and nobody with access is at hand: write the test, say in the pull request that it needs a recording, and stop. Do not copy another recording, do not edit one by hand (the only exception is trimming the repeated polls of a wait recording, decisions/0014) and do not lower the replay check.
 
 ## Review a recording diff before you commit
 
