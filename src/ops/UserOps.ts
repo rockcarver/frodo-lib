@@ -39,13 +39,13 @@ export type User = {
    * Read the users of the active realm, all of them or those matching a filter.
    * @param {string} filter CREST query filter on the AM user attributes, e.g. `username sw "a" or sn sw "a"`. Default: all users.
    * @param {string[]} fields attributes to return, e.g. `['username', 'givenName', 'sn', 'mail']`. Default: the attributes AM returns by default.
-   * @returns {Promise<UserSkeleton[]>} a promise that resolves to an array of user objects
+   * @returns {Promise<UserSkeleton[]>} a promise that resolves to an array of user objects. AM returns at most the maximum results of the realm's data store (1000 by default), so a list of exactly that size may be cut short: narrow it with a filter.
    */
   readUsers(filter?: string, fields?: string[]): Promise<UserSkeleton[]>;
   /**
    * Count the users of the active realm, all of them or those matching a filter.
    * @param {string} filter CREST query filter on the AM user attributes, e.g. `username sw "a"`. Default: all users.
-   * @returns {Promise<number>} exact count when supported by the backing API
+   * @returns {Promise<number>} exact count when supported by the backing API. AM stops counting at the maximum results of the realm's data store (1000 by default), so a count of exactly that size means "at least".
    */
   countUsers(filter?: string): Promise<number>;
   /**
