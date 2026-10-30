@@ -196,6 +196,18 @@ For stable release types (`patch`, `minor`, `major`), it performs dual publish:
 
 For `prerelease`, it publishes to `next`.
 
+The first step of `npm-release`, **Refuse to publish when the branch has
+moved**, compares the head of the dispatched branch with the commit the run was
+dispatched from and fails the run when they differ. The `Release` job commits
+the version, the changelog and the docs on top of the dispatched commit and
+pushes it. When the branch has moved since (a merge while the tests ran), that
+push is rejected after the package is on npm, which refuses to publish a version
+twice, and the release is left without its version commit, its tag and its
+GitHub release. Failing before the publish leaves nothing to clean up: dispatch
+again. A branch that cannot be read fails the step too. The step cannot cover a
+merge in the minutes between it and the push of the release commit, so do not
+merge into `main` while a release run is in progress.
+
 ### Release
 
 Release job (needs build + npm-release):
@@ -247,3 +259,31 @@ If a bad release slips through:
    ```
 
 6. Re-run the manual release workflow with the intended release type.
+
+### The package is published but the `Release` job failed
+
+If `npm-release` succeeded and the `Release` job did not (the push of the
+release commit was rejected because `main` had moved is the known case), the
+version is on npm but has no version commit, tag or GitHub release.
+
+- **Do not dispatch again.** The next version is computed from the latest tag, so
+  the run would try to publish the same version, which npm refuses.
+- **Re-running the failed jobs does not help** when the push was rejected: the
+  `Release` job starts from the commit the run was dispatched from again.
+
+To complete the release by hand:
+
+1. Download the `build` artifact of the run (`gh run download <run id> -n build`)
+   and unzip `package.json`, `package-lock.json` and `docs/` from `build.zip`;
+   they are what the `Release` job would have committed.
+2. Add the `CHANGELOG.md` entry of the version, written from the pull requests
+   merged since the previous tag (the pipeline's changelog step needs its model
+   key and cannot be re-run), and open a pull request titled `Updated
+   changelog, version, and docs for release v<version>` with these files. Merge
+   it when its checks pass.
+3. Create the annotated tag `v<version>` on the merge commit and push it, then
+   create the GitHub release for it (a pre-release for a prerelease) with the
+   section of the changelog as its notes and the assets of the other releases:
+   `CHANGELOG.md`, `LICENSE` and `Release.txt`, which holds the commit the run
+   built.
+4. The documentation site is deployed by the `Doc` job of the next release.
