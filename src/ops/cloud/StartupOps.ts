@@ -178,6 +178,8 @@ export async function applyUpdates({
       )}s with final status: ${isCompleted.status}`,
     wait,
     timeout,
+    // the restart may still read 'ready' for a moment after it was requested
+    initialDelay: 5000,
     state,
   });
 }

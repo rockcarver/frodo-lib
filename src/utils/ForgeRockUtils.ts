@@ -308,10 +308,10 @@ export function getIdmBaseUrl(state: State): string {
 /**
  * Initiate an update and optionally wait for it to complete.
  *
- * The status is first checked one poll interval after the update was
- * initiated, not right away: a service may still report the state from before
- * the update for a moment, which would look like a finished update. The wait
- * ends when the update reports it is complete, or when the timeout has passed,
+ * The status is checked right away, then once per poll interval. A service
+ * that may still report the state from before the update for a moment would
+ * look finished at the first check: give it an initialDelay. The wait ends
+ * when the update reports it is complete, or when the timeout has passed,
  * whichever comes first; a wait that ends by the timeout is never reported as
  * a success.
  *
@@ -326,6 +326,7 @@ export function getIdmBaseUrl(state: State): string {
  * @param {boolean} wait Whether to wait for the update to complete (default: false).
  * @param {number} timeout Maximum waiting time in milliseconds (default: 600000).
  * @param {number} pollInterval Time between status checks in milliseconds (default: 5000).
+ * @param {number} initialDelay Time to wait before the first status check in milliseconds (default: 0, check right away).
  * @param {number} maxConsecutiveWaitErrors Maximum consecutive polling errors allowed (default: 3).
  * @param {(error: unknown) => void} onError Called with the error that ended the update (it could not be initiated, or polling kept failing), so the caller can wrap it instead of losing its cause.
  * @param {State} state The library state.
@@ -353,6 +354,7 @@ export async function waitForUpdate({
   wait = false,
   timeout = 10 * 60 * 1000,
   pollInterval = 5000,
+  initialDelay = 0,
   maxConsecutiveWaitErrors = 3,
   onError,
   state,
@@ -368,6 +370,7 @@ export async function waitForUpdate({
   wait?: boolean;
   timeout?: number;
   pollInterval?: number;
+  initialDelay?: number;
   maxConsecutiveWaitErrors?: number;
   onError?: (error: unknown) => void;
   state: State;
@@ -395,9 +398,12 @@ export async function waitForUpdate({
     const start = Date.now();
     let errors = 0;
     let isCompleted: WaitCompleted = { isComplete: false };
+    let delay = initialDelay;
     while (!isCompleted.isComplete && Date.now() - start < timeout) {
       // never sleep past the deadline, but still check once at the deadline
-      await sleep(Math.min(pollInterval, timeout - (Date.now() - start)));
+      if (delay > 0)
+        await sleep(Math.min(delay, timeout - (Date.now() - start)));
+      delay = pollInterval;
       try {
         isCompleted = await isComplete();
 

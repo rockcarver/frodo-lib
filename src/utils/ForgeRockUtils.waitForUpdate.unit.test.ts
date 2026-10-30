@@ -58,21 +58,38 @@ describe('waitForUpdate()', () => {
     expect(isComplete).not.toHaveBeenCalled();
   });
 
-  test('3: Waits one poll interval before the first check', async () => {
-    let checkedAfter = -1;
+  test('3: Checks right away by default, then once per poll interval', async () => {
+    const checkedAt: number[] = [];
     const start = Date.now();
-    const outcome = await waitForUpdate({
+    await waitForUpdate({
       ...base,
       pollInterval: 60,
+      initiateUpdate: initiated,
+      isComplete: async () => {
+        checkedAt.push(Date.now() - start);
+        return { isComplete: checkedAt.length >= 2 };
+      },
+    });
+    expect(checkedAt).toHaveLength(2);
+    expect(checkedAt[0]).toBeLessThan(40);
+    // a timer can fire a millisecond or two early
+    expect(checkedAt[1]).toBeGreaterThanOrEqual(55);
+  });
+
+  test('3b: Waits the initial delay before the first check when given one', async () => {
+    let checkedAfter = -1;
+    const start = Date.now();
+    await waitForUpdate({
+      ...base,
+      pollInterval: 10,
+      initialDelay: 70,
       initiateUpdate: initiated,
       isComplete: async () => {
         checkedAfter = Date.now() - start;
         return { isComplete: true };
       },
     });
-    expect(outcome).toBe(true);
-    // a timer can fire a millisecond or two early
-    expect(checkedAfter).toBeGreaterThanOrEqual(55);
+    expect(checkedAfter).toBeGreaterThanOrEqual(65);
   });
 
   test('4: Keeps polling until the update completes', async () => {
