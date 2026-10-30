@@ -149,7 +149,8 @@ Build does the following:
 - Computes next version with `gearsnlevers/version-bump-action@v1` (manual release runs)
 - Updates manifests with `gearsnlevers/manifest-version-update-action@v1` (manual release runs)
 - Runs `npm run check` (ESLint 10 + Prettier, including import order) and a
-  critical-level security audit
+  critical-level security audit (check only: it fails the build on a critical
+  advisory and never rewrites the lockfile)
 - Builds library + docs and uploads `build.zip`
 
 ### Test
