@@ -10,6 +10,11 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-17] - 2026-10-30
+
+### Added
+- `readUsers()` and `countUsers()` methods now support querying with a filter and specifying attributes to return. This enhancement allows more precise user data retrieval from the AM users endpoint, accommodating scenarios where a realm contains many users and filtering is necessary to manage large datasets efficiently (#856).
+
 ## [v5.0.0-16] - 2026-10-29
 
 ### Fixed
@@ -2750,6 +2755,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-17]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-16...v5.0.0-17
 [v5.0.0-16]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-15...v5.0.0-16
 [v5.0.0-15]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-14...v5.0.0-15
 [v5.0.0-14]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-13...v5.0.0-14
