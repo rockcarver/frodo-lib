@@ -59,12 +59,16 @@ export type EnvPromotion = {
   /**
    * Promote configuration
    * @param {PromotionRequestConfig} config Promotion request config.
-   * @param {boolean} wait Whether to wait for the rollback to complete. Default: false
+   * @param {boolean} wait Whether to wait for the promotion to complete. Default: false
+   * @param {number} pollInterval Time between status checks in milliseconds. Default: 10000
    * @param {number} timeout Timeout in milliseconds. Default: 45 * 60 * 1000
    * @returns {Promise<PromotionResponse>} a promise that resolves to a PromotionResponse object.
    */
   promoteConfiguration(
-    config: PromotionRequestConfig
+    config: PromotionRequestConfig,
+    wait?: boolean,
+    pollInterval?: number,
+    timeout?: number
   ): Promise<PromotionResponse>;
   /**
    * Read promotion status
@@ -103,10 +107,16 @@ export type EnvPromotion = {
    * Rollback a promotion
    * @param {RollbackConfig} config Rollback config.
    * @param {boolean} wait Whether to wait for the rollback to complete. Default: false
+   * @param {number} pollInterval Time between status checks in milliseconds. Default: 10000
    * @param {number} timeout Timeout in milliseconds. Default: 45 * 60 * 1000
    * @returns {Promise<RollbackResponse>} a promise that resolves to a RollbackResponse object.
    */
-  rollbackPromotion(config: RollbackConfig): Promise<RollbackResponse>;
+  rollbackPromotion(
+    config: RollbackConfig,
+    wait?: boolean,
+    pollInterval?: number,
+    timeout?: number
+  ): Promise<RollbackResponse>;
 };
 
 export default (state: State): EnvPromotion => {
@@ -136,9 +146,18 @@ export default (state: State): EnvPromotion => {
       return readLockStatus({ localLockOnly, state });
     },
     async promoteConfiguration(
-      config: PromotionRequestConfig
+      config: PromotionRequestConfig,
+      wait: boolean = false,
+      pollInterval: number = 10000,
+      timeout: number = 45 * 60 * 1000
     ): Promise<PromotionResponse> {
-      return promoteConfiguration({ config, state });
+      return promoteConfiguration({
+        config,
+        wait,
+        pollInterval,
+        timeout,
+        state,
+      });
     },
     async readPromotionStatus(): Promise<PromotionStatusResponse> {
       return readPromotionStatus({ state });
@@ -158,11 +177,27 @@ export default (state: State): EnvPromotion => {
     async readPromotionReports(): Promise<PromotionReportStub[]> {
       return readPromotionReports({ state });
     },
-    async rollbackPromotion(config: RollbackConfig): Promise<RollbackResponse> {
-      return rollbackPromotion({ config, state });
+    async rollbackPromotion(
+      config: RollbackConfig,
+      wait: boolean = false,
+      pollInterval: number = 10000,
+      timeout: number = 45 * 60 * 1000
+    ): Promise<RollbackResponse> {
+      return rollbackPromotion({ config, wait, pollInterval, timeout, state });
     },
   };
 };
+
+/**
+ * A promotion or rollback is finished once the status is neither running nor
+ * in the middle of locking or unlocking the environments (a promotion that
+ * unlocks afterwards ends in an unlocking state).
+ */
+function isPromotionFinished(
+  promotionStatus: PromotionStatusResponse
+): boolean {
+  return !['RUNNING', 'LOCKING', 'UNLOCKING'].includes(promotionStatus.status);
+}
 
 /**
  * Lock environment
@@ -183,15 +218,18 @@ export async function lockEnvironment({
   state: State;
 }): Promise<LockStatus> {
   let lockStatus: LockStatus;
+  let cause: Error;
   const success = await waitForUpdate({
     initiateUpdate: async () => {
       lockStatus = await _lockEnvironment({ state });
     },
     isComplete: async () => {
       lockStatus = await readLockStatus({ state });
+      // locked or failed: any other state (still locking, or not yet started)
+      // is not the end of the lock
       return {
         status: lockStatus.description,
-        isComplete: lockStatus.result !== 'locking',
+        isComplete: ['locked', 'error'].includes(lockStatus.result),
         isError: lockStatus.result === 'error',
       };
     },
@@ -210,10 +248,11 @@ export async function lockEnvironment({
     wait,
     timeout,
     pollInterval,
+    onError: (error) => (cause = error as Error),
     state,
   });
   if (!success) {
-    throw new FrodoError('Error locking environment.');
+    throw new FrodoError('Error locking environment', cause);
   }
   return lockStatus;
 }
@@ -248,17 +287,25 @@ export async function unlockEnvironment({
         e
       );
     }
+    if (!promotionId) {
+      throw new FrodoError(
+        'Failed to get promotion id to unlock environment: the environment has no lock to release.'
+      );
+    }
   }
   let lockStatus: LockStatus;
+  let cause: Error;
   const success = await waitForUpdate({
     initiateUpdate: async () => {
       lockStatus = await _unlockEnvironment({ promotionId, state });
     },
     isComplete: async () => {
       lockStatus = await readLockStatus({ state });
+      // unlocked or failed: any other state (still unlocking, or not yet
+      // started) is not the end of the unlock
       return {
         status: lockStatus.description,
-        isComplete: lockStatus.result !== 'unlocking',
+        isComplete: ['unlocked', 'error'].includes(lockStatus.result),
         isError: lockStatus.result === 'error',
       };
     },
@@ -277,10 +324,11 @@ export async function unlockEnvironment({
     wait,
     timeout,
     pollInterval,
+    onError: (error) => (cause = error as Error),
     state,
   });
   if (!success) {
-    throw new FrodoError('Error unlocking environment.');
+    throw new FrodoError('Error unlocking environment', cause);
   }
   return lockStatus;
 }
@@ -308,22 +356,26 @@ export async function readLockStatus({
 /**
  * Promote configuration
  * @param {PromotionRequestConfig} config Promotion request config.
- * @param {boolean} wait Whether to wait for the rollback to complete. Default: false
+ * @param {boolean} wait Whether to wait for the promotion to complete. Default: false
+ * @param {number} pollInterval Time between status checks in milliseconds. Default: 10000
  * @param {number} timeout Timeout in milliseconds. Default: 45 * 60 * 1000
  * @returns {Promise<PromotionResponse>} a promise that resolves to a PromotionResponse object.
  */
 export async function promoteConfiguration({
   config,
   wait = false,
+  pollInterval = 10000,
   timeout = 45 * 60 * 1000,
   state,
 }: {
   config: PromotionRequestConfig;
   wait?: boolean;
+  pollInterval?: number;
   timeout?: number;
   state: State;
 }): Promise<PromotionResponse> {
   let response: PromotionResponse;
+  let cause: Error;
   const operation = config.dryRun ? 'Dry-run promotion' : 'Promotion';
   const success = await waitForUpdate({
     initiateUpdate: async () => {
@@ -333,7 +385,7 @@ export async function promoteConfiguration({
       const promotionStatus = await readPromotionStatus({ state });
       return {
         status: promotionStatus.message,
-        isComplete: promotionStatus.status !== 'RUNNING',
+        isComplete: isPromotionFinished(promotionStatus),
         isError: promotionStatus.status === 'ERROR',
       };
     },
@@ -357,11 +409,12 @@ export async function promoteConfiguration({
       )}s): ${isCompleted.status}`,
     wait,
     timeout,
-    pollInterval: 10000,
+    pollInterval,
+    onError: (error) => (cause = error as Error),
     state,
   });
   if (!success) {
-    throw new FrodoError('Error promoting configuration');
+    throw new FrodoError('Error promoting configuration', cause);
   }
   return response;
 }
@@ -477,21 +530,25 @@ export async function readPromotionReports({
  * Rollback a promotion
  * @param {RollbackConfig} config Rollback config.
  * @param {boolean} wait Whether to wait for the rollback to complete. Default: false
+ * @param {number} pollInterval Time between status checks in milliseconds. Default: 10000
  * @param {number} timeout Timeout in milliseconds. Default: 45 * 60 * 1000
  * @returns {Promise<RollbackResponse>} a promise that resolves to a RollbackResponse object.
  */
 export async function rollbackPromotion({
   config,
   wait = false,
+  pollInterval = 10000,
   timeout = 45 * 60 * 1000,
   state,
 }: {
   config: RollbackConfig;
   wait?: boolean;
+  pollInterval?: number;
   timeout?: number;
   state: State;
 }): Promise<RollbackResponse> {
   let response: RollbackResponse;
+  let cause: Error;
   const success = await waitForUpdate({
     initiateUpdate: async () => {
       response = await _rollbackPromotion({ config, state });
@@ -500,7 +557,7 @@ export async function rollbackPromotion({
       const promotionStatus = await readPromotionStatus({ state });
       return {
         status: promotionStatus.message,
-        isComplete: promotionStatus.status !== 'RUNNING',
+        isComplete: isPromotionFinished(promotionStatus),
         isError: promotionStatus.status === 'ERROR',
       };
     },
@@ -524,11 +581,17 @@ export async function rollbackPromotion({
       )}s): ${isCompleted.status}`,
     wait,
     timeout,
-    pollInterval: 10000,
+    pollInterval,
+    onError: (error) => (cause = error as Error),
     state,
   });
   if (!success) {
-    throw new FrodoError(`Error rolling back promotion`);
+    throw new FrodoError(
+      config.promotionDescription
+        ? `Error rolling back promotion '${config.promotionDescription}'`
+        : 'Error rolling back promotion',
+      cause
+    );
   }
   return response;
 }

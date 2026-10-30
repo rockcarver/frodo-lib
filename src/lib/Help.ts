@@ -6202,12 +6202,13 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "EnvPromotion",
     methodName: "promoteConfiguration",
-    signature: "promoteConfiguration( config: PromotionRequestConfig ): Promise<PromotionResponse>",
+    signature: "promoteConfiguration( config: PromotionRequestConfig, wait?: boolean, pollInterval?: number, timeout?: number ): Promise<PromotionResponse>",
     description: "Promote configuration",
     params: [
       { name: "config", type: "PromotionRequestConfig", description: "Promotion request config.", required: true },
-      { name: "wait", type: "boolean", description: "Whether to wait for the rollback to complete. Default: false", required: true },
-      { name: "timeout", type: "number", description: "Timeout in milliseconds. Default: 45 * 60 * 1000", required: true },
+      { name: "wait", type: "boolean", description: "Whether to wait for the promotion to complete. Default: false", required: false },
+      { name: "pollInterval", type: "number", description: "Time between status checks in milliseconds. Default: 10000", required: false },
+      { name: "timeout", type: "number", description: "Timeout in milliseconds. Default: 45 * 60 * 1000", required: false },
     ],
     returns: "{Promise<PromotionResponse>} a promise that resolves to a PromotionResponse object.",
   },
@@ -6264,12 +6265,13 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "EnvPromotion",
     methodName: "rollbackPromotion",
-    signature: "rollbackPromotion(config: RollbackConfig): Promise<RollbackResponse>",
+    signature: "rollbackPromotion( config: RollbackConfig, wait?: boolean, pollInterval?: number, timeout?: number ): Promise<RollbackResponse>",
     description: "Rollback a promotion",
     params: [
       { name: "config", type: "RollbackConfig", description: "Rollback config.", required: true },
-      { name: "wait", type: "boolean", description: "Whether to wait for the rollback to complete. Default: false", required: true },
-      { name: "timeout", type: "number", description: "Timeout in milliseconds. Default: 45 * 60 * 1000", required: true },
+      { name: "wait", type: "boolean", description: "Whether to wait for the rollback to complete. Default: false", required: false },
+      { name: "pollInterval", type: "number", description: "Time between status checks in milliseconds. Default: 10000", required: false },
+      { name: "timeout", type: "number", description: "Timeout in milliseconds. Default: 45 * 60 * 1000", required: false },
     ],
     returns: "{Promise<RollbackResponse>} a promise that resolves to a RollbackResponse object.",
   },

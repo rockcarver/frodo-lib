@@ -1,13 +1,13 @@
-  /**
-   * When recording tests, make sure to increase the jest test timeout to something like 2400000 (45 minutes, maybe even longer). For the wait tests, we recorded each test by itself by commenting out the rest since we ran 
-   * into issues with running them back to back since future tests would start before the previous tests would finish, although we believe it was caused by the timeout being set to 3 minutes originally. Regardless, you will need
-   * the timeout to be longer since locking and tenant promotion takes more than 3 minutes, but if you run into issues recording them back to back just record them separately.
-   *
-   * The other thing is that we deleted most of the duplicate requests from the recordings for the wait tests to help speed up the tests so they don't take long, we only leave a few in there to simulate the waiting for about 20-30 seconds
-   * so the tests don't take ages to run. If you re-record these, make sure to do the same.
-   * 
-   * The other thing is to make sure to use the staging tenant as the host when recording all the requests. All promotion functions should be run against the staging tenant if promoting from dev to staging.
-   */
+/**
+ * When recording tests, make sure to increase the jest test timeout to something like 2400000 (45 minutes, maybe even longer). For the wait tests, we recorded each test by itself by commenting out the rest since we ran
+ * into issues with running them back to back since future tests would start before the previous tests would finish, although we believe it was caused by the timeout being set to 3 minutes originally. Regardless, you will need
+ * the timeout to be longer since locking and tenant promotion takes more than 3 minutes, but if you run into issues recording them back to back just record them separately.
+ *
+ * The other thing is that we deleted most of the duplicate requests from the recordings for the wait tests to help speed up the tests so they don't take long, we only leave a few in there to simulate the waiting for about 20-30 seconds
+ * so the tests don't take ages to run. If you re-record these, make sure to do the same.
+ *
+ * The other thing is to make sure to use the staging tenant as the host when recording all the requests. All promotion functions should be run against the staging tenant if promoting from dev to staging.
+ */
 
 import { state } from '../../index';
 import {
@@ -244,10 +244,16 @@ describe('EnvPromotionOps', () => {
       process.env.FRODO_RECORD_PHASE === '7')
   ) {
     describe('Wait tests', () => {
+      // Replaying needs no real waiting between the polls; recording against a
+      // tenant does (the lock and the promotion take minutes).
+      const pollInterval =
+        process.env.FRODO_POLLY_MODE === 'record' ? 10000 : 10;
+
       test('0: Lock environment', async () => {
         expect(
           await EnvPromotionOps.lockEnvironment({
             wait: true,
+            pollInterval,
             state,
           })
         ).toMatchSnapshot();
@@ -264,6 +270,7 @@ describe('EnvPromotionOps', () => {
               unlockEnvironmentsAfterPromotion: false,
             },
             wait: true,
+            pollInterval,
             state,
           })
         ).toMatchSnapshot();
@@ -280,6 +287,7 @@ describe('EnvPromotionOps', () => {
               unlockEnvironmentsAfterPromotion: false,
             },
             wait: true,
+            pollInterval,
             state,
           })
         ).toMatchSnapshot();
@@ -293,6 +301,7 @@ describe('EnvPromotionOps', () => {
               unlockEnvironmentsAfterPromotion: false,
             },
             wait: true,
+            pollInterval,
             state,
           })
         ).toMatchSnapshot();
@@ -302,6 +311,7 @@ describe('EnvPromotionOps', () => {
         expect(
           await EnvPromotionOps.unlockEnvironment({
             wait: true,
+            pollInterval,
             state,
           })
         ).toMatchSnapshot();
