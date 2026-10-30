@@ -10,6 +10,23 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-18] - 2026-10-30
+
+### Added
+- `includeStatic` and `includeDynamic` options for `frodo.config.exportFullConfiguration()` and `importFullConfiguration()`. They choose whether a full export or import handles static configuration (what an environment promotion carries, such as journeys, scripts and themes), dynamic configuration (what changes at run time, such as OAuth2 clients, agents, policies and SAML providers), or both. Both default to `true`, so existing callers are unaffected (#853).
+- `frodo.cloud.env.promotion.lockEnvironment()`, `unlockEnvironment()`, `promoteConfiguration()` and `rollbackPromotion()` can wait for the operation to finish with the new `wait`, `pollInterval` and `timeout` arguments. `readLockStatus(localLockOnly?)` can show the lock status of the current environment only, and `unlockEnvironment()` reads the promotion ID from the lock status when none is given (#849).
+- `frodo.utils.sleep(ms)`, a shared helper that replaces several private copies (#849).
+
+### Fixed
+- `promoteConfiguration()` sent its request to the lock endpoint instead of the promotion endpoint, so it never promoted anything (#849).
+- A dynamic-only full export (`includeStatic: false`) left out every realm-level entity, such as OAuth2 clients, agents, policies and SAML providers, because the list of realms came from the static export (#853).
+- An options object without `includeStatic` and `includeDynamic` made a full import try every step, whether or not the file held that kind of entity (#853).
+- A failed or timed-out promotion wait now throws a `FrodoError` that carries the original error, and a wait that ran out of time is no longer reported as a success (#849).
+- Recordings now rewrite every host in URLs and in request and response headers, so a recording replays against any host (#849).
+
+### Changed
+- In the promotion API, the type `PromotionStatus` now names the status values and the former object type is `PromotionStatusResponse`; the type `LockResponse` is removed. See the [Migration Guide](MIGRATION.md) (#849).
+
 ## [v5.0.0-17] - 2026-10-30
 
 ### Added
