@@ -64,4 +64,4 @@ A decision that binds more than one repository is a core record: the same file i
 | 0012 | [The foundation and the api layer import from ops (deprecated)](0012-lower-layers-import-upward.md) | deprecated |
 | 0013 | [Smaller places where the code departs from the documented conventions (deprecated)](0013-smaller-inconsistencies-with-the-documented-conventions.md) | deprecated |
 | 0014 | [A recording of a wait may be trimmed of its repeated polls](0014-a-recording-of-a-wait-may-be-trimmed-of-its-repeated-polls.md) | accepted |
-| 0015 | [Static configuration is what a promotion carries, and everything else is dynamic](0015-static-configuration-is-what-a-promotion-carries-and-everything-else-is-dynamic.md) | proposed |
+| 0015 | [Static configuration is what a promotion carries, and everything else is dynamic](0015-static-configuration-is-what-a-promotion-carries-and-everything-else-is-dynamic.md) | accepted |
