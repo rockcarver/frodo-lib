@@ -63,3 +63,4 @@ A decision that binds more than one repository is a core record: the same file i
 | 0011 | [Terminal and colour code lives in the library (deprecated)](0011-terminal-and-colour-code-in-the-library.md) | deprecated |
 | 0012 | [The foundation and the api layer import from ops (deprecated)](0012-lower-layers-import-upward.md) | deprecated |
 | 0013 | [Smaller places where the code departs from the documented conventions (deprecated)](0013-smaller-inconsistencies-with-the-documented-conventions.md) | deprecated |
+| 0014 | [A recording of a wait may be trimmed of its repeated polls](0014-a-recording-of-a-wait-may-be-trimmed-of-its-repeated-polls.md) | accepted |
