@@ -15,7 +15,7 @@
 # more entries (the files API stops there) and every file not on the non-code
 # list count as code. See PIPELINE.md and record 0016.
 #
-# This file is not part of the Repo Concierge: it belongs to this repository,
+# This file is not part of the Issue Concierge: it belongs to this repository,
 # although it sits in a folder the concierge also installs files into.
 set -euo pipefail
 
@@ -23,7 +23,7 @@ MAX_FILES=3000
 
 # Files that change no behaviour and no build: skipping the test matrix for a
 # pull request made only of these is safe. Anything not listed is code.
-NON_CODE='^(docs/|[^/]+\.md$|LICENSE$|decisions/|\.claude/skills/|\.github/(ISSUE_TEMPLATE/|agentic-workflows/|aw/|concierge\.yml$|instructions/|scripts/|workflows/[^/]+\.(ya?ml|md)$|CODEOWNERS$|dependabot\.yml$|copilot-instructions\.md$))'
+NON_CODE='^(docs/|[^/]+\.md$|LICENSE$|decisions/|\.claude/skills/|\.github/(ISSUE_TEMPLATE/|issue-concierge/|issue-concierge\.yml$|aw/|instructions/|scripts/|workflows/[^/]+\.(ya?ml|md)$|CODEOWNERS$|dependabot\.yml$|copilot-instructions\.md$))'
 
 # Non-code by the list above, but code anyway: they decide what runs, so a pull
 # request that changes them must run everything.

@@ -47,7 +47,7 @@ If the branch is behind, merge `origin/main` into a scratch branch and run the c
 
 | Changed path | What to ask |
 | --- | --- |
-| `.github/workflows/**`, `.github/scripts/**`, `.github/aw/**`, `.github/*concierge.yml` | An agent's pull request must not edit these (AGENTS.md). Read every line, and say so before anyone approves a run. |
+| `.github/workflows/**`, `.github/scripts/**`, `.github/aw/**`, `.github/issue-concierge.yml` | An agent's pull request must not edit these (AGENTS.md). Read every line, and say so before anyone approves a run. |
 | `package.json`, `package-lock.json`, `tsdown.config.mts`, `scripts/**` | Does `dependencies` stay empty and is a new package really needed? ([dependencies](../../../.github/instructions/dependencies.instructions.md)) |
 | `CHANGELOG.md`, `docs/`, `dist/`, `types/` | Generated. They do not belong in a pull request. |
 | `src/lib/Help.ts` | Generated from TSDoc (decisions/0003). The diff must follow from the TSDoc diff and nothing else. |
