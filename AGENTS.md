@@ -41,7 +41,7 @@ Decisions that span repositories are core records: the same files in frodo-cli a
 
 ## Procedures
 
-Step-by-step procedures for recurring work are skills in [.claude/skills/](.claude/skills), which Claude Code and the GitHub Copilot cloud agent load on demand: `build-the-lib`, `change-the-ci-pipeline` (the code filter and the guidance job in `pipeline.yml`; maintainers only), `create-test-recordings` (maintainers only), `record-a-decision`, `review-a-copilot-pr` and `triage-a-security-report` (maintainers only). A skill links the binding records and instruction files and never restates them.
+Step-by-step procedures for recurring work are skills in [.claude/skills/](.claude/skills), which Claude Code and the GitHub Copilot cloud agent load on demand: `build-the-lib`, `change-the-ci-pipeline` (the code filter and the guidance job in `pipeline.yml`; maintainers only), `create-test-recordings` (maintainers only), `record-a-decision`, `release-the-lib` (maintainers only), `review-a-copilot-pr` and `triage-a-security-report` (maintainers only). A skill links the binding records and instruction files and never restates them.
 
 ## Where things live
 
