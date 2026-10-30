@@ -20,7 +20,11 @@ describe('ConfigOps journey validation option', () => {
 
   test.each([
     ['default', undefined, undefined],
-    ['disabled', { validateJourneys: false }, false],
+    [
+      'disabled',
+      { validateJourneys: false, includeDynamic: true, includeStatic: true },
+      false,
+    ],
   ])(
     'passes the %s validation setting to importJourneys',
     async (_label, options, validate) => {

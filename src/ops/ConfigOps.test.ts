@@ -76,6 +76,7 @@ describe('ConfigOps', () => {
     describe('Cloud Tests', () => {
       beforeEach(() => {
         setDefaultState();
+        state.setAmVersion(undefined);
       });
       describe('exportFullConfiguration()', () => {
         test('0: Method is implemented', async () => {
@@ -178,6 +179,84 @@ describe('ConfigOps', () => {
               onlyRealm: false,
               onlyGlobal: true,
               onlyCustom: true,
+            },
+            resultCallback: snapshotResultCallback,
+            state,
+          });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
+        });
+
+        test('6: Export only static configurations', async () => {
+          // This test was recorded on a newer AM version of cloud, so in order for the journeys to export correctly the version needs to be set explicitly
+          state.setAmVersion('8.1.0');
+          const response = await ConfigOps.exportFullConfiguration({
+            options: {
+              useStringArrays: true,
+              noDecode: false,
+              coords: true,
+              includeDefault: true,
+              includeActiveValues: true,
+              includeReadOnly: true,
+              onlyRealm: false,
+              onlyGlobal: false,
+              onlyCustom: false,
+              includeStatic: true,
+              includeDynamic: false,
+            },
+            resultCallback: snapshotResultCallback,
+            state,
+          });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
+        });
+
+        // Skipped until it is re-recorded on a tenant. It was recorded while a
+        // dynamic-only export left out every realm-level entity (OAuth2 clients,
+        // agents, policies, ...), because the list of realms came from the static
+        // AM config entities export; the export now asks for those too, and a
+        // request without a recording fails the test. Never hand-write the
+        // recording. ConfigOps.staticDynamic.unit.test.ts covers the behaviour
+        // without a tenant.
+        test.skip('7: Export only dynamic configurations', async () => {
+          const response = await ConfigOps.exportFullConfiguration({
+            options: {
+              useStringArrays: true,
+              noDecode: false,
+              coords: true,
+              includeDefault: true,
+              includeActiveValues: true,
+              includeReadOnly: true,
+              onlyRealm: false,
+              onlyGlobal: false,
+              onlyCustom: false,
+              includeStatic: false,
+              includeDynamic: true,
+            },
+            resultCallback: snapshotResultCallback,
+            state,
+          });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
+        });
+
+        test('8: Do not export static or dynamic configurations', async () => {
+          const response = await ConfigOps.exportFullConfiguration({
+            options: {
+              useStringArrays: true,
+              noDecode: false,
+              coords: true,
+              includeDefault: true,
+              includeActiveValues: true,
+              includeReadOnly: true,
+              onlyRealm: false,
+              onlyGlobal: false,
+              onlyCustom: false,
+              includeStatic: false,
+              includeDynamic: false,
             },
             resultCallback: snapshotResultCallback,
             state,
