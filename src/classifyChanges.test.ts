@@ -60,7 +60,10 @@ describe('classify-changes.sh', () => {
       ['generated docs', 'docs/classes/Foo.html'],
       ['the licence', 'LICENSE'],
       ['an issue template', '.github/ISSUE_TEMPLATE/bug.yml'],
-      ['a file in the Issue Concierge folder', '.github/issue-concierge/scope.md'],
+      [
+        'a file in the Issue Concierge folder',
+        '.github/issue-concierge/scope.md',
+      ],
       ['the aw settings', '.github/aw/actions-lock.json'],
       ['the concierge pin', '.github/issue-concierge.yml'],
       ['a concierge script', '.github/scripts/janitor.mjs'],
