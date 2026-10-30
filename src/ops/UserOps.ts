@@ -36,15 +36,18 @@ export type User = {
    */
   readUser(userId: string): Promise<UserSkeleton>;
   /**
-   * Read all users.
+   * Read the users of the active realm, all of them or those matching a filter.
+   * @param {string} filter CREST query filter on the AM user attributes, e.g. `username sw "a" or sn sw "a"`. Default: all users.
+   * @param {string[]} fields attributes to return, e.g. `['username', 'givenName', 'sn', 'mail']`. Default: the attributes AM returns by default.
    * @returns {Promise<UserSkeleton[]>} a promise that resolves to an array of user objects
    */
-  readUsers(): Promise<UserSkeleton[]>;
+  readUsers(filter?: string, fields?: string[]): Promise<UserSkeleton[]>;
   /**
-   * Count all users in the active realm.
+   * Count the users of the active realm, all of them or those matching a filter.
+   * @param {string} filter CREST query filter on the AM user attributes, e.g. `username sw "a"`. Default: all users.
    * @returns {Promise<number>} exact count when supported by the backing API
    */
-  countUsers(): Promise<number>;
+  countUsers(filter?: string): Promise<number>;
   /**
    * Export a single user by id. The response can be saved to file as is.
    * @param {string} userId User id
@@ -113,11 +116,14 @@ export default (state: State): User => {
     async readUser(userId: string): Promise<UserSkeleton> {
       return readUser({ userId, state });
     },
-    async readUsers(): Promise<UserSkeleton[]> {
-      return readUsers({ state });
+    async readUsers(
+      filter?: string,
+      fields?: string[]
+    ): Promise<UserSkeleton[]> {
+      return readUsers({ filter, fields, state });
     },
-    async countUsers(): Promise<number> {
-      return countUsers({ state });
+    async countUsers(filter?: string): Promise<number> {
+      return countUsers({ filter, state });
     },
     async exportUser(userId: string): Promise<UserExportInterface> {
       return exportUser({ userId, state });
@@ -212,12 +218,18 @@ export async function readUser({
 }
 
 /**
- * Read all users.
+ * Read the users of the active realm, all of them or those matching a filter.
+ * @param {string} filter CREST query filter on the AM user attributes. Default: all users.
+ * @param {string[]} fields attributes to return. Default: the attributes AM returns by default.
  * @returns {Promise<UserSkeleton[]>} a promise that resolves to an array of user objects
  */
 export async function readUsers({
+  filter,
+  fields,
   state,
 }: {
+  filter?: string;
+  fields?: string[];
   state: State;
 }): Promise<UserSkeleton[]> {
   try {
@@ -225,7 +237,7 @@ export async function readUsers({
       message: `UserOps.readUsers: start`,
       state,
     });
-    const { result } = await getUsers({ state });
+    const { result } = await getUsers({ filter, fields, state });
     debugMessage({ message: `UserOps.readUsers: end`, state });
     return result;
   } catch (error) {
@@ -234,16 +246,23 @@ export async function readUsers({
 }
 
 /**
- * Count all users in the active realm.
+ * Count the users of the active realm, all of them or those matching a filter.
+ * @param {string} filter CREST query filter on the AM user attributes. Default: all users.
  * @returns {Promise<number>} exact count when supported by the backing API
  */
-export async function countUsers({ state }: { state: State }): Promise<number> {
+export async function countUsers({
+  filter,
+  state,
+}: {
+  filter?: string;
+  state: State;
+}): Promise<number> {
   try {
     debugMessage({
       message: `UserOps.countUsers: start`,
       state,
     });
-    const total = await getUserCount({ state });
+    const total = await getUserCount({ filter, state });
     debugMessage({
       message: `UserOps.countUsers: end (count=${total})`,
       state,

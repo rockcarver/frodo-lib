@@ -7,9 +7,9 @@ import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
 
 const userURLTemplate = '%s/json%s/users/%s';
-const usersURLTemplate = '%s/json%s/users?_queryFilter=true';
+const usersURLTemplate = '%s/json%s/users?_queryFilter=%s';
 const usersCountURLTemplate =
-  '%s/json%s/users?_queryFilter=true&_pageSize=0&_totalPagedResultsPolicy=EXACT';
+  '%s/json%s/users?_queryFilter=%s&_pageSize=0&_totalPagedResultsPolicy=EXACT';
 const userServiceURLTemplate = '%s/json%s/users/%s/services/%s';
 const userServicesURLTemplate =
   '%s/json%s/users/%s/services?_action=nextdescendents';
@@ -158,19 +158,27 @@ export async function getUser({
 }
 
 /**
- * Get all users
+ * Get users
+ * @param {string} filter CREST query filter, e.g. `username sw "a"`. Default: all users.
+ * @param {string[]} fields fields to return. Default: the fields AM returns by default.
  * @returns {Promise<PagedResult<UserSkeleton>>} a promise that resolves to an array of user objects
  */
 export async function getUsers({
+  filter = 'true',
+  fields = [],
   state,
 }: {
+  filter?: string;
+  fields?: string[];
   state: State;
 }): Promise<PagedResult<UserSkeleton>> {
-  const urlString = util.format(
-    usersURLTemplate,
-    state.getHost(),
-    getCurrentRealmPath(state)
-  );
+  const urlString =
+    util.format(
+      usersURLTemplate,
+      state.getHost(),
+      getCurrentRealmPath(state),
+      encodeURIComponent(filter)
+    ) + (fields.length ? `&_fields=${fields.join(',')}` : '');
   const { data } = await generateAmApi({
     resource: getIdentityApiConfig(),
     requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
@@ -182,19 +190,23 @@ export async function getUsers({
 }
 
 /**
- * Get total number of users in the current realm.
+ * Get the number of users in the current realm.
  *
- * @returns {Promise<number>} Exact total number of users when available.
+ * @param {string} filter CREST query filter, e.g. `username sw "a"`. Default: all users.
+ * @returns {Promise<number>} Exact number of users when available.
  */
 export async function getUserCount({
+  filter = 'true',
   state,
 }: {
+  filter?: string;
   state: State;
 }): Promise<number> {
   const urlString = util.format(
     usersCountURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(state)
+    getCurrentRealmPath(state),
+    encodeURIComponent(filter)
   );
   const { data } = await generateAmApi({
     resource: getIdentityApiConfig(),

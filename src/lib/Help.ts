@@ -5411,17 +5411,22 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "User",
     methodName: "readUsers",
-    signature: "readUsers(): Promise<UserSkeleton[]>",
-    description: "Read all users.",
-    params: [],
+    signature: "readUsers(filter?: string, fields?: string[]): Promise<UserSkeleton[]>",
+    description: "Read the users of the active realm, all of them or those matching a filter.",
+    params: [
+      { name: "filter", type: "string", description: "CREST query filter on the AM user attributes, e.g. `username sw \"a\" or sn sw \"a\"`. Default: all users.", required: false },
+      { name: "fields", type: "string[]", description: "attributes to return, e.g. `['username', 'givenName', 'sn', 'mail']`. Default: the attributes AM returns by default.", required: false },
+    ],
     returns: "{Promise<UserSkeleton[]>} a promise that resolves to an array of user objects",
   },
   {
     typeName: "User",
     methodName: "countUsers",
-    signature: "countUsers(): Promise<number>",
-    description: "Count all users in the active realm.",
-    params: [],
+    signature: "countUsers(filter?: string): Promise<number>",
+    description: "Count the users of the active realm, all of them or those matching a filter.",
+    params: [
+      { name: "filter", type: "string", description: "CREST query filter on the AM user attributes, e.g. `username sw \"a\"`. Default: all users.", required: false },
+    ],
     returns: "{Promise<number>} exact count when supported by the backing API",
   },
   {
