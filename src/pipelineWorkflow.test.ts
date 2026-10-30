@@ -471,3 +471,27 @@ describe('the "npm-release" job', () => {
     }
   );
 });
+
+/*
+ * The audit in the Build job only checks. `npm audit fix` rewrote the
+ * lockfile inside the build, the artifact carried it, and the Release job
+ * committed it to main, so the locked version of a dependency changed from
+ * release to release. PIPELINE.md, "Build".
+ */
+describe('the "Security Audit" of the "build" job', () => {
+  test('checks at the critical level and never fixes', () => {
+    // the comment above the step names the command; only a run line counts
+    expect(WORKFLOW).not.toMatch(/^\s*run:.*npm audit fix/m);
+    expect(stepScriptLine('build', 'Security Audit')).toBe(
+      'npm audit --audit-level critical'
+    );
+  });
+
+  /** The `run:` line of a one-line step. */
+  function stepScriptLine(id: string, stepName: string): string {
+    const lines = job(id).split('\n');
+    const at = lines.findIndex((l) => l.trim() === `- name: ${stepName}`);
+    if (at < 0) throw new Error(`job "${id}" has no step "${stepName}"`);
+    return lines[at + 1].replace(/^\s*run:\s*/, '').trim();
+  }
+});
