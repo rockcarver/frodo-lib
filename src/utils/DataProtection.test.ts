@@ -42,9 +42,12 @@ const mockedFrodoHome = join(dataprotectionTmpBase, 'fakehome', '.frodo');
 const getFrodoHomeMock = jest.fn(() => mockedFrodoHome);
 const sleepMock = jest.fn((ms) => sleep(ms));
 jest.unstable_mockModule('./FrodoUtils', () => ({
-  default: () => ({ getFrodoHome: () => getFrodoHomeMock(), sleep: (ms) => sleep(ms) }),
+  default: () => ({
+    getFrodoHome: () => getFrodoHomeMock(),
+    sleep: (ms) => sleep(ms),
+  }),
   getFrodoHome: getFrodoHomeMock,
-  sleep: sleepMock
+  sleep: sleepMock,
 }));
 const { default: DataProtection, secureMasterKeyFile } =
   await import('./DataProtection');
