@@ -42,6 +42,17 @@ releases missed):
   Exports are unaffected: they report findings as warnings and never block.
 - [`frodo.authn.journey.validateJourneys(journeyIds?, journeysExport?)`](https://rockcarver.github.io/frodo-lib/types/Reference.Journey.html#validatejourneys)
   validates journeys from the tenant or from a multi-journey export.
+- `frodo.cloud.env.promotion`: `promoteConfiguration` now sends its request to
+  the promotion endpoint (it used to post to the lock endpoint, so it never
+  promoted anything). `lockEnvironment` and `unlockEnvironment` return a
+  `LockStatus` (the `LockResponse` type is gone) and can wait for the lock to
+  finish (`wait`, `pollInterval`, `timeout`); the `promotionId` of
+  `unlockEnvironment` is optional and read from the lock status when left out.
+  `promoteConfiguration` and `rollbackPromotion` take the same three optional
+  arguments after the config. A wait that fails or times out throws a
+  `FrodoError` that carries the original error. In the types, `PromotionStatus`
+  is now the union of status names; the former object type is
+  `PromotionStatusResponse`.
 
 **Deprecation**:
 
