@@ -60,6 +60,7 @@ import {
   getCurrentRealmManagedUser,
   getCurrentRealmName,
 } from '../utils/ForgeRockUtils';
+import { sleep } from '../utils/FrodoUtils';
 import {
   JOURNEY_CONTAINER_NODE_TYPES,
   validateJourneyExportKeys,
@@ -3597,10 +3598,7 @@ export async function deleteJourneys({
         state,
       });
       // introduce a 100ms wait to allow the progress bar to update before the next verbose message prints from the async function
-      if (verbose)
-        await new Promise((r) => {
-          setTimeout(r, 100);
-        });
+      if (verbose) await sleep(100);
     } catch (e) {
       if (resultCallback) {
         resultCallback(e, undefined);

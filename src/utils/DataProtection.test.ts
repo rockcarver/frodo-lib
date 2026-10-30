@@ -4,6 +4,7 @@ import { join } from 'path';
 import { jest } from '@jest/globals';
 import Constants from '../shared/Constants';
 import StateImpl from '../shared/State';
+import { sleep } from './FrodoUtils';
 
 /**
  * Unit tests for DataProtection's master-key bootstrap.
@@ -39,9 +40,14 @@ const dataprotectionTmpBase = join(
 );
 const mockedFrodoHome = join(dataprotectionTmpBase, 'fakehome', '.frodo');
 const getFrodoHomeMock = jest.fn(() => mockedFrodoHome);
+const sleepMock = jest.fn((ms) => sleep(ms));
 jest.unstable_mockModule('./FrodoUtils', () => ({
-  default: () => ({ getFrodoHome: () => getFrodoHomeMock() }),
+  default: () => ({
+    getFrodoHome: () => getFrodoHomeMock(),
+    sleep: (ms) => sleep(ms),
+  }),
   getFrodoHome: getFrodoHomeMock,
+  sleep: sleepMock,
 }));
 const { default: DataProtection, secureMasterKeyFile } =
   await import('./DataProtection');

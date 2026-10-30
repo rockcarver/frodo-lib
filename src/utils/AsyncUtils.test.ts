@@ -4,6 +4,7 @@
  *        npm run test:only AsyncUtils
  */
 import { dedupeAsync } from './AsyncUtils';
+import { sleep } from './FrodoUtils';
 
 describe('AsyncUtils.dedupeAsync', () => {
   test('0: Method is implemented', () => {
@@ -14,7 +15,7 @@ describe('AsyncUtils.dedupeAsync', () => {
     let calls = 0;
     const fn = dedupeAsync(async () => {
       calls++;
-      await new Promise((r) => setTimeout(r, 10));
+      await sleep(10);
       return calls;
     });
 

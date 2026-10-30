@@ -1572,10 +1572,6 @@ export function pickRandomIPAddress(customIPs: string[] = []): string {
   return pickRandomValue(finalIPs);
 }
 
-export function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 // generate auto access sample data
 export async function trainAA({
   apiKey,

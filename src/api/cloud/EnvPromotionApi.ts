@@ -7,7 +7,7 @@ import { generateEnvApi } from '../BaseApi';
 const promotionURLTemplate = '%s/environment/promotion';
 const lockEnvURLTemplate = `${promotionURLTemplate}/lock`;
 const unlockEnvByIdURLTemplate = `${lockEnvURLTemplate}/%s`;
-const lockStatusURLTemplate = `${lockEnvURLTemplate}/state`;
+const lockStatusURLTemplate = `${lockEnvURLTemplate}/state?localLockOnly=%s`;
 const promoteEnvURLTemplate = `${promotionURLTemplate}/promote`;
 const rollbackURLTemplate = `${promotionURLTemplate}/rollback`;
 const reportURLTemplate = `${promotionURLTemplate}/report`;
@@ -24,27 +24,18 @@ const getApiConfig = () => {
 };
 
 /**
- * Lock response
- */
-export type LockResponse = {
-  description: string;
-  promotionId: string;
-  result: string;
-};
-
-/**
  * Lock status
  */
 export type LockStatus = {
   description: string;
-  lowerEnv: {
+  lowerEnv?: {
     promotionId: string;
     proxyState: string;
     state: string;
   };
   promotionId: string;
   result: 'unlocked' | 'locking' | 'unlocking' | 'locked' | 'error';
-  upperEnv: {
+  upperEnv?: {
     promotionId: string;
     proxyState: string;
     state: string;
@@ -57,10 +48,11 @@ export type LockStatus = {
 export type PromotionRequestConfig = {
   dryRun: boolean;
   ignoreEncryptedSecrets: boolean;
-  promoter: string;
-  promotionDescription: string;
+  promoter?: string;
+  promotionDescription?: string;
+  removeOrphanedConfig?: boolean;
   unlockEnvironmentsAfterPromotion: boolean;
-  zendeskTicketReference: string;
+  zendeskTicketReference?: string;
 };
 
 /**
@@ -72,19 +64,24 @@ export type PromotionResponse = {
 
 export type PromotionType = 'promotion' | 'rollback';
 
+export type GlobalLockStatus = 'UNLOCKED' | 'LOCKED' | 'LOCKING' | 'UNLOCKING';
+
+export type PromotionStatus =
+  'UNLOCKED' | 'READY' | 'LOCKING' | 'UNLOCKING' | 'ERROR' | 'RUNNING';
+
 /**
  * Promotion status
  */
-export type PromotionStatus = {
+export type PromotionStatusResponse = {
   blockingError: boolean;
-  encryptedSecrets: string[];
-  globalLock: string; //'LOCKED';
+  encryptedSecrets?: string[];
+  globalLock: GlobalLockStatus;
   message: string;
-  missingESVs: string[];
-  promotionId: string;
-  status: string; //'READY';
+  missingESVs?: string[];
+  promotionId?: string;
+  status: PromotionStatus;
   timeStamp: string;
-  type: PromotionType;
+  type?: PromotionType;
 };
 
 export type PromotionConfigChange = {
@@ -131,10 +128,10 @@ export type PromotionReportStub = {
  * Rollback request
  */
 export type RollbackConfig = {
-  promoter: string;
-  promotionDescription: string;
+  promoter?: string;
+  promotionDescription?: string;
   unlockEnvironmentsAfterPromotion: boolean;
-  zendeskTicketReference: string;
+  zendeskTicketReference?: string;
 };
 
 /**
@@ -146,15 +143,14 @@ export type RollbackResponse = {
 
 /**
  * Lock environment
- * @param {Object} params Parameters object.
- * @param {State} params.state State object.
- * @returns {Promise<LockResponse>} a promise that resolves to a LockResponse object.
+ * @param {State} state State object.
+ * @returns {Promise<LockStatus>} a promise that resolves to a LockStatus object.
  */
 export async function lockEnvironment({
   state,
 }: {
   state: State;
-}): Promise<LockResponse> {
+}): Promise<LockStatus> {
   const urlString = util.format(
     lockEnvURLTemplate,
     getHostOnlyUrl(state.getHost())
@@ -169,10 +165,9 @@ export async function lockEnvironment({
 
 /**
  * Unlock environment
- * @param {Object} params Parameters object.
- * @param {string} params.promotionId Promotion id.
- * @param {State} params.state State object.
- * @returns {Promise<LockResponse>} a promise that resolves to a LockResponse object
+ * @param {string} promotionId Promotion id.
+ * @param {State} state State object.
+ * @returns {Promise<LockStatus>} a promise that resolves to a LockStatus object
  */
 export async function unlockEnvironment({
   promotionId,
@@ -180,7 +175,7 @@ export async function unlockEnvironment({
 }: {
   promotionId: string;
   state: State;
-}): Promise<LockResponse> {
+}): Promise<LockStatus> {
   const urlString = util.format(
     unlockEnvByIdURLTemplate,
     getHostOnlyUrl(state.getHost()),
@@ -198,16 +193,20 @@ export async function unlockEnvironment({
 
 /**
  * Get lock status
+ * @param {boolean} localLockOnly True to show lock status of current environment. Default: false
  * @returns {Promise<LockStatus>} a promise that resolves to a LockStatus object
  */
 export async function getLockStatus({
+  localLockOnly = false,
   state,
 }: {
+  localLockOnly?: boolean;
   state: State;
 }): Promise<LockStatus> {
   const urlString = util.format(
     lockStatusURLTemplate,
-    getHostOnlyUrl(state.getHost())
+    getHostOnlyUrl(state.getHost()),
+    String(localLockOnly)
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -221,9 +220,8 @@ export async function getLockStatus({
 
 /**
  * Promote configuration
- * @param {Object} params Parameters object.
- * @param {PromotionRequestConfig} params.config Promotion request config
- * @param {State} params.state State object.
+ * @param {PromotionRequestConfig} config Promotion request config
+ * @param {State} state State object.
  * @returns {Promise<PromotionResponse>} a promise that resolves to a PromotionResponse object.
  */
 export async function promoteConfiguration({
@@ -234,7 +232,7 @@ export async function promoteConfiguration({
   state: State;
 }): Promise<PromotionResponse> {
   const urlString = util.format(
-    lockEnvURLTemplate,
+    promoteEnvURLTemplate,
     getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
@@ -247,15 +245,14 @@ export async function promoteConfiguration({
 
 /**
  * Get promotion status
- * @param {Object} params Parameters object.
- * @param {State} params.state State object.
- * @returns {Promise<PromotionStatus>} a promise that resolves to a PromotionStatus object
+ * @param {State} state State object.
+ * @returns {Promise<PromotionStatusResponse>} a promise that resolves to a PromotionStatus object
  */
 export async function getPromotionStatus({
   state,
 }: {
   state: State;
-}): Promise<PromotionStatus> {
+}): Promise<PromotionStatusResponse> {
   const urlString = util.format(
     promoteEnvURLTemplate,
     getHostOnlyUrl(state.getHost())
@@ -272,8 +269,7 @@ export async function getPromotionStatus({
 
 /**
  * Get last promotion report
- * @param {Object} params Parameters object.
- * @param {State} params.state State object.
+ * @param {State} state State object.
  * @returns {Promise<PromotionReport>} a promise that resolves to a PromotionReport object
  */
 export async function getLastPromotionReport({
@@ -297,9 +293,8 @@ export async function getLastPromotionReport({
 
 /**
  * Get promotion report
- * @param {Object} params Parameters object.
- * @param {string} params.reportId Promotion id
- * @param {State} params.state State object.
+ * @param {string} reportId Promotion id
+ * @param {State} state State object.
  * @returns {Promise<PromotionReport>} a promise that resolves to a PromotionReport object
  */
 export async function getPromotionReport({
@@ -328,8 +323,7 @@ export async function getPromotionReport({
  * Get a provisional report of changes since the last time the lower environment was promoted to the upper environment.
  * The report generated is for informational purposes only and may not reflect all the changes in a full promotion.
  * A dry-run promotion is always recommended prior to a full promotion between environments.
- * @param {Object} params Parameters object.
- * @param {State} params.state State object.
+ * @param {State} state State object.
  * @returns {Promise<PromotionReport>} a promise that resolves to a PromotionReport object
  */
 export async function getProvisionalPromotionReport({
@@ -353,8 +347,7 @@ export async function getProvisionalPromotionReport({
 
 /**
  * Get a provisional rollback report of changes when we rollback the configuration to the previous promotion.
- * @param {Object} params Parameters object.
- * @param {State} params.state State object.
+ * @param {State} state State object.
  * @returns {Promise<PromotionReport>} a promise that resolves to a PromotionReport object
  */
 export async function getProvisionalRollbackReport({
@@ -378,8 +371,7 @@ export async function getProvisionalRollbackReport({
 
 /**
  * Get a list of promotion reports in date order.
- * @param {Object} params Parameters object.
- * @param {State} params.state State object.
+ * @param {State} state State object.
  * @returns {Promise<PromotionReportStub[]>} a promise that resolves to an array of PromotionReportStub objects
  */
 export async function getPromotionReports({
@@ -403,9 +395,8 @@ export async function getPromotionReports({
 
 /**
  * Rollback a promotion
- * @param {Object} params Parameters object.
- * @param {RollbackConfig} params.config Rollback config
- * @param {State} params.state State object.
+ * @param {RollbackConfig} config Rollback config
+ * @param {State} state State object.
  * @returns {Promise<RollbackResponse>} a promise that resolves to a RollbackResponse object.
  */
 export async function rollbackPromotion({

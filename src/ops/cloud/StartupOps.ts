@@ -7,8 +7,8 @@ import { State } from '../../shared/State';
 import {
   createProgressIndicator,
   stopProgressIndicator,
-  updateProgressIndicator,
 } from '../../utils/Console';
+import { waitForUpdate } from '../../utils/ForgeRockUtils';
 import { readSecrets } from './SecretsOps';
 import { readVariables } from './VariablesOps';
 
@@ -155,91 +155,31 @@ export async function applyUpdates({
   wait: boolean;
   timeout?: number;
   state: State;
-}) {
-  const indicatorId = createProgressIndicator({
-    total: undefined,
-    message: `Applying updates...`,
-    type: 'indeterminate',
+}): Promise<boolean> {
+  return await waitForUpdate({
+    initiateUpdate: async () => await initiateRestart({ state }),
+    isComplete: async () => {
+      const status = await getStatus({ state });
+      return {
+        status,
+        isComplete: RestartStatus.ready === status,
+      };
+    },
+    initialMessage: 'Applying updates...',
+    noWaitSuccessMessage:
+      'Updates are being applied. Changes may take up to 10 minutes to propagate, during which time you will not be able to make further updates.',
+    waitSuccessMessage: (isCompleted, runtime) =>
+      `Updates applied in ${Math.round(
+        runtime / 1000
+      )}s with final status: ${isCompleted.status}`,
+    timeoutMessage: (isCompleted, runtime) =>
+      `Updates timed out in ${Math.round(
+        runtime / 1000
+      )}s with final status: ${isCompleted.status}`,
+    wait,
+    timeout,
+    // the restart may still read 'ready' for a moment after it was requested
+    initialDelay: 5000,
     state,
   });
-  try {
-    let status = await initiateRestart({ state });
-    if (wait) {
-      const start = new Date().getTime();
-      let runtime = 0;
-      let errors = 0;
-      const maxErrors = 3;
-      while (
-        status !== RestartStatus.ready &&
-        start + timeout > new Date().getTime()
-      ) {
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-        try {
-          status = await getStatus({ state });
-
-          // reset errors after successful status call
-          if (errors) errors = 0;
-
-          runtime = new Date().getTime() - start;
-          updateProgressIndicator({
-            id: indicatorId,
-            message: `${status} (${Math.round(runtime / 1000)}s)`,
-            state,
-          });
-        } catch (error) {
-          errors++;
-          if (errors > maxErrors) {
-            throw error;
-          }
-          runtime = new Date().getTime() - start;
-          updateProgressIndicator({
-            id: indicatorId,
-            message: `${
-              error.message
-            } - retry ${errors}/${maxErrors} (${Math.round(runtime / 1000)}s)`,
-            state,
-          });
-        }
-      }
-      if (runtime < timeout) {
-        stopProgressIndicator({
-          id: indicatorId,
-          message: `Updates applied in ${Math.round(
-            runtime / 1000
-          )}s with final status: ${status}`,
-          status: 'success',
-          state,
-        });
-        return true;
-      } else {
-        stopProgressIndicator({
-          id: indicatorId,
-          message: `Updates timed out after ${Math.round(
-            runtime / 1000
-          )}s with final status: ${status}`,
-          status: 'warn',
-          state,
-        });
-        return false;
-      }
-    } else {
-      stopProgressIndicator({
-        id: indicatorId,
-        message: `Updates are being applied. Changes may take up to 10 minutes to propagate, during which time you will not be able to make further updates.`,
-        status: 'success',
-        state,
-      });
-      return true;
-    }
-  } catch (error) {
-    stopProgressIndicator({
-      id: indicatorId,
-      message: `Error: ${error.response?.data?.code || error} - ${
-        error.response?.data?.message
-      }`,
-      status: 'fail',
-      state,
-    });
-    return false;
-  }
 }

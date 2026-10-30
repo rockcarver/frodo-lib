@@ -13,6 +13,7 @@ import {
   type LogEventSkeleton,
 } from '../../api/cloud/LogApi';
 import { State } from '../../shared/State';
+import { sleep } from '../../utils/FrodoUtils';
 import { FrodoError } from '../FrodoError';
 
 export type LogTailStream = {
@@ -740,10 +741,6 @@ export async function fetch({
   } catch (error) {
     throw new FrodoError(`Error fetching logs`, error);
   }
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**

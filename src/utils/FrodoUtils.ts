@@ -7,12 +7,21 @@ export type FrodoUtils = {
    * @returns {string} absolute path to the Frodo home directory
    */
   getFrodoHome(): string;
+  /**
+   * Helper function that returns a promise after a specified time. Used for sleeping Frodo execution.
+   * @param {number} ms Number of milliseconds to sleep
+   * @returns {Promise<void>} The promise that is fulfilled after the specified number of milliseconds
+   */
+  sleep(ms: number): Promise<void>;
 };
 
 export default (): FrodoUtils => {
   return {
     getFrodoHome(): string {
       return getFrodoHome();
+    },
+    sleep(ms: number): Promise<void> {
+      return sleep(ms);
     },
   };
 };
@@ -23,4 +32,13 @@ export default (): FrodoUtils => {
  */
 export function getFrodoHome(): string {
   return path.join(os.homedir(), '.frodo');
+}
+
+/**
+ * Helper function that returns a promise after a specified time. Used for sleeping Frodo execution.
+ * @param {number} ms Number of milliseconds to sleep
+ * @returns {Promise<void>} The promise that is fulfilled after the specified number of milliseconds
+ */
+export function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

@@ -17,6 +17,7 @@ import Constants from '../shared/Constants';
 import StateImpl, { AmCredentialOverride, State } from '../shared/State';
 import { getUserAgent } from '../shared/Version';
 import { curlirizeMessage, printMessage } from '../utils/Console';
+import { sleep } from '../utils/FrodoUtils';
 import { mergeDeep } from '../utils/JsonUtils';
 import { attachNameResolutionDiagnosis } from '../utils/NetworkDiagnosisUtils';
 import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
@@ -1055,7 +1056,7 @@ export function generateLogApi({
         const delayMs = (retryAfterSeconds + 1) * 1000;
 
         // Wait for the specified duration
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        await sleep(delayMs);
 
         // Retry the original request
         return request(originalRequest);
