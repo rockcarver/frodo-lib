@@ -213,14 +213,7 @@ describe('ConfigOps', () => {
           });
         });
 
-        // Skipped until it is re-recorded on a tenant. It was recorded while a
-        // dynamic-only export left out every realm-level entity (OAuth2 clients,
-        // agents, policies, ...), because the list of realms came from the static
-        // AM config entities export; the export now asks for those too, and a
-        // request without a recording fails the test. Never hand-write the
-        // recording. ConfigOps.staticDynamic.unit.test.ts covers the behaviour
-        // without a tenant.
-        test.skip('7: Export only dynamic configurations', async () => {
+        test('7: Export only dynamic configurations', async () => {
           const response = await ConfigOps.exportFullConfiguration({
             options: {
               useStringArrays: true,
