@@ -86,7 +86,7 @@ which prints two results:
 
 - `code=false` only when **every** file is on the non-code list: root `*.md`,
   `docs/`, `LICENSE`, `decisions/`, `.claude/skills/`, and under `.github/`
-  the issue templates, the agentic-workflow definitions, `aw/`, `concierge.yml`,
+  the issue templates, the Issue Concierge's folder `issue-concierge/` and pin `issue-concierge.yml`, `aw/`,
   `instructions/`, `scripts/`, every workflow file except `pipeline.yml`,
   `CODEOWNERS`, `dependabot.yml` and `copilot-instructions.md`. Anything else
   counts as code, including `package.json`, the lockfile, `scripts/`, `src/`,

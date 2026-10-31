@@ -59,7 +59,7 @@ A pull request that edits `pipeline.yml` or the script is classified as code, an
 
 ## Traps
 
-- `.github/scripts/` is also where the Repo Concierge installs its scripts. `classify-changes.sh` is ours; an update only touches the files in its own manifest, and you never edit those (see [AGENTS.md](../../../AGENTS.md)).
+- `.github/scripts/` is also where the Issue Concierge installs its scripts. `classify-changes.sh` is ours; an update only touches the files in its own manifest, and you never edit those (see [AGENTS.md](../../../AGENTS.md)).
 - The files API lists a renamed file under both names (`previous_filename`). Keep reading both, or moving code into `docs/` hides it.
 - `Test gate` must run when a job it needs is skipped: keep `if: ${{ !cancelled() }}`.
 - A skill may cite any file in the repository, and `src/agentSkills.test.ts` checks that it exists. A non-code pull request that deletes a cited workflow file passes the filter and is caught only by the next code change. Say so in the pull request instead of widening the guidance list for it.
