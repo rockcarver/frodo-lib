@@ -42,11 +42,36 @@ The workflow runs on:
   A push that changes only documentation, `pipeline.yml` or the Issue
   Concierge's files does not start the workflow (the `paths-ignore` of the push
   trigger, see "Detect code changes").
-- **Manual `workflow_dispatch`** — the full release flow.
+- **Manual `workflow_dispatch`** — with the default release type `ci-only`,
+  the validation of a push to `main` and nothing else (see
+  [Full CI by hand](#full-ci-by-hand)); with an explicit release type, the full
+  release flow.
+
+### Full CI by hand
+
+A pull request that changes no code skips the long test jobs, and a push that
+changes only ignored files starts no run (see "Detect code changes"). To run
+the whole validation anyway, for a pull request branch or for `main`, dispatch
+the workflow with the release type `ci-only`, which is also the preselected
+choice:
+
+```console
+gh workflow run pipeline.yml -R rockcarver/frodo-lib --ref <branch> -f release-type=ci-only -f dry-run=false
+gh run list -R rockcarver/frodo-lib --workflow pipeline.yml --event workflow_dispatch --limit 1
+```
+
+The run does what a push to `main` does: Build, the Node 22, 24 and 26 tests,
+the cross-platform tests and the gates. It never reaches the version bump, the
+release preflight, `npm-release`, `Release` or `doc`: every job and step that
+exists only for a dispatch skips when the type is `ci-only`, and
+`src/pipelineWorkflow.test.ts` fails if one loses that guard. Because `ci-only`
+is the default, a dispatch that does not name a release type publishes
+nothing; the release skill always passes the type.
 
 ### Release Type Selection
 
-Releases are explicit. Maintainers choose the release type from workflow input:
+Releases are explicit. Maintainers choose the release type from workflow input
+(or `ci-only`, which releases nothing):
 
 - `prerelease`
 - `premajor` — starts (or continues) an `X.0.0-1` prerelease train for the next major
@@ -62,6 +87,9 @@ Manual runs include `dry-run`:
 
 - `true`: computes versions and runs release logic without publishing, tagging, or creating GitHub releases
 - `false`: performs the full release flow
+
+A dry run needs a release type: with `ci-only` no release job runs, so there
+is nothing to rehearse.
 
 ### Branch protection
 

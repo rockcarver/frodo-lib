@@ -24,7 +24,7 @@ gh workflow run pipeline.yml -R rockcarver/frodo-lib --ref main -f release-type=
 gh run list -R rockcarver/frodo-lib --workflow pipeline.yml --event workflow_dispatch --limit 1
 ```
 
-The run builds, runs the tests on Node 22, 24 and 26, the cross-platform tests, publishes to npm, generates the changelog, commits and tags, and creates the GitHub release; it takes about five to ten minutes. Do not merge anything into `main` meanwhile.
+Always pass `release-type`: the default `ci-only` runs the validation and publishes nothing. The run builds, runs the tests on Node 22, 24 and 26, the cross-platform tests, publishes to npm, generates the changelog, commits and tags, and creates the GitHub release; it takes about five to ten minutes. Do not merge anything into `main` meanwhile.
 
 ## Verify
 
