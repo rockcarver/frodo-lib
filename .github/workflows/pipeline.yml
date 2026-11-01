@@ -34,6 +34,23 @@ on:
       - '.github/scripts/*.mjs'
       - '.github/workflows/*.yml'
       - '.github/workflows/*.md'
+      # The other files the classifier calls non-code: the Markdown files of
+      # the root (the agent entry points among them), the licence, the
+      # decision records, skills, instruction files, issue templates and the
+      # repository settings. A pull request that changes only these skipped
+      # the long tests (for the guidance files it ran the fast `Validate
+      # guidance` job instead); the push after the merge would start
+      # everything again, as it did for the Concierge files. Every entry must
+      # be non-code in the classifier; src/pipelineWorkflow.test.ts checks it.
+      - '*.md'
+      - 'LICENSE'
+      - 'decisions/**'
+      - '.claude/skills/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/instructions/**'
+      - '.github/CODEOWNERS'
+      - '.github/dependabot.yml'
+      - '.github/copilot-instructions.md'
   workflow_dispatch:
     inputs:
       release-type:
