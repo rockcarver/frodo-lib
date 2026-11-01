@@ -259,6 +259,9 @@ update pull request that skipped it.
 - `dependabot.yml`: weekly npm + github-actions; grouped dev minor/patch;
   prettier/typescript/eslint excluded (Prettier minors reformat code; TS/
   ESLint majors need coordinated config work); TS majors ignored.
+  `github/gh-aw-actions/setup` is ignored: it is pinned inside the Issue
+  Concierge's generated `*.lock.yml` files, which a Concierge release moves by
+  recompiling them.
 - `dependabot-auto-merge.yml`: arms `gh pr merge --auto --squash` on
   patch/minor Dependabot PRs once checks pass; majors and tooling stay
   manual. (Dependabot "rules" in settings only triage alerts.)
