@@ -19,6 +19,21 @@ on:
       - '**/pipeline.yml'
       - '**/doc.yml'
       - 'docs/**'
+      # The Issue Concierge's files. A pull request that changes only these is
+      # non-code in .github/scripts/classify-changes.sh, so its test jobs were
+      # skipped there; the push after the merge would start everything again
+      # for files no test builds. The classifier itself
+      # (.github/scripts/classify-changes.sh) stays off this list: it is code.
+      # The core records drift check is covered by the patterns below, and a
+      # test reads it: its pull request runs `Validate guidance`, its push does
+      # not repeat that. Every entry must also be non-code in the classifier;
+      # src/pipelineWorkflow.test.ts checks it.
+      - '.github/issue-concierge.yml'
+      - '.github/issue-concierge/**'
+      - '.github/aw/**'
+      - '.github/scripts/*.mjs'
+      - '.github/workflows/*.yml'
+      - '.github/workflows/*.md'
   workflow_dispatch:
     inputs:
       release-type:

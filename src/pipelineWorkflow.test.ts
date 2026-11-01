@@ -102,6 +102,110 @@ describe('pipeline.yml', () => {
   });
 });
 
+/** The entries of `paths-ignore` under the push trigger (comments left out). */
+function pushIgnored(): string[] {
+  const on = WORKFLOW.slice(
+    WORKFLOW.indexOf('\non:'),
+    WORKFLOW.indexOf('\njobs:')
+  );
+  const push = on.slice(
+    on.indexOf('  push:'),
+    on.indexOf('  workflow_dispatch:')
+  );
+  return push
+    .slice(push.indexOf('paths-ignore:'))
+    .split('\n')
+    .map((l) => l.match(/^\s+- '(.+)'\s*$/)?.[1])
+    .filter((p): p is string => Boolean(p));
+}
+
+/**
+ * Whether a `paths-ignore` pattern covers a file, with the wildcards
+ * pipeline.yml uses: `*` stays inside a folder, `**` crosses folders.
+ */
+function ignoredOnPush(file: string): boolean {
+  const wildcards: Record<string, string> = {
+    '**/': '(?:.*/)?',
+    '**': '.*',
+    '*': '[^/]*',
+  };
+  return pushIgnored().some((pattern) => {
+    const source = pattern
+      .split(/(\*\*\/|\*\*|\*)/)
+      .map(
+        (part) => wildcards[part] ?? part.replace(/[.+^${}()|[\]\\]/g, '\\$&')
+      )
+      .join('');
+    return new RegExp(`^${source}$`).test(file);
+  });
+}
+
+describe('the push trigger of pipeline.yml', () => {
+  // What an update of the Issue Concierge changes: the pin, the files of its
+  // own folder, the compiled lock data, scripts, workflow sources and locks.
+  const CONCIERGE_FILES = [
+    '.github/issue-concierge.yml',
+    '.github/issue-concierge/related-repos.md',
+    '.github/aw/actions-lock.json',
+    '.github/scripts/commands.mjs',
+    '.github/workflows/commands.yml',
+    '.github/workflows/plan-worker.md',
+    '.github/workflows/plan-worker.lock.yml',
+  ];
+
+  test('does not start the pipeline for a push of the Issue Concierge files alone', () => {
+    expect(CONCIERGE_FILES.filter((f) => !ignoredOnPush(f))).toEqual([]);
+  });
+
+  test('keeps the earlier entries: documentation and the pipeline itself', () => {
+    const earlier = [
+      'README.md',
+      'PIPELINE.md',
+      'CONTRIBUTE.md',
+      'CODE_OF_CONDUCT.md',
+      'docs/guide/page.md',
+      '.github/workflows/pipeline.yml',
+      '.github/workflows/doc.yml',
+    ];
+    expect(earlier.filter((f) => !ignoredOnPush(f))).toEqual([]);
+  });
+
+  test('still starts it for code, the classifier and files in a deeper folder', () => {
+    const mustRun = [
+      'package.json',
+      'package-lock.json',
+      'src/index.ts',
+      '.github/scripts/classify-changes.sh',
+      '.github/workflows/nested/commands.yml',
+      '.github/scripts/nested/commands.mjs',
+    ];
+    expect(mustRun.filter(ignoredOnPush)).toEqual([]);
+  });
+
+  // The pull request judged these files as not code and skipped its tests; the
+  // push may only skip what that judgement allows, or it hides work.
+  bashTest(
+    'ignores under .github/ only what the classifier calls neither code nor guidance',
+    () => {
+      const patterns = pushIgnored().filter((p) => p.startsWith('.github/'));
+      expect(patterns.length).toBeGreaterThan(0);
+      for (const pattern of patterns) {
+        const sample = pattern
+          .replace('**', 'deeper/example')
+          .replace('*', 'example');
+        const run = spawnSync('bash', [CLASSIFIER], {
+          input: `${sample}\n`,
+          encoding: 'utf8',
+        });
+        expect({ sample, answer: run.stdout.trim().split('\n') }).toEqual({
+          sample,
+          answer: ['code=false', 'guidance=false'],
+        });
+      }
+    }
+  );
+});
+
 describe('the "Detect code changes" job', () => {
   test('uses the classifier script and no inline allowlist', () => {
     const script = stepScript('changes', 'Classify changed files');
