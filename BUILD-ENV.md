@@ -246,6 +246,12 @@ still runs the tests that validate decision records, skills and the root
 Markdown files; `Test gate` waits for it. Details in
 [PIPELINE.md](PIPELINE.md).
 
+The `push` trigger keeps its own `paths-ignore`: besides documentation and
+`pipeline.yml` it lists the Issue Concierge's files (pin, `.github/issue-concierge/`,
+`.github/aw/`, `.github/scripts/*.mjs`, `.github/workflows/*.yml` and `*.md`),
+because a push is always code and would otherwise rerun everything after an
+update pull request that skipped it.
+
 ---
 
 ## 8. Dependency automation
@@ -288,4 +294,5 @@ Markdown files; `Test gate` waits for it. Details in
 | 2026-10-24 | Code filter moved into `.github/scripts/classify-changes.sh`; records, skills and instruction files count as non-code and a fast `Validate guidance` job (gated into `Test gate`) validates them                                                                                                                                                                                                                                                                                                                                      | this PR         |
 | 2026-10-30 | `npm-release` starts with a step that fails the run when the dispatched branch has moved, before anything is published (a merge during the tests had left 5.0.0-18 on npm without its version commit, tag and GitHub release); recovery of a half-finished release documented in `PIPELINE.md`                                                                                                                                                                                                                                        | —               |
 | 2026-10-30 | `Security Audit` in the Build job is check only (`npm audit --audit-level critical`): `npm audit fix` there rewrote `package-lock.json` in the build artifact, the Release job committed it, and the locked version of a dependency flipped between versions from release to release                                                                                                                                                                                                                                                  | —               |
+| 2026-11-01 | The `push` trigger of `pipeline.yml` ignores the Issue Concierge's files (pin, `.github/issue-concierge/`, `.github/aw/`, `.github/scripts/*.mjs`, `.github/workflows/*.yml` and `*.md`): an update pull request was non-code and skipped the tests, but its merge started the whole pipeline (in frodo-cli that run also failed in the live tenant smoke test on a frodo-dev outage and turned `main` red); the patterns also cover the core records drift check, whose pull request still runs `Validate guidance`; `src/pipelineWorkflow.test.ts` pins the list against the classifier | — |
 | planned    | Polly→nock — DEFERRED (deep record-harness coupling; revisit on Node 28 or real breakage)                                                                                                                                                                           | —               |
