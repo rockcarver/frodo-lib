@@ -37,15 +37,16 @@ on:
   workflow_dispatch:
     inputs:
       release-type:
-        description: 'Release kind: prerelease | premajor | patch | minor | major'
+        description: 'ci-only runs the build and every test job and publishes nothing; otherwise the release kind: prerelease | premajor | patch | minor | major'
         type: choice
         options:
+          - ci-only
           - prerelease
           - premajor
           - patch
           - minor
           - major
-        default: 'prerelease'
+        default: 'ci-only'
         required: true
       dry-run:
         description: 'Test release pipeline without publishing, tagging, or creating GitHub releases'
@@ -178,13 +179,13 @@ jobs:
 
       - name: 'Prepare Version Bump'
         id: version-bump
-        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.release-type != 'ci-only'
         uses: gearsnlevers/version-bump-action@v1
         with:
           release-type: ${{ github.event.inputs.release-type }}
 
       - name: Release preflight checks
-        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.release-type != 'ci-only'
         uses: gearsnlevers/release-preflight-action@v1
         with:
           candidate-version: ${{ steps.version-bump.outputs.newVersion }}
@@ -196,7 +197,7 @@ jobs:
           check-version-drift: true
 
       - name: Show resolved release base
-        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.release-type != 'ci-only'
         run: |
           echo "base=${{ steps.version-bump.outputs.base }}"
           echo "base_source=${{ steps.version-bump.outputs.base_source }}"
@@ -205,7 +206,7 @@ jobs:
           echo "newTag=${{ steps.version-bump.outputs.newTag }}"
 
       - name: Update package manifests for release
-        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.release-type != 'ci-only'
         uses: gearsnlevers/manifest-version-update-action@v1
         with:
           version: ${{ steps.version-bump.outputs.newVersion }}
@@ -490,7 +491,7 @@ jobs:
           fi
 
   npm-release:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.release-type != 'ci-only'
     needs: [build, test, test-cross-platform, test-cross-platform-gate]
     runs-on: ubuntu-latest
     steps:
@@ -584,7 +585,7 @@ jobs:
           fi
 
   release:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.release-type != 'ci-only'
     needs: [build, npm-release]
     name: 'Release'
     runs-on: ubuntu-latest
@@ -693,7 +694,7 @@ jobs:
           token: ${{ secrets.RELEASE_TOKEN }}
 
   doc:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && !inputs.dry-run
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.release-type != 'ci-only' && !inputs.dry-run
     needs: [build, release]
     # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
     permissions:

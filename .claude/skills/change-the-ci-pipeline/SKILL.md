@@ -49,6 +49,14 @@ npm run check
 - Mutation-test what you change: break one rule in the script or the gate (swap a `true`, drop a path) and see that a test fails, then restore it. A test that stays green proves nothing.
 - `actionlint` is not part of this repository. If you have it, run it on `pipeline.yml`.
 
+## Run everything by hand
+
+A pull request that the classifier skips gets no long test jobs. To run them anyway, dispatch the pipeline on its branch with `ci-only`, which publishes nothing (`PIPELINE.md`, "Full CI by hand"):
+
+```console
+gh workflow run pipeline.yml -R rockcarver/frodo-lib --ref <branch> -f release-type=ci-only -f dry-run=false
+```
+
 ## Prove it in CI, after the merge
 
 A pull request that edits `pipeline.yml` or the script is classified as code, and the classifier comes from the target branch, so the pull request that adds or changes the filter never shows its own effect. Check it once it is merged:

@@ -102,6 +102,73 @@ describe('pipeline.yml', () => {
   });
 });
 
+/*
+ * "ci-only" is how a maintainer starts the whole validation by hand (the
+ * build and every test job) for a change the classifier skipped, or for
+ * "main". It publishes nothing, and a dispatch from the Actions page must not
+ * release by accident, so it is the default. PIPELINE.md, "Full CI by hand".
+ */
+describe('pipeline.yml with the release type ci-only', () => {
+  const input = WORKFLOW.slice(
+    WORKFLOW.indexOf('      release-type:'),
+    WORKFLOW.indexOf('      dry-run:')
+  );
+  const jobIds = WORKFLOW.slice(WORKFLOW.indexOf('\njobs:\n'))
+    .split('\n')
+    .filter((l) => /^ {2}[A-Za-z0-9_-]+:\s*$/.test(l))
+    .map((l) => l.trim().slice(0, -1));
+  const header = (id: string) => job(id).split('    steps:')[0];
+
+  test('offers ci-only as the first choice and as the default', () => {
+    expect(input).toMatch(/options:\n\s+- ci-only\n/);
+    expect(input).toContain("default: 'ci-only'");
+  });
+
+  test('keeps every release type that the release skill passes', () => {
+    for (const type of ['prerelease', 'premajor', 'patch', 'minor', 'major']) {
+      expect(input).toMatch(new RegExp(`\\n\\s+- ${type}\\n`));
+    }
+  });
+
+  test('skips every job and step that is only for a dispatch', () => {
+    const unguarded = WORKFLOW.split('\n')
+      .filter((l) =>
+        /^\s+if:.*github\.event_name == 'workflow_dispatch'/.test(l)
+      )
+      .filter((l) => !l.includes("inputs.release-type != 'ci-only'"));
+    expect(unguarded).toEqual([]);
+  });
+
+  test('guards exactly the three release jobs', () => {
+    const guarded = jobIds.filter((id) =>
+      header(id).includes("inputs.release-type != 'ci-only'")
+    );
+    expect(guarded).toEqual(['npm-release', 'release', 'doc']);
+  });
+
+  test('still runs the build, the tests and the gates', () => {
+    for (const id of [
+      'build',
+      'test',
+      'test-cross-platform',
+      'test-gate',
+      'test-cross-platform-gate',
+    ]) {
+      expect(header(id)).not.toContain('ci-only');
+    }
+  });
+
+  test('never hands ci-only to the version bump (it is not a release kind)', () => {
+    const readers = job('build')
+      .split(/\n(?=      - )/)
+      .filter((s) => s.includes('inputs.release-type'));
+    expect(readers.length).toBeGreaterThan(0);
+    for (const step of readers) {
+      expect(step).toContain("inputs.release-type != 'ci-only'");
+    }
+  });
+});
+
 /** The entries of `paths-ignore` under the push trigger (comments left out). */
 function pushIgnored(): string[] {
   const on = WORKFLOW.slice(
