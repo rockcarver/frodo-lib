@@ -224,6 +224,32 @@ describe('the push trigger of pipeline.yml', () => {
     expect(CONCIERGE_FILES.filter((f) => !ignoredOnPush(f))).toEqual([]);
   });
 
+  // The rest of what the classifier calls non-code: the Markdown files of the
+  // root (the agent entry points among them), the licence, the decision
+  // records, skills, instruction files, issue templates and the repository
+  // settings.
+  const OTHER_NON_CODE_FILES = [
+    'AGENTS.md',
+    'CLAUDE.md',
+    'CHANGELOG.md',
+    'BUILD-ENV.md',
+    'MIGRATION.md',
+    'RECORD_REPLAY.md',
+    'SECURITY.md',
+    'LICENSE',
+    'decisions/core/0005-releases-are-started-by-a-maintainer-through-the-pipeline.md',
+    '.claude/skills/release-the-lib/SKILL.md',
+    '.github/ISSUE_TEMPLATE/issue-report.md',
+    '.github/instructions/tests.instructions.md',
+    '.github/CODEOWNERS',
+    '.github/dependabot.yml',
+    '.github/copilot-instructions.md',
+  ];
+
+  test('does not start the pipeline for a push of the other non-code files alone', () => {
+    expect(OTHER_NON_CODE_FILES.filter((f) => !ignoredOnPush(f))).toEqual([]);
+  });
+
   test('keeps the earlier entries: documentation and the pipeline itself', () => {
     const earlier = [
       'README.md',
@@ -245,32 +271,49 @@ describe('the push trigger of pipeline.yml', () => {
       '.github/scripts/classify-changes.sh',
       '.github/workflows/nested/commands.yml',
       '.github/scripts/nested/commands.mjs',
+      // `*.md` stays in the root folder, as the classifier's does
+      'src/api/notes.md',
+      'tsconfig.json',
+      'jest.config.js',
     ];
     expect(mustRun.filter(ignoredOnPush)).toEqual([]);
   });
 
-  // The pull request judged these files as not code and skipped its tests; the
-  // push may only skip what that judgement allows, or it hides work.
-  bashTest(
-    'ignores under .github/ only what the classifier calls neither code nor guidance',
-    () => {
-      const patterns = pushIgnored().filter((p) => p.startsWith('.github/'));
-      expect(patterns.length).toBeGreaterThan(0);
-      for (const pattern of patterns) {
-        const sample = pattern
-          .replace('**', 'deeper/example')
-          .replace('*', 'example');
-        const run = spawnSync('bash', [CLASSIFIER], {
-          input: `${sample}\n`,
-          encoding: 'utf8',
-        });
-        expect({ sample, answer: run.stdout.trim().split('\n') }).toEqual({
-          sample,
-          answer: ['code=false', 'guidance=false'],
-        });
-      }
+  // The pull request judged these files as not code and skipped its long
+  // tests; the push may only skip what that judgement allows, or it hides
+  // work. A guidance file is allowed: its pull request ran `Validate guidance`.
+  // The `**/` patterns match in any folder, so the classifier (root files
+  // only) does not speak for them.
+  function classify(files: string[]): string[] {
+    const run = spawnSync('bash', [CLASSIFIER], {
+      input: files.map((f) => `${f}\n`).join(''),
+      encoding: 'utf8',
+    });
+    return run.stdout.trim().split('\n');
+  }
+
+  bashTest('ignores only what the classifier calls not code', () => {
+    const patterns = pushIgnored().filter((p) => !p.startsWith('**/'));
+    expect(patterns.length).toBeGreaterThan(0);
+    for (const pattern of patterns) {
+      const sample = pattern
+        .replace('**', 'deeper/example')
+        .replace('*', 'example');
+      expect({ sample, answer: classify([sample])[0] }).toEqual({
+        sample,
+        answer: 'code=false',
+      });
     }
-  );
+  });
+
+  bashTest('calls every file named above that it ignores not code', () => {
+    for (const file of [...CONCIERGE_FILES, ...OTHER_NON_CODE_FILES]) {
+      expect({ file, answer: classify([file])[0] }).toEqual({
+        file,
+        answer: 'code=false',
+      });
+    }
+  });
 });
 
 describe('the "Detect code changes" job', () => {
