@@ -16,7 +16,19 @@ export type Callback = {
   output: CallbackKeyValuePair[];
   input: CallbackKeyValuePair[];
 };
-export type CallbackHandler = (callback: Callback) => Callback;
+/**
+ * Collect a response by filling the callback's input in place.
+ * Synchronous handlers work unchanged; a returned promise is awaited.
+ * The returned or resolved value is ignored. The library sets no timeout.
+ * A throw or rejection ends login with "Error authenticating user" wrapping;
+ * privilege escalation instead returns false, as for a synchronous throw.
+ * The three-step authentication limit still applies.
+ * @param {Callback} callback callback whose input must be filled in place
+ * @returns {Callback | Promise<Callback>} ignored value, or a promise whose completion is awaited
+ */
+export type CallbackHandler = (
+  callback: Callback
+) => Callback | Promise<Callback>;
 
 /**
  * Fill callbacks from a map

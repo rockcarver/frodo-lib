@@ -88,7 +88,7 @@ export type Authenticate = {
    * @param {boolean} forceLoginAsUser true to force login as user even if a service account or Amster account is available (default: false)
    * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
    * @param {string[]} types Array of supported deployment types. The function will throw an error if an unsupported type is detected (default: ['classic', 'cloud', 'forgeops'])
-   * @param {CallbackHandler} callbackHandler function allowing the library to collect responses from the user through callbacks
+   * @param {CallbackHandler} callbackHandler synchronous or asynchronous function that fills callback input in place; awaited without a library timeout, with its returned or resolved value ignored
    * @param {boolean} useDeviceFlow only consulted when a loaded connection profile prefers browser login (`preferredCredential: 'browser'`, or the legacy `authMode: 'interactive'` for a profile predating that field) — falls back to the profile's own `preferredDeviceFlow` when not explicitly passed; see `getTokensInteractive()` (default: false)
    * @param {BrowserLoginPromptHandler} promptHandler required only when a loaded connection profile prefers browser login; every other case ignores it
    * @returns {Promise<Tokens>} object containing the tokens
@@ -363,9 +363,9 @@ async function determineCookieName(state: State): Promise<string> {
  * Helper function to determine if this is a setup mfa prompt in the ID Cloud tenant admin login journey
  * @param {AuthenticateStep} payload response from the previous authentication journey step
  * @param {State} state library state
- * @returns {MFAResult} an object indicating if 2fa is required
+ * @returns {Promise<MFAResult>} an object indicating if 2fa is required
  */
-function checkAndHandle2FA({
+async function checkAndHandle2FA({
   payload,
   otpCallbackHandler,
   state,
@@ -373,7 +373,7 @@ function checkAndHandle2FA({
   payload: AuthenticateStep;
   otpCallbackHandler: CallbackHandler;
   state: State;
-}): MFAResult {
+}): Promise<MFAResult> {
   debugMessage({ message: `AuthenticateOps.checkAndHandle2FA: start`, state });
   for (const callback of payload.callbacks) {
     // select localAuthentication if Admin Federation is enabled
@@ -433,7 +433,7 @@ function checkAndHandle2FA({
           );
         // the handler fills the callback in place (its return value was
         // never read here); invoking it is what prompts for the OTP
-        otpCallbackHandler(callback);
+        await otpCallbackHandler(callback);
         debugMessage({
           message: `AuthenticateOps.checkAndHandle2FA: end [need2fa=true, skippable=false, factor=Code]`,
           state,
@@ -1879,7 +1879,7 @@ function buildPrivilegeEscalationHandler({
             if (++steps > maxSteps) {
               throw new FrodoError('Too many 2FA attempts');
             }
-            const skip2FA = checkAndHandle2FA({
+            const skip2FA = await checkAndHandle2FA({
               payload: currentStep,
               otpCallbackHandler: callbackHandler,
               state,
@@ -1924,7 +1924,7 @@ export type Tokens = {
  * @param {boolean} forceLoginAsUser true to force login as user even if a service account or Amster account is available (default: false)
  * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
  * @param {string[]} types Array of supported deployment types. The function will throw an error if an unsupported type is detected (default: ['classic', 'cloud', 'forgeops'])
- * @param {CallbackHandler} callbackHandler function allowing the library to collect responses from the user through callbacks
+ * @param {CallbackHandler} callbackHandler synchronous or asynchronous function that fills callback input in place; awaited without a library timeout, with its returned or resolved value ignored
  * @param {State} state library state
  * @returns {Promise<Tokens>} object containing the tokens
  */
@@ -2374,7 +2374,7 @@ export async function getTokens({
           if (++steps > maxSteps) {
             throw new FrodoError('Too many 2FA attempts');
           }
-          const skip2FA = checkAndHandle2FA({
+          const skip2FA = await checkAndHandle2FA({
             payload: currentStep,
             otpCallbackHandler: callbackHandler,
             state,
