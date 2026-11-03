@@ -2454,10 +2454,10 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Journey",
     methodName: "getTreeDescendents",
     signature: "getTreeDescendents( treeExport: SingleTreeExportInterface, resolveTreeExport: TreeExportResolverInterface, resolvedTreeIds?: string[] ): Promise<TreeDependencyMapInterface>",
-    description: "Get tree dependencies (all descendent inner trees)",
+    description: "Get tree dependencies (all descendent inner trees). The whole tree is described, to any depth: a sub-journey referenced by several journeys is repeated and expanded in full under every parent. A sub-journey that is already an ancestor on the current path (a cycle), or whose id is in `resolvedTreeIds`, appears as a leaf and is not expanded again. A sub-journey that cannot be resolved appears as a leaf. Each sub-journey is resolved at most once per call.",
     params: [
       { name: "treeExport", type: "SingleTreeExportInterface", description: "single tree export", required: true },
-      { name: "resolvedTreeIds", type: "string[]", description: "list of tree ids wich have already been resolved", required: false },
+      { name: "resolvedTreeIds", type: "string[]", description: "list of tree ids that are listed as leaves and not expanded (the list is not modified)", required: false },
       { name: "resolveTreeExport", type: "TreeExportResolverInterface", description: "tree export resolver callback function", required: true },
     ],
     returns: "{Promise<TreeDependencyMapInterface>} a promise that resolves to a tree dependency map",

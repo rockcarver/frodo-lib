@@ -277,9 +277,15 @@ export type Journey = {
    */
   createFileParamTreeExportResolver(file: string): TreeExportResolverInterface;
   /**
-   * Get tree dependencies (all descendent inner trees)
+   * Get tree dependencies (all descendent inner trees). The whole tree is
+   * described, to any depth: a sub-journey referenced by several journeys is
+   * repeated and expanded in full under every parent. A sub-journey that is
+   * already an ancestor on the current path (a cycle), or whose id is in
+   * `resolvedTreeIds`, appears as a leaf and is not expanded again. A
+   * sub-journey that cannot be resolved appears as a leaf. Each sub-journey is
+   * resolved at most once per call.
    * @param {SingleTreeExportInterface} treeExport single tree export
-   * @param {string[]} resolvedTreeIds list of tree ids wich have already been resolved
+   * @param {string[]} resolvedTreeIds list of tree ids that are listed as leaves and not expanded (the list is not modified)
    * @param {TreeExportResolverInterface} resolveTreeExport tree export resolver callback function
    * @returns {Promise<TreeDependencyMapInterface>} a promise that resolves to a tree dependency map
    */
@@ -3170,9 +3176,15 @@ export function createFileParamTreeExportResolver(
 }
 
 /**
- * Get tree dependencies (all descendent inner trees)
+ * Get tree dependencies (all descendent inner trees). The whole tree is
+ * described, to any depth: a sub-journey referenced by several journeys is
+ * repeated and expanded in full under every parent. A sub-journey that is
+ * already an ancestor on the current path (a cycle), or whose id is in
+ * `resolvedTreeIds`, appears as a leaf and is not expanded again. A sub-journey
+ * that cannot be resolved appears as a leaf. Each sub-journey is resolved at
+ * most once per call.
  * @param {SingleTreeExportInterface} treeExport single tree export
- * @param {string[]} resolvedTreeIds list of tree ids wich have already been resolved
+ * @param {string[]} resolvedTreeIds list of tree ids that are listed as leaves and not expanded (the list is not modified)
  * @param {TreeExportResolverInterface} resolveTreeExport tree export resolver callback function
  * @returns {Promise<TreeDependencyMapInterface>} a promise that resolves to a tree dependency map
  */
@@ -3187,17 +3199,43 @@ export async function getTreeDescendents({
   resolvedTreeIds: string[];
   state: State;
 }): Promise<TreeDependencyMapInterface> {
-  const treeId = treeExport.tree._id + '';
-  debugMessage({
-    message: `getTreeDependencies(${treeId}, [${resolvedTreeIds.join(', ')}])`,
+  const treeExportCache = new Map<string, Promise<SingleTreeExportInterface>>();
+  treeExportCache.set(treeExport.tree._id + '', Promise.resolve(treeExport));
+  const resolveOnce = (treeId: string): Promise<SingleTreeExportInterface> => {
+    if (!treeExportCache.has(treeId)) {
+      treeExportCache.set(
+        treeId,
+        Promise.resolve().then(() => resolveTreeExport(treeId, state))
+      );
+    }
+    return treeExportCache.get(treeId);
+  };
+  return walkTreeDescendents({
+    treeExport,
+    resolveOnce,
+    excludedTreeIds: new Set(resolvedTreeIds),
     state,
   });
-  if (!resolvedTreeIds.includes(treeId)) {
-    resolvedTreeIds.push(treeId);
-  }
-  const treeDependencyMap: TreeDependencyMapInterface = {
-    [treeId]: [],
-  };
+}
+
+async function walkTreeDescendents({
+  treeExport,
+  resolveOnce,
+  excludedTreeIds,
+  state,
+}: {
+  treeExport: SingleTreeExportInterface;
+  resolveOnce: (treeId: string) => Promise<SingleTreeExportInterface>;
+  excludedTreeIds: Set<string>;
+  state: State;
+}): Promise<TreeDependencyMapInterface> {
+  const treeId = treeExport.tree._id + '';
+  debugMessage({
+    message: `getTreeDependencies(${treeId}, [${[...excludedTreeIds].join(', ')}])`,
+    state,
+  });
+  // the ids on the current path, which must not be expanded again
+  const pathTreeIds = new Set(excludedTreeIds).add(treeId);
   const dependencies: TreeDependencyMapInterface[] = [];
   for (const [nodeId, node] of Object.entries(treeExport.tree.nodes)) {
     let innerTreeId: string;
@@ -3206,22 +3244,24 @@ export async function getTreeDescendents({
         nodeType: node.nodeType,
         nodeConfig: treeExport.nodes[nodeId],
       });
-      if (innerTreeId && !resolvedTreeIds.includes(innerTreeId)) {
-        const innerTreeExport = await resolveTreeExport(innerTreeId, state);
-        debugMessage({
-          message: `resolved inner tree: ${innerTreeExport.tree._id}`,
-          state,
-        });
-        // resolvedTreeIds.push(innerTreeId);
-        dependencies.push(
-          await getTreeDescendents({
-            treeExport: innerTreeExport,
-            resolveTreeExport,
-            resolvedTreeIds,
-            state,
-          })
-        );
+      if (!innerTreeId) continue;
+      if (pathTreeIds.has(innerTreeId)) {
+        dependencies.push({ [innerTreeId]: [] });
+        continue;
       }
+      const innerTreeExport = await resolveOnce(innerTreeId);
+      debugMessage({
+        message: `resolved inner tree: ${innerTreeExport.tree._id}`,
+        state,
+      });
+      dependencies.push(
+        await walkTreeDescendents({
+          treeExport: innerTreeExport,
+          resolveOnce,
+          excludedTreeIds: pathTreeIds,
+          state,
+        })
+      );
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       if (innerTreeId) {
@@ -3232,8 +3272,7 @@ export async function getTreeDescendents({
       }
     }
   }
-  treeDependencyMap[treeId] = dependencies;
-  return treeDependencyMap;
+  return { [treeId]: dependencies };
 }
 
 export type DeleteJourneyStatus = {
