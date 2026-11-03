@@ -127,6 +127,36 @@ describe('getTreeDescendents', () => {
     });
   });
 
+  test('resolves only sub-journey ids and ignores other nodes', async () => {
+    const graph = { Root: ['Child'], Child: [] };
+    const resolver = resolverFor(graph);
+    const root = treeExport('Root', graph.Root);
+    root.tree.nodes['script-node'] = {
+      nodeType: 'ScriptedDecisionNode',
+      version: '1.0',
+      connections: {},
+    };
+    root.nodes['script-node'] = {
+      _id: 'script-node',
+      script: 'some-script-id',
+      outcomes: ['true'],
+      _outcomes: [],
+      _type: { _id: 'ScriptedDecisionNode' },
+    };
+
+    const result = await getTreeDescendents({
+      treeExport: root,
+      resolveTreeExport: resolver,
+      resolvedTreeIds: [],
+      state: mockState(),
+    });
+
+    expect(result).toStrictEqual({ Root: [{ Child: [] }] });
+    expect(resolver.mock.calls.map(([treeId]) => treeId)).toStrictEqual([
+      'Child',
+    ]);
+  });
+
   test('describes a sub-journey the same alone and under its parent', async () => {
     const graph = {
       Root: ['A', 'B'],
@@ -293,6 +323,15 @@ describe('exportJourney with shared sub-journeys', () => {
       'Left',
       'Right',
       'Parent',
+    ]);
+    // once by the walk and once by the export loop
+    expect(resolver.mock.calls.map(([treeId]) => treeId).sort()).toStrictEqual([
+      'Bottom',
+      'Bottom',
+      'Left',
+      'Left',
+      'Right',
+      'Right',
     ]);
   });
 });
