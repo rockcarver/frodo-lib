@@ -96,30 +96,30 @@ describe('AuthenticateOps callback handler through getTokens', () => {
   });
 
   test('waits for a promise before submitting the callback filled in place', async () => {
-    let complete: () => void;
-    const pending = new Promise<void>((resolve) => {
-      complete = resolve;
-    });
-    let started: () => void;
-    const handlerStarted = new Promise<void>((resolve) => {
-      started = resolve;
-    });
+    let submittedValue: string;
+    step.mockReset();
+    step
+      .mockResolvedValueOnce(challenge)
+      .mockImplementationOnce(async ({ body }) => {
+        submittedValue = (body as AuthenticateStep).callbacks[0].input[0].value;
+        return {
+          tokenId: 'mock-session-token',
+          successUrl: '',
+          realm: '/',
+        };
+      });
     const handler = jest.fn(async (callback: Callback) => {
-      started();
-      await pending;
+      await new Promise((resolve) => setTimeout(resolve, 20));
       callback.input[0].value = '123456';
       return callback;
     });
 
     const result = login(handler);
-    await handlerStarted;
-    expect(step).toHaveBeenCalledTimes(1);
-    complete();
 
     expect((await result).userSessionToken?.tokenId).toBe('mock-session-token');
     expect(handler).toHaveBeenCalledWith(challenge.callbacks[0]);
     expect(step.mock.calls[1][0].body).toBe(challenge);
-    expect(challenge.callbacks[0].input[0].value).toBe('123456');
+    expect(submittedValue).toBe('123456');
   });
 
   test('keeps synchronous in-place handlers working unchanged', async () => {
