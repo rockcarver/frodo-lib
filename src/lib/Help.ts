@@ -933,7 +933,7 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "forceLoginAsUser", type: "boolean", description: "true to force login as user even if a service account or Amster account is available (default: false)", required: false },
       { name: "autoRefresh", type: "boolean", description: "true to automatically refresh tokens before they expire (default: true)", required: false },
       { name: "types", type: "string[]", description: "Array of supported deployment types. The function will throw an error if an unsupported type is detected (default: ['classic', 'cloud', 'forgeops'])", required: false },
-      { name: "callbackHandler", type: "CallbackHandler", description: "function allowing the library to collect responses from the user through callbacks", required: false },
+      { name: "callbackHandler", type: "CallbackHandler", description: "fills callback input in place, synchronously or asynchronously; returned or resolved values are ignored (see CallbackHandler)", required: false },
       { name: "useDeviceFlow", type: "boolean", description: "only consulted when a loaded connection profile prefers browser login (`preferredCredential: 'browser'`, or the legacy `authMode: 'interactive'` for a profile predating that field) — falls back to the profile's own `preferredDeviceFlow` when not explicitly passed; see `getTokensInteractive()` (default: false)", required: false },
       { name: "promptHandler", type: "BrowserLoginPromptHandler", description: "required only when a loaded connection profile prefers browser login; every other case ignores it", required: false },
     ],
