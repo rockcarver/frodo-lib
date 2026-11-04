@@ -6,12 +6,26 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import {
+import JsonUtils, {
   deleteDeepByKey,
   deleteDeepByKeys,
   get,
   isEqualJson,
 } from './JsonUtils';
+
+const nestedKeys = () => ({
+  modified: 1,
+  modifiedBy: 'x',
+  nested: {
+    modified: 2,
+    modifiedAt: 3,
+    deeper: [{ modified: 4, lastmodified: 5, keep: 6 }],
+  },
+});
+const withoutExactModified = {
+  modifiedBy: 'x',
+  nested: { modifiedAt: 3, deeper: [{ lastmodified: 5, keep: 6 }] },
+};
 
 describe('JsonUtils', () => {
   describe('isEqualJson()', () => {
@@ -159,6 +173,34 @@ describe('JsonUtils', () => {
       });
       expect(result).toBe(obj);
     });
+
+    test('3: exact match keeps keys that only contain the key, at every depth', () => {
+      expect(deleteDeepByKey(nestedKeys(), 'modified', true)).toStrictEqual(
+        withoutExactModified
+      );
+    });
+
+    test('4: without the flag, keys that contain the key are deleted', () => {
+      const obj = {
+        'password-encrypted': 'a',
+        password: 'b',
+        nested: { 'secret-encrypted': 'c', keep: 'd' },
+      };
+      expect(deleteDeepByKey(obj, '-encrypted')).toStrictEqual({
+        password: 'b',
+        nested: { keep: 'd' },
+      });
+    });
+
+    test('5: the Json facade defaults to substring and passes exact on', () => {
+      const json = JsonUtils();
+      expect(
+        json.deleteDeepByKey({ 'a-encrypted': 1, b: 2 }, '-encrypted')
+      ).toStrictEqual({ b: 2 });
+      expect(
+        json.deleteDeepByKey(nestedKeys(), 'modified', true)
+      ).toStrictEqual(withoutExactModified);
+    });
   });
 
   describe('deleteDeepByKeys()', () => {
@@ -202,6 +244,18 @@ describe('JsonUtils', () => {
         },
       ]);
       expect(result).toBe(array);
+    });
+
+    test('3: exact match keeps keys that only contain a key, at every depth', () => {
+      expect(
+        deleteDeepByKeys([nestedKeys()], ['modified'], true)
+      ).toStrictEqual([withoutExactModified]);
+    });
+
+    test('4: without the flag, keys that contain a key are deleted', () => {
+      expect(
+        deleteDeepByKeys([{ 'a-encrypted': 1, b: 2 }], ['-encrypted'])
+      ).toStrictEqual([{ b: 2 }]);
     });
   });
 

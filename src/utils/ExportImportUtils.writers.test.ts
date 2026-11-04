@@ -81,6 +81,31 @@ describe('saveJsonToFile', () => {
     });
   });
 
+  test('strips the listed keys only, not keys that contain them', () => {
+    const filename = join(baseTmp, 'json', 'stripped-keys.json');
+    saveJsonToFile({
+      data: {
+        _rev: 'r',
+        _revision: 'keep',
+        createdBy: 'c',
+        createdByUser: 'keep',
+        lastModifiedDate: 'd',
+        modified: 'gone',
+        modifiedBy: 'keep',
+        nested: { _rev: 'r2', lastChangedBy: 'x', lastChangedByName: 'keep' },
+      },
+      filename,
+      includeMeta: false,
+      state,
+    });
+    expect(JSON.parse(fs.readFileSync(filename, 'utf8'))).toEqual({
+      _revision: 'keep',
+      createdByUser: 'keep',
+      modifiedBy: 'keep',
+      nested: { lastChangedByName: 'keep' },
+    });
+  });
+
   describe('top-level meta handling', () => {
     // IGA `meta` relationship config on a managed object: real data, not the
     // export envelope

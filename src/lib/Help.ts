@@ -8437,12 +8437,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Json",
     methodName: "deleteDeepByKey",
-    signature: "deleteDeepByKey(object: any, key: string, matchString?: boolean): any",
-    description: "Deep delete keys and their values from an input object. If a key in the object matches the specified key, the key and its value is deleted.",
+    signature: "deleteDeepByKey(object: any, key: string, exact?: boolean): any",
+    description: "Deep delete keys and their values from an input object. If a key in the object contains the specified key, the key and its value is deleted. With exact, only a key that equals the specified key is deleted.",
     params: [
       { name: "object", type: "Object", description: "input object that needs keys removed", required: true },
       { name: "key", type: "String", description: "key to search for", required: true },
-      { name: "matchString", type: "boolean", description: "true to match keys exactly, false to match keys as substrings (default: false)", required: false },
+      { name: "exact", type: "boolean", description: "true to delete only keys that equal the key, false to also delete keys that contain it (default: false)", required: false },
     ],
     returns: "{any} the modified object without the matching keys and their values",
   },

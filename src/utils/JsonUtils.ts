@@ -8,13 +8,13 @@ export type Json = {
    */
   isEqualJson(obj1: object, obj2: object, ignoreKeys?: string[]): boolean;
   /**
-   * Deep delete keys and their values from an input object. If a key in the object matches the specified key, the key and its value is deleted.
+   * Deep delete keys and their values from an input object. If a key in the object contains the specified key, the key and its value is deleted. With exact, only a key that equals the specified key is deleted.
    * @param {Object} object input object that needs keys removed
    * @param {String} key key to search for
-   * @param {boolean} matchString true to match keys exactly, false to match keys as substrings (default: false)
+   * @param {boolean} exact true to delete only keys that equal the key, false to also delete keys that contain it (default: false)
    * @returns {any} the modified object without the matching keys and their values
    */
-  deleteDeepByKey(object: any, key: string, matchString?: boolean): any;
+  deleteDeepByKey(object: any, key: string, exact?: boolean): any;
   /**
    * Deep clone object
    * @param {any} obj object to deep clone
@@ -56,12 +56,8 @@ export default (): Json => {
     ): boolean {
       return isEqualJson(obj1, obj2, ignoreKeys);
     },
-    deleteDeepByKey(
-      object: any,
-      key: string,
-      matchString: boolean = false
-    ): any {
-      return deleteDeepByKey(object, key, matchString);
+    deleteDeepByKey(object: any, key: string, exact: boolean = false): any {
+      return deleteDeepByKey(object, key, exact);
     },
     cloneDeep(obj: any): any {
       return JSON.parse(JSON.stringify(obj));
@@ -125,43 +121,43 @@ export function isEqualJson(
 }
 
 /**
- * Deep delete keys and their values from an input object. If a key in the object contains or equals the specified key, the key and its value are deleted.
+ * Deep delete keys and their values from an input object. If a key in the object contains the specified key, the key and its value are deleted. With exact, only a key that equals the specified key is deleted.
  * @param {object} object input object that needs keys removed
  * @param {string} key key to search for
- * @param {boolean} matchString true to match keys exactly, false to match keys as substrings (default: false)
+ * @param {boolean} exact true to delete only keys that equal the key, false to also delete keys that contain it (default: false)
  * @returns {any} the modified object without the matching keys and their values
  */
 export function deleteDeepByKey(
   object: object,
   key: string,
-  matchString: boolean = false
+  exact: boolean = false
 ): any {
-  return deleteDeepByKeys(object, [key], matchString);
+  return deleteDeepByKeys(object, [key], exact);
 }
 
 /**
- * Deep delete keys and their values from an input object. If a key in the object contains or equals any of the specified keys, the key and its value are deleted.
+ * Deep delete keys and their values from an input object. If a key in the object contains any of the specified keys, the key and its value are deleted. With exact, only a key that equals one of the specified keys is deleted.
  * @param {object} object input object that needs keys removed
  * @param {string[]} keys keys to search for
- * @param {boolean} matchString true to match keys exactly, false to match keys as substrings (default: false)
+ * @param {boolean} exact true to delete only keys that equal the key, false to also delete keys that contain it (default: false)
  * @returns {any} the modified object without the matching keys and their values
  */
 export function deleteDeepByKeys(
   object: object,
   keys: string[],
-  matchString: boolean = false
+  exact: boolean = false
 ): any {
   const obj = object;
   const objectKeys = Object.keys(obj);
   for (const objectKey of objectKeys) {
     for (const key of keys) {
-      if (matchString ? objectKey === key : objectKey.indexOf(key) > -1) {
+      if (exact ? objectKey === key : objectKey.indexOf(key) > -1) {
         delete obj[objectKey];
         break;
       }
     }
     if (Object(obj[objectKey]) === obj[objectKey]) {
-      obj[objectKey] = deleteDeepByKeys(obj[objectKey], keys, matchString);
+      obj[objectKey] = deleteDeepByKeys(obj[objectKey], keys, exact);
     }
   }
   return obj;
