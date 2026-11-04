@@ -1,5 +1,22 @@
 export type JourneyValidationSeverity = 'error' | 'warning';
 
+/**
+ * Stable graph and export validation codes.
+ *
+ * Dependency codes are warnings, checked per journey only when the corresponding
+ * export section is non-empty. Live `validateJourneys` reads without dependencies
+ * and therefore skips these checks; tenant resource existence is not checked.
+ *
+ * | Code | Missing reference in the export |
+ * | --- | --- |
+ * | MISSING_SCRIPT_DEPENDENCY | Script ID in `scripts` (except `[Empty]`). |
+ * | MISSING_EMAIL_TEMPLATE_DEPENDENCY | Email template name in `emailTemplates`. |
+ * | MISSING_THEME_DEPENDENCY | Page Node stage theme ID or name in `themes`. |
+ * | MISSING_SOCIAL_IDENTITY_PROVIDER_DEPENDENCY | Selected provider ID in `socialIdentityProviders`. |
+ * | MISSING_SAML_ENTITY_DEPENDENCY | SAML `metaAlias` suffix or `idpEntityId` in `saml2Entities`' entity IDs. |
+ *
+ * ESV references are ignored. Dependency warnings never block import or export.
+ */
 export type JourneyValidationCode =
   | 'MISSING_NODE_DEFINITION'
   | 'NODE_ID_MISMATCH'
@@ -16,7 +33,12 @@ export type JourneyValidationCode =
   | 'NODE_TYPE_MISMATCH'
   | 'INNER_NODE_REFERENCED_BY_MULTIPLE_PAGES'
   | 'NODE_ID_COLLISION'
-  | 'TREE_ID_MISMATCH';
+  | 'TREE_ID_MISMATCH'
+  | 'MISSING_SCRIPT_DEPENDENCY'
+  | 'MISSING_EMAIL_TEMPLATE_DEPENDENCY'
+  | 'MISSING_THEME_DEPENDENCY'
+  | 'MISSING_SOCIAL_IDENTITY_PROVIDER_DEPENDENCY'
+  | 'MISSING_SAML_ENTITY_DEPENDENCY';
 
 /**
  * A journey validation result. `severity` indicates whether the finding blocks
@@ -38,6 +60,17 @@ export interface JourneyValidationFinding {
   targetNodeId?: string;
   /** Connection or declared outcome associated with the finding, when applicable. */
   outcome?: string;
+  /** Kind of dependency missing from the journey's export section. */
+  dependencyType?:
+    | 'script'
+    | 'emailTemplate'
+    | 'theme'
+    | 'socialIdentityProvider'
+    | 'saml2Entity';
+  /** Referenced dependency ID or name, not a graph node ID. */
+  dependencyId?: string;
+  /** Page Node containing the referencing inner node, when applicable. */
+  pageNodeId?: string;
 }
 
 interface JourneyNodeDefinition {
@@ -45,6 +78,12 @@ interface JourneyNodeDefinition {
   _type?: { _id?: string; version?: string };
   _outcomes?: { id?: string }[];
   nodes?: JourneyInnerNodeReference[];
+  script?: string;
+  emailTemplateName?: string;
+  stage?: string;
+  filteredProviders?: string[];
+  metaAlias?: string;
+  idpEntityId?: string;
 }
 
 interface JourneyNodeReference {
@@ -61,16 +100,23 @@ interface JourneyInnerNodeReference {
  * Minimal journey export shape consumed by the referential-integrity checks.
  * The legacy lowercase `innernodes` property is supported for older exports.
  */
-export interface JourneyValidationInput {
+export interface JourneyValidationInput<
+  Node extends JourneyNodeDefinition = JourneyNodeDefinition,
+> {
   tree: {
     _id?: string;
     entryNodeId?: string;
     nodes?: Record<string, JourneyNodeReference>;
     staticNodes?: Record<string, unknown>;
   };
-  nodes?: Record<string, JourneyNodeDefinition>;
-  innerNodes?: Record<string, JourneyNodeDefinition>;
-  innernodes?: Record<string, JourneyNodeDefinition>;
+  nodes?: Record<string, Node>;
+  innerNodes?: Record<string, Node>;
+  innernodes?: Record<string, Node>;
+  scripts?: Record<string, unknown>;
+  emailTemplates?: Record<string, unknown>;
+  themes?: { _id?: string; name?: string }[];
+  socialIdentityProviders?: Record<string, unknown>;
+  saml2Entities?: Record<string, { entityId?: string }>;
 }
 
 const JOURNEY_VALIDATION_SEVERITY: Record<
@@ -93,6 +139,11 @@ const JOURNEY_VALIDATION_SEVERITY: Record<
   INNER_NODE_REFERENCED_BY_MULTIPLE_PAGES: 'warning',
   NODE_ID_COLLISION: 'warning',
   TREE_ID_MISMATCH: 'warning',
+  MISSING_SCRIPT_DEPENDENCY: 'warning',
+  MISSING_EMAIL_TEMPLATE_DEPENDENCY: 'warning',
+  MISSING_THEME_DEPENDENCY: 'warning',
+  MISSING_SOCIAL_IDENTITY_PROVIDER_DEPENDENCY: 'warning',
+  MISSING_SAML_ENTITY_DEPENDENCY: 'warning',
 };
 
 const BUILT_IN_GRAPH_NODE_IDS = [
@@ -131,7 +182,12 @@ function finding(
   message: string,
   details: Pick<
     JourneyValidationFinding,
-    'nodeId' | 'targetNodeId' | 'outcome'
+    | 'nodeId'
+    | 'targetNodeId'
+    | 'outcome'
+    | 'dependencyType'
+    | 'dependencyId'
+    | 'pageNodeId'
   > = {}
 ): JourneyValidationFinding {
   return {
@@ -655,6 +711,141 @@ export function validateJourneyReferences(
     ...checkInnerNodeReuse(journey),
     ...checkNodeIdCollisions(journey),
   ];
+}
+
+function pageThemeId(stage?: string): string | undefined {
+  if (typeof stage !== 'string') {
+    return undefined;
+  }
+  try {
+    return JSON.parse(stage)?.themeId;
+  } catch {
+    return stage.startsWith('themeId=')
+      ? stage.slice('themeId='.length)
+      : undefined;
+  }
+}
+
+/**
+ * Check references against non-empty dependency sections of a single export.
+ * The script predicate is supplied by the ops layer to keep this check pure.
+ *
+ * @param journey A single journey export, including any dependency sections.
+ * @param hasScriptDependency Predicate identifying nodes that use their script.
+ * @returns Warning findings; empty sections and ESV references are skipped.
+ */
+export function validateJourneyDependencies<Node extends JourneyNodeDefinition>(
+  journey: JourneyValidationInput<Node>,
+  hasScriptDependency: (node: Node) => boolean
+): JourneyValidationFinding[] {
+  const checks: {
+    code: JourneyValidationCode;
+    dependencyType: JourneyValidationFinding['dependencyType'];
+    ids: Set<string>;
+    references: (node: Node) => (string | undefined)[];
+  }[] = [
+    {
+      code: 'MISSING_SCRIPT_DEPENDENCY',
+      dependencyType: 'script',
+      ids: new Set(Object.keys(journey.scripts || {})),
+      references: (node) =>
+        node._type?._id &&
+        node.script !== '[Empty]' &&
+        hasScriptDependency(node)
+          ? [node.script]
+          : [],
+    },
+    {
+      code: 'MISSING_EMAIL_TEMPLATE_DEPENDENCY',
+      dependencyType: 'emailTemplate',
+      ids: new Set(Object.keys(journey.emailTemplates || {})),
+      references: (node) =>
+        ['EmailSuspendNode', 'EmailTemplateNode'].includes(
+          node._type?._id || ''
+        )
+          ? [node.emailTemplateName]
+          : [],
+    },
+    {
+      code: 'MISSING_THEME_DEPENDENCY',
+      dependencyType: 'theme',
+      ids: new Set(
+        (journey.themes || []).flatMap((theme) => [theme._id, theme.name])
+      ),
+      references: (node) =>
+        JOURNEY_CONTAINER_NODE_TYPES.includes(node._type?._id || '')
+          ? [pageThemeId(node.stage)]
+          : [],
+    },
+    {
+      code: 'MISSING_SOCIAL_IDENTITY_PROVIDER_DEPENDENCY',
+      dependencyType: 'socialIdentityProvider',
+      ids: new Set(Object.keys(journey.socialIdentityProviders || {})),
+      references: (node) =>
+        node._type?._id === 'SelectIdPNode' ? node.filteredProviders || [] : [],
+    },
+    {
+      code: 'MISSING_SAML_ENTITY_DEPENDENCY',
+      dependencyType: 'saml2Entity',
+      ids: new Set(
+        Object.values(journey.saml2Entities || {}).map(
+          (entity) => entity.entityId
+        )
+      ),
+      references: (node) =>
+        node._type?._id === 'product-Saml2Node'
+          ? [node.metaAlias?.split('/').pop(), node.idpEntityId]
+          : [],
+    },
+  ];
+  const definitions = {
+    ...journey.innernodes,
+    ...journey.innerNodes,
+    ...journey.nodes,
+  };
+  const findings: JourneyValidationFinding[] = [];
+  for (const [nodeId, node] of Object.entries(definitions)) {
+    const pageNodeIds = Object.entries(definitions)
+      .filter(
+        ([, page]) =>
+          JOURNEY_CONTAINER_NODE_TYPES.includes(page._type?._id || '') &&
+          page.nodes?.some((reference) => reference._id === nodeId)
+      )
+      .map(([pageNodeId]) => pageNodeId);
+    for (const check of checks) {
+      if (check.ids.size === 0) {
+        continue;
+      }
+      for (const dependencyId of new Set(check.references(node))) {
+        if (
+          typeof dependencyId !== 'string' ||
+          !dependencyId ||
+          dependencyId.startsWith('&{esv') ||
+          check.ids.has(dependencyId)
+        ) {
+          continue;
+        }
+        for (const pageNodeId of pageNodeIds.length
+          ? pageNodeIds
+          : [undefined]) {
+          findings.push(
+            finding(
+              journey,
+              check.code,
+              `Node '${nodeId}'${pageNodeId ? ` in Page Node '${pageNodeId}'` : ''} references ${check.dependencyType} '${dependencyId}' missing from the export`,
+              {
+                nodeId,
+                ...(pageNodeId ? { pageNodeId } : {}),
+                dependencyType: check.dependencyType,
+                dependencyId,
+              }
+            )
+          );
+        }
+      }
+    }
+  }
+  return findings;
 }
 
 /**
