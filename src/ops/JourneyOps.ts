@@ -63,6 +63,7 @@ import {
 import { sleep } from '../utils/FrodoUtils';
 import {
   JOURNEY_CONTAINER_NODE_TYPES,
+  validateJourneyDependencies,
   validateJourneyExportKeys,
   validateJourneyReferences,
   type JourneyValidationFinding,
@@ -115,6 +116,10 @@ export type Journey = {
    * prints the export trace as `exportJourney` does (findings are never
    * printed). Missing, blank, or unreadable journeys are reported together
    * after all requested journeys are processed.
+   * Dependency-completeness warnings are export-only: each non-empty dependency
+   * section is checked against that journey's node references. Empty sections
+   * are skipped. Live validation reads with `deps: false`, so it performs no
+   * dependency checks and does not check resource existence in the tenant.
    * @param {string[]} journeyIds journey names; omit or pass an empty array to validate all journeys
    * @param {MultiTreeExportInterface} journeysExport optional export; when supplied, validation is offline
    * @returns {Promise<JourneyValidationFinding[]>} validation findings
@@ -540,6 +545,9 @@ function validateJourneysExport(
 ): JourneyValidationFinding[] {
   return [
     ...Object.values(journeys.trees).flatMap(validateJourneyReferences),
+    ...Object.values(journeys.trees).flatMap((journey) =>
+      validateJourneyDependencies(journey, hasScriptDependency)
+    ),
     ...validateJourneyExportKeys(journeys.trees),
   ];
 }
@@ -1626,8 +1634,7 @@ export async function validateJourneys({
         continue;
       }
       findings.push(
-        ...validateJourneyReferences(journey),
-        ...validateJourneyExportKeys({ [journeyId]: journey })
+        ...validateJourneysExport({ trees: { [journeyId]: journey } })
       );
       continue;
     }
@@ -1743,7 +1750,10 @@ export async function exportJourneys({
       }
     );
     if (exportData) {
-      reportJourneyFindings(validateJourneyReferences(exportData), state);
+      reportJourneyFindings(
+        validateJourneysExport({ trees: { [tree._id]: exportData } }),
+        state
+      );
       delete exportData.meta;
       multiTreeExport.trees[tree._id] = exportData;
       updateProgressIndicator({
@@ -2006,7 +2016,9 @@ export async function importJourney({
   const errors = [];
 
   if (options.validate !== false) {
-    const validationFindings = validateJourneyReferences(importData);
+    const validationFindings = validateJourneysExport({
+      trees: { [importData.tree._id]: importData },
+    });
     reportJourneyFindings(
       validationFindings.filter((finding) => finding.severity === 'warning'),
       state
