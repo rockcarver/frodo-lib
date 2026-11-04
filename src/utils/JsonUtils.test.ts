@@ -6,7 +6,26 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { get, isEqualJson } from './JsonUtils';
+import JsonUtils, {
+  deleteDeepByKey,
+  deleteDeepByKeys,
+  get,
+  isEqualJson,
+} from './JsonUtils';
+
+const nestedKeys = () => ({
+  modified: 1,
+  modifiedBy: 'x',
+  nested: {
+    modified: 2,
+    modifiedAt: 3,
+    deeper: [{ modified: 4, lastmodified: 5, keep: 6 }],
+  },
+});
+const withoutExactModified = {
+  modifiedBy: 'x',
+  nested: { modifiedAt: 3, deeper: [{ lastmodified: 5, keep: 6 }] },
+};
 
 describe('JsonUtils', () => {
   describe('isEqualJson()', () => {
@@ -114,6 +133,129 @@ describe('JsonUtils', () => {
         },
       };
       expect(isEqualJson(obj1, obj2, ['key5'])).toBeTruthy();
+    });
+  });
+
+  describe('deleteDeepByKey()', () => {
+    test('0: Method is implemented', async () => {
+      expect(deleteDeepByKey).toBeDefined();
+    });
+
+    test('1: delete by key exact match', () => {
+      const obj = {
+        key1: 'first',
+        key2: 2,
+        key3: true,
+      };
+      const result = deleteDeepByKey(obj, 'key2', true);
+      expect(result).toMatchObject({
+        key1: 'first',
+        key3: true,
+      });
+      expect(result).toBe(obj);
+    });
+
+    test('2: delete by key substring match', () => {
+      const obj = {
+        key1: 'first',
+        key2: 2,
+        key3: true,
+        old1: 'old',
+        old2: 'two',
+        old3: 3,
+      };
+      const result = deleteDeepByKey(obj, '1', false);
+      expect(result).toMatchObject({
+        key2: 2,
+        key3: true,
+        old2: 'two',
+        old3: 3,
+      });
+      expect(result).toBe(obj);
+    });
+
+    test('3: exact match keeps keys that only contain the key, at every depth', () => {
+      expect(deleteDeepByKey(nestedKeys(), 'modified', true)).toStrictEqual(
+        withoutExactModified
+      );
+    });
+
+    test('4: without the flag, keys that contain the key are deleted', () => {
+      const obj = {
+        'password-encrypted': 'a',
+        password: 'b',
+        nested: { 'secret-encrypted': 'c', keep: 'd' },
+      };
+      expect(deleteDeepByKey(obj, '-encrypted')).toStrictEqual({
+        password: 'b',
+        nested: { keep: 'd' },
+      });
+    });
+
+    test('5: the Json facade defaults to substring and passes exact on', () => {
+      const json = JsonUtils();
+      expect(
+        json.deleteDeepByKey({ 'a-encrypted': 1, b: 2 }, '-encrypted')
+      ).toStrictEqual({ b: 2 });
+      expect(
+        json.deleteDeepByKey(nestedKeys(), 'modified', true)
+      ).toStrictEqual(withoutExactModified);
+    });
+  });
+
+  describe('deleteDeepByKeys()', () => {
+    test('0: Method is implemented', async () => {
+      expect(deleteDeepByKeys).toBeDefined();
+    });
+
+    test('1: delete by keys exact match', () => {
+      const array = [
+        {
+          key1: 'first',
+          key2: 2,
+          key3: true,
+        },
+      ];
+      const result = deleteDeepByKeys(array, ['key1', 'key2'], true);
+      expect(result).toEqual([
+        {
+          key3: true,
+        },
+      ]);
+      expect(result).toBe(array);
+    });
+
+    test('2: delete by keys substring match', () => {
+      const array = [
+        {
+          key1: 'first',
+          key2: 2,
+          key3: true,
+          old1: 'old',
+          old2: 'two',
+          old3: 3,
+        },
+      ];
+      const result = deleteDeepByKeys(array, ['1', '2'], false);
+      expect(result).toEqual([
+        {
+          key3: true,
+          old3: 3,
+        },
+      ]);
+      expect(result).toBe(array);
+    });
+
+    test('3: exact match keeps keys that only contain a key, at every depth', () => {
+      expect(
+        deleteDeepByKeys([nestedKeys()], ['modified'], true)
+      ).toStrictEqual([withoutExactModified]);
+    });
+
+    test('4: without the flag, keys that contain a key are deleted', () => {
+      expect(
+        deleteDeepByKeys([{ 'a-encrypted': 1, b: 2 }], ['-encrypted'])
+      ).toStrictEqual([{ b: 2 }]);
     });
   });
 
