@@ -10,6 +10,16 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-19] - 2026-11-04
+
+### Added
+- Warnings are now emitted for missing journey export dependencies, such as scripts, email templates, themes, social providers, and SAML entities. These warnings help identify resources referenced by nodes but missing from the export's dependency sections, although they may already exist in the target tenant (#892).
+- Support for asynchronous MFA callback handlers has been added. The `CallbackHandler` now accepts `Callback | Promise<Callback>`, allowing asynchronous prompts without breaking existing synchronous handlers (#888).
+
+### Fixed
+- The `journey describe` command now correctly describes the full journey tree without prematurely stopping due to shared sub-journeys being dropped under multiple parents. This fix ensures that all sub-journeys are expanded under each parent as expected (#889).
+- The export process now uses exact key matching when removing modified properties, ensuring that only the specified properties are removed (#890).
+
 ## [v5.0.0-18] - 2026-10-30
 
 ### Added
@@ -2772,6 +2782,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-19]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-18...v5.0.0-19
 [v5.0.0-17]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-16...v5.0.0-17
 [v5.0.0-16]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-15...v5.0.0-16
 [v5.0.0-15]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-14...v5.0.0-15
