@@ -345,8 +345,8 @@ describe('JourneyOps versioning unit coverage', () => {
     expect(printMessageMock).not.toHaveBeenCalled();
   });
 
-  test('validateJourneys skips dependency checks in live mode without extra reads', async () => {
-    const journey = journeyExport('LiveJourney');
+  test('validateJourneys skips dependency and export-key checks in live mode without extra reads', async () => {
+    const journey = journeyExport('ReturnedJourney');
     journey.tree.nodes.node.nodeType = 'ScriptedDecisionNode';
     journey.nodes.node._type._id = 'ScriptedDecisionNode';
     journey.nodes.node.script = 'not-exported';
@@ -451,6 +451,46 @@ describe('JourneyOps versioning unit coverage', () => {
       options: { deps: true, useStringArrays: true, coords: false },
       state,
     });
+    expect(printMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'warn',
+        message: '1 warning in journey WarnedJourney',
+      })
+    );
+  });
+
+  test('exportJourneys prints dependency warnings when exporting all journeys', async () => {
+    const journey = journeyExport('WarnedJourney');
+    journey.tree.nodes.node.nodeType = 'SelectIdPNode';
+    journey.tree.nodes.node.connections.done = 'handler';
+    Object.assign(journey.nodes.node, {
+      _type: { _id: 'SelectIdPNode' },
+      filteredProviders: ['existing', 'missing'],
+    });
+    journey.tree.nodes.handler = {
+      nodeType: 'SocialProviderHandlerNode',
+      version: '1.0',
+      connections: { done: '70e691a5-1e33-4ac3-a356-e7b6d60d92e0' },
+    };
+    journey.nodes.handler = {
+      _id: 'handler',
+      _type: { _id: 'SocialProviderHandlerNode' },
+      _outcomes: [{ id: 'done' }],
+      script: '[Empty]',
+    };
+    getTreesMock.mockResolvedValue({ result: [journey.tree] });
+    getTreeMock.mockResolvedValue(journey.tree);
+    readNodeMock.mockImplementation(
+      async ({ nodeId }: { nodeId: string }) => journey.nodes[nodeId]
+    );
+    readSocialIdentityProvidersMock.mockResolvedValue([{ _id: 'existing' }]);
+
+    const exported = await JourneyOps.exportJourneys({
+      options: { deps: true, useStringArrays: true, coords: false },
+      state: validationState(),
+    });
+
+    expect(exported.trees.WarnedJourney).toBeDefined();
     expect(printMessageMock).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'warn',

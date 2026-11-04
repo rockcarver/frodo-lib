@@ -1645,9 +1645,7 @@ export async function validateJourneys({
         options: { deps: false, useStringArrays: true, coords: false },
         state,
       });
-      findings.push(
-        ...validateJourneysExport({ trees: { [journeyId]: journey } })
-      );
+      findings.push(...validateJourneyReferences(journey));
     } catch (error) {
       errors.push(new FrodoError(message, error));
     }
