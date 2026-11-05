@@ -1118,3 +1118,31 @@ export const getVerbose = (): boolean => globalState.verbose;
 
 export const getDebug = (): boolean =>
   globalState.debug || process.env.FRODO_DEBUG !== undefined;
+
+/**
+ * Derive a state from another state.
+ *
+ * @remarks
+ *
+ * The derived state answers with the methods in `own` and takes everything else
+ * from `parent`, on every call. A token that the parent refreshes, or loses when
+ * it logs out, is the token the derived state sees, and the parent is not changed
+ * by what `own` does. Use it to give one set of operations a setting of its own,
+ * for example the IDM host, while they share the login of the parent.
+ *
+ * Calling any other setter on the derived state sets it on the parent.
+ *
+ * @param {State} parent state to derive from
+ * @param {Partial<State>} own methods the derived state answers itself
+ * @returns {State} the derived state
+ */
+export function deriveState(parent: State, own: Partial<State>): State {
+  return new Proxy(parent, {
+    get(target, property, receiver) {
+      if (Object.prototype.hasOwnProperty.call(own, property)) {
+        return own[property as keyof State];
+      }
+      return Reflect.get(target, property, receiver);
+    },
+  });
+}

@@ -66,6 +66,7 @@ const DEFAULT_INSTANCE_HELPERS = new Set<string>([
   'createInstanceWithAmsterAccount',
   'createInstanceWithBrowserLogin',
   'createInstanceWithAccessToken',
+  'createRemoteProxyView',
 ]);
 
 /**

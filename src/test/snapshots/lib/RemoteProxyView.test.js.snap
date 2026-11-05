@@ -1,0 +1,8 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`createRemoteProxyView() 1: The view counts the roles of the receiving tenant, the instance those of its own tenant 1`] = `
+{
+  "own": 4,
+  "remote": 2,
+}
+`;
