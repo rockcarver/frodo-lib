@@ -117,6 +117,9 @@ import ScriptTypeOps, { ScriptType } from '../ops/ScriptTypeOps';
 import SecretStoreOps, { SecretStore } from '../ops/SecretStoreOps';
 import ServiceOps, { Service } from '../ops/ServiceOps';
 import SessionOps, { Session } from '../ops/SessionOps';
+import StaticUserMappingOps, {
+  StaticUserMapping,
+} from '../ops/StaticUserMappingOps';
 import ThemeOps, { Theme } from '../ops/ThemeOps';
 import TokenCacheOps, { TokenCache } from '../ops/TokenCacheOps';
 import UserOps, { User } from '../ops/UserOps';
@@ -222,6 +225,7 @@ export type Frodo = {
     organization: Organization;
     recon: Recon;
     remoteProxy: RemoteProxy;
+    staticUserMapping: StaticUserMapping;
     script: IdmScript;
     system: IdmSystem;
   };
@@ -466,6 +470,7 @@ function createIdmOps(state: State): Frodo['idm'] {
     organization: OrganizationOps(state),
     recon: ReconOps(state),
     remoteProxy: RemoteProxyOps(state),
+    staticUserMapping: StaticUserMappingOps(state),
     script: IdmScriptOps(state),
     system: IdmSystemOps(state),
   };
