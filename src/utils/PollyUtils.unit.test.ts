@@ -90,6 +90,16 @@ describe('filterRecording() hosts', () => {
     ]);
   });
 
+  test('1b: Makes the redirect URL of the response use the default host', () => {
+    const recording = entry();
+    recording.response.redirectURL =
+      'https://my-tenant.forgeblocks.com/openidm/config/external.idm/test';
+    filterRecording(recording);
+    expect(recording.response.redirectURL).toBe(
+      `https://${DEFAULT_HOST}/openidm/config/external.idm/test`
+    );
+  });
+
   test('2: Keeps the hosts when asked not to use the default host', () => {
     const recording = entry();
     filterRecording(recording, false);

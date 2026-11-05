@@ -16,6 +16,7 @@ export type Recording = {
       value: string;
     }[];
     headers: [{ name: string; value: string }];
+    redirectURL?: string;
   };
 };
 
@@ -125,6 +126,14 @@ export function filterRecording(
               );
       }
     }
+  }
+
+  // response redirect url (the full url of the Location header)
+  if (useDefaultHost && recording.response?.redirectURL) {
+    recording.response.redirectURL = obfuscateHostsString(
+      recording.response.redirectURL,
+      'openam-frodo-dev.forgeblocks.com'
+    );
   }
 
   // response body
