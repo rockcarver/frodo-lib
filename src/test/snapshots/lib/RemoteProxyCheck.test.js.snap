@@ -1,0 +1,22 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`testRemoteProxy() 1: A working proxy answers with the identity and roles it acts as on the receiving tenant 1`] = `
+{
+  "authenticationId": "openidm-admin",
+  "httpStatus": 200,
+  "ok": true,
+  "roles": [
+    "internal/role/openidm-admin",
+    "internal/role/openidm-authorized",
+  ],
+  "status": "ok",
+}
+`;
+
+exports[`testRemoteProxy() 2: A proxy that does not exist is reported as not found 1`] = `
+{
+  "httpStatus": 404,
+  "ok": false,
+  "status": "not-found",
+}
+`;

@@ -1,10 +1,12 @@
 import util from 'util';
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getIdmBaseUrl } from '../utils/ForgeRockUtils';
 import { generateAmAuthApi, generateIdmApi } from './BaseApi';
 
 const serverInfoUrlTemplate = '%s/json/serverinfo/%s';
 const idmVersionUrlTemplate = '%s/info/version';
+const idmLoginInfoUrlTemplate = '%s/info/login';
 
 const serverInfoApiVersion = 'resource=1.1';
 const serverVersionoApiVersion = 'resource=1.0';
@@ -74,5 +76,21 @@ export async function getIdmServerVersionInfo({ state }: { state: State }) {
     urlString,
     {}
   );
+  return data;
+}
+
+/**
+ * Get the IDM login info: the identity and roles the current credential has in
+ * IDM (`GET /openidm/info/login`). Through a remote proxy it is the identity
+ * and roles of the user the proxy is mapped to on the receiving tenant.
+ * @param {State} state library state
+ * @returns {Promise} a promise that resolves to an object containing the authentication id and authorization of the caller
+ */
+export async function getIdmLoginInfo({ state }: { state: State }) {
+  const urlString = util.format(idmLoginInfoUrlTemplate, getIdmBaseUrl(state));
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    state,
+  }).get(urlString, {});
   return data;
 }

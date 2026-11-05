@@ -22,6 +22,12 @@ jest.unstable_mockModule('./IdmConfigOps', () => ({
   readConfigEntitiesByType,
 }));
 
+const getIdmLoginInfo = jest.fn(async (_args?: any): Promise<any> => ({}));
+
+jest.unstable_mockModule('../api/ServerInfoApi', () => ({
+  getIdmLoginInfo,
+}));
+
 jest.unstable_mockModule('../utils/ExportImportUtils', () => ({
   getMetadata: () => ({ origin: 'unit-test' }),
 }));

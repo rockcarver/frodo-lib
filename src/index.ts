@@ -271,7 +271,9 @@ export type { RealmExportInterface } from './ops/RealmOps';
 
 export type {
   RemoteProxyExportInterface,
+  RemoteProxySecret,
   RemoteProxySkeleton,
+  RemoteProxyTestResult,
 } from './ops/RemoteProxyOps';
 
 export type { ResourceTypeExportInterface } from './ops/ResourceTypeOps';
