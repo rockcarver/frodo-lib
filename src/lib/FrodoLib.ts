@@ -106,7 +106,10 @@ import PolicySetOps, { PolicySet } from '../ops/PolicySetOps';
 import RawConfigOps, { RawConfig } from '../ops/RawConfigOps';
 import RealmOps, { Realm } from '../ops/RealmOps';
 import ReconOps, { Recon } from '../ops/ReconOps';
-import RemoteProxyOps, { RemoteProxy } from '../ops/RemoteProxyOps';
+import RemoteProxyOps, {
+  getRemoteProxyBaseUrl,
+  RemoteProxy,
+} from '../ops/RemoteProxyOps';
 import ResourceTypeOps, { ResourceType } from '../ops/ResourceTypeOps';
 import Saml2Ops, { Saml2 } from '../ops/Saml2Ops';
 import ScriptOps, { Script } from '../ops/ScriptOps';
@@ -120,7 +123,7 @@ import UserOps, { User } from '../ops/UserOps';
 import VersionUtils, { Version } from '../ops/VersionUtils';
 // non-instantiable modules
 import ConstantsImpl, { Constants } from '../shared/Constants';
-import StateImpl, { State, StateInterface } from '../shared/State';
+import StateImpl, { deriveState, State, StateInterface } from '../shared/State';
 import Base64Utils, { Base64 } from '../utils/Base64Utils';
 import CryptoUtils, { FrodoCrypto } from '../utils/CryptoUtils';
 import ExportImportUtils, { ExportImport } from '../utils/ExportImportUtils';
@@ -281,6 +284,25 @@ export type Frodo = {
   createInstance(config: StateInterface): Frodo;
 
   /**
+   * Create a view of the IDM of another tenant, reached through a remote proxy
+   * of this tenant.
+   *
+   * Every IDM operation of the view (`idm.managed`, `idm.config`, ...) is made
+   * on the receiving tenant of the remote proxy, as the user the proxy maps to
+   * there. The view shares the login of this instance: it needs no login of its
+   * own, a token this instance refreshes is the token the view uses, and this
+   * instance keeps talking to its own tenant. Create one view per remote proxy.
+   *
+   * Only IDM operations are part of the view; everything else (AM, cloud
+   * administration) is not reachable through a remote proxy. Writes are not
+   * restricted by the view; what the proxy may do is decided by the mapping of
+   * its user on the receiving tenant.
+   * @param {string} proxyId id/name of the remote proxy (the name of the receiving tenant)
+   * @returns {RemoteProxyView} a view of the IDM of the receiving tenant
+   */
+  createRemoteProxyView(proxyId: string): RemoteProxyView;
+
+  /**
    * Factory helper to create a frodo instance ready for logging in with an admin user account
    * @param {string} host host base URL, e.g. 'https://openam-my-tenant.forgeblocks.com/am'
    * @param {string} username admin account username
@@ -408,6 +430,63 @@ export type Frodo = {
 };
 
 /**
+ * A view of the IDM of the receiving tenant of a remote proxy, see
+ * {@link Frodo.createRemoteProxyView}
+ */
+export type RemoteProxyView = {
+  /**
+   * id/name of the remote proxy the view goes through
+   */
+  proxyId: string;
+  /**
+   * The IDM operations; each one is made on the receiving tenant through the remote proxy
+   */
+  idm: Frodo['idm'];
+};
+
+/**
+ * Create the IDM operations that use the given state
+ * @param {State} state state the operations use
+ * @returns {Frodo['idm']} the IDM operations
+ */
+function createIdmOps(state: State): Frodo['idm'] {
+  return {
+    config: IdmConfigOps(state),
+    connector: ConnectorOps(state),
+    crypto: IdmCryptoOps(state),
+    managed: {
+      ...ManagedObjectOps(state),
+      schema: ManagedObjectSchemaOps(state),
+    },
+    managedSystem: {
+      ...ManagedSystemObjectOps(state),
+      schema: ManagedSystemObjectSchemaOps(state),
+    },
+    mapping: MappingOps(state),
+    organization: OrganizationOps(state),
+    recon: ReconOps(state),
+    remoteProxy: RemoteProxyOps(state),
+    script: IdmScriptOps(state),
+    system: IdmSystemOps(state),
+  };
+}
+
+/**
+ * Create a view of the IDM of the receiving tenant of a remote proxy. The view
+ * uses a state that takes everything from the given state except the IDM host,
+ * which it computes from the current host of the given state on every call.
+ * @param {string} proxyId id/name of the remote proxy
+ * @param {State} state state of the instance the view belongs to
+ * @returns {RemoteProxyView} the view
+ */
+function createRemoteProxyView(proxyId: string, state: State): RemoteProxyView {
+  const viewState = deriveState(state, {
+    getIdmHost: () => getRemoteProxyBaseUrl({ proxyId, state }),
+  });
+  return { proxyId, idm: createIdmOps(viewState) };
+}
+
+/**
  * Create a new frodo instance
  * @param {StateInterface} config Initial state configuration to use with the new instance
  * @returns {Frodo} frodo instance
@@ -484,25 +563,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
 
     factory: ApiOps(state),
 
-    idm: {
-      config: IdmConfigOps(state),
-      connector: ConnectorOps(state),
-      crypto: IdmCryptoOps(state),
-      managed: {
-        ...ManagedObjectOps(state),
-        schema: ManagedObjectSchemaOps(state),
-      },
-      managedSystem: {
-        ...ManagedSystemObjectOps(state),
-        schema: ManagedSystemObjectSchemaOps(state),
-      },
-      mapping: MappingOps(state),
-      organization: OrganizationOps(state),
-      recon: ReconOps(state),
-      remoteProxy: RemoteProxyOps(state),
-      script: IdmScriptOps(state),
-      system: IdmSystemOps(state),
-    },
+    idm: createIdmOps(state),
 
     info: InfoOps(state),
     login: AuthenticateOps(state),
@@ -556,6 +617,8 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     },
 
     createInstance,
+    createRemoteProxyView: (proxyId: string) =>
+      createRemoteProxyView(proxyId, state),
     createInstanceWithAdminAccount,
     createInstanceWithServiceAccount,
     createInstanceWithAmsterAccount,

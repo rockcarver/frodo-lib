@@ -3,6 +3,8 @@ import { FrodoError } from './ops/FrodoError';
 
 export { frodo, FrodoError, state };
 
+export type { RemoteProxyView } from './lib/FrodoLib';
+
 export type {
   McpCapabilityDescriptor,
   McpCapabilityInventoryOptions,
