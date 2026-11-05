@@ -1,0 +1,169 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`RemoteProxyOps createRemoteProxy() 1: Create remote proxy 'FrodoTestRemoteProxy2' 1`] = `
+{
+  "_id": "external.idm/FrodoTestRemoteProxy2",
+  "authType": "basic",
+  "enabled": true,
+  "instanceUrl": "https://frodo-test-two.example.com/openidm/",
+  "password": "&{esv.frodo.test.remoteproxy.two.password}",
+  "userName": "frodo-test-proxy-user",
+}
+`;
+
+exports[`RemoteProxyOps createRemoteProxy() 2: Create remote proxy 'FrodoTestRemoteProxy2' that already exists 1`] = `"Remote proxy FrodoTestRemoteProxy2 already exists!"`;
+
+exports[`RemoteProxyOps deleteRemoteProxy() 1: Delete remote proxy 'FrodoTestRemoteProxy3' 1`] = `
+{
+  "_id": "external.idm/FrodoTestRemoteProxy3",
+  "authType": "bearer",
+  "clientId": "idmprovisioning",
+  "clientSecret": "&{esv.frodo.test.remoteproxy.three.secret}",
+  "enabled": false,
+  "instanceUrl": "https://frodo-test-three.example.com/openidm/",
+  "scope": [
+    "fr:idm:*",
+  ],
+  "scopeDelimiter": " ",
+  "tokenEndpoint": "https://frodo-test-three.example.com/am/oauth2/realms/root/realms/alpha/access_token",
+  "tokenEndpointAuthMethod": "client_secret_post",
+}
+`;
+
+exports[`RemoteProxyOps exportRemoteProxies() 1: Export all remote proxies 1`] = `
+{
+  "meta": Any<Object>,
+  "remoteProxy": {
+    "FrodoTestRemoteProxy1": {
+      "_id": "external.idm/FrodoTestRemoteProxy1",
+      "authType": "bearer",
+      "clientId": "idmprovisioning",
+      "clientSecret": "&{esv.frodo.test.remoteproxy.one.secret}",
+      "enabled": true,
+      "instanceUrl": "https://frodo-test-one.example.com/openidm/",
+      "scope": [
+        "fr:idm:*",
+      ],
+      "scopeDelimiter": " ",
+      "tokenEndpoint": "https://frodo-test-one.example.com/am/oauth2/realms/root/realms/alpha/access_token",
+      "tokenEndpointAuthMethod": "client_secret_post",
+    },
+    "frodo-dev": {
+      "_id": "external.idm/frodo-dev",
+      "authType": "bearer",
+      "clientId": "volker-proxy-test",
+      "clientSecret": "&{esv.volker.proxy.test}",
+      "enabled": true,
+      "instanceUrl": "https://openam-frodo-dev.forgeblocks.com/openidm/",
+      "scope": [
+        "fr:idm:*",
+      ],
+      "scopeDelimiter": " ",
+      "tokenEndpoint": "https://openam-frodo-dev.forgeblocks.com/am/oauth2/realms/root/realms/alpha/access_token",
+      "tokenEndpointAuthMethod": "client_secret_post",
+    },
+  },
+}
+`;
+
+exports[`RemoteProxyOps exportRemoteProxy() 1: Export remote proxy 'FrodoTestRemoteProxy1' 1`] = `
+{
+  "meta": Any<Object>,
+  "remoteProxy": {
+    "FrodoTestRemoteProxy1": {
+      "_id": "external.idm/FrodoTestRemoteProxy1",
+      "authType": "bearer",
+      "clientId": "idmprovisioning",
+      "clientSecret": "&{esv.frodo.test.remoteproxy.one.secret}",
+      "enabled": true,
+      "instanceUrl": "https://frodo-test-one.example.com/openidm/",
+      "scope": [
+        "fr:idm:*",
+      ],
+      "scopeDelimiter": " ",
+      "tokenEndpoint": "https://frodo-test-one.example.com/am/oauth2/realms/root/realms/alpha/access_token",
+      "tokenEndpointAuthMethod": "client_secret_post",
+    },
+  },
+}
+`;
+
+exports[`RemoteProxyOps importRemoteProxies() 1: Import remote proxies 1`] = `
+[
+  {
+    "_id": "external.idm/FrodoTestRemoteProxy3",
+    "authType": "bearer",
+    "clientId": "idmprovisioning",
+    "clientSecret": "&{esv.frodo.test.remoteproxy.three.secret}",
+    "enabled": false,
+    "instanceUrl": "https://frodo-test-three.example.com/openidm/",
+    "scope": [
+      "fr:idm:*",
+    ],
+    "scopeDelimiter": " ",
+    "tokenEndpoint": "https://frodo-test-three.example.com/am/oauth2/realms/root/realms/alpha/access_token",
+    "tokenEndpointAuthMethod": "client_secret_post",
+  },
+]
+`;
+
+exports[`RemoteProxyOps readRemoteProxies() 1: Read all remote proxies 1`] = `
+[
+  {
+    "_id": "external.idm/frodo-dev",
+    "authType": "bearer",
+    "clientId": "volker-proxy-test",
+    "clientSecret": "&{esv.volker.proxy.test}",
+    "enabled": true,
+    "instanceUrl": "https://openam-frodo-dev.forgeblocks.com/openidm/",
+    "scope": [
+      "fr:idm:*",
+    ],
+    "scopeDelimiter": " ",
+    "tokenEndpoint": "https://openam-frodo-dev.forgeblocks.com/am/oauth2/realms/root/realms/alpha/access_token",
+    "tokenEndpointAuthMethod": "client_secret_post",
+  },
+  {
+    "_id": "external.idm/FrodoTestRemoteProxy1",
+    "authType": "bearer",
+    "clientId": "idmprovisioning",
+    "clientSecret": "&{esv.frodo.test.remoteproxy.one.secret}",
+    "enabled": true,
+    "instanceUrl": "https://frodo-test-one.example.com/openidm/",
+    "scope": [
+      "fr:idm:*",
+    ],
+    "scopeDelimiter": " ",
+    "tokenEndpoint": "https://frodo-test-one.example.com/am/oauth2/realms/root/realms/alpha/access_token",
+    "tokenEndpointAuthMethod": "client_secret_post",
+  },
+]
+`;
+
+exports[`RemoteProxyOps readRemoteProxy() 1: Read remote proxy 'FrodoTestRemoteProxy1' 1`] = `
+{
+  "_id": "external.idm/FrodoTestRemoteProxy1",
+  "authType": "bearer",
+  "clientId": "idmprovisioning",
+  "clientSecret": "&{esv.frodo.test.remoteproxy.one.secret}",
+  "enabled": true,
+  "instanceUrl": "https://frodo-test-one.example.com/openidm/",
+  "scope": [
+    "fr:idm:*",
+  ],
+  "scopeDelimiter": " ",
+  "tokenEndpoint": "https://frodo-test-one.example.com/am/oauth2/realms/root/realms/alpha/access_token",
+  "tokenEndpointAuthMethod": "client_secret_post",
+}
+`;
+
+exports[`RemoteProxyOps updateRemoteProxy() 1: Update remote proxy 'FrodoTestRemoteProxy2' 1`] = `
+{
+  "_id": "external.idm/FrodoTestRemoteProxy2",
+  "authType": "basic",
+  "enabled": false,
+  "instanceUrl": "https://frodo-test-two.example.com/openidm/",
+  "password": "&{esv.frodo.test.remoteproxy.two.password}",
+  "userName": "frodo-test-proxy-user",
+}
+`;

@@ -135,6 +135,7 @@ const SUBJECT_PROFILE_DEFINITIONS: Record<
       'config',
       'conn',
       'idm.crypto',
+      'idm.remoteProxy',
       'email',
       'info',
       'rawConfig',
