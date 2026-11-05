@@ -763,10 +763,21 @@ async function getFreshUserSessionToken({
       const response = await step({
         body: currentStep || {},
         config: currentStep ? {} : config,
+        // always a new session: never send the one the state may hold from an
+        // earlier login (see the empty tokenId check below)
+        anonymous: true,
         state,
       });
       // Handle success response
       if ('tokenId' in response) {
+        // With HttpOnly session cookies enabled AM answers a login that
+        // carries a valid session with an empty tokenId. Installing it would
+        // replace the working session with an empty one.
+        if (typeof response.tokenId !== 'string' || response.tokenId === '') {
+          throw new FrodoError(
+            `AM completed the authentication but returned an empty session token (tokenId). AM does this when the request already carries a valid session and HttpOnly session cookies are enabled for the realm ('Stops sending tokenId').`
+          );
+        }
         // Get session expiration. AM reports two independent caps: the idle
         // timeout (maxIdleExpirationTime) and the absolute session lifetime
         // (maxSessionExpirationTime) — either can be the one that actually
@@ -1682,15 +1693,27 @@ function scheduleAutoRefresh(
   }
   // new timer
   if (autoRefresh) {
-    const expires =
+    const expiries =
       state.getDeploymentType() === Constants.CLASSIC_DEPLOYMENT_TYPE_KEY
-        ? state.getUserSessionTokenMeta()?.expires
+        ? [state.getUserSessionTokenMeta()?.expires]
         : state.getUseBearerTokenForAmApis()
-          ? state.getBearerTokenMeta()?.expires
-          : Math.min(
+          ? [state.getBearerTokenMeta()?.expires]
+          : [
               state.getBearerTokenMeta()?.expires,
-              state.getUserSessionTokenMeta()?.expires
-            );
+              state.getUserSessionTokenMeta()?.expires,
+            ];
+    // An expiry that is not a number (a session whose expiry AM did not
+    // report) must never reach setTimeout: Node turns a NaN delay into 1 ms,
+    // and the timer would run getTokens again and again.
+    const known = expiries.filter((e): e is number => Number.isFinite(e));
+    if (known.length === 0) {
+      debugMessage({
+        message: `AuthenticateOps.scheduleAutoRefresh: no known token expiry, not setting a timer`,
+        state,
+      });
+      return;
+    }
+    const expires = Math.min(...known);
     let timeout = expires - Date.now() - 1000 * 25;
     if (timeout < 1000 * 30) {
       debugMessage({

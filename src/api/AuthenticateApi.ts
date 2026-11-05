@@ -43,6 +43,7 @@ export type AuthenticateResponse =
  * @param {AxiosRequestConfig<object>} config request config
  * @param {string} realm realm
  * @param {string} service name of authentication service/journey
+ * @param {boolean} anonymous true to send the request without the session cookie or token the state holds (default: false)
  * @returns Promise resolving to the authentication service response
  */
 export async function step({
@@ -50,12 +51,17 @@ export async function step({
   config = {},
   realm = '/',
   service = undefined,
+  anonymous = false,
   state,
 }: {
   body?: AuthenticateStep | Record<string, never>;
   config?: AxiosRequestConfig<object>;
   realm?: string;
   service?: string;
+  // A login that starts a new session must not carry the session the state
+  // already holds: with HttpOnly session cookies enabled, AM answers a request
+  // that carries a valid session with an empty tokenId.
+  anonymous?: boolean;
   state: State;
 }): Promise<AuthenticateResponse> {
   const urlString =
@@ -73,6 +79,7 @@ export async function step({
         );
   const { data } = await generateAmAuthApi({
     resource: getApiConfig(),
+    anonymous,
     state,
   }).post(urlString, body, config);
   return data;
