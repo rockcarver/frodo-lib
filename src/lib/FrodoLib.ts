@@ -109,6 +109,7 @@ import ReconOps, { Recon } from '../ops/ReconOps';
 import RemoteProxyOps, {
   getRemoteProxyBaseUrl,
   RemoteProxy,
+  validateRemoteProxyName,
 } from '../ops/RemoteProxyOps';
 import ResourceTypeOps, { ResourceType } from '../ops/ResourceTypeOps';
 import Saml2Ops, { Saml2 } from '../ops/Saml2Ops';
@@ -475,11 +476,13 @@ function createIdmOps(state: State): Frodo['idm'] {
  * Create a view of the IDM of the receiving tenant of a remote proxy. The view
  * uses a state that takes everything from the given state except the IDM host,
  * which it computes from the current host of the given state on every call.
- * @param {string} proxyId id/name of the remote proxy
+ * @param {string} proxyId id/name of the remote proxy, see {@link RemoteProxy.isValidRemoteProxyName} for the names that are allowed
  * @param {State} state state of the instance the view belongs to
  * @returns {RemoteProxyView} the view
  */
 function createRemoteProxyView(proxyId: string, state: State): RemoteProxyView {
+  // refuse a name that is not allowed now, not on the first request
+  validateRemoteProxyName(proxyId);
   const viewState = deriveState(state, {
     getIdmHost: () => getRemoteProxyBaseUrl({ proxyId, state }),
   });

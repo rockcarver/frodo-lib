@@ -2182,6 +2182,16 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     // a standalone operation an agent could call.
     excluded: true,
   },
+  'idm.remoteProxy.isValidRemoteProxyName': {
+    // A pure check of a name against the allowed pattern. It makes no request
+    // and is not a standalone operation an agent could call.
+    excluded: true,
+  },
+  'idm.remoteProxy.getTenantBoundSecrets': {
+    // A pure inspection of a remote proxy object that is already in hand. It
+    // makes no request and is not a standalone operation an agent could call.
+    excluded: true,
+  },
   'idm.system': {
     deploymentTypes: IDM_DEPLOYMENTS,
     preferredDeploymentTypes: IDM_DEPLOYMENTS,
