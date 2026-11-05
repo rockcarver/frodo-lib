@@ -106,6 +106,7 @@ import PolicySetOps, { PolicySet } from '../ops/PolicySetOps';
 import RawConfigOps, { RawConfig } from '../ops/RawConfigOps';
 import RealmOps, { Realm } from '../ops/RealmOps';
 import ReconOps, { Recon } from '../ops/ReconOps';
+import RemoteProxyOps, { RemoteProxy } from '../ops/RemoteProxyOps';
 import ResourceTypeOps, { ResourceType } from '../ops/ResourceTypeOps';
 import Saml2Ops, { Saml2 } from '../ops/Saml2Ops';
 import ScriptOps, { Script } from '../ops/ScriptOps';
@@ -217,6 +218,7 @@ export type Frodo = {
     mapping: Mapping;
     organization: Organization;
     recon: Recon;
+    remoteProxy: RemoteProxy;
     script: IdmScript;
     system: IdmSystem;
   };
@@ -497,6 +499,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
       mapping: MappingOps(state),
       organization: OrganizationOps(state),
       recon: ReconOps(state),
+      remoteProxy: RemoteProxyOps(state),
       script: IdmScriptOps(state),
       system: IdmSystemOps(state),
     },

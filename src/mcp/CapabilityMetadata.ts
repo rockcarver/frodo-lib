@@ -2175,6 +2175,13 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
 
   // ── IDM connector system objects ─────────────────────────────────────────────
   // Covers all idm.system.* methods. ICF connector systems are part of IDM.
+  'idm.remoteProxy.createRemoteProxyExportTemplate': { excluded: true },
+  'idm.remoteProxy.getRemoteProxyBaseUrl': {
+    // A pure URL computation (<host>/openidm/external/idm/<proxyId>) used to
+    // route IDM calls through a remote proxy. It makes no request and is not
+    // a standalone operation an agent could call.
+    excluded: true,
+  },
   'idm.system': {
     deploymentTypes: IDM_DEPLOYMENTS,
     preferredDeploymentTypes: IDM_DEPLOYMENTS,
