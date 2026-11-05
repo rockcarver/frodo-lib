@@ -10,6 +10,16 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-20] - 2026-11-05
+
+### Added
+- Introduced `frodo.createRemoteProxyView(proxyId)`, enabling access to IDM operations of another tenant through a remote proxy. This allows an instance to work with its own tenant and multiple remote ones simultaneously (#900).
+- Added `frodo.idm.remoteProxy`, a module for managing remote proxy configurations of an Advanced Identity Cloud tenant. It includes operations like `readRemoteProxies`, `exportRemoteProxy`, and `createRemoteProxy` (#899).
+
+### Fixed
+- Resolved an issue where logging in could replace a working session with an empty one, causing MCP reads to fail with "Error getting tokens" when HttpOnly session cookies are enabled (#901).
+- Ensured the recording tenant's host is excluded from the redirect URL of recordings, maintaining correct URL handling (commit fedd4da33).
+
 ## [v5.0.0-19] - 2026-11-04
 
 ### Added
@@ -2782,6 +2792,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-20]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-19...v5.0.0-20
 [v5.0.0-19]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-18...v5.0.0-19
 [v5.0.0-17]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-16...v5.0.0-17
 [v5.0.0-16]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-15...v5.0.0-16
