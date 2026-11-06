@@ -4,7 +4,6 @@
  *        NODE_OPTIONS=--experimental-vm-modules npx jest --silent State.getState
  */
 import { setTimeout as delay } from 'node:timers';
-
 import StateImpl from './State';
 
 describe('getState()', () => {

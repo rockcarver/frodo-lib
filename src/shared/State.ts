@@ -364,7 +364,8 @@ export default (initialState: StateInterface): State => {
       // Drop the auto-refresh timer: Node Timeouts are circular and make
       // cloneDeep/JSON.stringify throw after login (issue #910). Callers that
       // spread or serialize state for request context need a plain snapshot.
-      const { autoRefreshTimer: _autoRefreshTimer, ...serializable } = state;
+      const serializable = { ...state };
+      delete serializable.autoRefreshTimer;
       return cloneDeep(serializable);
     },
 
