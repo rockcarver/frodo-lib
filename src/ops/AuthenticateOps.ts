@@ -1846,6 +1846,12 @@ function forgetRejectedCredential(state: State): boolean | void {
 }
 
 /**
+ * The longest delay of a timer in Node (2^31 - 1 ms, about 24.8 days): a longer
+ * one runs after 1 ms instead.
+ */
+export const MAX_TIMER_DELAY_MS = 2 ** 31 - 1;
+
+/**
  * Helper method to set, reset, or cancel timer to auto refresh tokens
  * @param {boolean} forceLoginAsUser true to force login as user even if a service account or Amster account is available (default: false)
  * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
@@ -1890,6 +1896,28 @@ function scheduleAutoRefresh(
         state,
       });
       if (timeout < 10) timeout = 10;
+    }
+    // Node waits at most 2^31 - 1 ms for a timer and runs a longer one after
+    // 1 ms. A credential that lasts longer gets a timer for the longest delay,
+    // which schedules the refresh again, until the rest fits.
+    if (timeout > MAX_TIMER_DELAY_MS) {
+      debugMessage({
+        message: `AuthenticateOps.scheduleAutoRefresh: expiry is beyond the longest timer delay, checking again in ${Math.floor(
+          MAX_TIMER_DELAY_MS / 1000
+        )}s`,
+        state,
+      });
+      timer = setTimeout(
+        scheduleAutoRefresh,
+        MAX_TIMER_DELAY_MS,
+        forceLoginAsUser,
+        credentialOverride,
+        autoRefresh,
+        state
+      ) as unknown as NodeJS.Timeout;
+      state.setAutoRefreshTimer(timer);
+      timer.unref();
+      return;
     }
     debugMessage({
       message: `AuthenticateOps.scheduleAutoRefresh: set new timer [${Math.floor(
