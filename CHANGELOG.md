@@ -10,6 +10,12 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-23] - 2026-11-06
+
+### Fixed
+- Addressed an issue where credentials lasting longer than 24.8 days could not be managed by Node's timer. The timer now handles long-lived credentials by scheduling refreshes in intervals until the remaining time fits within Node's timer limits (#924).
+- Resolved regressions from version 5.0.0-22 affecting credential handling. Unreadable credentials are now reported correctly, and credentials issued shortly before a 401 error are retained (#922).
+
 ## [v5.0.0-22] - 2026-11-06
 
 ### Changed
@@ -2811,6 +2817,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-23]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-22...v5.0.0-23
 [v5.0.0-22]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-21...v5.0.0-22
 [v5.0.0-21]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-20...v5.0.0-21
 [v5.0.0-20]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-19...v5.0.0-20
