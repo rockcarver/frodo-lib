@@ -82,7 +82,10 @@ export type RejectedCredentialHandler = () => Promise<boolean | void>;
 
 export type State = {
   /**
-   * Get a clone of the full state as an object
+   * Get a clone of the full state as an object. The clone is plain data that
+   * `JSON.stringify` accepts: it has no auto-refresh timer (a live timer is
+   * circular; `getAutoRefreshTimer()` returns it) and no functions. It holds
+   * the credentials and tokens the state holds, as they are, so do not log it.
    * @returns a clone of the state
    */
   getState(): StateInterface;
