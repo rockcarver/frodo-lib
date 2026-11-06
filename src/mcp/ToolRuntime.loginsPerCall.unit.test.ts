@@ -3,17 +3,22 @@
  *
  *        npm run test:only ToolRuntime.loginsPerCall
  *
- * Baseline for the session churn of the MCP server (frodo-lib#905, follow-up to
- * #897). Every test below describes how many logins a tool call SHOULD cause and
- * is marked `knownToFail` with the issue that fixes it: it passes while the
- * runtime still logs in on every call, and fails (so that someone removes the
- * mark) as soon as the fix lands. (`test.failing` is not available with this
+ * The session churn of the MCP server (frodo-lib#905, follow-up to #897): how
+ * many logins a tool call causes. A test that describes behaviour that is not
+ * there yet is marked `knownToFail` with the issue that fixes it: it passes
+ * while the behaviour is missing, and fails (so that someone removes the mark)
+ * as soon as the fix lands. (`test.failing` is not available with this
  * repository's jest runner.)
  *
- * The logins are counted on the `login.getTokens` of the instances the runtime
- * ends up using; no request is made.
+ * The runtime calls `login.getTokens()` for every request; what that costs is
+ * decided by the library (frodo-lib#906). Those cases therefore count the
+ * logins that the real login code sends to a fake AM. The cases about another
+ * instance (frodo-lib#907) count the `login.getTokens` of fakes; no request is
+ * made.
  */
+import '../index';
 import { jest } from '@jest/globals';
+import { startFakeAm, type FakeAm } from '../../test/support/fakeAm';
 import FrodoLib from '../lib/FrodoLib';
 import type { McpCapabilityDescriptor } from './CapabilityTypes';
 import type { McpToolManifest } from './ToolManifest';
@@ -153,13 +158,30 @@ describe('MCP runtime logins per tool call', () => {
     expect(getTokens).toHaveBeenCalledTimes(1);
   });
 
-  // lib#906: an instance that is already authenticated is used as it is
-  knownToFail(
-    'frodo-lib#906',
-    '2: five calls on an authenticated instance cause no login',
-    async () => {
-      const { instance, getTokens, readJourney } = countedInstance();
-      authenticate(instance, 30 * 60 * 1000);
+  describe('with the real login code (frodo-lib#906)', () => {
+    let am: FakeAm;
+
+    beforeEach(async () => {
+      am = await startFakeAm();
+    });
+
+    afterEach(async () => {
+      await am.close();
+    });
+
+    /** A real instance with credentials; only the read itself is a fake. */
+    function realInstance() {
+      const instance = FrodoLib({ host: am.host, deploymentType: 'classic' });
+      instance.state.setUseTokenCache(false);
+      instance.state.setUsername('someone');
+      instance.state.setPassword('password');
+      const readJourney = jest.fn(async (id: string) => ({ id }));
+      (instance.authn.journey as any).readJourney = readJourney;
+      return { instance, readJourney };
+    }
+
+    test('2: five calls cause one login, however often the runtime asks for the tokens', async () => {
+      const { instance, readJourney } = realInstance();
       const runtime = createToolRuntime(manifest, [descriptor], {} as any, {
         resolveFrodoForRequest: () => instance,
       });
@@ -167,25 +189,20 @@ describe('MCP runtime logins per tool call', () => {
         await call(runtime);
       }
       expect(readJourney).toHaveBeenCalledTimes(5);
-      expect(getTokens).toHaveBeenCalledTimes(0);
-    }
-  );
+      expect(am.logins()).toBe(1);
+    });
 
-  // lib#906: an expired instance logs in once, also for parallel callers
-  knownToFail(
-    'frodo-lib#906',
-    '3: parallel calls on an expired instance cause one login',
-    async () => {
-      const { instance, getTokens, readJourney } = countedInstance();
+    test('3: parallel calls on an expired instance cause one login', async () => {
+      const { instance, readJourney } = realInstance();
       authenticate(instance, -60 * 1000);
       const runtime = createToolRuntime(manifest, [descriptor], {} as any, {
         resolveFrodoForRequest: () => instance,
       });
       await Promise.all([1, 2, 3, 4, 5].map(() => call(runtime)));
       expect(readJourney).toHaveBeenCalledTimes(5);
-      expect(getTokens).toHaveBeenCalledTimes(1);
-    }
-  );
+      expect(am.logins()).toBe(1);
+    });
+  });
 
   // lib#907: a realm override derives from the authenticated instance
   knownToFail(
