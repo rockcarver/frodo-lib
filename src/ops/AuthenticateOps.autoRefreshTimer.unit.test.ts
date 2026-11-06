@@ -30,15 +30,17 @@ async function loginRecordingTimers(sessionLifetimeMs: number) {
   am = await startFakeAm({ sessionLifetimeMs });
   timers = [];
   const setTimeoutOriginal = global.setTimeout;
-  jest
-    .spyOn(global, 'setTimeout')
-    .mockImplementation(((callback: unknown, delay?: number, ...args: unknown[]) => {
-      // the requests of the login set short timers of their own
-      if (delay !== undefined && delay > 60 * 1000) {
-        timers.push({ callback, delay, args });
-      }
-      return setTimeoutOriginal(callback as () => void, delay, ...args);
-    }) as unknown as typeof setTimeout);
+  jest.spyOn(global, 'setTimeout').mockImplementation(((
+    callback: unknown,
+    delay?: number,
+    ...args: unknown[]
+  ) => {
+    // the requests of the login set short timers of their own
+    if (delay !== undefined && delay > 60 * 1000) {
+      timers.push({ callback, delay, args });
+    }
+    return setTimeoutOriginal(callback as () => void, delay, ...args);
+  }) as unknown as typeof setTimeout);
   const frodo = FrodoLib({ host: am.host, deploymentType: 'classic' });
   frodo.state.setUseTokenCache(false);
   frodo.state.setUsername('someone');
