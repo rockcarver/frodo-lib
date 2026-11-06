@@ -279,6 +279,11 @@ export type {
 export type { ResourceTypeExportInterface } from './ops/ResourceTypeOps';
 
 export type {
+  StaticUserMappingResult,
+  StaticUserMappingSkeleton,
+} from './ops/StaticUserMappingOps';
+
+export type {
   Saml2EntitiesExportOptions,
   Saml2EntitiesImportOptions,
   Saml2ExportInterface,

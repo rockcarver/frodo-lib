@@ -2206,6 +2206,36 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     // a standalone operation an agent could call.
     excluded: true,
   },
+  // ── IDM static user mappings (the authentication config) ─────────────────────
+  'idm.staticUserMapping': {
+    deploymentTypes: IDM_DEPLOYMENTS,
+    preferredDeploymentTypes: IDM_DEPLOYMENTS,
+    notes:
+      "Static user mappings of the IDM authentication configuration: they map the subject of an access token (e.g. an OAuth2 client id) to a local IDM user and roles. A mapping to 'internal/user/openidm-admin' makes the subject a full IDM administrator.",
+  },
+  'idm.staticUserMapping.createStaticUserMapping': {
+    riskClass: 'high',
+    notes:
+      'Adds a mapping from an access token subject to a local IDM user and roles in the authentication configuration (read-modify-write of the whole entity; other mappings are kept). Grants the roles to that subject.',
+  },
+  'idm.staticUserMapping.updateStaticUserMapping': {
+    riskClass: 'high',
+    notes:
+      'Replaces (or adds) the mapping of a subject in the authentication configuration. Can change which local IDM user and roles a subject acts as.',
+  },
+  'idm.staticUserMapping.deleteStaticUserMapping': {
+    riskClass: 'high',
+    notes:
+      'Removes the mapping of a subject from the authentication configuration; the subject loses the access the mapping gave. Other mappings are kept.',
+  },
+  'idm.staticUserMapping.ensureStaticUserMapping': {
+    operationType: 'update',
+    objectType: 'StaticUserMapping',
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Idempotent grant: creates the mapping of a subject or merges roles into the existing one (roles are only added, other properties are kept, nothing is written when there is nothing to add). Refuses to point an existing subject at another local user. Grants the roles to that subject.',
+  },
   'idm.remoteProxy.isValidRemoteProxyName': {
     // A pure check of a name against the allowed pattern. It makes no request
     // and is not a standalone operation an agent could call.
