@@ -875,7 +875,9 @@ async function getUserSessionToken(
       state,
     });
   }
-  if (state.getUseTokenCache()) {
+  // A session that came out of the cache is already stored: saving it again
+  // would only write (and race other processes) for nothing.
+  if (state.getUseTokenCache() && !token.from_cache) {
     await saveUserSessionToken({ token, subject: state.getUsername(), state });
   }
   debugMessage({
@@ -1203,7 +1205,7 @@ async function getUserBearerToken(state: State): Promise<AccessTokenMetaType> {
       state,
     });
   }
-  if (state.getUseTokenCache()) {
+  if (state.getUseTokenCache() && !token.from_cache) {
     await saveUserBearerToken({ token, subject: state.getUsername(), state });
   }
   return token;
@@ -1252,7 +1254,7 @@ async function getPfUserBearerToken(
       state,
     });
   }
-  if (state.getUseTokenCache()) {
+  if (state.getUseTokenCache() && !token.from_cache) {
     await saveToken({ tokenType: 'pfUserBearer', token, state });
   }
   return token;
@@ -1501,7 +1503,7 @@ export async function getSaBearerToken({
         state,
       });
     }
-    if (state.getUseTokenCache()) {
+    if (state.getUseTokenCache() && !token.from_cache) {
       await saveSaBearerToken({
         token,
         subject: await resolveServiceAccountSubject(token, state),
@@ -1563,7 +1565,7 @@ export async function getPfSaBearerToken({
         state,
       });
     }
-    if (state.getUseTokenCache()) {
+    if (state.getUseTokenCache() && !token.from_cache) {
       await saveToken({ tokenType: 'pfSaBearer', token, state });
     }
     return token;

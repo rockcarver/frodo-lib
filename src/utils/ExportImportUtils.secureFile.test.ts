@@ -26,6 +26,7 @@ import {
   ensureSecureDirectoryForFile,
   secureExistingFileSync,
   writeSecureFile,
+  writeSecureFileAtomicSync,
   writeSecureFileSync,
 } from './ExportImportUtils';
 
@@ -138,6 +139,54 @@ describe('writeSecureFileSync', () => {
       });
     }
   );
+});
+
+describe('writeSecureFileAtomicSync', () => {
+  test('writes content that round-trips and creates missing parent directories', () => {
+    const filename = join(baseTmp, 'write-atomic', 'deep', 'entry.json');
+    writeSecureFileAtomicSync(filename, JSON.stringify({ key: 'value' }));
+    expect(JSON.parse(fs.readFileSync(filename, 'utf8'))).toEqual({
+      key: 'value',
+    });
+  });
+
+  test('replaces an existing file and leaves no temporary file behind', () => {
+    const dir = join(baseTmp, 'write-atomic-replace');
+    const filename = join(dir, 'entry.json');
+    writeSecureFileAtomicSync(filename, 'first');
+    writeSecureFileAtomicSync(filename, 'second');
+    expect(fs.readFileSync(filename, 'utf8')).toBe('second');
+    expect(fs.readdirSync(dir)).toEqual(['entry.json']);
+  });
+
+  test('leaves the file owner-writable', () => {
+    const filename = join(baseTmp, 'write-atomic-writable', 'entry.json');
+    writeSecureFileAtomicSync(filename, 'secret');
+    expect(isOwnerWritable(filename)).toBe(true);
+  });
+
+  (isWindows ? test.skip : test)(
+    'creates the file owner-only (0600) and the directory owner-only (0700) on POSIX, and tightens a group/world-readable file it replaces',
+    () => {
+      const dir = join(baseTmp, 'write-atomic-mode');
+      const filename = join(dir, 'entry.json');
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(filename, '{}', { mode: 0o644 });
+      fs.chmodSync(filename, 0o644);
+      writeSecureFileAtomicSync(filename, 'secret');
+      expect(mode(filename)).toBe(OWNER_ONLY_FILE);
+      expect(mode(dir)).toBe(OWNER_ONLY_DIR);
+    }
+  );
+
+  test('fails without leaving a temporary file when the target cannot be replaced', () => {
+    const dir = join(baseTmp, 'write-atomic-failure');
+    const target = join(dir, 'target');
+    // a directory cannot be replaced by a file
+    fs.mkdirSync(join(target, 'child'), { recursive: true });
+    expect(() => writeSecureFileAtomicSync(target, 'data')).toThrow();
+    expect(fs.readdirSync(dir)).toEqual(['target']);
+  });
 });
 
 describe('writeSecureFile (async)', () => {

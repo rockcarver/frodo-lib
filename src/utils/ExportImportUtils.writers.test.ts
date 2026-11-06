@@ -353,9 +353,18 @@ describe('saveUserSessionToken (token cache writers)', () => {
       };
       const result = await saveUserSessionToken({ token, state });
       expect(result).toBe(true);
-      expect(fs.existsSync(filename)).toBe(true);
-      const cache = JSON.parse(fs.readFileSync(filename, 'utf8'));
-      expect(Object.keys(cache).length).toBeGreaterThan(0);
+      // one file per entry, in a directory named like the configured file
+      // without its extension; the single legacy file is not written
+      expect(fs.existsSync(filename)).toBe(false);
+      const directory = join(baseTmp, 'token-cache', 'TokenCache');
+      const names = fs.readdirSync(directory);
+      expect(names).toHaveLength(1);
+      expect(names[0].endsWith('.json')).toBe(true);
+      const entry = JSON.parse(
+        fs.readFileSync(join(directory, names[0]), 'utf8')
+      );
+      expect(entry.expires).toBe(token.expires);
+      expect(typeof entry.token).toBe('string');
     } finally {
       if (prevCachePath === undefined)
         delete process.env.FRODO_TOKEN_CACHE_PATH;

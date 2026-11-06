@@ -465,7 +465,9 @@ jobs:
             src/ops/ConnectionProfileOps.browserLogin.unit.test.ts \
             src/ops/ConnectionProfileOps.additionalServiceAccounts.unit.test.ts \
             src/ops/TokenCacheOps.browserToken.unit.test.ts \
-            src/ops/TokenCacheOps.sessionManagement.unit.test.ts
+            src/ops/TokenCacheOps.sessionManagement.unit.test.ts \
+            src/ops/TokenCacheOps.entries.unit.test.ts \
+            src/ops/TokenCacheOps.concurrency.test.ts
 
   # Single, non-matrix job so branch protection has ONE stable check name to
   # require. GitHub matches required status-check contexts by exact name, and
