@@ -2175,6 +2175,30 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
 
   // ── IDM connector system objects ─────────────────────────────────────────────
   // Covers all idm.system.* methods. ICF connector systems are part of IDM.
+  'idm.remoteProxy.buildRemoteProxyClient': {
+    // Pure data construction (the OAuth2 client of a proxy, which carries the
+    // secret in plain text). It makes no request and is not a standalone
+    // operation an agent could call.
+    excluded: true,
+  },
+  'idm.remoteProxy.buildRemoteProxyConfiguration': {
+    // Pure data construction (the bearer configuration of a proxy). It makes no
+    // request and is not a standalone operation an agent could call.
+    excluded: true,
+  },
+  'idm.remoteProxy.generateRemoteProxySecret': {
+    // Returns a random secret. It makes no request and is not a standalone
+    // operation an agent could call.
+    excluded: true,
+  },
+  'idm.remoteProxy.testRemoteProxy': {
+    operationType: 'read',
+    objectType: 'RemoteProxy',
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Checks that a remote proxy works: one read (GET /openidm/info/login) through it, classified (ok with the identity and roles the proxy acts as on the receiving tenant, not-found, unavailable, token-request-failed, not-authorized, unreachable). Makes no change and returns no secret.',
+  },
   'idm.remoteProxy.createRemoteProxyExportTemplate': { excluded: true },
   'idm.remoteProxy.getRemoteProxyBaseUrl': {
     // A pure URL computation (<host>/openidm/external/idm/<proxyId>) used to

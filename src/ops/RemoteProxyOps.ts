@@ -1,10 +1,15 @@
-import { IdObjectSkeletonInterface } from '../api/ApiTypes';
+import { randomBytes } from 'crypto';
+import {
+  IdObjectSkeletonInterface,
+  NoIdObjectSkeletonInterface,
+} from '../api/ApiTypes';
 import {
   deleteConfigEntity,
   getConfigEntity,
   putConfigEntity,
 } from '../api/IdmConfigApi';
-import { State } from '../shared/State';
+import { getIdmLoginInfo } from '../api/ServerInfoApi';
+import { deriveState, State } from '../shared/State';
 import {
   createProgressIndicator,
   debugMessage,
@@ -52,6 +57,59 @@ export type RemoteProxy = {
    * @returns {string[]} names of the properties that hold a tenant-bound secret
    */
   getTenantBoundSecrets(proxyData: RemoteProxySkeleton): string[];
+  /**
+   * Build the OAuth2 client a remote proxy needs on the receiving tenant: client
+   * credentials grant, `client_secret_post`, scope `fr:idm:*` and nothing
+   * broader. The result is data, ready for `frodo.oauth2oidc.client.createOAuth2Client`;
+   * it holds the secret in plain text, so hand it on and do not print or log it.
+   * @param {object} params parameters
+   * @param {string} params.clientId id of the client
+   * @param {string} params.clientSecret secret of the client (at least 16 characters, see {@link RemoteProxy.generateRemoteProxySecret})
+   * @param {string} params.description optional description of the client
+   * @returns {NoIdObjectSkeletonInterface} the OAuth2 client
+   */
+  buildRemoteProxyClient(params: {
+    clientId: string;
+    clientSecret: string;
+    description?: string;
+  }): NoIdObjectSkeletonInterface;
+  /**
+   * Build the configuration of a remote proxy with bearer authentication to a
+   * receiving tenant: the instance URL (with a trailing slash), the token
+   * endpoint of the realm, client secret post, scope `fr:idm:*`, and the secret
+   * as an ESV placeholder (`&{esv.name}`, derived from the id of the ESV secret
+   * that holds it). It is the portable form: the secret never appears in the
+   * configuration.
+   * @param {object} params parameters
+   * @param {string} params.receiverHost host URL of the receiving tenant, e.g. 'https://openam-my-tenant.forgeblocks.com/am' (https only)
+   * @param {string} params.clientId id of the OAuth2 client on the receiving tenant
+   * @param {string} params.secretId id of the ESV secret on the sending tenant that holds the client secret, e.g. 'esv-remote-proxy-my-tenant'
+   * @param {string} params.realm realm of the client on the receiving tenant (default: 'alpha')
+   * @returns {RemoteProxySkeleton} the remote proxy configuration
+   */
+  buildRemoteProxyConfiguration(params: {
+    receiverHost: string;
+    clientId: string;
+    secretId: string;
+    realm?: string;
+  }): RemoteProxySkeleton;
+  /**
+   * Generate a random secret for the OAuth2 client of a remote proxy: URL-safe
+   * characters from a cryptographically secure random source.
+   * @param {number} length number of characters, 32 to 256 (default: 48)
+   * @returns {string} the secret
+   */
+  generateRemoteProxySecret(length?: number): string;
+  /**
+   * Check that a remote proxy works: make one read through it
+   * (`GET /openidm/info/login` on the receiving tenant) and classify the answer.
+   * A working proxy answers with the identity and roles the proxy is mapped to,
+   * which shows at once that the token request, the static user mapping and the
+   * routing work. It makes no change and returns no secret.
+   * @param {string} proxyId name of the remote proxy without the type prefix
+   * @returns {Promise<RemoteProxyTestResult>} a promise that resolves to the result of the check
+   */
+  testRemoteProxy(proxyId: string): Promise<RemoteProxyTestResult>;
   /**
    * Create an empty remote proxy export template
    * @returns {RemoteProxyExportInterface} an empty remote proxy export template
@@ -131,6 +189,18 @@ export default (state: State): RemoteProxy => {
     },
     getTenantBoundSecrets(proxyData: RemoteProxySkeleton): string[] {
       return getTenantBoundSecrets(proxyData);
+    },
+    buildRemoteProxyClient(params): NoIdObjectSkeletonInterface {
+      return buildRemoteProxyClient(params);
+    },
+    buildRemoteProxyConfiguration(params): RemoteProxySkeleton {
+      return buildRemoteProxyConfiguration(params);
+    },
+    generateRemoteProxySecret(length?: number): string {
+      return generateRemoteProxySecret(length);
+    },
+    async testRemoteProxy(proxyId: string): Promise<RemoteProxyTestResult> {
+      return testRemoteProxy({ proxyId, state });
     },
     createRemoteProxyExportTemplate(): RemoteProxyExportInterface {
       return createRemoteProxyExportTemplate({ state });
@@ -289,6 +359,266 @@ export type RemoteProxySkeleton = IdObjectSkeletonInterface & {
 export interface RemoteProxyExportInterface {
   meta?: ExportMetaData;
   remoteProxy: Record<string, RemoteProxySkeleton>;
+}
+
+/**
+ * The scope a remote proxy needs on the receiving tenant: IDM, nothing broader
+ */
+const REMOTE_PROXY_SCOPE = 'fr:idm:*';
+
+const OAUTH2_CLIENT_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
+const REALM_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+const ESV_SECRET_ID_PATTERN = /^esv(-[a-z0-9]+)+$/;
+const MIN_CLIENT_SECRET_LENGTH = 16;
+
+/**
+ * Build the OAuth2 client a remote proxy needs on the receiving tenant, see
+ * {@link RemoteProxy.buildRemoteProxyClient}
+ */
+export function buildRemoteProxyClient({
+  clientId,
+  clientSecret,
+  description = 'Created by Frodo for an IDM remote proxy',
+}: {
+  clientId: string;
+  clientSecret: string;
+  description?: string;
+}): NoIdObjectSkeletonInterface {
+  if (
+    typeof clientId !== 'string' ||
+    !OAUTH2_CLIENT_ID_PATTERN.test(clientId)
+  ) {
+    throw new FrodoError(
+      `Client id ${JSON.stringify(clientId)} is not allowed: use 1 to 100 characters, starting with a letter or a digit, containing only letters, digits, '.', '_' and '-'`
+    );
+  }
+  if (
+    typeof clientSecret !== 'string' ||
+    clientSecret.length < MIN_CLIENT_SECRET_LENGTH
+  ) {
+    throw new FrodoError(
+      `The client secret must have at least ${MIN_CLIENT_SECRET_LENGTH} characters`
+    );
+  }
+  return {
+    coreOAuth2ClientConfig: {
+      userpassword: clientSecret,
+      clientName: { inherited: false, value: [clientId] },
+      clientType: { inherited: false, value: 'Confidential' },
+      status: { inherited: false, value: 'Active' },
+      scopes: { inherited: false, value: [REMOTE_PROXY_SCOPE] },
+      defaultScopes: { inherited: false, value: [REMOTE_PROXY_SCOPE] },
+    },
+    advancedOAuth2ClientConfig: {
+      descriptions: { inherited: false, value: [description] },
+      grantTypes: { inherited: false, value: ['client_credentials'] },
+      tokenEndpointAuthMethod: {
+        inherited: false,
+        value: 'client_secret_post',
+      },
+      responseTypes: { inherited: false, value: ['token'] },
+    },
+  } as NoIdObjectSkeletonInterface;
+}
+
+/**
+ * Build the bearer configuration of a remote proxy, see
+ * {@link RemoteProxy.buildRemoteProxyConfiguration}
+ */
+export function buildRemoteProxyConfiguration({
+  receiverHost,
+  clientId,
+  secretId,
+  realm = 'alpha',
+}: {
+  receiverHost: string;
+  clientId: string;
+  secretId: string;
+  realm?: string;
+}): RemoteProxySkeleton {
+  let host: URL;
+  try {
+    host = new URL(receiverHost);
+  } catch (error) {
+    throw new FrodoError(
+      `The host of the receiving tenant is not a URL: ${JSON.stringify(receiverHost)}`,
+      error
+    );
+  }
+  if (host.protocol !== 'https:') {
+    throw new FrodoError(
+      `The host of the receiving tenant must use https: the client secret is sent to it`
+    );
+  }
+  if (
+    typeof clientId !== 'string' ||
+    !OAUTH2_CLIENT_ID_PATTERN.test(clientId)
+  ) {
+    throw new FrodoError(
+      `Client id ${JSON.stringify(clientId)} is not allowed: use 1 to 100 characters, starting with a letter or a digit, containing only letters, digits, '.', '_' and '-'`
+    );
+  }
+  if (typeof secretId !== 'string' || !ESV_SECRET_ID_PATTERN.test(secretId)) {
+    throw new FrodoError(
+      `The ESV secret id ${JSON.stringify(secretId)} is not allowed: it starts with 'esv' and continues with lowercase letters and digits separated by '-'`
+    );
+  }
+  if (typeof realm !== 'string' || !REALM_NAME_PATTERN.test(realm)) {
+    throw new FrodoError(
+      `The realm ${JSON.stringify(realm)} is not allowed: use letters, digits, '_' and '-'`
+    );
+  }
+  const origin = getHostOnlyUrl(receiverHost);
+  const proxyData: RemoteProxySkeleton = {
+    enabled: true,
+    authType: 'bearer',
+    instanceUrl: `${origin}/openidm/`,
+    clientId,
+    clientSecret: `&{${secretId.replaceAll('-', '.')}}`,
+    scope: [REMOTE_PROXY_SCOPE],
+    tokenEndpoint: `${origin}/am/oauth2/realms/root/realms/${realm}/access_token`,
+    tokenEndpointAuthMethod: 'client_secret_post',
+    scopeDelimiter: ' ',
+  };
+  validateRemoteProxy('configuration', proxyData);
+  return proxyData;
+}
+
+/**
+ * Generate a random secret for the OAuth2 client of a remote proxy, see
+ * {@link RemoteProxy.generateRemoteProxySecret}
+ */
+export function generateRemoteProxySecret(length = 48): string {
+  if (!Number.isInteger(length) || length < 32 || length > 256) {
+    throw new FrodoError(
+      `The length of a remote proxy secret is a whole number from 32 to 256`
+    );
+  }
+  return randomBytes(Math.ceil((length * 3) / 4))
+    .toString('base64url')
+    .slice(0, length);
+}
+
+/**
+ * The result of {@link RemoteProxy.testRemoteProxy}
+ */
+export type RemoteProxyTestResult = {
+  ok: boolean;
+  /**
+   * `ok`: the receiving tenant answered. `not-found`: this tenant has no
+   * working proxy of that name: it does not exist, or its configuration cannot
+   * be loaded (IDM does not load a proxy whose ESV placeholder cannot be
+   * resolved, so a proxy that refers to an ESV secret that does not exist or
+   * was not applied yet answers 404). `unavailable`: the proxy is disabled or
+   * not ready. `token-request-failed`: the proxy could not get a token from the
+   * receiving tenant (unknown client, wrong secret or token endpoint).
+   * `not-authorized`: the token was issued but the receiving tenant refused the
+   * request, typically because the client has no static user mapping (HTTP 500
+   * 'Access Denied' through the proxy, also 401 and 403). `unreachable`: no
+   * answer. `error`: anything else.
+   */
+  status:
+    | 'ok'
+    | 'not-found'
+    | 'unavailable'
+    | 'token-request-failed'
+    | 'not-authorized'
+    | 'unreachable'
+    | 'error';
+  httpStatus?: number;
+  /**
+   * The identity the proxy acts as on the receiving tenant (status `ok`)
+   */
+  authenticationId?: string;
+  /**
+   * The roles of that identity (status `ok`)
+   */
+  roles?: string[];
+  message: string;
+};
+
+/**
+ * Check that a remote proxy works, see {@link RemoteProxy.testRemoteProxy}
+ */
+export async function testRemoteProxy({
+  proxyId,
+  state,
+}: {
+  proxyId: string;
+  state: State;
+}): Promise<RemoteProxyTestResult> {
+  validateRemoteProxyName(proxyId);
+  debugMessage({
+    message: `RemoteProxyOps.testRemoteProxy: start [proxyId=${proxyId}]`,
+    state,
+  });
+  const viewState = deriveState(state, {
+    getIdmHost: () => getRemoteProxyBaseUrl({ proxyId, state }),
+  });
+  try {
+    const info = await getIdmLoginInfo({ state: viewState });
+    const roles: string[] | undefined = info?.authorization?.roles;
+    return {
+      ok: true,
+      status: 'ok',
+      httpStatus: 200,
+      authenticationId: info?.authenticationId,
+      roles,
+      message: `Remote proxy ${proxyId} works: the receiving tenant answers as '${info?.authenticationId}'`,
+    };
+  } catch (error) {
+    const httpStatus: number | undefined = error?.response?.status;
+    const text = String(error?.response?.data?.message ?? error?.message ?? '');
+    if (httpStatus === 404) {
+      return {
+        ok: false,
+        status: 'not-found',
+        httpStatus,
+        message: `This tenant has no working remote proxy named ${proxyId} (404): there is no such proxy, or its configuration cannot be loaded, typically because an ESV secret it refers to does not exist or has not been applied yet`,
+      };
+    }
+    if (httpStatus === 503) {
+      return {
+        ok: false,
+        status: 'unavailable',
+        httpStatus,
+        message: `Remote proxy ${proxyId} is disabled or not ready (503)`,
+      };
+    }
+    if (httpStatus === 500 && /application\/json/i.test(text)) {
+      return {
+        ok: false,
+        status: 'token-request-failed',
+        httpStatus,
+        message: `Remote proxy ${proxyId} could not get a token from the receiving tenant (500): the client or its secret is wrong, the token endpoint is wrong, or the ESV secret is not loaded yet (an ESV change needs an apply)`,
+      };
+    }
+    if (
+      httpStatus === 401 ||
+      httpStatus === 403 ||
+      (httpStatus === 500 && /access denied/i.test(text))
+    ) {
+      return {
+        ok: false,
+        status: 'not-authorized',
+        httpStatus,
+        message: `The receiving tenant refused the request of remote proxy ${proxyId} (${httpStatus}): the token was issued, but the client is not allowed, typically because it has no static user mapping`,
+      };
+    }
+    if (httpStatus === undefined) {
+      return {
+        ok: false,
+        status: 'unreachable',
+        message: `No answer for remote proxy ${proxyId}: ${text}`,
+      };
+    }
+    return {
+      ok: false,
+      status: 'error',
+      httpStatus,
+      message: `Remote proxy ${proxyId} failed (${httpStatus}): ${text}`,
+    };
+  }
 }
 
 /**
