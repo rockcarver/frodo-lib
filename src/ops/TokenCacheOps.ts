@@ -8,11 +8,13 @@ import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import DataProtection from '../utils/DataProtection';
 import {
+  ensureSecureDirectoryForFile,
   secureExistingFileSync,
+  writeSecureFileAtomicSync,
   writeSecureFileSync,
 } from '../utils/ExportImportUtils';
 import { getFrodoHome } from '../utils/FrodoUtils';
-import { get, put, stringify } from '../utils/JsonUtils';
+import { stringify } from '../utils/JsonUtils';
 import { UserSessionMetaType } from './AuthenticateOps';
 import { type AccessTokenMetaType } from './OAuth2OidcOps';
 
@@ -220,12 +222,6 @@ export default (state: State): TokenCache => {
 };
 
 const UUIDV5_NAMESPACE = 'e9a38338-21c0-4dcd-ba74-7ddeac58edbe';
-const checksumKey = getChecksum('checksum');
-const tokenKey = getChecksum('token');
-
-const fileOptions = {
-  indentation: 4,
-};
 
 // export interface tokenTypeInterface {
 //   userSession: string;
@@ -285,74 +281,219 @@ export function getTokenCachePath({ state }: { state: State }): string {
   return tokenCachePath;
 }
 
-function purgeExpiredTokens(
-  tokenCache: TokenCacheInterface,
-  state: State
-): TokenCacheInterface {
-  const now = Date.now();
-  debugMessage({
-    message: `TokenCacheOps.purgeExpiredTokens: start [now=${now}]`,
-    state,
-  });
-  for (const hostKey of Object.keys(tokenCache)) {
-    for (const realmKey of Object.keys(tokenCache[hostKey])) {
-      for (const typeKey of Object.keys(tokenCache[hostKey][realmKey])) {
-        for (const subjectKey of Object.keys(
-          tokenCache[hostKey][realmKey][typeKey]
-        )) {
-          for (const expKey of Object.keys(
-            tokenCache[hostKey][realmKey][typeKey][subjectKey]
-          )) {
-            const exp = parseInt(expKey, 10);
-            // An unparseable exp key must still get purged — `now > NaN +
-            // 60000` is always false, which would otherwise let a corrupted
-            // entry (e.g. from a long-fixed bug) sit in the cache forever,
-            // immune to every future purge.
-            if (!Number.isFinite(exp) || now > exp + 1000 * 60) {
-              // purge expired token
-              debugMessage({
-                message: `TokenCacheOps.purgeExpiredTokens: purging expired token ${hostKey}.${realmKey}.${typeKey}.${subjectKey}.${expKey}`,
-                state,
-              });
-              delete tokenCache[hostKey][realmKey][typeKey][subjectKey][expKey];
-            }
-          }
-          if (
-            0 ===
-            Object.keys(tokenCache[hostKey][realmKey][typeKey][subjectKey])
-              .length
-          ) {
-            // purge empty token subjects
-            delete tokenCache[hostKey][realmKey][typeKey][subjectKey];
-          }
-        }
-        if (0 === Object.keys(tokenCache[hostKey][realmKey][typeKey]).length) {
-          // purge empty token types
-          delete tokenCache[hostKey][realmKey][typeKey];
-        }
-      }
-      if (0 === Object.keys(tokenCache[hostKey][realmKey]).length) {
-        // purge empty realms
-        delete tokenCache[hostKey][realmKey];
-      }
+/**
+ * What the cache stores, one file per entry (host, authentication realm, token
+ * type and subject): the token itself stays encrypted exactly as before, and
+ * the plain fields are what a listing needs and what the former side-index
+ * files held (the host and the subject of a session). The file name is made of
+ * the four hashed keys, so it discloses nothing.
+ *
+ * One file per entry means no write ever has to read another entry first, so
+ * several processes can use the cache at the same time without a lock: a
+ * writer replaces its own file atomically, and a reader never sees a partial
+ * file. A corrupt or unreadable entry is a cache miss and is replaced by the
+ * next login.
+ */
+interface CacheEntry {
+  version: number;
+  host: string;
+  realm: string;
+  type: tokenType;
+  subject?: string;
+  expires: number;
+  token: string;
+}
+
+const ENTRY_VERSION = 1;
+const ENTRY_FILE_EXTENSION = '.json';
+const TEMPORARY_FILE_EXTENSION = '.tmp';
+/** A temporary file this old belongs to a process that died while writing. */
+const STALE_TEMPORARY_FILE_MS = 1000 * 60 * 5;
+/** Expired entries are kept this long before they are removed. */
+const EXPIRED_ENTRY_GRACE_MS = 1000 * 60;
+
+/**
+ * The legacy single-file layout: the configured cache file and the two
+ * side-index files next to it. Nothing reads them any more; they are removed.
+ */
+const LEGACY_INDEX_FILENAMES = [
+  'TokenCacheHosts.json',
+  'TokenCacheSubjects.json',
+];
+
+/**
+ * Get the directory that holds the cache entries: the configured cache file
+ * path without its extension (`TokenCache.json` becomes `TokenCache`), or the
+ * path with `.d` appended when it has none.
+ * @param {State} state library state
+ * @returns {string} cache directory
+ */
+export function getTokenCacheDir({ state }: { state: State }): string {
+  const file = getTokenCachePath({ state });
+  const extension = path.extname(file);
+  return extension ? file.slice(0, -extension.length) : `${file}.d`;
+}
+
+function getEntryFile(tokenType: tokenType, state: State): string {
+  return path.join(
+    getTokenCacheDir({ state }),
+    [
+      getHostKey(state),
+      getRealmKey(state),
+      getTypeKey(tokenType),
+      getSubjectKey(tokenType, state),
+    ].join('.') + ENTRY_FILE_EXTENSION
+  );
+}
+
+function parseEntry(text: string): CacheEntry | undefined {
+  try {
+    const entry = JSON.parse(text);
+    if (
+      entry &&
+      typeof entry === 'object' &&
+      Number.isFinite(entry.expires) &&
+      typeof entry.token === 'string'
+    ) {
+      return entry as CacheEntry;
     }
-    if (0 === Object.keys(tokenCache[hostKey]).length) {
-      // purge empty hosts
-      delete tokenCache[hostKey];
-    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
+    // not an entry
   }
-  debugMessage({
-    message: `TokenCacheOps.purgeExpiredTokens: end`,
-    state,
-  });
-  return tokenCache;
+  return undefined;
+}
+
+function readEntryFile(file: string): CacheEntry | undefined {
+  try {
+    return parseEntry(fs.readFileSync(file, 'utf8'));
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
+    return undefined;
+  }
+}
+
+function removeFile(file: string): boolean {
+  try {
+    fs.unlinkSync(file);
+    return true;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
+    return false;
+  }
 }
 
 /**
- * Initialize connection profiles
+ * Names of the entry files in the cache directory (no temporary files, no
+ * other files).
+ */
+function listEntryNames(state: State): string[] {
+  try {
+    return fs
+      .readdirSync(getTokenCacheDir({ state }))
+      .filter((name) => name.endsWith(ENTRY_FILE_EXTENSION));
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
+    return [];
+  }
+}
+
+/**
+ * The four hashed keys an entry file name is made of.
+ */
+function parseEntryName(name: string):
+  | {
+      hostKey: string;
+      realmKey: string;
+      typeKey: string;
+      subjectKey: string;
+    }
+  | undefined {
+  const parts = name.slice(0, -ENTRY_FILE_EXTENSION.length).split('.');
+  if (parts.length !== 4) return undefined;
+  const [hostKey, realmKey, typeKey, subjectKey] = parts;
+  return { hostKey, realmKey, typeKey, subjectKey };
+}
+
+/**
+ * Remove temporary files that an interrupted writer left behind.
+ */
+function removeStaleTemporaryFiles(state: State): void {
+  const directory = getTokenCacheDir({ state });
+  try {
+    for (const name of fs.readdirSync(directory)) {
+      if (!name.endsWith(TEMPORARY_FILE_EXTENSION)) continue;
+      const file = path.join(directory, name);
+      try {
+        if (Date.now() - fs.statSync(file).mtimeMs > STALE_TEMPORARY_FILE_MS) {
+          removeFile(file);
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (error) {
+        // gone already
+      }
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
+    // no cache directory yet
+  }
+}
+
+/**
+ * Remove the files of the legacy single-file layout, which nothing reads any
+ * more. An older frodo running next to this one may write them again; they are
+ * harmless and removed on the next start.
+ */
+function removeLegacyFiles(state: State): void {
+  const file = getTokenCachePath({ state });
+  removeFile(file);
+  for (const name of LEGACY_INDEX_FILENAMES) {
+    removeFile(path.join(path.dirname(file), name));
+  }
+}
+
+/**
+ * Remove expired entries and unreadable ones, and return what is left in the
+ * shape of the legacy cache object (host, realm, type, subject and expiry
+ * keys, as the public `purge()` has always returned it).
+ */
+function purgeEntries(state: State): TokenCacheInterface {
+  const now = Date.now();
+  const directory = getTokenCacheDir({ state });
+  const remaining: TokenCacheInterface = {};
+  removeStaleTemporaryFiles(state);
+  for (const name of listEntryNames(state)) {
+    const file = path.join(directory, name);
+    const keys = parseEntryName(name);
+    const entry = readEntryFile(file);
+    if (!keys || !entry || now > entry.expires + EXPIRED_ENTRY_GRACE_MS) {
+      debugMessage({
+        message: `TokenCacheOps.purgeEntries: purging ${name}`,
+        state,
+      });
+      removeFile(file);
+      continue;
+    }
+    const { hostKey, realmKey, typeKey, subjectKey } = keys;
+    remaining[hostKey] ??= {};
+    remaining[hostKey][realmKey] ??= {} as TokenCacheInterface[string][string];
+    remaining[hostKey][realmKey][typeKey as tokenType] ??= {};
+    remaining[hostKey][realmKey][typeKey as tokenType][subjectKey] = {
+      [`${entry.expires}`]: entry.token,
+    };
+  }
+  return remaining;
+}
+
+/**
+ * Initialize the token cache
  *
  * This method is called from app.ts and runs before any of the message handlers are registered.
  * Therefore none of the Console message functions will produce any output.
+ *
+ * Creates the cache directory and removes what is expired or left behind. It
+ * does not write a shared file: processes that start at the same time cannot
+ * interfere with each other here.
  * @param {State} state library state
  */
 export function initTokenCache({ state }: { state: State }) {
@@ -361,25 +502,11 @@ export function initTokenCache({ state }: { state: State }) {
       message: `TokenCacheOps.initTokenCache: start`,
       state,
     });
-    // create token cache file if it doesn't exist
-    const filename = getTokenCachePath({ state });
-    if (!fs.existsSync(filename)) {
-      debugMessage({
-        message: `TokenCacheOps.initTokenCache: file does not exist: ${filename}, creating...`,
-        state,
-      });
-      writeSecureFileSync(
-        filename,
-        JSON.stringify({}, null, fileOptions.indentation)
-      );
-    }
-    // purge expired tokens
-    else {
-      const data = fs.readFileSync(filename, 'utf8');
-      const tokenCache: TokenCacheInterface = JSON.parse(data);
-      purgeExpiredTokens(tokenCache, state);
-      writeSecureFileSync(filename, stringify(tokenCache));
-    }
+    ensureSecureDirectoryForFile(
+      path.join(getTokenCacheDir({ state }), 'entry')
+    );
+    purgeEntries(state);
+    removeLegacyFiles(state);
     debugMessage({
       message: `TokenCacheOps.initTokenCache: end`,
       state,
@@ -424,7 +551,7 @@ export async function hasToken({
  * Whether the cache holds a token of this type for the current host that
  * readToken() would return: same location, same freshness rule (it must
  * still have Constants.TOKEN_FRESHNESS_BUFFER_MS to live). Looks at the
- * cache file only. It decrypts nothing, so it needs no master key and has no
+ * cache entry only. It decrypts nothing, so it needs no master key and has no
  * side effect; a token that passes may still fail to decrypt or be revoked
  * by the server, which only the real read can tell.
  * @param {object} params parameters object
@@ -439,24 +566,10 @@ export function hasFreshTokenEntry({
   tokenType: tokenType;
   state: State;
 }): boolean {
-  try {
-    const filename = getTokenCachePath({ state });
-    if (!fs.existsSync(filename)) return false;
-    const tokenCache: TokenCacheInterface = JSON.parse(
-      fs.readFileSync(filename, 'utf8')
-    );
-    const entries = get(tokenCache, [
-      getHostKey(state),
-      getRealmKey(),
-      getTypeKey(tokenType),
-      getSubjectKey(tokenType, state),
-    ]);
-    if (!entries) return false;
-    const exp = Math.max(...Object.keys(entries).map((k) => parseInt(k, 10)));
-    return exp - Date.now() > Constants.TOKEN_FRESHNESS_BUFFER_MS;
-  } catch {
-    return false;
-  }
+  const entry = readEntryFile(getEntryFile(tokenType, state));
+  return (
+    !!entry && entry.expires - Date.now() > Constants.TOKEN_FRESHNESS_BUFFER_MS
+  );
 }
 
 export async function hasUserSessionToken({
@@ -483,10 +596,6 @@ export async function hasSaBearerToken({
   return hasToken({ tokenType: 'saBearer', state });
 }
 
-function getChecksum(input: string): string {
-  return uuidv5(input, UUIDV5_NAMESPACE);
-}
-
 function getHostKeyForHost(host: string): string {
   return uuidv5(host, uuidv5.URL);
 }
@@ -499,163 +608,29 @@ function getRealmKeyForRealm(realm: string): string {
   return uuidv5(realm, UUIDV5_NAMESPACE);
 }
 
-function getRealmKey(): string {
-  // currently frodo only supports sessions and tokens minted in the root realm
-  return getRealmKeyForRealm('/');
-}
-
-const hostIndexFilename = 'TokenCacheHosts.json';
-
 /**
- * Path to the small side-index mapping a cache entry's hashed `hostKey`
- * back to the plaintext host it was derived from. Kept in the same
- * directory as the token cache itself, but deliberately NOT part of
- * `TokenCacheInterface`/`TokenCache.json`: every hostKey/realmKey/typeKey in
- * that structure is a one-way uuidv5 hash with no stored reverse mapping,
- * so without this side index, `listCachedSessions()` (frodo session list)
- * would have no way to report which host a given cache entry belongs to.
- * realm is never indexed (frodo only ever mints sessions/tokens in the root
- * realm today, so `getRealmKey()` is a single known constant), and tokenType
- * is reversible by brute-force match against its small closed enum, so
- * host is the only piece that actually needs one.
+ * The realm a credential authenticates against, which is part of every cache
+ * key. Never the realm a request is made in: one session serves every request
+ * realm. Frodo only mints sessions and tokens in the root realm today; when
+ * realm user logins arrive, this is where their realm comes from, so that a
+ * realm user and an administrator of the same name do not share an entry.
  */
-function getHostIndexPath(state: State): string {
-  return path.join(
-    path.dirname(getTokenCachePath({ state })),
-    hostIndexFilename
-  );
+function getAuthenticationRealm(state: State): string {
+  void state;
+  return '/';
 }
 
-function readHostIndex(state: State): Record<string, string> {
-  const filename = getHostIndexPath(state);
-  if (!fs.existsSync(filename)) {
-    return {};
-  }
-  try {
-    return JSON.parse(fs.readFileSync(filename, 'utf8'));
-  } catch {
-    return {};
-  }
+function getRealmKey(state: State): string {
+  return getRealmKeyForRealm(getAuthenticationRealm(state));
 }
 
 /**
- * Records `hostKey -> host` so a later `listCachedSessions()`/
- * `deleteHostTokens()` call can resolve it back. Best-effort: a failure
- * here must never block the actual token save it's called alongside.
- */
-function recordHostIndexEntry(state: State): void {
-  try {
-    const filename = getHostIndexPath(state);
-    const index = readHostIndex(state);
-    index[getHostKey(state)] = state.getHost();
-    writeSecureFileSync(filename, stringify(index));
-  } catch (error) {
-    debugMessage({
-      message: `TokenCacheOps.recordHostIndexEntry: error recording host index entry: ${error}`,
-      state,
-    });
-  }
-}
-
-const subjectIndexFilename = 'TokenCacheSubjects.json';
-
-/**
- * Path to a small side-index recording the actual subject (a real username
- * or service-account name wherever one can be resolved) for display by
- * `listCachedSessions()`.
- *
- * Keyed by `hostKey -> typeKey -> subject`, NOT by `subjectKey`:
- * `getSubjectKey()`'s own comment explains that browser-login's subject key
- * is a single fixed constant shared by every browser-login cache entry
- * everywhere, precisely because a cache *lookup* has to run before any
- * token — and therefore any real subject — exists. That makes subjectKey
- * useless as an index key for a per-login display value; hostKey is what
- * actually discriminates one browser-login session from another today (one
- * browser-login identity per host/realm, the same assumption
- * `getSubjectKey()` itself already makes). `typeKey` is layered on top of
- * that (not folded into a single flat key) because a single host commonly
- * carries *several* token types at once — e.g. a browser-login bearer
- * token and a service-account bearer token side by side, each with its own
- * unrelated subject — so a flat `hostKey -> subject` shape would let
- * whichever type saved most recently silently overwrite the other's
- * entry, corrupting both rows in `session list`.
- */
-function getSubjectIndexPath(state: State): string {
-  return path.join(
-    path.dirname(getTokenCachePath({ state })),
-    subjectIndexFilename
-  );
-}
-
-type SubjectIndex = Record<string, Record<string, string>>;
-
-function readSubjectIndex(state: State): SubjectIndex {
-  const filename = getSubjectIndexPath(state);
-  if (!fs.existsSync(filename)) {
-    return {};
-  }
-  try {
-    return JSON.parse(fs.readFileSync(filename, 'utf8'));
-  } catch {
-    return {};
-  }
-}
-
-/**
- * Records `hostKey -> typeKey -> subject` so a later `listCachedSessions()`
- * call can show who's actually logged in instead of a generic placeholder.
- * Best-effort, same as `recordHostIndexEntry()`: a failure here must never
- * block the actual token save it's called alongside. Callers must only
- * pass a subject they're confident in — passing `undefined` leaves
- * whatever's already indexed for this host/type untouched, so a
- * low-information value (e.g. a JWT-decode failure) never overwrites a
- * better one recorded by an earlier save for the same login.
- */
-function recordSubjectIndexEntry(
-  subject: string | undefined,
-  tokenType: tokenType,
-  state: State
-): void {
-  if (!subject) {
-    return;
-  }
-  try {
-    const filename = getSubjectIndexPath(state);
-    const index = readSubjectIndex(state);
-    const hostKey = getHostKey(state);
-    index[hostKey] = { ...index[hostKey], [getTypeKey(tokenType)]: subject };
-    writeSecureFileSync(filename, stringify(index));
-  } catch (error) {
-    debugMessage({
-      message: `TokenCacheOps.recordSubjectIndexEntry: error recording subject index entry: ${error}`,
-      state,
-    });
-  }
-}
-
-/** Removes every subject recorded for a host (all token types), e.g. when `deleteHostTokens()` clears that host entirely. */
-function removeSubjectIndexEntry(hostKey: string, state: State): void {
-  try {
-    const filename = getSubjectIndexPath(state);
-    const index = readSubjectIndex(state);
-    if (hostKey in index) {
-      delete index[hostKey];
-      writeSecureFileSync(filename, stringify(index));
-    }
-  } catch (error) {
-    debugMessage({
-      message: `TokenCacheOps.removeSubjectIndexEntry: error removing subject index entry: ${error}`,
-      state,
-    });
-  }
-}
-
-/**
- * Returns the subject already recorded for `state.getHost()` and the given
- * token type (see `recordSubjectIndexEntry()`), or `undefined` if nothing's
- * been recorded for it yet. A cheap, local, synchronous file read — used
- * by `AuthenticateOps.ts`'s cache-hit browser-session reuse to show the
- * same resolved subject `frodo session list` would, without repeating the
+ * Returns the subject already recorded in the cache entries for
+ * `state.getHost()` and the given token type (the one of the entry that
+ * expires last when there are several), or `undefined` if there is none. A
+ * cheap, local, synchronous file read that needs no credential — used by
+ * `AuthenticateOps.ts`'s cache-hit browser-session reuse to show the same
+ * resolved subject `frodo session list` would, without repeating the
  * (potentially network-calling) resolution work that produced it in the
  * first place.
  */
@@ -666,7 +641,21 @@ export function getRecordedSubject({
   tokenType: tokenType;
   state: State;
 }): string | undefined {
-  return readSubjectIndex(state)[getHostKey(state)]?.[getTypeKey(tokenType)];
+  const directory = getTokenCacheDir({ state });
+  const hostKey = getHostKey(state);
+  const typeKey = getTypeKey(tokenType);
+  let subject: string | undefined;
+  let expires = -Infinity;
+  for (const name of listEntryNames(state)) {
+    const keys = parseEntryName(name);
+    if (!keys || keys.hostKey !== hostKey || keys.typeKey !== typeKey) continue;
+    const entry = readEntryFile(path.join(directory, name));
+    if (entry?.subject && entry.expires > expires) {
+      subject = entry.subject;
+      expires = entry.expires;
+    }
+  }
+  return subject;
 }
 
 function getTypeKey(tokenType: tokenType): string {
@@ -715,25 +704,9 @@ export async function readToken({
       sessionKey: generateSessionKey(tokenType, state),
       state,
     });
-    const filename = getTokenCachePath({ state });
-    // bare library consumers may never have called initTokenCache(); treat a
-    // missing cache file (and directory) as an empty cache so the save
-    // succeeds and creates both
-    const data = fs.existsSync(filename)
-      ? fs.readFileSync(filename, 'utf8')
-      : undefined;
-    const tokenCache: TokenCacheInterface = data ? JSON.parse(data) : {};
-    const hostKey = getHostKey(state);
-    const realmKey = getRealmKey();
-    const typeKey = getTypeKey(tokenType);
-    const subjectKey = getSubjectKey(tokenType, state);
-    if (get(tokenCache, [hostKey, realmKey, typeKey, subjectKey])) {
-      const exp = Math.max(
-        ...Object.keys(tokenCache[hostKey][realmKey][typeKey][subjectKey]).map(
-          (expKey) => parseInt(expKey, 10)
-        )
-      );
-      const expKey = String(exp);
+    const entry = readEntryFile(getEntryFile(tokenType, state));
+    if (entry) {
+      const exp = entry.expires;
       if (exp - Date.now() > Constants.TOKEN_FRESHNESS_BUFFER_MS) {
         debugMessage({
           message: `TokenCacheOps.readToken: found ${tokenType} token in cache [expires in ${Math.floor(
@@ -741,9 +714,7 @@ export async function readToken({
           )}s]`,
           state,
         });
-        const token = await dataProtection.decrypt(
-          tokenCache[hostKey][realmKey][typeKey][subjectKey][expKey][tokenKey]
-        );
+        const token = await dataProtection.decrypt(entry.token);
         return JSON.parse(token);
       }
     }
@@ -874,287 +845,30 @@ function generateSessionKey(tokenType: tokenType, state: State) {
   }
 }
 
-export async function saveUserSessionToken({
-  token,
-  subject,
-  state,
-}: {
-  token: UserSessionMetaType;
-  subject?: string;
-  state: State;
-}): Promise<boolean> {
+async function decryptsWith(
+  entry: CacheEntry,
+  dataProtection: DataProtection
+): Promise<boolean> {
   try {
-    debugMessage({
-      message: `TokenCacheOps.saveUserSessionToken: start`,
-      state,
-    });
-    const filename = getTokenCachePath({ state });
-    // bare library consumers may never have called initTokenCache(); treat a
-    // missing cache file (and directory) as an empty cache so the save
-    // succeeds and creates both
-    const data = fs.existsSync(filename)
-      ? fs.readFileSync(filename, 'utf8')
-      : undefined;
-    const tokenCache: TokenCacheInterface = data ? JSON.parse(data) : {};
-    purgeExpiredTokens(tokenCache, state);
-    recordHostIndexEntry(state);
-    recordSubjectIndexEntry(subject, 'userSession', state);
-    const hostKey = getHostKey(state);
-    const realmKey = getRealmKey();
-    const typeKey = getTypeKey('userSession');
-    const subjectKey = getSubjectKey('userSession', state);
-    const dataProtection = new DataProtection({
-      sessionKey: generateSessionKey('userSession', state),
-      state,
-    });
-    const checksum = getChecksum(stringify(token));
-    const checksums = Object.keys(
-      get(tokenCache, [hostKey, realmKey, typeKey, subjectKey], {})
-    ).map((expKey) =>
-      get(tokenCache, [
-        hostKey,
-        realmKey,
-        typeKey,
-        subjectKey,
-        expKey,
-        checksumKey,
-      ])
-    );
-    if (checksums.includes(checksum)) {
-      debugMessage({
-        message: `TokenCacheOps.saveUserSessionToken: token alreaday in cache`,
-        state,
-      });
-    } else {
-      put(tokenCache, checksum, [
-        hostKey,
-        realmKey,
-        typeKey,
-        subjectKey,
-        `${token.expires}`,
-        checksumKey,
-      ]);
-      put(tokenCache, await dataProtection.encrypt(stringify(token)), [
-        hostKey,
-        realmKey,
-        typeKey,
-        subjectKey,
-        `${token.expires}`,
-        tokenKey,
-      ]);
-      writeSecureFileSync(filename, stringify(tokenCache));
-      debugMessage({
-        message: `TokenCacheOps.saveUserSessionToken: saved token in cache`,
-        state,
-      });
-    }
-    debugMessage({
-      message: `TokenCacheOps.saveUserSessionToken: end`,
-      state,
-    });
+    await dataProtection.decrypt(entry.token);
     return true;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
-    debugMessage({
-      message: `TokenCacheOps.saveUserSessionToken: error saving token in cache: ${error}`,
-      state,
-    });
-    debugMessage({
-      message: error.stack,
-      state,
-    });
     return false;
   }
 }
 
-export async function saveUserBearerToken({
-  token,
-  subject,
-  state,
-}: {
-  token: AccessTokenMetaType;
-  subject?: string;
-  state: State;
-}): Promise<boolean> {
-  try {
-    debugMessage({
-      message: `TokenCacheOps.saveUserBearerToken: start`,
-      state,
-    });
-    const filename = getTokenCachePath({ state });
-    // bare library consumers may never have called initTokenCache(); treat a
-    // missing cache file (and directory) as an empty cache so the save
-    // succeeds and creates both
-    const data = fs.existsSync(filename)
-      ? fs.readFileSync(filename, 'utf8')
-      : undefined;
-    const tokenCache: TokenCacheInterface = data ? JSON.parse(data) : {};
-    purgeExpiredTokens(tokenCache, state);
-    recordHostIndexEntry(state);
-    recordSubjectIndexEntry(subject, 'userBearer', state);
-    const hostKey = getHostKey(state);
-    const realmKey = getRealmKey();
-    const typeKey = getTypeKey('userBearer');
-    const subjectKey = getSubjectKey('userBearer', state);
-    const dataProtection = new DataProtection({
-      sessionKey: generateSessionKey('userBearer', state),
-      state,
-    });
-    const checksum = getChecksum(stringify(token));
-    const checksums = Object.keys(
-      get(tokenCache, [hostKey, realmKey, typeKey, subjectKey], {})
-    ).map((expKey) =>
-      get(tokenCache, [
-        hostKey,
-        realmKey,
-        typeKey,
-        subjectKey,
-        expKey,
-        checksumKey,
-      ])
-    );
-    if (checksums.includes(checksum)) {
-      debugMessage({
-        message: `TokenCacheOps.saveUserBearerToken: token alreaday in cache`,
-        state,
-      });
-    } else {
-      put(tokenCache, checksum, [
-        hostKey,
-        realmKey,
-        typeKey,
-        subjectKey,
-        `${token.expires}`,
-        checksumKey,
-      ]);
-      put(tokenCache, await dataProtection.encrypt(stringify(token)), [
-        hostKey,
-        realmKey,
-        typeKey,
-        subjectKey,
-        `${token.expires}`,
-        tokenKey,
-      ]);
-      writeSecureFileSync(filename, stringify(tokenCache));
-      debugMessage({
-        message: `TokenCacheOps.saveUserBearerToken: saved token in cache`,
-        state,
-      });
-    }
-    debugMessage({
-      message: `TokenCacheOps.saveUserBearerToken: end`,
-      state,
-    });
-    return true;
-  } catch (error) {
-    debugMessage({
-      message: `TokenCacheOps.saveUserBearerToken: error saving token in cache: ${error}`,
-      state,
-    });
-    debugMessage({
-      message: error.stack,
-      state,
-    });
-    return false;
-  }
-}
-
-export async function saveSaBearerToken({
-  token,
-  subject,
-  state,
-}: {
-  token: AccessTokenMetaType;
-  subject?: string;
-  state: State;
-}): Promise<boolean> {
-  try {
-    debugMessage({
-      message: `TokenCacheOps.saveSaBearerToken: start`,
-      state,
-    });
-    const filename = getTokenCachePath({ state });
-    // bare library consumers may never have called initTokenCache(); treat a
-    // missing cache file (and directory) as an empty cache so the save
-    // succeeds and creates both
-    const data = fs.existsSync(filename)
-      ? fs.readFileSync(filename, 'utf8')
-      : undefined;
-    const tokenCache: TokenCacheInterface = data ? JSON.parse(data) : {};
-    purgeExpiredTokens(tokenCache, state);
-    recordHostIndexEntry(state);
-    recordSubjectIndexEntry(subject, 'saBearer', state);
-    const hostKey = getHostKey(state);
-    const realmKey = getRealmKey();
-    const typeKey = getTypeKey('saBearer');
-    const subjectKey = getSubjectKey('saBearer', state);
-    const dataProtection = new DataProtection({
-      sessionKey: generateSessionKey('saBearer', state),
-      state,
-    });
-    const checksum = getChecksum(stringify(token));
-    const checksums = Object.keys(
-      get(tokenCache, [hostKey, realmKey, typeKey, subjectKey], {})
-    ).map((expKey) =>
-      get(tokenCache, [
-        hostKey,
-        realmKey,
-        typeKey,
-        subjectKey,
-        expKey,
-        checksumKey,
-      ])
-    );
-    debugMessage({
-      message: `TokenCacheOps.saveSaBearerToken: checksum=${checksum} checksums=${checksums}`,
-      state,
-    });
-    if (checksums.includes(checksum)) {
-      debugMessage({
-        message: `TokenCacheOps.saveSaBearerToken: token already in cache`,
-        state,
-      });
-    } else {
-      put(tokenCache, checksum, [
-        hostKey,
-        realmKey,
-        typeKey,
-        subjectKey,
-        `${token.expires}`,
-        checksumKey,
-      ]);
-      put(tokenCache, await dataProtection.encrypt(stringify(token)), [
-        hostKey,
-        realmKey,
-        typeKey,
-        subjectKey,
-        `${token.expires}`,
-        tokenKey,
-      ]);
-      writeSecureFileSync(filename, stringify(tokenCache));
-      debugMessage({
-        message: `TokenCacheOps.saveSaBearerToken: saved token in cache`,
-        state,
-      });
-    }
-    debugMessage({
-      message: `TokenCacheOps.saveSaBearerToken: end`,
-      state,
-    });
-    return true;
-  } catch (error) {
-    debugMessage({
-      message: `TokenCacheOps.saveSaBearerToken: error saving token in cache: ${error}`,
-      state,
-    });
-    debugMessage({
-      message: error.stack,
-      state,
-    });
-    return false;
-  }
-}
-
-export async function saveToken({
+/**
+ * Store a token in its entry file. The entry is replaced only when the token
+ * expires later than the one stored (or the stored one cannot be read with
+ * this credential), so a writer that saves later never puts an older token
+ * back. Nothing is written when the entry is already up to date.
+ *
+ * Two processes that check the entry at the same moment both write, and the
+ * later rename stays. That is accepted: both tokens are valid, and the one
+ * that stays only expires a little sooner.
+ */
+async function saveEntry({
   tokenType,
   token,
   subject,
@@ -1170,68 +884,43 @@ export async function saveToken({
       message: `TokenCacheOps.saveToken: start [tokenType=${tokenType}]`,
       state,
     });
-    const filename = getTokenCachePath({ state });
-    // bare library consumers may never have called initTokenCache(); treat a
-    // missing cache file (and directory) as an empty cache so the save
-    // succeeds and creates both
-    const data = fs.existsSync(filename)
-      ? fs.readFileSync(filename, 'utf8')
-      : undefined;
-    const tokenCache: TokenCacheInterface = data ? JSON.parse(data) : {};
-    purgeExpiredTokens(tokenCache, state);
-    recordHostIndexEntry(state);
-    recordSubjectIndexEntry(subject, tokenType, state);
-    const hostKey = getHostKey(state);
-    const realmKey = getRealmKey();
-    const typeKey = getTypeKey(tokenType);
-    const subjectKey = getSubjectKey(tokenType, state);
+    // A token without a usable expiry can never be judged fresh.
+    if (!Number.isFinite(token.expires)) {
+      debugMessage({
+        message: `TokenCacheOps.saveToken: token has no usable expiry, not cached [tokenType=${tokenType}]`,
+        state,
+      });
+      return false;
+    }
+    const file = getEntryFile(tokenType, state);
     const dataProtection = new DataProtection({
       sessionKey: generateSessionKey(tokenType, state),
       state,
     });
-    const checksum = getChecksum(stringify(token));
-    const checksums = Object.keys(
-      get(tokenCache, [hostKey, realmKey, typeKey, subjectKey], {})
-    ).map((expKey) =>
-      get(tokenCache, [
-        hostKey,
-        realmKey,
-        typeKey,
-        subjectKey,
-        expKey,
-        checksumKey,
-      ])
-    );
-    if (checksums.includes(checksum)) {
+    const existing = readEntryFile(file);
+    if (
+      existing &&
+      existing.expires >= token.expires &&
+      (await decryptsWith(existing, dataProtection))
+    ) {
       debugMessage({
-        message: `TokenCacheOps.saveToken: token already in cache [tokenType=${tokenType}]`,
+        message: `TokenCacheOps.saveToken: cache entry is up to date [tokenType=${tokenType}]`,
         state,
       });
-    } else {
-      put(tokenCache, checksum, [
-        hostKey,
-        realmKey,
-        typeKey,
-        subjectKey,
-        `${token.expires}`,
-        checksumKey,
-      ]);
-      put(tokenCache, await dataProtection.encrypt(stringify(token)), [
-        hostKey,
-        realmKey,
-        typeKey,
-        subjectKey,
-        `${token.expires}`,
-        tokenKey,
-      ]);
-      writeSecureFileSync(filename, stringify(tokenCache));
-      debugMessage({
-        message: `TokenCacheOps.saveToken: saved token in cache [tokenType=${tokenType}]`,
-        state,
-      });
+      return true;
     }
+    const entry: CacheEntry = {
+      version: ENTRY_VERSION,
+      host: state.getHost(),
+      realm: getAuthenticationRealm(state),
+      type: tokenType,
+      subject: subject ?? existing?.subject,
+      expires: token.expires,
+      token: await dataProtection.encrypt(stringify(token)),
+    };
+    writeSecureFileAtomicSync(file, stringify(entry));
     debugMessage({
-      message: `TokenCacheOps.saveToken: end [tokenType=${tokenType}]`,
+      message: `TokenCacheOps.saveToken: saved token in cache [tokenType=${tokenType}]`,
       state,
     });
     return true;
@@ -1248,21 +937,64 @@ export async function saveToken({
   }
 }
 
+export async function saveUserSessionToken({
+  token,
+  subject,
+  state,
+}: {
+  token: UserSessionMetaType;
+  subject?: string;
+  state: State;
+}): Promise<boolean> {
+  return saveEntry({ tokenType: 'userSession', token, subject, state });
+}
+
+export async function saveUserBearerToken({
+  token,
+  subject,
+  state,
+}: {
+  token: AccessTokenMetaType;
+  subject?: string;
+  state: State;
+}): Promise<boolean> {
+  return saveEntry({ tokenType: 'userBearer', token, subject, state });
+}
+
+export async function saveSaBearerToken({
+  token,
+  subject,
+  state,
+}: {
+  token: AccessTokenMetaType;
+  subject?: string;
+  state: State;
+}): Promise<boolean> {
+  return saveEntry({ tokenType: 'saBearer', token, subject, state });
+}
+
+export async function saveToken({
+  tokenType,
+  token,
+  subject,
+  state,
+}: {
+  tokenType: tokenType;
+  token: UserSessionMetaType | AccessTokenMetaType;
+  subject?: string;
+  state: State;
+}): Promise<boolean> {
+  return saveEntry({ tokenType, token, subject, state });
+}
+
 export function purge({ state }: { state: State }): TokenCacheInterface {
   try {
-    const filename = getTokenCachePath({ state });
     debugMessage({
-      message: `TokenCacheOps.purge: purging expired tokens from existing token cache: ${filename}`,
+      message: `TokenCacheOps.purge: purging expired tokens from the token cache: ${getTokenCacheDir({ state })}`,
       state,
     });
-    // bare library consumers may never have called initTokenCache(); treat a
-    // missing cache file (and directory) as an empty cache
-    const data = fs.existsSync(filename)
-      ? fs.readFileSync(filename, 'utf8')
-      : undefined;
-    const tokenCache: TokenCacheInterface = data ? JSON.parse(data) : {};
-    const purgedCache = purgeExpiredTokens(tokenCache, state);
-    writeSecureFileSync(filename, stringify(purgedCache));
+    const purgedCache = purgeEntries(state);
+    removeLegacyFiles(state);
     debugMessage({
       message: `TokenCacheOps.purge: end`,
       state,
@@ -1283,8 +1015,21 @@ export function flush({ state }: { state: State }): boolean {
       message: `TokenCacheOps.flush: start`,
       state,
     });
-    const filename = getTokenCachePath({ state });
-    writeSecureFileSync(filename, stringify({}));
+    const directory = getTokenCacheDir({ state });
+    try {
+      for (const name of fs.readdirSync(directory)) {
+        if (
+          name.endsWith(ENTRY_FILE_EXTENSION) ||
+          name.endsWith(TEMPORARY_FILE_EXTENSION)
+        ) {
+          removeFile(path.join(directory, name));
+        }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      // no cache directory, nothing to flush
+    }
+    removeLegacyFiles(state);
     debugMessage({
       message: `TokenCacheOps.flush: end`,
       state,
@@ -1318,22 +1063,6 @@ function resolveTokenTypeFromKey(typeKey: string): tokenType | undefined {
   return ALL_TOKEN_TYPES.find((candidate) => getTypeKey(candidate) === typeKey);
 }
 
-function removeHostIndexEntry(hostKey: string, state: State): void {
-  try {
-    const filename = getHostIndexPath(state);
-    const index = readHostIndex(state);
-    if (hostKey in index) {
-      delete index[hostKey];
-      writeSecureFileSync(filename, stringify(index));
-    }
-  } catch (error) {
-    debugMessage({
-      message: `TokenCacheOps.removeHostIndexEntry: error removing host index entry: ${error}`,
-      state,
-    });
-  }
-}
-
 export interface CachedSessionSummary {
   host: string;
   realm: string;
@@ -1344,85 +1073,45 @@ export interface CachedSessionSummary {
 }
 
 /**
- * Lists every cache entry across all hosts, flattening the cache's
- * `host -> realm -> tokenType -> subject -> exp` structure. `host` is
- * resolved via the side index recorded alongside every save (see
- * `recordHostIndexEntry()`); a cache file untouched since before that index
- * existed reports `'unknown'` for entries it can't resolve yet — they
- * self-heal the next time that host's token is saved again. `subject` is
- * only resolvable for browser-login entries today (their subject key is a
- * fixed constant, not derived from anything host/user-specific); every
- * other auth mode's subject key is derived from a credential (password,
- * service-account JWK) this function has no access to, so it reports
- * `'unknown'` for those rather than guessing.
+ * Lists every cache entry across all hosts. `host`, `realm` and `subject` are
+ * read from the plain fields of the entry. An entry that records no subject
+ * reports `'browser-login'` for the browser-login types (their subject key is a
+ * fixed constant) and `'unknown'` for every other type, whose subject key is
+ * derived from a credential this function has no access to.
  */
 export function listCachedSessions({
   state,
 }: {
   state: State;
 }): CachedSessionSummary[] {
-  const filename = getTokenCachePath({ state });
-  const data = fs.existsSync(filename)
-    ? fs.readFileSync(filename, 'utf8')
-    : undefined;
-  const tokenCache: TokenCacheInterface = data ? JSON.parse(data) : {};
-  const hostIndex = readHostIndex(state);
-  const subjectIndex = readSubjectIndex(state);
-  const rootRealmKey = getRealmKey();
+  const directory = getTokenCacheDir({ state });
   const now = Date.now();
   const summaries: CachedSessionSummary[] = [];
-  for (const hostKey of Object.keys(tokenCache)) {
-    const host = hostIndex[hostKey] || 'unknown';
-    for (const realmKey of Object.keys(tokenCache[hostKey])) {
-      const realm = realmKey === rootRealmKey ? '/' : 'unknown';
-      for (const typeKey of Object.keys(tokenCache[hostKey][realmKey])) {
-        const resolvedType = resolveTokenTypeFromKey(typeKey);
-        for (const subjectKey of Object.keys(
-          tokenCache[hostKey][realmKey][typeKey]
-        )) {
-          // subjectKey is a one-way hash (and, for browser-login entries, a
-          // single fixed constant — see getSubjectKey()'s comment) — never
-          // reversible back to a display value on its own. The actual
-          // subject (a real username/service-account name where the save
-          // path resolved one) comes from the host+type-keyed side index
-          // recorded at save time instead, for any token type that has one.
-          const recordedSubject = subjectIndex[hostKey]?.[typeKey];
-          const subject =
-            recordedSubject ??
-            (subjectKey === BROWSER_LOGIN_SUBJECT_KEY
-              ? 'browser-login'
-              : 'unknown');
-          for (const expKey of Object.keys(
-            tokenCache[hostKey][realmKey][typeKey][subjectKey]
-          )) {
-            const expires = parseInt(expKey, 10);
-            summaries.push({
-              host,
-              realm,
-              tokenType: resolvedType ?? 'unknown',
-              subject,
-              expires,
-              // An unparseable exp key (a corrupted entry, e.g. written by a
-              // long-fixed bug) must never report isExpired: false — `now >
-              // NaN` is always false, which would misreport a corrupt entry
-              // as a permanently valid session and let it sit unpurged
-              // forever. Treat anything that doesn't parse as expired.
-              isExpired: !Number.isFinite(expires) || now > expires,
-            });
-          }
-        }
-      }
-    }
+  for (const name of listEntryNames(state)) {
+    const keys = parseEntryName(name);
+    const entry = readEntryFile(path.join(directory, name));
+    if (!keys || !entry) continue;
+    const resolvedType = resolveTokenTypeFromKey(keys.typeKey);
+    summaries.push({
+      host: entry.host || 'unknown',
+      realm: entry.realm || 'unknown',
+      tokenType: resolvedType ?? 'unknown',
+      subject:
+        entry.subject ??
+        (keys.subjectKey === BROWSER_LOGIN_SUBJECT_KEY
+          ? 'browser-login'
+          : 'unknown'),
+      expires: entry.expires,
+      isExpired: now > entry.expires,
+    });
   }
   return summaries;
 }
 
 /**
- * Removes all cached tokens for a host (or just one realm under it),
- * mirroring `flush()`'s file-rewrite shape but scoped instead of
- * whole-file. Powers `frodo session delete <host>` (v1: local cache clear
- * only, no server-side session/token invalidation — see the plan doc's
- * Phase F addendum).
+ * Removes all cached tokens for a host (or just one realm under it). Powers
+ * `frodo session delete <host>` (local cache clear only, no server-side
+ * session/token invalidation).
  * @returns {boolean} true if a matching entry was found and removed, false if there was nothing to delete
  */
 export function deleteHostTokens({
@@ -1435,33 +1124,17 @@ export function deleteHostTokens({
   state: State;
 }): boolean {
   try {
-    const filename = getTokenCachePath({ state });
-    const data = fs.existsSync(filename)
-      ? fs.readFileSync(filename, 'utf8')
-      : undefined;
-    const tokenCache: TokenCacheInterface = data ? JSON.parse(data) : {};
+    const directory = getTokenCacheDir({ state });
     const hostKey = getHostKeyForHost(host);
-    if (!tokenCache[hostKey]) {
-      return false;
+    const realmKey = realm ? getRealmKeyForRealm(realm) : undefined;
+    let found = false;
+    for (const name of listEntryNames(state)) {
+      const keys = parseEntryName(name);
+      if (!keys || keys.hostKey !== hostKey) continue;
+      if (realmKey && keys.realmKey !== realmKey) continue;
+      if (removeFile(path.join(directory, name))) found = true;
     }
-    if (realm) {
-      const realmKey = getRealmKeyForRealm(realm);
-      if (!tokenCache[hostKey][realmKey]) {
-        return false;
-      }
-      delete tokenCache[hostKey][realmKey];
-      if (Object.keys(tokenCache[hostKey]).length === 0) {
-        delete tokenCache[hostKey];
-        removeHostIndexEntry(hostKey, state);
-        removeSubjectIndexEntry(hostKey, state);
-      }
-    } else {
-      delete tokenCache[hostKey];
-      removeHostIndexEntry(hostKey, state);
-      removeSubjectIndexEntry(hostKey, state);
-    }
-    writeSecureFileSync(filename, stringify(tokenCache));
-    return true;
+    return found;
   } catch (error) {
     debugMessage({
       message: `TokenCacheOps.deleteHostTokens: error deleting host tokens: ${error}`,

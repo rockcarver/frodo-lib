@@ -166,7 +166,7 @@ List of modules that have been updated and/or added by version:
 ### Secure Token Caching
 
 The library uses a secure token cache, which is active by default. The cache makes it so that when the `frodo.login.getTokens()` method is called, available tokens are updated in `state` from cache and if none are available, they are obtained from the instance configured in `state`. The cache is tokenized and encrypted on disk, so it persists across library instantiations. You can disable the cache by either setting the `FRODO_NO_CACHE` environment variable or by calling `state.setUseTokenCache(false)` from your application.
-You can change the default location of the cache file (`~/.frodo/TokenCache.json`) by either setting the `FRODO_TOKEN_CACHE_PATH` environment variable or by calling `state.setTokenCachePath('/path/to/cache.json')`.
+You can change the default location of the cache (`~/.frodo/TokenCache.json`) by either setting the `FRODO_TOKEN_CACHE_PATH` environment variable or by calling `state.setTokenCachePath('/path/to/cache.json')`. The cache keeps one encrypted file per entry (host, token type and subject) in a directory next to that path, named like it without its extension (`~/.frodo/TokenCache/`), so several processes can use it at the same time. A cache hit writes nothing, and a file that cannot be read counts as a miss and is replaced by the next login.
 
 ### Automatic Token Refresh
 

@@ -5,10 +5,9 @@
  *
  * Regression coverage for the Phase F session-lifecycle addendum's
  * `listCachedSessions()`/`deleteHostTokens()` primitives (powering
- * `frodo session list`/`describe`/`delete`). Every hostKey/realmKey/typeKey/
- * subjectKey in TokenCacheInterface is a one-way uuidv5 hash with no stored
- * reverse mapping, so `listCachedSessions()` depends on the small
- * `TokenCacheHosts.json` side index this file also exercises directly.
+ * `frodo session list`/`describe`/`delete`). Every key in an entry file name is
+ * a one-way uuidv5 hash, so `listCachedSessions()` reads the host, realm and
+ * subject from the plain fields of the entry itself.
  * Real, isolated file I/O against a scratch directory (not mocked), same
  * convention as TokenCacheOps.browserToken.unit.test.ts.
  */
@@ -20,35 +19,40 @@ import {
   deleteHostTokens,
   getRecordedSubject,
   listCachedSessions,
+  purge,
   saveToken,
   type tokenType,
 } from './TokenCacheOps';
 
 // Mirrors TokenCacheOps.ts's own uuidv5 namespace/key derivation, so these
-// tests can write a cache file with the exact real, hashed key shape
-// directly — needed to reproduce a corrupted entry (an unparseable "NaN"
-// exp key), which no exported function would ever itself write.
+// tests can write an entry file with the exact real, hashed name directly —
+// needed to reproduce a corrupted entry, which no exported function would
+// ever itself write.
 const UUIDV5_NAMESPACE = 'e9a38338-21c0-4dcd-ba74-7ddeac58edbe';
 
-function writeCorruptedCacheFile(cachePath: string, host: string): void {
+/** The directory of the entry files of a cache file path. */
+function entryDirectory(cachePath: string): string {
+  return cachePath.replace(/\.json$/, '');
+}
+
+function writeCorruptedEntry(
+  cachePath: string,
+  host: string,
+  content: string,
+  subject = 'someuser'
+): string {
   const hostKey = uuidv5(host, uuidv5.URL);
   const realmKey = uuidv5('/', UUIDV5_NAMESPACE);
   const typeKey = uuidv5('userSession', UUIDV5_NAMESPACE);
-  const subjectKey = uuidv5('someuser', UUIDV5_NAMESPACE);
-  fs.writeFileSync(
-    cachePath,
-    JSON.stringify({
-      [hostKey]: {
-        [realmKey]: {
-          [typeKey]: {
-            [subjectKey]: {
-              NaN: { checksum: 'x', token: 'y' },
-            },
-          },
-        },
-      },
-    })
+  const subjectKey = uuidv5(subject, UUIDV5_NAMESPACE);
+  const directory = entryDirectory(cachePath);
+  fs.mkdirSync(directory, { recursive: true });
+  const file = resolve(
+    directory,
+    `${hostKey}.${realmKey}.${typeKey}.${subjectKey}.json`
   );
+  fs.writeFileSync(file, content);
+  return file;
 }
 
 const TMP_DIR = resolve(
@@ -81,7 +85,7 @@ describe('listCachedSessions / deleteHostTokens', () => {
     fs.rmSync(TMP_DIR, { recursive: true, force: true });
   });
 
-  test('1: lists a browser-login session with its host resolved via the side index', async () => {
+  test('1: lists a browser-login session with its host read from the entry', async () => {
     const cachePath = resolve(TMP_DIR, `${Math.random()}.TokenCache.json`);
     const host = 'https://openam-list-a.example.com/am';
     const state = freshState(host, cachePath);
@@ -108,7 +112,7 @@ describe('listCachedSessions / deleteHostTokens', () => {
     });
   });
 
-  test('2: lists sessions across multiple hosts sharing one cache file, each resolved to its own host', async () => {
+  test('2: lists sessions across multiple hosts sharing one cache, each resolved to its own host', async () => {
     const cachePath = resolve(TMP_DIR, `${Math.random()}.TokenCache.json`);
     const hostA = 'https://openam-list-b.example.com/am';
     const hostB = 'https://openam-list-c.example.com/am';
@@ -190,37 +194,64 @@ describe('listCachedSessions / deleteHostTokens', () => {
     expect(deleted).toBe(false);
   });
 
-  test('5: an empty/nonexistent cache file lists as no sessions', () => {
+  test('5: an empty or nonexistent cache lists as no sessions', () => {
     const cachePath = resolve(TMP_DIR, `${Math.random()}.TokenCache.json`);
     const state = freshState('https://openam-empty.example.com/am', cachePath);
     expect(listCachedSessions({ state })).toEqual([]);
   });
 
-  test('6: a corrupted entry with an unparseable exp key reports isExpired: true, not false', () => {
+  test('6: an unreadable entry is not listed and does not break the listing of the others', async () => {
     // Regression: a real, observed cache file had a literal "NaN" string as
-    // an exp key (from an old, since-fixed bug elsewhere writing an invalid
-    // expires value). `now > NaN` is always false, so the naive computation
-    // reported isExpired: false — a corrupted entry masquerading as a
-    // permanently valid session, and the reason `frodo session list` used
-    // to crash entirely (`new Date(NaN).toISOString()` throws) instead of
-    // just treating that one entry as expired.
+    // an exp key, which made `frodo session list` crash. An entry that cannot
+    // be read (an invalid expiry, a truncated file) is now simply not an
+    // entry: it is skipped, and the entries next to it still list.
     const cachePath = resolve(TMP_DIR, `${Math.random()}.TokenCache.json`);
     const host = 'https://openam-corrupt.example.com/am';
-    writeCorruptedCacheFile(cachePath, host);
+    writeCorruptedEntry(
+      cachePath,
+      host,
+      JSON.stringify({ version: 1, expires: 'NaN', token: 'y' })
+    );
+    writeCorruptedEntry(cachePath, host, '{"expires": 17', 'another');
+    await saveToken({
+      tokenType: 'browserUserBearer' as tokenType,
+      token: {
+        access_token: fakeAccessTokenJwtWithSub('c'),
+        token_type: 'Bearer',
+        scope: 'fr:idm:*',
+        expires_in: 1800,
+        expires: Date.now() + 1_800_000,
+      } as any,
+      state: freshState(host, cachePath),
+    });
 
     const sessions = listCachedSessions({ state: freshState(host, cachePath) });
     expect(sessions).toHaveLength(1);
-    expect(sessions[0].isExpired).toBe(true);
-    expect(Number.isNaN(sessions[0].expires)).toBe(true);
+    expect(sessions[0].tokenType).toBe('browserUserBearer');
   });
 
-  test('7: a save purges a corrupted, unparseable-exp entry the same as a genuinely expired one', async () => {
-    // Regression: purgeExpiredTokens() had the identical `now > NaN` bug,
-    // so a corrupted entry was never purged either — it would sit in the
-    // cache forever, immune to every future save.
+  test('7: purge removes unreadable and expired entries and the legacy files, and keeps the live ones', async () => {
     const cachePath = resolve(TMP_DIR, `${Math.random()}.TokenCache.json`);
     const corruptHost = 'https://openam-purge-corrupt.example.com/am';
-    writeCorruptedCacheFile(cachePath, corruptHost);
+    const corruptFile = writeCorruptedEntry(
+      cachePath,
+      corruptHost,
+      JSON.stringify({ version: 1, expires: 'NaN', token: 'y' })
+    );
+    const expiredFile = writeCorruptedEntry(
+      cachePath,
+      corruptHost,
+      JSON.stringify({
+        version: 1,
+        expires: Date.now() - 3_600_000,
+        token: 'y',
+      }),
+      'expired'
+    );
+    // what an older frodo wrote: one file plus two side indexes
+    fs.writeFileSync(cachePath, '{}');
+    fs.writeFileSync(resolve(TMP_DIR, 'TokenCacheHosts.json'), '{}');
+    fs.writeFileSync(resolve(TMP_DIR, 'TokenCacheSubjects.json'), '{}');
 
     const otherHost = 'https://openam-purge-other.example.com/am';
     await saveToken({
@@ -235,11 +266,19 @@ describe('listCachedSessions / deleteHostTokens', () => {
       state: freshState(otherHost, cachePath),
     });
 
+    const remaining = purge({ state: freshState(otherHost, cachePath) });
+    expect(fs.existsSync(corruptFile)).toBe(false);
+    expect(fs.existsSync(expiredFile)).toBe(false);
+    expect(fs.existsSync(cachePath)).toBe(false);
+    expect(fs.existsSync(resolve(TMP_DIR, 'TokenCacheHosts.json'))).toBe(false);
+    expect(fs.existsSync(resolve(TMP_DIR, 'TokenCacheSubjects.json'))).toBe(
+      false
+    );
+    expect(Object.keys(remaining)).toHaveLength(1);
     const sessions = listCachedSessions({
       state: freshState(otherHost, cachePath),
     });
-    expect(sessions).toHaveLength(1);
-    expect(sessions[0].host).toBe(otherHost);
+    expect(sessions.map((s) => s.host)).toEqual([otherHost]);
   });
 
   test('8: a browser-login session saved with a resolved subject shows that subject, not the generic "browser-login" placeholder', async () => {

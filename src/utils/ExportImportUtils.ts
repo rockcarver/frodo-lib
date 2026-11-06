@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import fs from 'fs';
 import { chmod, lstat, readdir, readFile, writeFile } from 'fs/promises';
 import { dirname, join } from 'path';
@@ -601,6 +602,75 @@ export async function writeSecureFile(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     // best effort
+  }
+}
+
+/**
+ * Block the calling thread for a number of milliseconds. Only for the short
+ * retry back-off of synchronous file operations that another process can make
+ * fail for a moment (see {@link writeSecureFileAtomicSync}); never for waiting
+ * on anything long.
+ * @param {number} ms milliseconds to wait
+ */
+export function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/**
+ * Rename a file over another, retrying briefly when the platform refuses
+ * because another process has the target open (Windows answers EPERM, EACCES
+ * or EBUSY for a moment in that case; a rename over an open file works
+ * elsewhere).
+ * @param {string} from existing file
+ * @param {string} to target file, replaced if it exists
+ */
+function renameWithRetrySync(from: string, to: string): void {
+  const retryable = ['EPERM', 'EACCES', 'EBUSY'];
+  for (let attempt = 0; ; attempt++) {
+    try {
+      fs.renameSync(from, to);
+      return;
+    } catch (error) {
+      if (attempt >= 8 || !retryable.includes(error.code)) throw error;
+      sleepSync(Math.min(5 * 2 ** attempt, 100));
+    }
+  }
+}
+
+/**
+ * Write a file that holds credentials or other secrets so that no reader, in
+ * this or another process, ever sees a partial file, and so that two writers
+ * never interleave: the data goes to a uniquely named temporary file in the
+ * same directory (created owner-only, so it is never readable by others, not
+ * even briefly) and is then renamed over the target. The last rename wins.
+ * Creates the parent directory (owner-only) if needed. Leaves no temporary
+ * file behind when the write fails.
+ * @param {string} filename file name (absolute or relative path)
+ * @param {string | NodeJS.ArrayBufferView} data data to write
+ */
+export function writeSecureFileAtomicSync(
+  filename: string,
+  data: string | NodeJS.ArrayBufferView
+): void {
+  ensureSecureDirectoryForFile(filename);
+  const temporaryFilename = `${filename}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`;
+  try {
+    fs.writeFileSync(temporaryFilename, data, { mode: 0o600, flag: 'wx' });
+    try {
+      fs.chmodSync(temporaryFilename, 0o600);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      // best effort
+    }
+    renameWithRetrySync(temporaryFilename, filename);
+  } catch (error) {
+    try {
+      fs.unlinkSync(temporaryFilename);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (unlinkError) {
+      // nothing left to remove
+    }
+    throw error;
   }
 }
 
