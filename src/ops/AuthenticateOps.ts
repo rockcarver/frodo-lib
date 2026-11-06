@@ -1699,7 +1699,12 @@ async function getLoggedInSubject(state: State): Promise<string> {
  */
 const authenticatedAs = new WeakMap<
   State,
-  { identity: string; subject: string }
+  {
+    identity: string;
+    subject: string;
+    /** When this instance obtained the credentials from the server; unset when they came from the token cache. */
+    issuedAt?: number;
+  }
 >();
 
 /** The login that a consumer-facing `getTokens()` call has in flight, per instance. */
@@ -1738,26 +1743,34 @@ export function authenticationIdentity({
   ) {
     return undefined;
   }
-  return createHash('sha256')
-    .update(
-      JSON.stringify([
-        state.getHost(),
-        state.getRealm(),
-        state.getDeploymentType(),
-        forceLoginAsUser,
-        credentialOverride,
-        autoRefresh,
-        types,
-        state.getUsername(),
-        state.getPassword(),
-        state.getServiceAccountId(),
-        state.getServiceAccountJwk(),
-        state.getAmsterPrivateKey(),
-        state.getAuthenticationService(),
-        state.getAuthenticationHeaderOverrides(),
-      ])
-    )
-    .digest('hex');
+  // A credential that cannot be read (the service account key and the Amster
+  // key of the environment are parsed when they are asked for) has no
+  // identity: the login reports it, as it always did, and getTokens() must not
+  // fail before it has started.
+  try {
+    return createHash('sha256')
+      .update(
+        JSON.stringify([
+          state.getHost(),
+          state.getRealm(),
+          state.getDeploymentType(),
+          forceLoginAsUser,
+          credentialOverride,
+          autoRefresh,
+          types,
+          state.getUsername(),
+          state.getPassword(),
+          state.getServiceAccountId(),
+          state.getServiceAccountJwk(),
+          state.getAmsterPrivateKey(),
+          state.getAuthenticationService(),
+          state.getAuthenticationHeaderOverrides(),
+        ])
+      )
+      .digest('hex');
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -1793,10 +1806,23 @@ export function hasFreshCredentials(state: State): boolean {
  * Forget the credential that the server rejected: the instance no longer counts
  * as authenticated, and the cache entries that hold that very credential are
  * removed (an entry that another process has replaced since stays, so that the
- * next `getTokens()` finds the new one). Nothing else is touched.
+ * next `getTokens()` finds the new one). Nothing else is touched. Credentials
+ * that this instance obtained from the server a moment ago are kept: the
+ * answer is `false`, and nothing is forgotten.
  * @param {State} state library state
+ * @returns {boolean | void} false when the credentials were kept
  */
-function forgetRejectedCredential(state: State): void {
+function forgetRejectedCredential(state: State): boolean | void {
+  // IDM also answers 401 for a request that is not permitted: the credentials
+  // that this instance obtained from the server a moment ago are kept, nobody
+  // has had the time to end them.
+  const issuedAt = authenticatedAs.get(state)?.issuedAt;
+  if (
+    issuedAt !== undefined &&
+    Date.now() - issuedAt < Constants.CREDENTIAL_RENEWAL_MIN_INTERVAL_MS
+  ) {
+    return false;
+  }
   authenticatedAs.delete(state);
   if (!state.getUseTokenCache()) return;
   const serviceAccount =
@@ -2695,6 +2721,13 @@ export async function getTokens({
         authenticatedAs.set(state, {
           identity: authenticatedIdentity,
           subject: tokens.subject,
+          issuedAt: [
+            tokens.bearerToken,
+            tokens.userSessionToken,
+            tokens.pfBearerToken,
+          ].some((token) => token?.from_cache)
+            ? undefined
+            : Date.now(),
         });
       } else {
         authenticatedAs.delete(state);
