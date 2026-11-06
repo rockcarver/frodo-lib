@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { URL } from 'url';
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { importPKCS8 } from 'jose';
@@ -184,7 +185,19 @@ export default (state: State): Authenticate => {
       promptHandler = undefined,
       credentialOverride = undefined
     ) {
-      return getTokens({
+      // Callers that ask at the same moment for the same thing share one login.
+      // Only this entry point does: the refresh handler and the timer call
+      // `getTokens()` from inside a login, where waiting for the login in
+      // flight would wait for itself.
+      const call = JSON.stringify([
+        forceLoginAsUser,
+        autoRefresh,
+        types,
+        credentialOverride,
+      ]);
+      const running = loginsInFlight.get(state);
+      if (running?.call === call) return running.promise;
+      const promise = getTokens({
         forceLoginAsUser,
         credentialOverride,
         autoRefresh,
@@ -193,7 +206,13 @@ export default (state: State): Authenticate => {
         useDeviceFlow,
         promptHandler,
         state,
+      }).finally(() => {
+        if (loginsInFlight.get(state)?.promise === promise) {
+          loginsInFlight.delete(state);
+        }
       });
+      loginsInFlight.set(state, { call, promise });
+      return promise;
     },
     async getTokensInteractive(options: BrowserLoginOptions) {
       return getTokensInteractive({ ...options, state });
@@ -1673,6 +1692,102 @@ async function getLoggedInSubject(state: State): Promise<string> {
 }
 
 /**
+ * What `getTokens()` last authenticated an instance as: the identity (see
+ * `authenticationIdentity()`) and the subject it reported.
+ */
+const authenticatedAs = new WeakMap<
+  State,
+  { identity: string; subject: string }
+>();
+
+/** The login that a consumer-facing `getTokens()` call has in flight, per instance. */
+const loginsInFlight = new WeakMap<
+  State,
+  { call: string; promise: Promise<Tokens> }
+>();
+
+/**
+ * Who `getTokens()` would authenticate as: the host, the credentials in the
+ * state and the options that decide which credential is used. A one-way hash
+ * that only lives in memory. Another value than the one recorded after the last
+ * login (another user name, password, service account, override) means the
+ * tokens in the state are not the ones this call would obtain.
+ *
+ * Browser login keeps its own handling (it has no credential to compare, and
+ * its sessions are reused through the cache) and has no identity.
+ */
+export function authenticationIdentity({
+  forceLoginAsUser,
+  credentialOverride,
+  autoRefresh,
+  types,
+  state,
+}: {
+  forceLoginAsUser: boolean;
+  credentialOverride?: 'user' | 'svcacct' | 'amster' | 'browser';
+  autoRefresh: boolean;
+  types: string[];
+  state: State;
+}): string | undefined {
+  if (
+    credentialOverride === 'browser' ||
+    state.getPreferredCredential() === 'browser' ||
+    state.getAuthMode() === 'interactive'
+  ) {
+    return undefined;
+  }
+  return createHash('sha256')
+    .update(
+      JSON.stringify([
+        state.getHost(),
+        state.getRealm(),
+        state.getDeploymentType(),
+        forceLoginAsUser,
+        credentialOverride,
+        autoRefresh,
+        types,
+        state.getUsername(),
+        state.getPassword(),
+        state.getServiceAccountId(),
+        state.getServiceAccountJwk(),
+        state.getAmsterPrivateKey(),
+        state.getAuthenticationService(),
+        state.getAuthenticationHeaderOverrides(),
+      ])
+    )
+    .digest('hex');
+}
+
+/**
+ * The expiries of the credentials that the instance relies on, in the order of
+ * the auto-refresh timer: the session for classic deployments, the bearer
+ * token when it is used for AM APIs, otherwise both.
+ */
+function getRelevantExpiries(state: State): number[] {
+  return state.getDeploymentType() === Constants.CLASSIC_DEPLOYMENT_TYPE_KEY
+    ? [state.getUserSessionTokenMeta()?.expires]
+    : state.getUseBearerTokenForAmApis()
+      ? [state.getBearerTokenMeta()?.expires]
+      : [
+          state.getBearerTokenMeta()?.expires,
+          state.getUserSessionTokenMeta()?.expires,
+        ];
+}
+
+/**
+ * Whether the state holds credentials that are fresh: every expiry is known
+ * and has more than the freshness buffer left (the rule the request
+ * interceptors and the token cache use). An unknown expiry is not fresh.
+ */
+export function hasFreshCredentials(state: State): boolean {
+  return getRelevantExpiries(state).every(
+    (expires) =>
+      Number.isFinite(expires) &&
+      expires - Date.now() > Constants.TOKEN_FRESHNESS_BUFFER_MS
+  );
+}
+
+/**
  * Helper method to set, reset, or cancel timer to auto refresh tokens
  * @param {boolean} forceLoginAsUser true to force login as user even if a service account or Amster account is available (default: false)
  * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
@@ -1695,15 +1810,7 @@ function scheduleAutoRefresh(
   }
   // new timer
   if (autoRefresh) {
-    const expiries =
-      state.getDeploymentType() === Constants.CLASSIC_DEPLOYMENT_TYPE_KEY
-        ? [state.getUserSessionTokenMeta()?.expires]
-        : state.getUseBearerTokenForAmApis()
-          ? [state.getBearerTokenMeta()?.expires]
-          : [
-              state.getBearerTokenMeta()?.expires,
-              state.getUserSessionTokenMeta()?.expires,
-            ];
+    const expiries = getRelevantExpiries(state);
     // An expiry that is not a number (a session whose expiry AM did not
     // report) must never reach setTimeout: Node turns a NaN delay into 1 ms,
     // and the timer would run getTokens again and again.
@@ -2009,6 +2116,39 @@ export async function getTokens({
     message: `AuthenticateOps.getTokens: start, types: ${types}`,
     state,
   });
+  // An instance that is already authenticated as the same identity, with
+  // credentials that are still fresh, is not authenticated again: its tokens
+  // are returned as they are, with no request and no access to the cache. The
+  // auto-refresh timer and the on-demand refresh run when a token is inside the
+  // freshness buffer, so they fall through to the cache and the login below.
+  const identity = authenticationIdentity({
+    forceLoginAsUser,
+    credentialOverride,
+    autoRefresh,
+    types,
+    state,
+  });
+  const authenticated = authenticatedAs.get(state);
+  if (
+    identity &&
+    authenticated?.identity === identity &&
+    hasFreshCredentials(state) &&
+    (state.getCookieValue() ||
+      (state.getUseBearerTokenForAmApis() && state.getBearerToken()))
+  ) {
+    debugMessage({
+      message: `AuthenticateOps.getTokens: end, already authenticated, tokens are fresh`,
+      state,
+    });
+    return {
+      bearerToken: state.getBearerTokenMeta(),
+      userSessionToken: state.getUserSessionTokenMeta(),
+      pfBearerToken: state.getPfBearerTokenMeta(),
+      subject: authenticated.subject,
+      host: state.getHost(),
+      realm: state.getRealm() ? state.getRealm() : 'root',
+    };
+  }
   let usingConnectionProfile: boolean = false;
   // Browser login — either explicitly requested by the caller (`state`
   // already carries `authMode: 'interactive'` before `getTokens()` was even
@@ -2503,6 +2643,23 @@ export async function getTokens({
         host: state.getHost(),
         realm: state.getRealm() ? state.getRealm() : 'root',
       };
+      // remember who this instance is authenticated as (what the credentials
+      // and the options are after the login, not before it)
+      const authenticatedIdentity = authenticationIdentity({
+        forceLoginAsUser,
+        credentialOverride,
+        autoRefresh,
+        types,
+        state,
+      });
+      if (authenticatedIdentity) {
+        authenticatedAs.set(state, {
+          identity: authenticatedIdentity,
+          subject: tokens.subject,
+        });
+      } else {
+        authenticatedAs.delete(state);
+      }
       debugMessage({
         message: `AuthenticateOps.getTokens: end with tokens`,
         state,
