@@ -16,7 +16,10 @@ import { promisify } from 'util';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { printMessage } from './Console';
-import { secureExistingFileSync, writeSecureFile } from './ExportImportUtils';
+import {
+  createSecureFileExclusiveSync,
+  secureExistingFileSync,
+} from './ExportImportUtils';
 import { getFrodoHome } from './FrodoUtils';
 
 const scrypt = promisify(crypto.scrypt);
@@ -78,8 +81,12 @@ class DataProtection {
             // must not degrade into empty-key encryption: scrypt('', salt,
             // 32) is recoverable by anyone, so let the failure propagate
             // instead of silently encrypting.
+            // Of several processes that start together on a machine that has
+            // no key yet, exactly one creates the file and the others use its
+            // content: two keys must never be generated, because whatever the
+            // loser encrypts with its own key could not be decrypted later.
             try {
-              await writeSecureFile(masterKeyPath(), masterKey);
+              createSecureFileExclusiveSync(masterKeyPath(), masterKey);
             } catch (writeError) {
               throw new Error(
                 `Unable to create master key file ${masterKeyPath()}: ${writeError.message}`,

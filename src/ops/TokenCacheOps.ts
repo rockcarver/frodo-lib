@@ -8,10 +8,10 @@ import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import DataProtection from '../utils/DataProtection';
 import {
+  createSecureFileExclusiveSync,
   ensureSecureDirectoryForFile,
   secureExistingFileSync,
   writeSecureFileAtomicSync,
-  writeSecureFileSync,
 } from '../utils/ExportImportUtils';
 import { getFrodoHome } from '../utils/FrodoUtils';
 import { stringify } from '../utils/JsonUtils';
@@ -801,7 +801,9 @@ function readMasterKeyContent(state: State): string {
     process.env[Constants.FRODO_MASTER_KEY_PATH_KEY] ||
     path.join(getFrodoHome(), 'masterkey.key');
   if (!fs.existsSync(masterKeyPath)) {
-    writeSecureFileSync(
+    // exclusive: of several processes that start together, one creates the
+    // key and the others read it (see DataProtection)
+    createSecureFileExclusiveSync(
       masterKeyPath,
       crypto.randomBytes(32).toString('base64')
     );
