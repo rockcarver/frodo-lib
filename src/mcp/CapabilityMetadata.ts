@@ -2212,6 +2212,16 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Idempotent grant: creates the mapping of a subject or merges roles into the existing one (roles are only added, other properties are kept, nothing is written when there is nothing to add). Refuses to point an existing subject at another local user. Grants the roles to that subject.',
   },
+  'idm.remoteProxy.isValidRemoteProxyName': {
+    // A pure check of a name against the allowed pattern. It makes no request
+    // and is not a standalone operation an agent could call.
+    excluded: true,
+  },
+  'idm.remoteProxy.getTenantBoundSecrets': {
+    // A pure inspection of a remote proxy object that is already in hand. It
+    // makes no request and is not a standalone operation an agent could call.
+    excluded: true,
+  },
   'idm.system': {
     deploymentTypes: IDM_DEPLOYMENTS,
     preferredDeploymentTypes: IDM_DEPLOYMENTS,

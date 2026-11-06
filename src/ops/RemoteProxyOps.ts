@@ -32,6 +32,27 @@ export type RemoteProxy = {
    */
   getRemoteProxyBaseUrl(proxyId: string): string;
   /**
+   * Check the name of a remote proxy. The name becomes part of the IDM entity
+   * id `external.idm/<name>` and of a REST path, so it is restricted: 1 to 100
+   * characters, starting with a letter or a digit, containing only letters,
+   * digits, `.`, `_` and `-`. Every operation of this module refuses any other
+   * name before it makes a request.
+   * @param {string} proxyId name of the remote proxy without the type prefix
+   * @returns {boolean} true if the name is allowed
+   */
+  isValidRemoteProxyName(proxyId: string): boolean;
+  /**
+   * Get the properties of a remote proxy that hold a secret encrypted by the
+   * tenant it was read from. IDM encrypts a plain text `password` or
+   * `clientSecret` on write and returns it as an encrypted `$crypto` object. That
+   * value belongs to one tenant: another tenant accepts it unchecked, and it
+   * fails only when the proxy is used. An ESV placeholder (`&{esv.name}`) is not
+   * encrypted and is the portable way to configure a secret.
+   * @param {RemoteProxySkeleton} proxyData remote proxy object
+   * @returns {string[]} names of the properties that hold a tenant-bound secret
+   */
+  getTenantBoundSecrets(proxyData: RemoteProxySkeleton): string[];
+  /**
    * Create an empty remote proxy export template
    * @returns {RemoteProxyExportInterface} an empty remote proxy export template
    */
@@ -105,6 +126,12 @@ export default (state: State): RemoteProxy => {
     getRemoteProxyBaseUrl(proxyId: string): string {
       return getRemoteProxyBaseUrl({ proxyId, state });
     },
+    isValidRemoteProxyName(proxyId: string): boolean {
+      return isValidRemoteProxyName(proxyId);
+    },
+    getTenantBoundSecrets(proxyData: RemoteProxySkeleton): string[] {
+      return getTenantBoundSecrets(proxyData);
+    },
     createRemoteProxyExportTemplate(): RemoteProxyExportInterface {
       return createRemoteProxyExportTemplate({ state });
     },
@@ -154,6 +181,89 @@ export default (state: State): RemoteProxy => {
 export const REMOTE_PROXY_TYPE = 'external.idm';
 
 /**
+ * What a remote proxy name may look like: 1 to 100 characters, starting with a
+ * letter or a digit, containing only letters, digits, `.`, `_` and `-`.
+ *
+ * The name is spliced into an IDM entity id and into a REST path. IDM accepts
+ * a `/` in an id on write, answers 400, and then cannot read or delete the
+ * entity any more; `%`, `?`, `#` and path segments such as `..` would change
+ * the request. Tenant names are host name labels, which this covers.
+ */
+const REMOTE_PROXY_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
+
+/**
+ * Check the name of a remote proxy, see {@link RemoteProxy.isValidRemoteProxyName}
+ * @param {string} proxyId name of the remote proxy without the type prefix
+ * @returns {boolean} true if the name is allowed
+ */
+export function isValidRemoteProxyName(proxyId: unknown): proxyId is string {
+  return typeof proxyId === 'string' && REMOTE_PROXY_NAME_PATTERN.test(proxyId);
+}
+
+/**
+ * Refuse a remote proxy name that is not allowed, before any request is made.
+ * The error names the reason and the offending characters.
+ * @param {string} proxyId name of the remote proxy without the type prefix
+ */
+export function validateRemoteProxyName(
+  proxyId: unknown
+): asserts proxyId is string {
+  if (isValidRemoteProxyName(proxyId)) return;
+  let reason: string;
+  if (typeof proxyId !== 'string') {
+    reason = 'it is not a string';
+  } else if (proxyId.length === 0) {
+    reason = 'it is empty';
+  } else if (proxyId.length > 100) {
+    reason = 'it is longer than 100 characters';
+  } else {
+    const offending = [
+      ...new Set(
+        [...proxyId].filter((character) => !/[A-Za-z0-9._-]/.test(character))
+      ),
+    ];
+    reason =
+      offending.length > 0
+        ? `it contains ${offending.map((c) => JSON.stringify(c)).join(', ')}`
+        : 'it does not start with a letter or a digit';
+  }
+  const shown =
+    typeof proxyId === 'string' && proxyId.length > 40
+      ? `${JSON.stringify(proxyId.slice(0, 40))}...`
+      : JSON.stringify(proxyId);
+  throw new FrodoError(
+    `Remote proxy name ${shown} is not allowed: ${reason}. A name has 1 to 100 characters, starts with a letter or a digit and contains only letters, digits, '.', '_' and '-'.`
+  );
+}
+
+/**
+ * A secret of a remote proxy. IDM encrypts a plain text value on write and
+ * returns an encrypted `$crypto` object; an ESV placeholder (`&{esv.name}`) is
+ * kept as it is.
+ */
+export type RemoteProxySecret = string | { $crypto: Record<string, unknown> };
+
+/**
+ * Get the properties of a remote proxy that hold a secret encrypted by the
+ * tenant it was read from, see {@link RemoteProxy.getTenantBoundSecrets}
+ * @param {RemoteProxySkeleton} proxyData remote proxy object
+ * @returns {string[]} names of the properties that hold a tenant-bound secret
+ */
+export function getTenantBoundSecrets(
+  proxyData: RemoteProxySkeleton
+): string[] {
+  return Object.entries(proxyData ?? {})
+    .filter(
+      ([, value]) =>
+        value !== null &&
+        typeof value === 'object' &&
+        !Array.isArray(value) &&
+        '$crypto' in value
+    )
+    .map(([property]) => property);
+}
+
+/**
  * A remote proxy configuration: the connection from this tenant to a
  * receiving tenant. The id is the name of the receiving tenant.
  */
@@ -166,10 +276,10 @@ export type RemoteProxySkeleton = IdObjectSkeletonInterface & {
   instanceUrl: string;
   // authType 'basic'
   userName?: string;
-  password?: string;
+  password?: RemoteProxySecret;
   // authType 'bearer'
   clientId?: string;
-  clientSecret?: string;
+  clientSecret?: RemoteProxySecret;
   tokenEndpoint?: string;
   tokenEndpointAuthMethod?: string;
   scope?: string[];
@@ -198,6 +308,12 @@ function validateRemoteProxy(
   proxyId: string,
   proxyData: RemoteProxySkeleton
 ): void {
+  const entityId = `${REMOTE_PROXY_TYPE}/${proxyId}`;
+  if (proxyData?._id !== undefined && proxyData._id !== entityId) {
+    throw new FrodoError(
+      `Remote proxy ${proxyId} has the id '${proxyData._id}'; expected '${entityId}'`
+    );
+  }
   const authType = proxyData?.authType;
   if (!Object.keys(REQUIRED_PROPERTIES).includes(authType)) {
     throw new FrodoError(
@@ -224,7 +340,8 @@ function validateRemoteProxy(
 
 /**
  * Get the IDM base URL that routes IDM REST calls through a remote proxy to
- * the receiving tenant: `<host>/openidm/external/idm/<proxyId>`.
+ * the receiving tenant: `<host>/openidm/external/idm/<proxyId>`. Refuses a
+ * name that is not allowed (see {@link RemoteProxy.isValidRemoteProxyName}).
  * @param {string} proxyId id/name of the remote proxy without the type prefix
  * @returns {string} the IDM base URL of the remote proxy
  */
@@ -235,6 +352,7 @@ export function getRemoteProxyBaseUrl({
   proxyId: string;
   state: State;
 }): string {
+  validateRemoteProxyName(proxyId);
   return `${getHostOnlyUrl(state.getHost())}/openidm/external/idm/${proxyId}`;
 }
 
@@ -281,6 +399,7 @@ export async function readRemoteProxy({
   proxyId: string;
   state: State;
 }): Promise<RemoteProxySkeleton> {
+  validateRemoteProxyName(proxyId);
   try {
     return (await getConfigEntity({
       entityId: `${REMOTE_PROXY_TYPE}/${proxyId}`,
@@ -303,6 +422,7 @@ export async function exportRemoteProxy({
   proxyId: string;
   state: State;
 }): Promise<RemoteProxyExportInterface> {
+  validateRemoteProxyName(proxyId);
   try {
     debugMessage({
       message: `RemoteProxyOps.exportRemoteProxy: start [proxyId=${proxyId}]`,
@@ -387,6 +507,7 @@ export async function createRemoteProxy({
     message: `RemoteProxyOps.createRemoteProxy: start`,
     state,
   });
+  validateRemoteProxyName(proxyId);
   validateRemoteProxy(proxyId, proxyData);
   try {
     await readRemoteProxy({ proxyId, state });
@@ -430,6 +551,7 @@ export async function updateRemoteProxy({
   proxyData: RemoteProxySkeleton;
   state: State;
 }): Promise<RemoteProxySkeleton> {
+  validateRemoteProxyName(proxyId);
   validateRemoteProxy(proxyId, proxyData);
   try {
     const remoteProxy = await putConfigEntity({
@@ -444,7 +566,8 @@ export async function updateRemoteProxy({
 }
 
 /**
- * Import remote proxies
+ * Import remote proxies. Every name and every proxy is checked before the
+ * first one is written: if any of them is refused, nothing is imported.
  * @param {RemoteProxyExportInterface} importData import data
  * @returns {Promise<RemoteProxySkeleton[]>} a promise that resolves to an array of remote proxy objects
  */
@@ -459,9 +582,30 @@ export async function importRemoteProxies({
     message: `RemoteProxyOps.importRemoteProxies: start`,
     state,
   });
+  const proxies = importData?.remoteProxy;
+  if (proxies === null || typeof proxies !== 'object') {
+    throw new FrodoError(
+      `Error importing remote proxies: the import data has no remoteProxy object`
+    );
+  }
+  const refused: Error[] = [];
+  for (const proxyId of Object.keys(proxies)) {
+    try {
+      validateRemoteProxyName(proxyId);
+      validateRemoteProxy(proxyId, proxies[proxyId]);
+    } catch (error) {
+      refused.push(error);
+    }
+  }
+  if (refused.length > 0) {
+    throw new FrodoError(
+      `Error importing remote proxies: nothing was imported`,
+      refused
+    );
+  }
   const response: RemoteProxySkeleton[] = [];
   const errors = [];
-  for (const proxyId of Object.keys(importData.remoteProxy)) {
+  for (const proxyId of Object.keys(proxies)) {
     try {
       debugMessage({
         message: `RemoteProxyOps.importRemoteProxies: ${proxyId}`,
@@ -470,7 +614,7 @@ export async function importRemoteProxies({
       response.push(
         await updateRemoteProxy({
           proxyId,
-          proxyData: importData.remoteProxy[proxyId],
+          proxyData: proxies[proxyId],
           state,
         })
       );
@@ -511,6 +655,11 @@ export async function deleteRemoteProxies({
           message: `RemoteProxyOps.deleteRemoteProxies: '${remoteProxy._id}'`,
           state,
         });
+        // an entity whose name is not allowed (created outside this module)
+        // cannot be addressed through the REST API: report it, do not try
+        validateRemoteProxyName(
+          remoteProxy._id.replace(`${REMOTE_PROXY_TYPE}/`, '')
+        );
         result.push(
           (await deleteConfigEntity({
             entityId: remoteProxy._id,
@@ -550,6 +699,7 @@ export async function deleteRemoteProxy({
   proxyId: string;
   state: State;
 }): Promise<RemoteProxySkeleton> {
+  validateRemoteProxyName(proxyId);
   try {
     const remoteProxy = await deleteConfigEntity({
       entityId: `${REMOTE_PROXY_TYPE}/${proxyId}`,

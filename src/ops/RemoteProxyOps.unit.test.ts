@@ -242,7 +242,7 @@ describe('RemoteProxyOps export and import', () => {
     expect(Object.keys(exported.remoteProxy)).toEqual(['a']);
   });
 
-  it('imports every valid proxy and reports the invalid one', async () => {
+  it('refuses the whole import when one proxy is invalid and writes nothing', async () => {
     await expect(
       RemoteProxyOps.importRemoteProxies({
         importData: {
@@ -255,10 +255,7 @@ describe('RemoteProxyOps export and import', () => {
         state,
       })
     ).rejects.toThrow('Error importing remote proxies');
-    expect(putConfigEntity.mock.calls.map((c) => c[0].entityId)).toEqual([
-      'external.idm/a',
-      'external.idm/b',
-    ]);
+    expect(putConfigEntity).not.toHaveBeenCalled();
   });
 });
 

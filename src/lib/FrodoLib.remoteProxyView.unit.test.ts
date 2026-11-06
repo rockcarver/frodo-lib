@@ -97,6 +97,22 @@ describe('createRemoteProxyView()', () => {
     );
   });
 
+  it.each(['a/b', '..', 'a?x=1', 'a%2Fb', 'a b', ''])(
+    'refuses the name %j when the view is created, before any request',
+    (name) => {
+      const frodo = instance();
+      expect(() => frodo.createRemoteProxyView(name)).toThrow('is not allowed');
+      expect(requests).toHaveLength(0);
+    }
+  );
+
+  it('creates a view for the names a tenant can have', () => {
+    const frodo = instance();
+    for (const name of ['receiving', 'volker-dev', 'Tenant_1', 'my.tenant']) {
+      expect(frodo.createRemoteProxyView(name).proxyId).toBe(name);
+    }
+  });
+
   it('holds the name of the proxy and the IDM operations, nothing else', () => {
     const view = instance().createRemoteProxyView('receiving');
     expect(Object.keys(view).sort()).toEqual(['idm', 'proxyId']);
