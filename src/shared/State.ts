@@ -69,6 +69,14 @@ export type AmCredentialProvider = (
  */
 export type TokenRefreshHandler = () => Promise<void>;
 
+/**
+ * Called when the server rejected (401) the credential that the state holds,
+ * before the refresh handler runs: forgets that credential, in memory and in the
+ * token cache, so that the refresh logs in again instead of handing out the same
+ * one. Set by `AuthenticateOps.ts` together with the refresh handler.
+ */
+export type RejectedCredentialHandler = () => Promise<void>;
+
 export type State = {
   /**
    * Get a clone of the full state as an object
@@ -186,6 +194,10 @@ export type State = {
   getDefaultCredential(): 'user' | 'svcacct' | 'amster' | undefined;
   setTokenRefreshHandler(handler: TokenRefreshHandler | undefined): void;
   getTokenRefreshHandler(): TokenRefreshHandler | undefined;
+  setRejectedCredentialHandler(
+    handler: RejectedCredentialHandler | undefined
+  ): void;
+  getRejectedCredentialHandler(): RejectedCredentialHandler | undefined;
   setBrowserLoginClientId(clientId: string): void;
   getBrowserLoginClientId(): string;
   setBrowserLoginScope(scope: string): void;
@@ -597,6 +609,14 @@ export default (initialState: StateInterface): State => {
     getTokenRefreshHandler() {
       return state.tokenRefreshHandler;
     },
+    setRejectedCredentialHandler(
+      handler: RejectedCredentialHandler | undefined
+    ) {
+      state.rejectedCredentialHandler = handler;
+    },
+    getRejectedCredentialHandler() {
+      return state.rejectedCredentialHandler;
+    },
     setBrowserLoginClientId(clientId: string) {
       state.browserLoginClientId = clientId;
     },
@@ -978,6 +998,7 @@ export interface StateInterface {
   activeCredentialSource?: CredentialType;
   privilegeEscalationHandler?: () => Promise<boolean>;
   tokenRefreshHandler?: TokenRefreshHandler;
+  rejectedCredentialHandler?: RejectedCredentialHandler;
   amCredentialProvider?: AmCredentialProvider;
   browserLoginClientId?: string;
   browserLoginScope?: string;

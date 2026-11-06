@@ -15,6 +15,7 @@ import { join, resolve } from 'path';
 import StateImpl from '../shared/State';
 import {
   deleteHostTokens,
+  evictToken,
   flush,
   getTokenCacheDir,
   hasFreshTokenEntry,
@@ -404,5 +405,58 @@ describe('token cache: one file per entry', () => {
     expect(
       await readToken({ tokenType: 'userSession', state: b })
     ).toMatchObject({ tokenId: 'for-b' });
+  });
+
+  test('18: evictToken removes an entry that holds the rejected token and leaves one that holds a newer token', async () => {
+    const cachePath = newCachePath();
+    const state = stateFor({ cachePath });
+    const expires = Date.now() + 600_000;
+    await saveToken({
+      tokenType: 'userSession',
+      token: session(expires),
+      state,
+    });
+
+    // another process has replaced it: the rejected token is not in the cache
+    expect(
+      evictToken({ tokenType: 'userSession', expires: expires - 1000, state })
+    ).toBe(false);
+    expect(entryFiles(cachePath)).toHaveLength(1);
+
+    expect(evictToken({ tokenType: 'userSession', expires, state })).toBe(true);
+    expect(entryFiles(cachePath)).toHaveLength(0);
+    // nothing left to remove
+    expect(evictToken({ tokenType: 'userSession', expires, state })).toBe(
+      false
+    );
+  });
+
+  test('19: evictToken does not touch the entry of another identity or another type', async () => {
+    const cachePath = newCachePath();
+    const a = stateFor({ cachePath, username: 'a' });
+    const b = stateFor({ cachePath, username: 'b' });
+    const expires = Date.now() + 600_000;
+    await saveToken({
+      tokenType: 'userSession',
+      token: session(expires),
+      state: a,
+    });
+    await saveToken({
+      tokenType: 'userSession',
+      token: session(expires),
+      state: b,
+    });
+    await saveToken({
+      tokenType: 'userBearer',
+      token: { access_token: 'x', expires } as any,
+      state: a,
+    });
+
+    expect(evictToken({ tokenType: 'userSession', expires, state: a })).toBe(
+      true
+    );
+    expect(entryFiles(cachePath)).toHaveLength(2);
+    expect(await hasToken({ tokenType: 'userSession', state: b })).toBe(true);
+    expect(await hasToken({ tokenType: 'userBearer', state: a })).toBe(true);
   });
 });
