@@ -4,6 +4,7 @@ import axios, {
   AxiosInstance,
   AxiosProxyConfig,
   AxiosRequestConfig,
+  InternalAxiosRequestConfig,
 } from 'axios';
 import axiosRetry from 'axios-retry';
 import { ProxyAgent, ProxyAgentOptions } from 'proxy-agent';
@@ -398,7 +399,8 @@ async function resolvePfBearerRequestCredential(
 function attachCredentialInterceptor(
   axiosInstance: AxiosInstance,
   resolve: () => Promise<AmCredentialOverride | null>,
-  state: State
+  state: State,
+  { replayRejected = true }: { replayRejected?: boolean } = {}
 ) {
   axiosInstance.interceptors.request.use(async (config) => {
     if (config.headers.has('Authorization') || config.headers.has('Cookie')) {
@@ -422,9 +424,102 @@ function attachCredentialInterceptor(
     }
     if (credential) {
       config.headers.set(credential.header, credential.value);
+      // what this request was sent with, to tell a credential that the server
+      // rejected from one that has been replaced since (see below)
+      (config as RequestWithCredential).frodoCredential = credential.value;
     }
     return config;
   });
+  if (replayRejected)
+    attachRejectedCredentialInterceptor(axiosInstance, resolve, state);
+}
+
+/** A request config that remembers the credential the library sent with it. */
+type RequestWithCredential = InternalAxiosRequestConfig & {
+  frodoCredential?: string;
+  frodoCredentialReplayed?: boolean;
+};
+
+/**
+ * A credential is judged by its expiry, but the server can end it earlier: the
+ * session was logged out by another process, an administrator ended it, the
+ * tenant restarted. Such a credential is only discovered when the server
+ * answers 401, and without this every later request would send it again until
+ * it expires.
+ *
+ * On a 401 for a request that the library sent with the credential of the
+ * state (never one the caller set), and when that is still the credential in the
+ * state (another request may have renewed it already), the credential is
+ * forgotten, in memory and in the token cache, and renewed through the refresh
+ * handler, which logs in again; the request is then sent once more with the new
+ * credential. A second 401 is the answer. At most one renewal happens per
+ * `CREDENTIAL_RENEWAL_MIN_INTERVAL_MS`: a credential that was renewed just now
+ * and is rejected again was not the problem. Requests that cannot be sent twice
+ * (a stream) and instances without a refresh path (auto-refresh off, browser
+ * login) keep the 401.
+ */
+const CREDENTIAL_RENEWAL_MIN_INTERVAL_MS = 30_000;
+const lastCredentialRenewal = new WeakMap<State, number>();
+/** The renewal that is running for an instance: requests that find out meanwhile wait for it. */
+const credentialRenewals = new WeakMap<State, Promise<void>>();
+
+function attachRejectedCredentialInterceptor(
+  axiosInstance: AxiosInstance,
+  resolve: () => Promise<AmCredentialOverride | null>,
+  state: State
+) {
+  axiosInstance.interceptors.response.use(
+    (response) => response,
+    async (error: AxiosError) => {
+      const config = error.config as RequestWithCredential | undefined;
+      const refresh = state.getTokenRefreshHandler();
+      const forget = state.getRejectedCredentialHandler();
+      if (
+        error.response?.status !== 401 ||
+        !config ||
+        config.frodoCredential === undefined ||
+        config.frodoCredentialReplayed ||
+        !refresh ||
+        !forget ||
+        typeof (config.data as { pipe?: unknown })?.pipe === 'function'
+      ) {
+        return Promise.reject(error);
+      }
+      try {
+        const renewing = credentialRenewals.get(state);
+        if (renewing) {
+          // another request found out first: wait for its new credential
+          await renewing;
+        } else {
+          const current = await resolve();
+          if (current?.value === config.frodoCredential) {
+            const last = lastCredentialRenewal.get(state);
+            if (
+              last !== undefined &&
+              Date.now() - last < CREDENTIAL_RENEWAL_MIN_INTERVAL_MS
+            ) {
+              return Promise.reject(error);
+            }
+            lastCredentialRenewal.set(state, Date.now());
+            const renewal = (async () => {
+              await forget();
+              await refresh();
+            })().finally(() => credentialRenewals.delete(state));
+            credentialRenewals.set(state, renewal);
+            await renewal;
+          }
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (renewalError) {
+        // the answer of the server is the more useful error
+        return Promise.reject(error);
+      }
+      config.headers?.delete?.('Authorization');
+      config.headers?.delete?.('Cookie');
+      config.frodoCredentialReplayed = true;
+      return axiosInstance(config);
+    }
+  );
 }
 
 /**
@@ -739,10 +834,13 @@ export function generateAmAuthApi({
   // parameter's own comment above for why some callers need no credential
   // at all.
   if (!anonymous) {
+    // a 401 from the authentication endpoints is the answer to a login, not a
+    // credential that went stale: it is never renewed and sent again
     attachCredentialInterceptor(
       request,
       () => resolveAmAuthRequestCredential(state),
-      state
+      state,
+      { replayRejected: false }
     );
   }
 

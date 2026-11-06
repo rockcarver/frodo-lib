@@ -66,6 +66,7 @@ import {
 import { resolveAvailableScope } from './RequiredScopesOps';
 import { getSessionInfo } from './SessionOps';
 import {
+  evictToken,
   getRecordedSubject,
   hasFreshTokenEntry,
   hasSaBearerToken,
@@ -81,6 +82,7 @@ import {
   saveToken,
   saveUserBearerToken,
   saveUserSessionToken,
+  type tokenType,
 } from './TokenCacheOps';
 
 export type Authenticate = {
@@ -1788,6 +1790,36 @@ export function hasFreshCredentials(state: State): boolean {
 }
 
 /**
+ * Forget the credential that the server rejected: the instance no longer counts
+ * as authenticated, and the cache entries that hold that very credential are
+ * removed (an entry that another process has replaced since stays, so that the
+ * next `getTokens()` finds the new one). Nothing else is touched.
+ * @param {State} state library state
+ */
+function forgetRejectedCredential(state: State): void {
+  authenticatedAs.delete(state);
+  if (!state.getUseTokenCache()) return;
+  const serviceAccount =
+    !!state.getServiceAccountId() && !!state.getServiceAccountJwk();
+  const rejected: [tokenType, number | undefined][] = [
+    ['userSession', state.getUserSessionTokenMeta()?.expires],
+    [
+      serviceAccount ? 'saBearer' : 'userBearer',
+      state.getBearerTokenMeta()?.expires,
+    ],
+    [
+      serviceAccount ? 'pfSaBearer' : 'pfUserBearer',
+      state.getPfBearerTokenMeta()?.expires,
+    ],
+  ];
+  for (const [type, expires] of rejected) {
+    if (Number.isFinite(expires)) {
+      evictToken({ tokenType: type, expires, state });
+    }
+  }
+}
+
+/**
  * Helper method to set, reset, or cancel timer to auto refresh tokens
  * @param {boolean} forceLoginAsUser true to force login as user even if a service account or Amster account is available (default: false)
  * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
@@ -2617,6 +2649,13 @@ export async function getTokens({
               });
             }
           : undefined
+      );
+      // When the server rejects the credential of this instance (a 401),
+      // api/BaseApi.ts has it forgotten before it asks for a refresh: the
+      // refresh must log in again, not hand out the same credential. Only
+      // where a refresh exists.
+      state.setRejectedCredentialHandler(
+        autoRefresh ? async () => forgetRejectedCredential(state) : undefined
       );
       // Item 1+21's escalation ladder: api/BaseApi.ts's credential
       // interceptor calls this when a pre-flight scope check

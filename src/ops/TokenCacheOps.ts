@@ -688,6 +688,41 @@ function getSubjectKey(tokenType: tokenType, state: State): string {
   }
 }
 
+/**
+ * Remove the cache entry of a token that the server rejected, but only when the
+ * entry still holds that very token (the same expiry): another process may have
+ * replaced it with a new one in the meantime, which must stay.
+ * @param {object} params parameters object
+ * @param {tokenType} params.tokenType token type
+ * @param {number} params.expires the expiry of the rejected token
+ * @param {State} params.state library state
+ * @returns {boolean} true if an entry was removed
+ */
+export function evictToken({
+  tokenType,
+  expires,
+  state,
+}: {
+  tokenType: tokenType;
+  expires: number;
+  state: State;
+}): boolean {
+  try {
+    const file = getEntryFile(tokenType, state);
+    const entry = readEntryFile(file);
+    if (!entry || entry.expires !== expires) return false;
+    debugMessage({
+      message: `TokenCacheOps.evictToken: removing the rejected ${tokenType} token`,
+      state,
+    });
+    return removeFile(file);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
+    // the entry cannot be named without the credential: nothing to remove
+    return false;
+  }
+}
+
 export async function readToken({
   tokenType,
   state,
