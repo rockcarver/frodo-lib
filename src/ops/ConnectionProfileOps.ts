@@ -1,18 +1,20 @@
 import fs from 'fs';
 import path from 'path';
+import { isDeepStrictEqual } from 'util';
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import Constants from '../shared/Constants';
 import { CredentialType, State } from '../shared/State';
-import { debugMessage } from '../utils/Console';
+import { debugMessage, printMessage } from '../utils/Console';
 import DataProtection, { secureMasterKeyFile } from '../utils/DataProtection';
 import {
+  createSecureFileExclusiveSync,
   isValidUrl,
-  saveJsonToFile,
   secureExistingFileSync,
-  writeSecureFileSync,
+  writeSecureFileAtomicSync,
 } from '../utils/ExportImportUtils';
+import { withFileLockSync } from '../utils/FileLockUtils';
 import { getFrodoHome } from '../utils/FrodoUtils';
-import { mergeDeep } from '../utils/JsonUtils';
+import { mergeDeep, stringify } from '../utils/JsonUtils';
 import { readServiceAccountScopes } from './cloud/EnvServiceAccountScopesOps';
 import {
   createServiceAccount,
@@ -351,6 +353,80 @@ export function getConnectionProfilesPath({ state }: { state: State }): string {
 }
 
 /**
+ * Change the connection profiles file without losing what other processes
+ * change at the same time. The file holds every saved connection, and with it
+ * the saved credentials, and several processes (command line runs, MCP
+ * servers, scripts) may save to it at once. The file is locked, read again
+ * inside the lock, changed by `update`, and written atomically, so no reader
+ * ever sees a partial file and no other process's change is overwritten.
+ *
+ * Nothing is written when `update` leaves the profiles as they were. A file
+ * that cannot be parsed is never overwritten: the error says so.
+ * @param {string} filename path of the connection profiles file
+ * @param {(profiles: ConnectionsFileInterface) => ConnectionsFileInterface | void} update changes the profiles that are in the file at this moment, in place or by returning the new profiles
+ * @param {(profiles: ConnectionsFileInterface) => string} serialize how the profiles are written (default: JSON, two spaces)
+ * @returns {boolean} true if the file was written, false if nothing changed
+ */
+function updateConnectionProfilesFile({
+  filename,
+  update,
+  serialize = (profiles) => JSON.stringify(profiles, null, 2),
+}: {
+  filename: string;
+  update: (
+    profiles: ConnectionsFileInterface
+  ) => ConnectionsFileInterface | void;
+  serialize?: (profiles: ConnectionsFileInterface) => string;
+}): boolean {
+  return withFileLockSync(filename, () => {
+    let current: ConnectionsFileInterface = {};
+    if (fs.existsSync(filename)) {
+      const data = fs.readFileSync(filename, 'utf8');
+      try {
+        current = data.trim() ? JSON.parse(data) : {};
+      } catch (error) {
+        throw new FrodoError(
+          `The connection profiles file ${filename} cannot be parsed. It has not been changed; fix or remove it.`,
+          error
+        );
+      }
+    }
+    // compare what would be on disk: the JSON forms, so that a value that JSON
+    // leaves out (undefined) does not count as a change
+    const before = JSON.parse(JSON.stringify(current));
+    const updated = (update(current) ?? current) as ConnectionsFileInterface;
+    if (isDeepStrictEqual(before, JSON.parse(JSON.stringify(updated)))) {
+      return false;
+    }
+    writeSecureFileAtomicSync(filename, serialize(updated));
+    return true;
+  });
+}
+
+/**
+ * Decrypt-compare before encrypting: encrypting is not deterministic, so a
+ * profile that is saved again with the same secret would otherwise change on
+ * every save.
+ */
+async function encryptUnlessUnchanged(
+  dataProtection: DataProtection,
+  existing: string | undefined,
+  value: unknown
+): Promise<string> {
+  if (existing) {
+    try {
+      if (isDeepStrictEqual(await dataProtection.decrypt(existing), value)) {
+        return existing;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      // not readable with this key: encrypt it again
+    }
+  }
+  return dataProtection.encrypt(value);
+}
+
+/**
  * Find connection profiles
  * @param {ConnectionsFileInterface} connectionProfiles connection profile object
  * @param {string} host host url, unique substring, or alias
@@ -411,8 +487,9 @@ function migrateFromLegacyProfile() {
     const legacyPath = path.join(getFrodoHome(), legacyProfileFilename);
     const newPath = path.join(getFrodoHome(), newProfileFilename);
     if (!fs.existsSync(legacyPath) && !fs.existsSync(newPath)) {
-      // no connections file (old or new), create empty new one
-      writeSecureFileSync(
+      // no connections file (old or new), create empty new one (exclusively:
+      // another process may have created it, with profiles in it, a moment ago)
+      createSecureFileExclusiveSync(
         newPath,
         JSON.stringify({}, null, fileOptions.indentation)
       );
@@ -463,7 +540,7 @@ export async function initConnectionProfiles({ state }: { state: State }) {
         message: `ConnectionProfileOps.initConnectionProfiles: file does not exist: ${filename}, creating...`,
         state,
       });
-      writeSecureFileSync(
+      createSecureFileExclusiveSync(
         filename,
         JSON.stringify({}, null, fileOptions.indentation)
       );
@@ -473,41 +550,55 @@ export async function initConnectionProfiles({ state }: { state: State }) {
       migrateFromLegacyProfile();
       const data = fs.readFileSync(filename, 'utf8');
       const connectionsData: ConnectionsFileInterface = JSON.parse(data);
-      let convert = false;
+      // The encrypting waits, and the file must not be locked while it does:
+      // work out what to convert first, then apply it to the file as it is
+      // inside the lock.
+      const legacyFields: [string, string][] = [
+        ['password', 'encodedPassword'],
+        ['logApiSecret', 'encodedLogApiSecret'],
+        ['svcacctJwk', 'encodedSvcacctJwk'],
+        ['amsterPrivateKey', 'encodedAmsterPrivateKey'],
+      ];
+      const conversions: {
+        conn: string;
+        legacy: string;
+        encodedField: string;
+        encoded: string;
+      }[] = [];
       for (const conn of Object.keys(connectionsData)) {
-        if (connectionsData[conn]['password']) {
-          convert = true;
-          connectionsData[conn].encodedPassword = await dataProtection.encrypt(
-            connectionsData[conn]['password']
-          );
-          delete connectionsData[conn]['password'];
-        }
-        if (connectionsData[conn]['logApiSecret']) {
-          convert = true;
-          connectionsData[conn].encodedLogApiSecret =
-            await dataProtection.encrypt(connectionsData[conn]['logApiSecret']);
-          delete connectionsData[conn]['logApiSecret'];
-        }
-        if (connectionsData[conn]['svcacctJwk']) {
-          convert = true;
-          connectionsData[conn].encodedSvcacctJwk =
-            await dataProtection.encrypt(connectionsData[conn]['svcacctJwk']);
-          delete connectionsData[conn]['svcacctJwk'];
-        }
-        if (connectionsData[conn]['amsterPrivateKey']) {
-          convert = true;
-          connectionsData[conn].encodedAmsterPrivateKey =
-            await dataProtection.encrypt(
-              connectionsData[conn]['amsterPrivateKey']
-            );
-          delete connectionsData[conn]['amsterPrivateKey'];
+        for (const [legacy, encodedField] of legacyFields) {
+          const value = (
+            connectionsData[conn] as unknown as Record<string, unknown>
+          )[legacy];
+          if (value) {
+            conversions.push({
+              conn,
+              legacy,
+              encodedField,
+              encoded: await dataProtection.encrypt(value),
+            });
+          }
         }
       }
-      if (convert) {
-        writeSecureFileSync(
+      if (conversions.length) {
+        updateConnectionProfilesFile({
           filename,
-          JSON.stringify(connectionsData, null, fileOptions.indentation)
-        );
+          serialize: (profiles) =>
+            JSON.stringify(profiles, null, fileOptions.indentation),
+          update: (profiles) => {
+            for (const { conn, legacy, encodedField, encoded } of conversions) {
+              // another process may have converted it already
+              const profile = profiles[conn] as unknown as Record<
+                string,
+                unknown
+              >;
+              if (profile?.[legacy]) {
+                profile[encodedField] = encoded;
+                delete profile[legacy];
+              }
+            }
+          },
+        });
       } else {
         // self-heal a file created by an older frodo version that didn't
         // restrict permissions, even though its content isn't changing
@@ -945,14 +1036,18 @@ export async function saveConnectionProfile({
     // user account
     if (state.getUsername()) profile.username = state.getUsername();
     if (state.getPassword())
-      profile.encodedPassword = await dataProtection.encrypt(
+      profile.encodedPassword = await encryptUnlessUnchanged(
+        dataProtection,
+        profile.encodedPassword,
         state.getPassword()
       );
 
     // log API
     if (state.getLogApiKey()) profile.logApiKey = state.getLogApiKey();
     if (state.getLogApiSecret())
-      profile.encodedLogApiSecret = await dataProtection.encrypt(
+      profile.encodedLogApiSecret = await encryptUnlessUnchanged(
+        dataProtection,
+        profile.encodedLogApiSecret,
         state.getLogApiSecret()
       );
 
@@ -969,7 +1064,9 @@ export async function saveConnectionProfile({
       }
     }
     if (state.getServiceAccountJwk()) {
-      profile.encodedSvcacctJwk = await dataProtection.encrypt(
+      profile.encodedSvcacctJwk = await encryptUnlessUnchanged(
+        dataProtection,
+        profile.encodedSvcacctJwk,
         state.getServiceAccountJwk()
       );
     }
@@ -993,7 +1090,9 @@ export async function saveConnectionProfile({
 
     // Amster account
     if (state.getAmsterPrivateKey()) {
-      profile.encodedAmsterPrivateKey = await dataProtection.encrypt(
+      profile.encodedAmsterPrivateKey = await encryptUnlessUnchanged(
+        dataProtection,
+        profile.encodedAmsterPrivateKey,
         state.getAmsterPrivateKey()
       );
     }
@@ -1046,27 +1145,30 @@ export async function saveConnectionProfile({
     // remove the helper key 'tenant'
     delete profile.tenant;
 
-    // update profiles
-    profiles[state.getHost()] = profile;
-
-    // sort profiles
-    const orderedProfiles = Object.keys(profiles)
-      .sort()
-      .reduce((obj, key) => {
-        obj[key] = profiles[key];
-        return obj;
-      }, {});
-
-    // save profiles
-    const saved = saveJsonToFile({
-      data: orderedProfiles,
-      filename,
-      includeMeta: false,
-      state,
-    });
-    if (!saved) {
-      // saveJsonToFile printed the write error and returned false; propagate
-      // the failure instead of reporting success
+    // Update this one profile in the file as it is now, not in the copy read
+    // at the start: other processes may have saved other profiles meanwhile.
+    try {
+      updateConnectionProfilesFile({
+        filename,
+        serialize: (profiles) => `${stringify(profiles)}\n`,
+        update: (current) => {
+          current[state.getHost()] = profile;
+          return Object.keys(current)
+            .sort()
+            .reduce((obj, key) => {
+              obj[key] = current[key];
+              return obj;
+            }, {});
+        },
+      });
+    } catch (error) {
+      // a file that cannot be parsed is reported; a failed write is not
+      if (error instanceof FrodoError) throw error;
+      printMessage({
+        message: `ERROR - can't save ${filename}`,
+        type: 'error',
+        state,
+      });
       debugMessage({
         message: `ConnectionProfileOps.saveConnectionProfile: end [false]`,
         state,
@@ -1106,38 +1208,41 @@ export function setConnectionProfileAlias({
   if (!fs.statSync(filename, { throwIfNoEntry: false })) {
     throw new FrodoError(`Connection profiles file ${filename} not found`);
   }
-  const data = fs.readFileSync(filename, 'utf8');
-  const connectionsData: ConnectionsFileInterface = JSON.parse(data);
-  const profiles = findConnectionProfiles({
-    connectionProfiles: connectionsData,
-    host,
-    state,
+  let tenant: string | undefined;
+  updateConnectionProfilesFile({
+    filename,
+    update: (connectionsData) => {
+      const profiles = findConnectionProfiles({
+        connectionProfiles: connectionsData,
+        host,
+        state,
+      });
+      if (profiles.length === 0) {
+        throw new FrodoError(`No connection profile found matching '${host}'`);
+      }
+      if (profiles.length > 1) {
+        throw new FrodoError(
+          `Multiple matching connection profiles found matching '${host}':\n  - ${profiles
+            .map((profile) => profile.tenant)
+            .join(
+              '\n  - '
+            )}\nSpecify a sub-string uniquely identifying a single connection profile host URL.`
+        );
+      }
+      tenant = profiles[0].tenant;
+      for (const existingTenant in connectionsData) {
+        if (
+          existingTenant !== tenant &&
+          connectionsData[existingTenant].alias === alias
+        ) {
+          throw new FrodoError(
+            `Alias '${alias}' is already in use by connection profile '${existingTenant}'. Please use a unique alias.`
+          );
+        }
+      }
+      connectionsData[tenant].alias = alias;
+    },
   });
-  if (profiles.length === 0) {
-    throw new FrodoError(`No connection profile found matching '${host}'`);
-  }
-  if (profiles.length > 1) {
-    throw new FrodoError(
-      `Multiple matching connection profiles found matching '${host}':\n  - ${profiles
-        .map((profile) => profile.tenant)
-        .join(
-          '\n  - '
-        )}\nSpecify a sub-string uniquely identifying a single connection profile host URL.`
-    );
-  }
-  const tenant = profiles[0].tenant;
-  for (const existingTenant in connectionsData) {
-    if (
-      existingTenant !== tenant &&
-      connectionsData[existingTenant].alias === alias
-    ) {
-      throw new FrodoError(
-        `Alias '${alias}' is already in use by connection profile '${existingTenant}'. Please use a unique alias.`
-      );
-    }
-  }
-  connectionsData[tenant].alias = alias;
-  writeSecureFileSync(filename, JSON.stringify(connectionsData, null, 2));
   debugMessage({
     message: `Alias '${alias}' has been set for connection profile '${tenant}'`,
     state,
@@ -1160,30 +1265,36 @@ export function deleteConnectionProfileAlias({
   if (!fs.statSync(filename, { throwIfNoEntry: false })) {
     throw new FrodoError(`Connection profiles file ${filename} not found`);
   }
-  const data = fs.readFileSync(filename, 'utf8');
-  const connectionsData: ConnectionsFileInterface = JSON.parse(data);
-  const profiles = findConnectionProfiles({
-    connectionProfiles: connectionsData,
-    host,
-    state,
+  let tenant: string | undefined;
+  let alias: string | undefined;
+  updateConnectionProfilesFile({
+    filename,
+    update: (connectionsData) => {
+      const profiles = findConnectionProfiles({
+        connectionProfiles: connectionsData,
+        host,
+        state,
+      });
+      if (profiles.length === 0) {
+        throw new FrodoError(`No connection profile found matching '${host}'`);
+      }
+      if (profiles.length > 1) {
+        throw new FrodoError(
+          `Multiple matching connection profiles found matching '${host}':\n - ${profiles
+            .map((profile) => profile.tenant)
+            .join('\n - ')}\nUse a more specific identifier or alias.`
+        );
+      }
+      tenant = profiles[0].tenant;
+      if (!connectionsData[tenant].alias) {
+        throw new FrodoError(
+          `No alias is set for connection profile '${tenant}'`
+        );
+      }
+      alias = connectionsData[tenant].alias;
+      delete connectionsData[tenant].alias;
+    },
   });
-  if (profiles.length === 0) {
-    throw new FrodoError(`No connection profile found matching '${host}'`);
-  }
-  if (profiles.length > 1) {
-    throw new FrodoError(
-      `Multiple matching connection profiles found matching '${host}':\n - ${profiles
-        .map((profile) => profile.tenant)
-        .join('\n - ')}\nUse a more specific identifier or alias.`
-    );
-  }
-  const tenant = profiles[0].tenant;
-  if (!connectionsData[tenant].alias) {
-    throw new FrodoError(`No alias is set for connection profile '${tenant}'`);
-  }
-  const alias = connectionsData[tenant].alias;
-  delete connectionsData[tenant].alias;
-  writeSecureFileSync(filename, JSON.stringify(connectionsData, null, 2));
   debugMessage({
     message: `Alias '${alias}' has been deleted for connection profile '${tenant}'.`,
     state,
@@ -1205,27 +1316,29 @@ export function deleteConnectionProfile({
   if (!fs.statSync(filename, { throwIfNoEntry: false })) {
     throw new FrodoError(`Connection profiles file ${filename} not found`);
   }
-  const data = fs.readFileSync(filename, 'utf8');
-  const connectionsData: ConnectionsFileInterface = JSON.parse(data);
-  const profiles = findConnectionProfiles({
-    connectionProfiles: connectionsData,
-    host,
-    state,
+  updateConnectionProfilesFile({
+    filename,
+    update: (connectionsData) => {
+      const profiles = findConnectionProfiles({
+        connectionProfiles: connectionsData,
+        host,
+        state,
+      });
+      if (profiles.length == 0) {
+        throw new FrodoError(`No connection profile found matching '${host}'`);
+      }
+      if (profiles.length > 1) {
+        throw new FrodoError(
+          `Multiple matching connection profiles found matching '${host}':\n  - ${profiles
+            .map((profile) => profile.tenant)
+            .join(
+              '\n  - '
+            )}\nSpecify a sub-string uniquely identifying a single connection profile host URL.`
+        );
+      }
+      delete connectionsData[profiles[0].tenant];
+    },
   });
-  if (profiles.length == 0) {
-    throw new FrodoError(`No connection profile found matching '${host}'`);
-  }
-  if (profiles.length > 1) {
-    throw new FrodoError(
-      `Multiple matching connection profiles found matching '${host}':\n  - ${profiles
-        .map((profile) => profile.tenant)
-        .join(
-          '\n  - '
-        )}\nSpecify a sub-string uniquely identifying a single connection profile host URL.`
-    );
-  }
-  delete connectionsData[profiles[0].tenant];
-  writeSecureFileSync(filename, JSON.stringify(connectionsData, null, 2));
 }
 
 /**
@@ -1290,20 +1403,15 @@ export async function addNewServiceAccount({
  * whatever this session authenticated as, via `state`), these are managed
  * directly by explicit parameters, independent of any active session.
  */
-function loadSingleProfileForHost({
+function resolveSingleTenant({
+  connectionsData,
   host,
   state,
 }: {
+  connectionsData: ConnectionsFileInterface;
   host: string;
   state: State;
-}): { connectionsData: ConnectionsFileInterface; tenant: string } {
-  const filename = getConnectionProfilesPath({ state });
-  if (!fs.statSync(filename, { throwIfNoEntry: false })) {
-    throw new FrodoError(`Connection profiles file ${filename} not found`);
-  }
-  const connectionsData: ConnectionsFileInterface = JSON.parse(
-    fs.readFileSync(filename, 'utf8')
-  );
+}): string {
   const profiles = findConnectionProfiles({
     connectionProfiles: connectionsData,
     host,
@@ -1321,7 +1429,27 @@ function loadSingleProfileForHost({
         )}\nSpecify a sub-string uniquely identifying a single connection profile host URL.`
     );
   }
-  return { connectionsData, tenant: profiles[0].tenant };
+  return profiles[0].tenant;
+}
+
+function loadSingleProfileForHost({
+  host,
+  state,
+}: {
+  host: string;
+  state: State;
+}): { connectionsData: ConnectionsFileInterface; tenant: string } {
+  const filename = getConnectionProfilesPath({ state });
+  if (!fs.statSync(filename, { throwIfNoEntry: false })) {
+    throw new FrodoError(`Connection profiles file ${filename} not found`);
+  }
+  const connectionsData: ConnectionsFileInterface = JSON.parse(
+    fs.readFileSync(filename, 'utf8')
+  );
+  return {
+    connectionsData,
+    tenant: resolveSingleTenant({ connectionsData, host, state }),
+  };
 }
 
 /**
@@ -1351,29 +1479,36 @@ export async function addAdditionalServiceAccount({
   svcacctScope?: string;
   state: State;
 }): Promise<void> {
-  const { connectionsData, tenant } = loadSingleProfileForHost({
-    host,
-    state,
-  });
-  const existing = connectionsData[tenant].additionalServiceAccounts ?? [];
-  if (existing.some((sa) => sa.name === name)) {
-    throw new FrodoError(
-      `An additional service account named '${name}' already exists on connection profile '${tenant}'. Remove it first, or choose a different name.`
-    );
+  const filename = getConnectionProfilesPath({ state });
+  if (!fs.statSync(filename, { throwIfNoEntry: false })) {
+    throw new FrodoError(`Connection profiles file ${filename} not found`);
   }
   const dataProtection = new DataProtection({
     pathToMasterKey: state.getMasterKeyPath(),
     state,
   });
-  existing.push({
-    name,
-    svcacctId,
-    encodedSvcacctJwk: await dataProtection.encrypt(svcacctJwk),
-    svcacctScope: svcacctScope ?? null,
+  // encrypt before the file is locked: the lock is never held while waiting
+  const encodedSvcacctJwk = await dataProtection.encrypt(svcacctJwk);
+  let tenant: string | undefined;
+  updateConnectionProfilesFile({
+    filename,
+    update: (connectionsData) => {
+      tenant = resolveSingleTenant({ connectionsData, host, state });
+      const existing = connectionsData[tenant].additionalServiceAccounts ?? [];
+      if (existing.some((sa) => sa.name === name)) {
+        throw new FrodoError(
+          `An additional service account named '${name}' already exists on connection profile '${tenant}'. Remove it first, or choose a different name.`
+        );
+      }
+      existing.push({
+        name,
+        svcacctId,
+        encodedSvcacctJwk,
+        svcacctScope: svcacctScope ?? null,
+      });
+      connectionsData[tenant].additionalServiceAccounts = existing;
+    },
   });
-  connectionsData[tenant].additionalServiceAccounts = existing;
-  const filename = getConnectionProfilesPath({ state });
-  writeSecureFileSync(filename, JSON.stringify(connectionsData, null, 2));
   debugMessage({
     message: `ConnectionProfileOps.addAdditionalServiceAccount: added '${name}' to connection profile '${tenant}'`,
     state,
@@ -1393,21 +1528,26 @@ export function removeAdditionalServiceAccount({
   name: string;
   state: State;
 }): void {
-  const { connectionsData, tenant } = loadSingleProfileForHost({
-    host,
-    state,
-  });
-  const existing = connectionsData[tenant].additionalServiceAccounts ?? [];
-  const index = existing.findIndex((sa) => sa.name === name);
-  if (index === -1) {
-    throw new FrodoError(
-      `No additional service account named '${name}' found on connection profile '${tenant}'.`
-    );
-  }
-  existing.splice(index, 1);
-  connectionsData[tenant].additionalServiceAccounts = existing;
   const filename = getConnectionProfilesPath({ state });
-  writeSecureFileSync(filename, JSON.stringify(connectionsData, null, 2));
+  if (!fs.statSync(filename, { throwIfNoEntry: false })) {
+    throw new FrodoError(`Connection profiles file ${filename} not found`);
+  }
+  let tenant: string | undefined;
+  updateConnectionProfilesFile({
+    filename,
+    update: (connectionsData) => {
+      tenant = resolveSingleTenant({ connectionsData, host, state });
+      const existing = connectionsData[tenant].additionalServiceAccounts ?? [];
+      const index = existing.findIndex((sa) => sa.name === name);
+      if (index === -1) {
+        throw new FrodoError(
+          `No additional service account named '${name}' found on connection profile '${tenant}'.`
+        );
+      }
+      existing.splice(index, 1);
+      connectionsData[tenant].additionalServiceAccounts = existing;
+    },
+  });
   debugMessage({
     message: `ConnectionProfileOps.removeAdditionalServiceAccount: removed '${name}' from connection profile '${tenant}'`,
     state,

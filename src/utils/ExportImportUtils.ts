@@ -675,6 +675,49 @@ export function writeSecureFileAtomicSync(
 }
 
 /**
+ * Create a file that holds a secret, with its whole content, only if it does
+ * not exist yet. Of several processes that try this at the same moment exactly
+ * one creates the file, and no process ever finds it empty or half written:
+ * the data goes to a temporary file that is then hard-linked to the target
+ * (the link fails when the target exists). A file system without hard links
+ * falls back to an exclusive create.
+ * @param {string} filename file name (absolute or relative path)
+ * @param {string} data data to write
+ * @returns {boolean} true if this call created the file, false if it already existed
+ */
+export function createSecureFileExclusiveSync(
+  filename: string,
+  data: string
+): boolean {
+  ensureSecureDirectoryForFile(filename);
+  const temporaryFilename = `${filename}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`;
+  try {
+    fs.writeFileSync(temporaryFilename, data, { mode: 0o600, flag: 'wx' });
+    try {
+      fs.linkSync(temporaryFilename, filename);
+      return true;
+    } catch (error) {
+      if (error.code === 'EEXIST') return false;
+      // no hard links here: create it exclusively instead
+      try {
+        fs.writeFileSync(filename, data, { mode: 0o600, flag: 'wx' });
+        return true;
+      } catch (createError) {
+        if (createError.code === 'EEXIST') return false;
+        throw createError;
+      }
+    }
+  } finally {
+    try {
+      fs.unlinkSync(temporaryFilename);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (unlinkError) {
+      // nothing left to remove
+    }
+  }
+}
+
+/**
  * Tighten the permissions of a credential file (and its containing
  * directory) that already exists and isn't being rewritten on this call
  * path, e.g. the master key or a connection profiles file that's only read,

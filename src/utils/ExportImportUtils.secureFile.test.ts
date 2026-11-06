@@ -23,6 +23,7 @@ import { join } from 'path';
 import { state } from '../index';
 import { initConnectionProfiles } from '../ops/ConnectionProfileOps';
 import {
+  createSecureFileExclusiveSync,
   ensureSecureDirectoryForFile,
   secureExistingFileSync,
   writeSecureFile,
@@ -187,6 +188,33 @@ describe('writeSecureFileAtomicSync', () => {
     expect(() => writeSecureFileAtomicSync(target, 'data')).toThrow();
     expect(fs.readdirSync(dir)).toEqual(['target']);
   });
+});
+
+describe('createSecureFileExclusiveSync', () => {
+  test('creates the file with its whole content and the parent directories, and reports that it did', () => {
+    const filename = join(baseTmp, 'create-exclusive', 'deep', 'masterkey.key');
+    expect(createSecureFileExclusiveSync(filename, 'key-material')).toBe(true);
+    expect(fs.readFileSync(filename, 'utf8')).toBe('key-material');
+  });
+
+  test('does not touch a file that exists, and reports that it did not create it', () => {
+    const dir = join(baseTmp, 'create-exclusive-existing');
+    const filename = join(dir, 'masterkey.key');
+    expect(createSecureFileExclusiveSync(filename, 'first')).toBe(true);
+    expect(createSecureFileExclusiveSync(filename, 'second')).toBe(false);
+    expect(fs.readFileSync(filename, 'utf8')).toBe('first');
+    // nothing is left behind but the file
+    expect(fs.readdirSync(dir)).toEqual(['masterkey.key']);
+  });
+
+  (isWindows ? test.skip : test)(
+    'creates the file owner-only (0600) on POSIX',
+    () => {
+      const filename = join(baseTmp, 'create-exclusive-mode', 'masterkey.key');
+      createSecureFileExclusiveSync(filename, 'key-material');
+      expect(mode(filename)).toBe(OWNER_ONLY_FILE);
+    }
+  );
 });
 
 describe('writeSecureFile (async)', () => {

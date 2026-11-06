@@ -1747,6 +1747,24 @@ function scheduleAutoRefresh(
 }
 
 /**
+ * Save the connection profile that was just used to log in. The login does not
+ * wait for it and does not fail with it, so a save that fails (the file is
+ * locked by another process for too long, or cannot be parsed) is reported in
+ * the debug output and never becomes an unhandled rejection.
+ * @param {State} state library state
+ */
+function saveConnectionProfileInBackground(state: State): void {
+  Promise.resolve(
+    saveConnectionProfile({ host: state.getHost(), state })
+  ).catch((error) => {
+    debugMessage({
+      message: `AuthenticateOps: connection profile not saved: ${error}`,
+      state,
+    });
+  });
+}
+
+/**
  * Helper to authenticate a user
  * @param usingConnectionProfile True if using connection profiles
  * @param {string[]} types Array of supported deployment types. The function will throw an error if an unsupported type is detected (default: ['classic', 'cloud', 'forgeops'])
@@ -1762,7 +1780,7 @@ async function authenticateUser(
   const token = await getUserSessionToken(stepHandler, state);
   if (token) state.setUserSessionTokenMeta(token);
   if (usingConnectionProfile && !token.from_cache) {
-    saveConnectionProfile({ host: state.getHost(), state });
+    saveConnectionProfileInBackground(state);
   }
   await determineDeploymentTypeAndDefaultRealmAndVersion(state);
 
@@ -2139,7 +2157,7 @@ export async function getTokens({
       state,
     });
     if (usingConnectionProfile) {
-      saveConnectionProfile({ host: state.getHost(), state });
+      saveConnectionProfileInBackground(state);
     }
     return withEscalation(tokens);
   }
@@ -2294,7 +2312,7 @@ export async function getTokens({
         }
 
         if (usingConnectionProfile && !token.from_cache) {
-          saveConnectionProfile({ host: state.getHost(), state });
+          saveConnectionProfileInBackground(state);
         }
         state.setUseBearerTokenForAmApis(true);
         state.setActiveCredentialSource('svcacct');
