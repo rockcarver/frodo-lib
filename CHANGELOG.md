@@ -10,6 +10,15 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-21] - 2026-11-06
+
+### Added
+- Introduced the building blocks for setting up a remote proxy between two tenants, enabling reusable components for remote proxy configuration. This feature supports the CLI's workflow for establishing remote proxies, providing necessary library functions (#916).
+- Added `frodo.idm.staticUserMapping`, a module for managing static user mappings within IDM authentication configurations. This addition allows for operations such as `readStaticUserMappings`, facilitating integration with CLI and scripts (#915).
+
+### Fixed
+- Improved remote proxy name validation by ensuring names are checked before any request is made. This fix prevents the creation of entities with invalid names that cannot be subsequently managed, and it flags tenant-bound secrets appropriately (#913).
+
 ## [v5.0.0-20] - 2026-11-05
 
 ### Added
@@ -2792,6 +2801,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-21]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-20...v5.0.0-21
 [v5.0.0-20]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-19...v5.0.0-20
 [v5.0.0-19]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-18...v5.0.0-19
 [v5.0.0-17]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-16...v5.0.0-17
