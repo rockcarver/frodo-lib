@@ -24,7 +24,19 @@ import { generateAmApi } from './BaseApi';
 let am: FakeAm;
 const PROTECTED = '/realm-config/';
 
+// The library keeps a credential that it obtained a moment ago when the server
+// answers 401 (IDM also answers 401 for a request that is not permitted). Most
+// of these tests are about a credential that was ended meanwhile, so they let
+// the time pass after the login.
+let clockOffset = 0;
+const passTime = (ms = 31_000) => {
+  clockOffset += ms;
+};
+
 beforeEach(async () => {
+  clockOffset = 0;
+  const realNow = Date.now.bind(Date);
+  jest.spyOn(Date, 'now').mockImplementation(() => realNow() + clockOffset);
   am = await startFakeAm();
 });
 
@@ -38,7 +50,14 @@ function userInstance({ autoRefresh = true } = {}) {
   frodo.state.setUseTokenCache(false);
   frodo.state.setUsername('someone');
   frodo.state.setPassword('password');
-  return { frodo, login: () => frodo.login.getTokens(false, autoRefresh) };
+  return {
+    frodo,
+    login: async () => {
+      const tokens = await frodo.login.getTokens(false, autoRefresh);
+      passTime();
+      return tokens;
+    },
+  };
 }
 
 /** A call that needs a credential: reads the journeys of the root realm. */
@@ -241,11 +260,29 @@ describe('a credential that the server rejected', () => {
     frodo.state.setServiceAccountId('sa-1');
     frodo.state.setServiceAccountJwk(await createJwkRsa());
     await frodo.login.getTokens();
+    passTime();
     expect(am.accessTokens()).toBe(1);
 
     am.revokeAll();
     await expect(readJourneys(frodo)).resolves.toEqual([]);
     expect(am.accessTokens()).toBe(2);
+  });
+
+  test('16: a credential that this instance obtained a moment ago is kept: the 401 is the answer', async () => {
+    // IDM answers 401 also for a request that is not permitted
+    const { frodo } = userInstance();
+    await frodo.login.getTokens();
+    am.alwaysReject();
+
+    await expect(readJourneys(frodo)).rejects.toThrow();
+    expect(am.logins()).toBe(1);
+    expect(am.count(PROTECTED)).toBe(1);
+
+    // once it has some age, the same answer ends the credential
+    passTime();
+    await expect(readJourneys(frodo)).rejects.toThrow();
+    expect(am.logins()).toBe(2);
+    expect(am.count(PROTECTED)).toBe(3);
   });
 });
 
@@ -277,6 +314,7 @@ describe('a credential that the server rejected, with the token cache on', () =>
     const cachePath = resolve(TMP_DIR, `${Math.random()}.TokenCache.json`);
     const frodo = cachedInstance(cachePath);
     await frodo.login.getTokens();
+    passTime();
     const before = fs.readdirSync(cachePath.replace('.json', ''));
     expect(before).toHaveLength(1);
 
@@ -292,6 +330,7 @@ describe('a credential that the server rejected, with the token cache on', () =>
     const cachePath = resolve(TMP_DIR, `${Math.random()}.TokenCache.json`);
     const first = cachedInstance(cachePath);
     await first.login.getTokens();
+    passTime();
     // a second process starts and takes the session from the cache
     const second = cachedInstance(cachePath);
     const tokens = await second.login.getTokens();
@@ -303,7 +342,8 @@ describe('a credential that the server rejected, with the token cache on', () =>
     await readJourneys(first);
     expect(am.logins()).toBe(2);
     // the second one is rejected with the old session, which is no longer in
-    // the cache, and takes the new one from there
+    // the cache, and takes the new one from there. It got that session from the
+    // cache, not from a login of its own, so it is replaced at once.
     await expect(readJourneys(second)).resolves.toEqual([]);
     expect(am.logins()).toBe(2);
   });
@@ -317,6 +357,7 @@ describe('a credential that the server rejected, with the token cache on', () =>
     frodo.state.setServiceAccountId('sa-1');
     frodo.state.setServiceAccountJwk(await createJwkRsa());
     await frodo.login.getTokens();
+    passTime();
     expect(am.accessTokens()).toBe(1);
 
     am.revokeAll();
@@ -331,6 +372,7 @@ describe('a credential that the server rejected, with the token cache on', () =>
     const cachePath = resolve(TMP_DIR, `${Math.random()}.TokenCache.json`);
     const frodo = cachedInstance(cachePath);
     await frodo.login.getTokens();
+    passTime();
     am.revokeAll();
     await readJourneys(frodo);
     const tokens = await frodo.login.getTokens();

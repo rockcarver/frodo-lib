@@ -454,14 +454,16 @@ type RequestWithCredential = InternalAxiosRequestConfig & {
  * handler, which logs in again; the request is then sent once more with the new
  * credential. A second 401 is the answer. At most one renewal happens per
  * `CREDENTIAL_RENEWAL_MIN_INTERVAL_MS`: a credential that was renewed just now
- * and is rejected again was not the problem. Requests that cannot be sent twice
+ * and is rejected again was not the problem. The same goes for a credential
+ * that this instance obtained from the server just now: IDM also answers 401
+ * for a request that is not permitted, and the credential of a login that
+ * happened seconds ago has not been ended by anyone. Requests that cannot be sent twice
  * (a stream) and instances without a refresh path (auto-refresh off, browser
  * login) keep the 401.
  */
-const CREDENTIAL_RENEWAL_MIN_INTERVAL_MS = 30_000;
 const lastCredentialRenewal = new WeakMap<State, number>();
-/** The renewal that is running for an instance: requests that find out meanwhile wait for it. */
-const credentialRenewals = new WeakMap<State, Promise<void>>();
+/** The renewal that is running for an instance: requests that find out meanwhile wait for it. It resolves to false when the credential was kept. */
+const credentialRenewals = new WeakMap<State, Promise<boolean>>();
 
 function attachRejectedCredentialInterceptor(
   axiosInstance: AxiosInstance,
@@ -489,24 +491,25 @@ function attachRejectedCredentialInterceptor(
         const renewing = credentialRenewals.get(state);
         if (renewing) {
           // another request found out first: wait for its new credential
-          await renewing;
+          if (!(await renewing)) return Promise.reject(error);
         } else {
           const current = await resolve();
           if (current?.value === config.frodoCredential) {
             const last = lastCredentialRenewal.get(state);
             if (
               last !== undefined &&
-              Date.now() - last < CREDENTIAL_RENEWAL_MIN_INTERVAL_MS
+              Date.now() - last < Constants.CREDENTIAL_RENEWAL_MIN_INTERVAL_MS
             ) {
               return Promise.reject(error);
             }
-            lastCredentialRenewal.set(state, Date.now());
             const renewal = (async () => {
-              await forget();
+              if ((await forget()) === false) return false;
+              lastCredentialRenewal.set(state, Date.now());
               await refresh();
+              return true;
             })().finally(() => credentialRenewals.delete(state));
             credentialRenewals.set(state, renewal);
-            await renewal;
+            if (!(await renewal)) return Promise.reject(error);
           }
         }
         // eslint-disable-next-line @typescript-eslint/no-unused-vars

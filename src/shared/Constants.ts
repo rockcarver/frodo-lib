@@ -21,6 +21,7 @@ export type Constants = {
   AVAILABLE_SCOPES: Record<string, string>;
   CLOUD_BROWSER_MODE_AVAILABLE_SCOPES: string[];
   TOKEN_FRESHNESS_BUFFER_MS: number;
+  CREDENTIAL_RENEWAL_MIN_INTERVAL_MS: number;
   RETRY_NOTHING_KEY: string;
   RETRY_EVERYTHING_KEY: string;
   RETRY_NETWORK_KEY: string;
@@ -153,6 +154,11 @@ const CLOUD_BROWSER_MODE_AVAILABLE_SCOPES = [
 // here so changing it can't mean updating one file and forgetting the other.
 const TOKEN_FRESHNESS_BUFFER_MS = 30000;
 
+// How soon a credential may be replaced again after it was obtained: the server
+// answers 401 also when a request is not permitted, and a credential that was
+// issued a moment ago is not the problem (see `BaseApi.ts`).
+const CREDENTIAL_RENEWAL_MIN_INTERVAL_MS = 30000;
+
 const RETRY_EVERYTHING_KEY = 'everything';
 const RETRY_NETWORK_KEY = 'network';
 const RETRY_NOTHING_KEY = 'nothing';
@@ -182,6 +188,7 @@ export default {
   AVAILABLE_SCOPES,
   CLOUD_BROWSER_MODE_AVAILABLE_SCOPES,
   TOKEN_FRESHNESS_BUFFER_MS,
+  CREDENTIAL_RENEWAL_MIN_INTERVAL_MS,
   RETRY_NOTHING_KEY,
   RETRY_EVERYTHING_KEY,
   RETRY_NETWORK_KEY,

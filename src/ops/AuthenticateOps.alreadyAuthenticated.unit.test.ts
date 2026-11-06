@@ -221,6 +221,25 @@ describe('getTokens() on an instance that is already authenticated', () => {
     expect(am.logins()).toBe(1);
   });
 
+  test('10b: a credential that cannot be read is reported by the login, not before it', async () => {
+    const frodo = FrodoLib({ host: am.host, deploymentType: 'cloud' });
+    frodo.state.setUseTokenCache(false);
+    for (const [name, value] of [
+      ['FRODO_SA_JWK', 'not JSON'],
+      ['FRODO_AMSTER_PRIVATE_KEY', 'not a key'],
+    ]) {
+      process.env[name] = value;
+      try {
+        await expect(frodo.login.getTokens()).rejects.toThrow(
+          'Error getting tokens'
+        );
+      } finally {
+        delete process.env[name];
+      }
+    }
+    expect(am.requests.length).toBe(0);
+  });
+
   test('11: a caller that waited for another one gets the result, and a failure reaches every waiter', async () => {
     const frodo = FrodoLib({ host: am.host, deploymentType: 'classic' });
     frodo.state.setUseTokenCache(false);
@@ -431,5 +450,23 @@ describe('what identifies an authentication', () => {
   test('5: the identity does not contain the credentials', () => {
     expect(identityOf()).not.toContain('password');
     expect(identityOf()).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  test('6: a credential that cannot be read gives no identity', () => {
+    const bare = () =>
+      StateImpl({ host: 'https://openam-identity.example.com/am' });
+    for (const [name, value] of [
+      ['FRODO_SA_JWK', 'not JSON'],
+      ['FRODO_AMSTER_PRIVATE_KEY', 'not a key'],
+    ]) {
+      process.env[name] = value;
+      try {
+        expect(identityOf(bare())).toBeUndefined();
+      } finally {
+        delete process.env[name];
+      }
+    }
+    // and the same state gives one as soon as the credential is readable
+    expect(identityOf(bare())).toMatch(/^[0-9a-f]{64}$/);
   });
 });

@@ -73,9 +73,12 @@ export type TokenRefreshHandler = () => Promise<void>;
  * Called when the server rejected (401) the credential that the state holds,
  * before the refresh handler runs: forgets that credential, in memory and in the
  * token cache, so that the refresh logs in again instead of handing out the same
- * one. Set by `AuthenticateOps.ts` together with the refresh handler.
+ * one. Set by `AuthenticateOps.ts` together with the refresh handler. Resolves
+ * to `false` when the credential is kept: it was issued by this instance a
+ * moment ago, so the 401 is more likely a refusal of the request than a
+ * rejection of the credential.
  */
-export type RejectedCredentialHandler = () => Promise<void>;
+export type RejectedCredentialHandler = () => Promise<boolean | void>;
 
 export type State = {
   /**
