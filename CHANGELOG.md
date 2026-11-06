@@ -10,6 +10,16 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-22] - 2026-11-06
+
+### Changed
+- `getTokens()` now returns tokens for an already authenticated instance without requiring a new login. This change optimizes performance by avoiding unnecessary logins when the token cache is disabled (#920).
+- Connection profiles are now written under a lock, and the master key is created exclusively, improving concurrency safety (#919).
+- The token cache is now stored as one file per entry, written atomically, and never written on a cache hit. This change enhances concurrency handling and prevents data corruption (#918).
+
+### Fixed
+- Replaced a credential that the server rejected and resend the request. This fix addresses issues where credentials were prematurely invalidated by server actions such as session termination or tenant restarts (#921).
+
 ## [v5.0.0-21] - 2026-11-06
 
 ### Added
@@ -2801,6 +2811,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-22]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-21...v5.0.0-22
 [v5.0.0-21]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-20...v5.0.0-21
 [v5.0.0-20]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-19...v5.0.0-20
 [v5.0.0-19]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-18...v5.0.0-19
