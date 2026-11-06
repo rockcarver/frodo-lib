@@ -361,7 +361,11 @@ export default (initialState: StateInterface): State => {
   const state: StateInterface = { ...globalState, ...initialState };
   return {
     getState(): StateInterface {
-      return cloneDeep(state);
+      // Drop the auto-refresh timer: Node Timeouts are circular and make
+      // cloneDeep/JSON.stringify throw after login (issue #910). Callers that
+      // spread or serialize state for request context need a plain snapshot.
+      const { autoRefreshTimer: _autoRefreshTimer, ...serializable } = state;
+      return cloneDeep(serializable);
     },
 
     setHost(host: string) {
