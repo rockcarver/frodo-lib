@@ -25,7 +25,6 @@ import {
 } from './Base64Utils';
 import {
   debugMessage,
-  printMessage,
   updateProgressIndicator,
   verboseMessage,
 } from './Console';
@@ -56,6 +55,7 @@ export type ExportImport = {
    * @param {string} filename file name
    * @param {boolean} includeMeta true to include metadata, false otherwise. Default: true
    * @param {boolean} keepModifiedProperties true to keep modified properties in the json, otherwise delete them. Default: false
+   * @throws {FrodoError} If the directory cannot be created or the file cannot be written. Names the file and carries the original error.
    */
   saveToFile(
     type: string,
@@ -72,7 +72,8 @@ export type ExportImport = {
    * @param {boolean} includeMeta true to include metadata, false otherwise. Default: true
    * @param {boolean} keepRev keep the _rev key from objects. Default: false
    * @param {boolean} keepModifiedProperties true to keep modified properties in the json, otherwise delete them. Default: false
-   * @return {boolean} true if successful, false otherwise
+   * @returns {void}
+   * @throws {FrodoError} If the directory cannot be created or the file cannot be written. Names the file and carries the original error.
    */
   saveJsonToFile(
     data: object,
@@ -80,14 +81,15 @@ export type ExportImport = {
     includeMeta?: boolean,
     keepRev?: boolean,
     keepModifiedProperties?: boolean
-  ): boolean;
+  ): void;
   /**
    * Save text data to file
    * @param data text data
    * @param filename file name
-   * @return true if successful, false otherwise
+   * @returns {void}
+   * @throws {FrodoError} If the directory cannot be created or the file cannot be written. Names the file and carries the original error.
    */
-  saveTextToFile(data: string, filename: string): boolean;
+  saveTextToFile(data: string, filename: string): void;
   /**
    * Append text data to file
    * @param {String} data text data
@@ -213,7 +215,7 @@ export default (state: State): ExportImport => {
       includeMeta = true,
       keepRev = false,
       keepModifiedProperties = false
-    ): boolean {
+    ): void {
       return saveJsonToFile({
         data,
         filename,
@@ -223,7 +225,7 @@ export default (state: State): ExportImport => {
         state,
       });
     },
-    saveTextToFile(data: string, filename: string): boolean {
+    saveTextToFile(data: string, filename: string): void {
       return saveTextToFile({ data, filename, state });
     },
     appendTextToFile(data: string, filename: string) {
@@ -412,6 +414,7 @@ export function getFilePath({
  * @param {string} filename file name
  * @param {boolean} includeMeta true to include metadata, false otherwise. Default: true
  * @param {boolean} keepModifiedProperties true to keep modified properties in the json, otherwise delete them. Default: false
+ * @throws {FrodoError} If the directory cannot be created or the file cannot be written. Names the file and carries the original error.
  */
 export function saveToFile({
   type,
@@ -472,7 +475,8 @@ function isExportMetaData(value: unknown): boolean {
  * @param {boolean} includeMeta true to include metadata, false otherwise. Default: true
  * @param {boolean} keepRev Keep the _rev key from objects. Default: false
  * @param {boolean} keepModifiedProperties true to keep modified properties in the json, otherwise delete them. Default: false
- * @return {boolean} true if successful, false otherwise
+ * @returns {void}
+ * @throws {FrodoError} If the directory cannot be created or the file cannot be written. Names the file and carries the original error.
  */
 export function saveJsonToFile({
   data,
@@ -488,7 +492,7 @@ export function saveJsonToFile({
   keepRev?: boolean;
   keepModifiedProperties?: boolean;
   state: State;
-}): boolean {
+}): void {
   const exportData = data;
   if (includeMeta && !exportData['meta'])
     exportData['meta'] = getMetadata({ state });
@@ -520,7 +524,7 @@ export function saveJsonToFile({
   if (keysToDelete.length) {
     deleteDeepByKeys(exportData, keysToDelete, true);
   }
-  return saveTextToFile({
+  saveTextToFile({
     data: stringify(exportData),
     filename,
     state,
@@ -742,31 +746,24 @@ export function secureExistingFileSync(filename: string): void {
  * Save text data to file
  * @param data text data
  * @param filename file name
- * @return true if successful, false otherwise
+ * @returns {void}
+ * @throws {FrodoError} If the directory cannot be created or the file cannot be written. Names the file and carries the original error.
  */
 export function saveTextToFile({
   data,
   filename,
-  state,
 }: {
   data: string;
   filename: string;
   state: State;
-}): boolean {
+}): void {
   try {
     // create the directory portion of the path if it doesn't exist so bare
     // library consumers don't fail with ENOENT when they never called init*
     ensureDirectoryForFile(filename);
     fs.writeFileSync(filename, data + (data.endsWith('\n') ? '' : '\n'));
-    return true;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
-    printMessage({
-      message: `ERROR - can't save ${filename}`,
-      type: 'error',
-      state,
-    });
-    return false;
+    throw new FrodoError(`Error saving ${filename}`, error);
   }
 }
 

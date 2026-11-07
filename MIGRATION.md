@@ -30,6 +30,13 @@ releases missed):
 
 **Behavior changes**:
 
+- `frodo.utils.saveTextToFile` and `frodo.utils.saveJsonToFile`
+  (`src/utils/ExportImportUtils.ts`) now return `void` on success instead of
+  `true`. Directory-creation and file-write failures throw a `FrodoError`
+  naming the file and carrying the original error, rather than printing an
+  error and returning `false`. Replace boolean-result checks with `try`/`catch`;
+  callers are responsible for reporting or collecting the failure.
+  `frodo.utils.saveToFile` propagates the same error.
 - `frodo.authn.journey.importJourney`, `importJourneys` and
   `frodo.config.importFullConfiguration` now validate journeys before writing
   them. Structural errors (missing node definition, node ID mismatch, missing

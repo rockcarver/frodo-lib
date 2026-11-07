@@ -8437,7 +8437,7 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "ExportImport",
     methodName: "saveJsonToFile",
-    signature: "saveJsonToFile( data: object, filename: string, includeMeta?: boolean, keepRev?: boolean, keepModifiedProperties?: boolean ): boolean",
+    signature: "saveJsonToFile( data: object, filename: string, includeMeta?: boolean, keepRev?: boolean, keepModifiedProperties?: boolean ): void",
     description: "Save JSON object to file",
     params: [
       { name: "data", type: "Object", description: "data object", required: true },
@@ -8446,18 +8446,18 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "keepRev", type: "boolean", description: "keep the _rev key from objects. Default: false", required: false },
       { name: "keepModifiedProperties", type: "boolean", description: "true to keep modified properties in the json, otherwise delete them. Default: false", required: false },
     ],
-    returns: "{boolean} true if successful, false otherwise",
+    returns: "{void}",
   },
   {
     typeName: "ExportImport",
     methodName: "saveTextToFile",
-    signature: "saveTextToFile(data: string, filename: string): boolean",
+    signature: "saveTextToFile(data: string, filename: string): void",
     description: "Save text data to file",
     params: [
       { name: "data", type: "", description: "text data", required: true },
       { name: "filename", type: "", description: "file name", required: true },
     ],
-    returns: "true if successful, false otherwise",
+    returns: "{void}",
   },
   {
     typeName: "ExportImport",

@@ -12,12 +12,13 @@
 import fs from 'fs';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
-import { state } from '../index';
+import { frodo, state } from '../index';
 import {
   deleteConnectionProfile,
   saveConnectionProfile,
   setConnectionProfileAlias,
 } from '../ops/ConnectionProfileOps';
+import { FrodoError } from '../ops/FrodoError';
 import { saveUserSessionToken } from '../ops/TokenCacheOps';
 import {
   ensureDirectoryForFile,
@@ -52,17 +53,53 @@ describe('saveTextToFile (shared chokepoint)', () => {
       filename,
       state,
     });
-    expect(result).toBe(true);
+    expect(result).toBeUndefined();
     expect(fs.readFileSync(filename, 'utf8')).toBe('hello world\n');
   });
 
-  test('returns false (no throw) when the directory cannot be created', () => {
+  test('throws a FrodoError naming the file when the directory cannot be created', () => {
     // use a path under a FILE to force mkdir to fail
     const blockingFile = join(baseTmp, 'blocking-file');
     fs.writeFileSync(blockingFile, 'not a directory');
     const filename = join(blockingFile, 'sub', 'out.txt');
-    expect(() => saveTextToFile({ data: 'x', filename, state })).not.toThrow();
+    const save = () => saveTextToFile({ data: 'x', filename, state });
+    expect(save).toThrow(FrodoError);
+    expect(save).toThrow(
+      expect.objectContaining({
+        message: `Error saving ${filename}`,
+        originalErrors: [
+          expect.objectContaining({
+            syscall: 'mkdir',
+          }),
+        ],
+      })
+    );
     expect(fs.existsSync(filename)).toBe(false);
+  });
+
+  test('throws a FrodoError with the write error as its cause', () => {
+    const filename = join(baseTmp, 'write-target-directory');
+    fs.mkdirSync(filename, { recursive: true });
+    const save = () => saveTextToFile({ data: 'x', filename, state });
+    expect(save).toThrow(FrodoError);
+    expect(save).toThrow(
+      expect.objectContaining({
+        message: `Error saving ${filename}`,
+        originalErrors: [
+          expect.objectContaining({
+            code: expect.any(String),
+          }),
+        ],
+      })
+    );
+  });
+
+  test('does not add another newline to text that already ends with one', () => {
+    const filename = join(baseTmp, 'newline.txt');
+    expect(
+      saveTextToFile({ data: 'hello\n', filename, state })
+    ).toBeUndefined();
+    expect(fs.readFileSync(filename, 'utf8')).toBe('hello\n');
   });
 });
 
@@ -75,7 +112,7 @@ describe('saveJsonToFile', () => {
       includeMeta: false,
       state,
     });
-    expect(result).toBe(true);
+    expect(result).toBeUndefined();
     expect(JSON.parse(fs.readFileSync(filename, 'utf8'))).toEqual({
       key: 'value',
     });
@@ -168,6 +205,40 @@ describe('saveJsonToFile', () => {
       expect(written.meta.exportTool).toBeTruthy();
       expect(written.meta.exportDate).toBeTruthy();
     });
+  });
+});
+
+describe('writer error propagation', () => {
+  test.each([
+    [
+      'saveJsonToFile',
+      (filename: string) =>
+        saveJsonToFile({
+          data: { key: 'value' },
+          filename,
+          includeMeta: false,
+          state,
+        }),
+    ],
+    [
+      'frodo.utils.saveTextToFile',
+      (filename: string) => frodo.utils.saveTextToFile('text', filename),
+    ],
+    [
+      'frodo.utils.saveJsonToFile',
+      (filename: string) =>
+        frodo.utils.saveJsonToFile({ key: 'value' }, filename, false),
+    ],
+    [
+      'frodo.utils.saveToFile',
+      (filename: string) =>
+        frodo.utils.saveToFile('items', { id: 'item' }, 'id', filename, false),
+    ],
+  ])('%s propagates file write failures', (_name, save) => {
+    const filename = join(baseTmp, 'propagation-target-directory');
+    fs.mkdirSync(filename, { recursive: true });
+    expect(() => save(filename)).toThrow(FrodoError);
+    expect(() => save(filename)).toThrow(`Error saving ${filename}`);
   });
 });
 
