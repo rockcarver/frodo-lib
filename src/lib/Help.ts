@@ -5192,7 +5192,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     params: [
       { name: "globalConfig", type: "boolean", description: "true if the global service is the target of the operation, false otherwise. Default: false.", required: false },
     ],
-    returns: "",
+    returns: "Promise resolving to an array of deleted services",
   },
   {
     typeName: "Service",

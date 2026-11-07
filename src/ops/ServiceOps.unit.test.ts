@@ -35,6 +35,8 @@ jest.unstable_mockModule('../utils/ForgeRockUtils', () => ({
 }));
 
 const ServiceOps = await import('./ServiceOps');
+const { FrodoError } = await import('./FrodoError');
+const { printMessage } = await import('../utils/Console');
 
 const state = {
   getRealm: () => 'alpha',
@@ -245,6 +247,197 @@ describe('ServiceOps unit coverage for AM service management', () => {
       expect.objectContaining({ _id: 'two' }),
     ]);
   });
+
+  test('deleteFullServices reports successful deletes when another service fails', async () => {
+    getListOfServicesMock.mockResolvedValue({
+      result: ['one', 'two', 'three'].map((_id) => makeService({ _id })),
+    });
+    const failure = new Error('Delete failed');
+    deleteServiceMock.mockImplementation(async ({ serviceId }) => {
+      if (serviceId === 'two') throw failure;
+      return makeService({ _id: serviceId });
+    });
+
+    await expect(
+      ServiceOps.deleteFullServices({ globalConfig: false, state })
+    ).rejects.toMatchObject({
+      name: 'FrodoError',
+      message: expect.stringContaining('two'),
+      originalErrors: [
+        expect.objectContaining({
+          originalErrors: [failure],
+        }),
+      ],
+    });
+    expect(
+      deleteServiceMock.mock.calls.map(([args]) => args.serviceId)
+    ).toEqual(['one', 'two', 'three']);
+    for (const serviceId of ['one', 'three']) {
+      expect(printMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: `Deleted service '${serviceId}'.`,
+          state,
+        })
+      );
+    }
+  });
+
+  test.each(['getFullServices', 'deleteFullServices'] as const)(
+    '%s waits for every service and names all failures',
+    async (method) => {
+      getListOfServicesMock.mockResolvedValue({
+        result: ['one', 'two', 'three'].map((_id) => makeService({ _id })),
+      });
+      const failures = {
+        one: new Error('First failure'),
+        three: new Error('Last failure'),
+      };
+      const completed: string[] = [];
+      const operationMock =
+        method === 'getFullServices' ? getServiceMock : deleteServiceMock;
+      operationMock.mockImplementation(async ({ serviceId }) => {
+        if (serviceId === 'two') {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          completed.push(serviceId);
+          return makeService({ _id: serviceId });
+        }
+        throw failures[serviceId];
+      });
+
+      await expect(
+        ServiceOps[method]({ globalConfig: true, state })
+      ).rejects.toMatchObject({
+        name: 'FrodoError',
+        message: expect.stringMatching(/one.*three|three.*one/),
+        originalErrors: expect.arrayContaining([
+          expect.objectContaining({ message: expect.stringContaining('one') }),
+          expect.objectContaining({
+            message: expect.stringContaining('three'),
+          }),
+        ]),
+      });
+      expect(operationMock).toHaveBeenCalledTimes(3);
+      expect(completed).toEqual(['two']);
+    }
+  );
+
+  test.each(['getFullServices', 'exportServices'] as const)(
+    '%s rejects rather than returning an incomplete export on a server error',
+    async (method) => {
+      getListOfServicesMock.mockResolvedValue({
+        result: [makeService({ _id: 'broken' })],
+      });
+      const failure = Object.assign(new Error('Server error'), {
+        response: { status: 500, data: { message: 'Server error' } },
+      });
+      getServiceMock.mockRejectedValue(failure);
+
+      const error = await ServiceOps[method]({
+        globalConfig: false,
+        state,
+      }).catch((error) => error);
+      expect(error).toBeInstanceOf(FrodoError);
+      expect(error.getCombinedMessage()).toContain('broken');
+      expect(error.getCombinedMessage()).toContain('Server error');
+    }
+  );
+
+  test.each([
+    ['getFullServices', getServiceMock],
+    ['getFullServices', getServiceDescendentsMock],
+    ['deleteFullServices', deleteServiceMock],
+    ['deleteFullServices', getServiceDescendentsMock],
+  ] as const)(
+    '%s skips only unavailable services, including descendant failures',
+    async (method, operationMock) => {
+      getListOfServicesMock.mockResolvedValue({
+        result: ['unavailable', 'available'].map((_id) => makeService({ _id })),
+      });
+      operationMock.mockImplementation(async ({ serviceId }) => {
+        if (serviceId === 'unavailable') {
+          throw Object.assign(new Error('Unavailable'), {
+            response: {
+              status: 403,
+              data: {
+                message:
+                  'This operation is not available in PingOne Advanced Identity Cloud.',
+              },
+            },
+          });
+        }
+        return operationMock === getServiceDescendentsMock
+          ? []
+          : makeService({ _id: serviceId });
+      });
+
+      await expect(
+        ServiceOps[method]({ globalConfig: false, state })
+      ).resolves.toEqual([expect.objectContaining({ _id: 'available' })]);
+      expect(printMessage).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'error' })
+      );
+    }
+  );
+
+  test.each(['getFullServices', 'deleteFullServices'] as const)(
+    '%s does not skip an ordinary permission error',
+    async (method) => {
+      getListOfServicesMock.mockResolvedValue({
+        result: [makeService({ _id: 'forbidden' })],
+      });
+      getServiceDescendentsMock.mockRejectedValue(
+        Object.assign(new Error('Forbidden'), {
+          response: { status: 403, data: { message: 'Permission denied' } },
+        })
+      );
+
+      await expect(
+        ServiceOps[method]({ globalConfig: false, state })
+      ).rejects.toMatchObject({
+        name: 'FrodoError',
+        message: expect.stringContaining('forbidden'),
+      });
+    }
+  );
+
+  test.each([
+    [getServiceMock, getServiceDescendentsMock],
+    [getServiceDescendentsMock, getServiceMock],
+  ])(
+    'getFullServices does not let an unavailable read hide a concurrent server error',
+    async (unavailableMock, failingMock) => {
+      getListOfServicesMock.mockResolvedValue({
+        result: [makeService({ _id: 'mixed' })],
+      });
+      unavailableMock.mockRejectedValue(
+        Object.assign(new Error('Unavailable'), {
+          response: {
+            status: 403,
+            data: {
+              message:
+                'This operation is not available in PingOne Advanced Identity Cloud.',
+            },
+          },
+        })
+      );
+      const failure = Object.assign(new Error('Server error'), {
+        response: { status: 500, data: { message: 'Server error' } },
+      });
+      failingMock.mockImplementation(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        throw failure;
+      });
+
+      const error = await ServiceOps.getFullServices({
+        globalConfig: false,
+        state,
+      }).catch((error) => error);
+      expect(error).toBeInstanceOf(FrodoError);
+      expect(error.getCombinedMessage()).toContain('mixed');
+      expect(error.getCombinedMessage()).toContain('Server error');
+      expect(error.getCombinedMessage()).not.toContain('Unavailable');
+    }
+  );
 
   test('exportService returns a single-service export with descendants and location', async () => {
     getServiceMock.mockResolvedValue(
