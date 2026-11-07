@@ -36,6 +36,7 @@ export type Service = {
    * Get all services including their descendents.
    * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
    * @returns Promise resolving to an array of services with their descendants
+   * @throws {FrodoError} After all services are attempted, names each failed service. Services unavailable in PingOne Advanced Identity Cloud are skipped.
    */
   getFullServices(globalConfig?: boolean): Promise<FullService[]>;
   /**
@@ -50,6 +51,8 @@ export type Service = {
   /**
    * Deletes all services
    * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+   * @returns Promise resolving to an array of deleted services
+   * @throws {FrodoError} After all services are attempted, names each failed service. Successful deletes are reported, and services unavailable in PingOne Advanced Identity Cloud are skipped.
    */
   deleteFullServices(globalConfig?: boolean): Promise<AmServiceSkeleton[]>;
   /**
@@ -206,6 +209,19 @@ export default (state: State): Service => {
   };
 };
 
+function isUnavailableServiceError(error: unknown): boolean {
+  const httpError = error as {
+    response?: { status?: number; data?: { message?: string } };
+    httpStatus?: number;
+    httpMessage?: string;
+  };
+  return (
+    (httpError?.response?.status ?? httpError?.httpStatus) === 403 &&
+    (httpError?.response?.data?.message ?? httpError?.httpMessage) ===
+      'This operation is not available in PingOne Advanced Identity Cloud.'
+  );
+}
+
 export interface ServiceExportInterface {
   meta?: ExportMetaData;
   service: Record<string, AmServiceSkeleton>;
@@ -293,6 +309,8 @@ export async function getFullServices({
   globalConfig: boolean;
   state: State;
 }): Promise<FullService[]> {
+  const errors: FrodoError[] = [];
+  let fullServiceData: FullService[];
   try {
     debugMessage({
       message: `ServiceOps.getFullServices: start, globalConfig=${globalConfig}`,
@@ -300,10 +318,10 @@ export async function getFullServices({
     });
     const serviceList = await getListOfServices({ globalConfig, state });
 
-    const fullServiceData = await Promise.all(
+    fullServiceData = await Promise.all(
       serviceList.map(async (listItem) => {
         try {
-          const [service, nextDescendents] = await Promise.all([
+          const results = await Promise.allSettled([
             getService({ serviceId: listItem._id, globalConfig, state }),
             getServiceDescendents({
               serviceId: listItem._id,
@@ -311,36 +329,53 @@ export async function getFullServices({
               state,
             }),
           ]);
+          const failures = results
+            .filter((result) => result.status === 'rejected')
+            .filter((result) => !isUnavailableServiceError(result.reason));
+          if (failures.length > 0) {
+            throw new FrodoError(
+              `Error reading service '${listItem._id}'`,
+              failures.map((result) => result.reason)
+            );
+          }
+          const [service, nextDescendents] = results;
+          if (
+            service.status !== 'fulfilled' ||
+            nextDescendents.status !== 'fulfilled'
+          ) {
+            return;
+          }
 
           return {
-            ...service,
-            nextDescendents,
+            ...service.value,
+            nextDescendents: nextDescendents.value,
           };
         } catch (error) {
-          if (!(
-            error.response?.status === 403 &&
-            error.response?.data?.message ===
-              'This operation is not available in PingOne Advanced Identity Cloud.'
-          )) {
-            const message = error.response?.data?.message;
-            printMessage({
-              message: `Unable to retrieve data for ${listItem._id} with error: ${message}`,
-              type: 'error',
-              state,
-            });
+          if (!isUnavailableServiceError(error)) {
+            errors.push(
+              new FrodoError(
+                `Unable to retrieve data for service '${listItem._id}'`,
+                error
+              )
+            );
           }
         }
       })
     );
-
-    debugMessage({ message: `ServiceOps.getFullServices: end`, state });
-    return fullServiceData.filter((data) => !!data); // make sure to filter out any undefined objects
   } catch (error) {
     throw new FrodoError(
       `Error getting ${globalConfig ? 'global' : `${getCurrentRealmName(state) + ' realm'}`} full service configs`,
       error
     );
   }
+  if (errors.length > 0) {
+    throw new FrodoError(
+      `Error getting ${globalConfig ? 'global' : `${getCurrentRealmName(state) + ' realm'}`} full service configs: ${errors.map((error) => error.message).join('; ')}`,
+      errors
+    );
+  }
+  debugMessage({ message: `ServiceOps.getFullServices: end`, state });
+  return fullServiceData.filter((data) => !!data); // make sure to filter out any undefined objects
 }
 
 /**
@@ -616,6 +651,8 @@ export async function deleteFullServices({
   globalConfig: boolean;
   state: State;
 }): Promise<AmServiceSkeleton[]> {
+  const errors: FrodoError[] = [];
+  let deleted: AmServiceSkeleton[];
   debugMessage({
     message: `ServiceOps.deleteFullServices: start, globalConfig=${globalConfig}`,
     state,
@@ -623,32 +660,31 @@ export async function deleteFullServices({
   try {
     const serviceList = await getListOfServices({ globalConfig, state });
 
-    const deleted: AmServiceSkeleton[] = await Promise.all(
+    deleted = await Promise.all(
       serviceList.map(async (serviceListItem) => {
         try {
-          return deleteFullService({
+          const service = await deleteFullService({
             serviceId: serviceListItem._id,
             globalConfig,
             state,
           });
+          printMessage({
+            message: `Deleted service '${serviceListItem._id}'.`,
+            state,
+          });
+          return service;
         } catch (error) {
-          if (!(
-            error.response?.status === 403 &&
-            error.response?.data?.message ===
-              'This operation is not available in PingOne Advanced Identity Cloud.'
-          )) {
-            const message = error.response?.data?.message;
-            printMessage({
-              message: `Delete service '${serviceListItem._id}': ${message}`,
-              state,
-              type: 'error',
-            });
+          if (!isUnavailableServiceError(error)) {
+            errors.push(
+              new FrodoError(
+                `Error deleting service '${serviceListItem._id}'`,
+                error
+              )
+            );
           }
         }
       })
     );
-    debugMessage({ message: `ServiceOps.deleteFullServices: end`, state });
-    return deleted;
   } catch (error) {
     throw new FrodoError(
       `Error deleting ${
@@ -657,6 +693,14 @@ export async function deleteFullServices({
       error
     );
   }
+  if (errors.length > 0) {
+    throw new FrodoError(
+      `Error deleting ${globalConfig ? 'global' : `${getCurrentRealmName(state) + ' realm'}`} full service configs: ${errors.map((error) => error.message).join('; ')}`,
+      errors
+    );
+  }
+  debugMessage({ message: `ServiceOps.deleteFullServices: end`, state });
+  return deleted.filter((service) => !!service);
 }
 
 /**
