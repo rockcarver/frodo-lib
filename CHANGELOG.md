@@ -10,6 +10,14 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-24] - 2026-11-07
+
+### Added
+- Support for ESV placeholders in `frodo.idm.remoteProxy` receiver URLs. The `instanceUrl` can now end with an ESV placeholder, allowing dynamic URL configurations (#928).
+
+### Fixed
+- Resolved an issue where `getState()` included a live auto-refresh timer, causing serialization errors due to circular references. The snapshot now excludes this timer, while the live timer remains accessible via `getAutoRefreshTimer()` (#925, #927).
+
 ## [v5.0.0-23] - 2026-11-06
 
 ### Fixed
@@ -2817,6 +2825,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-24]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-23...v5.0.0-24
 [v5.0.0-23]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-22...v5.0.0-23
 [v5.0.0-22]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-21...v5.0.0-22
 [v5.0.0-21]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-20...v5.0.0-21
