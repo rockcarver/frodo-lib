@@ -290,6 +290,107 @@ describe('buildRemoteProxyConfiguration', () => {
   it('is available through the factory', () => {
     expect(ops.buildRemoteProxyConfiguration(params).authType).toBe('bearer');
   });
+
+  describe('with an ESV variable for the host', () => {
+    const portable = {
+      ...params,
+      hostVariableId: 'esv-remote-proxy-receiving-host',
+    };
+
+    it('puts the placeholder where the host was, and changes nothing else', () => {
+      expect(RemoteProxyOps.buildRemoteProxyConfiguration(portable)).toEqual({
+        enabled: true,
+        authType: 'bearer',
+        instanceUrl: 'https://&{esv.remote.proxy.receiving.host}/openidm/',
+        clientId: 'frodo-remote-proxy',
+        clientSecret: '&{esv.remote.proxy.receiving}',
+        scope: ['fr:idm:*'],
+        tokenEndpoint:
+          'https://&{esv.remote.proxy.receiving.host}/am/oauth2/realms/root/realms/alpha/access_token',
+        tokenEndpointAuthMethod: 'client_secret_post',
+        scopeDelimiter: ' ',
+      });
+    });
+
+    it('names no host: a promotion carries nothing that points at one tenant', () => {
+      const config = RemoteProxyOps.buildRemoteProxyConfiguration(portable);
+      expect(RemoteProxyOps.getFixedHostUrls(config)).toEqual([]);
+      expect(JSON.stringify(config)).not.toContain('openam-receiving');
+      expect(RemoteProxyOps.getTenantBoundSecrets(config)).toEqual([]);
+    });
+
+    it('ends the instance URL with a slash, as IDM requires', () => {
+      expect(
+        RemoteProxyOps.buildRemoteProxyConfiguration(portable).instanceUrl
+      ).toMatch(/\/$/);
+    });
+
+    it('uses the realm it is given', () => {
+      expect(
+        RemoteProxyOps.buildRemoteProxyConfiguration({
+          ...portable,
+          realm: 'bravo',
+        }).tokenEndpoint
+      ).toBe(
+        'https://&{esv.remote.proxy.receiving.host}/am/oauth2/realms/root/realms/bravo/access_token'
+      );
+    });
+
+    it('is accepted by the write operations', async () => {
+      putConfigEntity.mockClear();
+      await RemoteProxyOps.updateRemoteProxy({
+        proxyId: 'receiving',
+        proxyData: RemoteProxyOps.buildRemoteProxyConfiguration(portable),
+        state,
+      });
+      expect(putConfigEntity).toHaveBeenCalledTimes(1);
+    });
+
+    it('still takes only an https receiver: the secret is sent to it', () => {
+      expect(() =>
+        RemoteProxyOps.buildRemoteProxyConfiguration({
+          ...portable,
+          receiverHost: 'http://openam-receiving.example.com/am',
+        })
+      ).toThrow('must use https');
+    });
+
+    it.each([
+      'esv',
+      'Esv-x',
+      'variable-x',
+      'esv--x',
+      'esv-X',
+      'esv-a/b',
+      'esv-a b',
+      'esv-',
+      '',
+      null,
+      42,
+    ])('refuses the ESV variable id %j', (hostVariableId) => {
+      expect(() =>
+        RemoteProxyOps.buildRemoteProxyConfiguration({
+          ...params,
+          hostVariableId: hostVariableId as any,
+        })
+      ).toThrow('ESV variable id');
+    });
+
+    it('refuses the id of the ESV secret for the variable too', () => {
+      expect(() =>
+        RemoteProxyOps.buildRemoteProxyConfiguration({
+          ...params,
+          hostVariableId: params.secretId,
+        })
+      ).toThrow('cannot have the same id');
+    });
+
+    it('is available through the factory', () => {
+      expect(ops.buildRemoteProxyConfiguration(portable).instanceUrl).toBe(
+        'https://&{esv.remote.proxy.receiving.host}/openidm/'
+      );
+    });
+  });
 });
 
 describe('generateRemoteProxySecret', () => {
