@@ -3038,7 +3038,7 @@ export async function importJourneys({
   for (const tree of resolvedJourneys) {
     const result = await getResult(
       resultCallback,
-      `Error importing the ${getCurrentRealmName(state) + ' realm'} journey ${tree._id}`,
+      `Error importing the ${getCurrentRealmName(state) + ' realm'} journey ${tree}`,
       importJourney,
       {
         importData: importData.trees[tree],

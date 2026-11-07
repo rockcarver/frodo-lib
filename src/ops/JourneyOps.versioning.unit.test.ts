@@ -288,6 +288,43 @@ describe('JourneyOps versioning unit coverage', () => {
     expect(getTreesMock).not.toHaveBeenCalled();
   });
 
+  test('importJourneys reports the failed journey name and continues importing', async () => {
+    getTreesMock.mockResolvedValue({ result: [] });
+    putTreeMock.mockImplementation(async ({ treeData }: { treeData: any }) => {
+      if (treeData._id === 'FailedJourney') {
+        throw new Error('Import failed');
+      }
+      return treeData;
+    });
+    const resultCallback = jest.fn();
+
+    const results = await JourneyOps.importJourneys({
+      importData: {
+        trees: {
+          FirstJourney: journeyExport('FirstJourney'),
+          FailedJourney: journeyExport('FailedJourney'),
+          LastJourney: journeyExport('LastJourney'),
+        },
+      },
+      options: { reUuid: false, deps: false },
+      resultCallback,
+      state: validationState(),
+    });
+
+    expect(resultCallback).toHaveBeenCalledTimes(3);
+    expect(resultCallback).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        message: 'Error importing the alpha realm journey FailedJourney',
+      }),
+      undefined
+    );
+    expect(results.map((tree) => tree._id)).toEqual([
+      'FirstJourney',
+      'LastJourney',
+    ]);
+  });
+
   test('validateJourneys reads all live journeys and returns findings silently', async () => {
     getTreesMock.mockResolvedValue({
       result: [{ _id: 'HealthyJourney' }, { _id: 'BrokenJourney' }],
