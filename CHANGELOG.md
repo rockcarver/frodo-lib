@@ -10,6 +10,11 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-25] - 2026-11-07
+
+### Added
+- Enhanced `buildRemoteProxyConfiguration` to accept an optional `hostVariableId`. This ID corresponds to the ESV variable on the sending tenant that holds the receiving tenant's host name. The configuration builder now inserts a placeholder for the host in `instanceUrl`, enabling dynamic host configuration (#929).
+
 ## [v5.0.0-24] - 2026-11-07
 
 ### Added
@@ -2825,6 +2830,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-25]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-24...v5.0.0-25
 [v5.0.0-24]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-23...v5.0.0-24
 [v5.0.0-23]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-22...v5.0.0-23
 [v5.0.0-22]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-21...v5.0.0-22
