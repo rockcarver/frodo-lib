@@ -152,6 +152,21 @@ describe('RemoteProxyOps validation', () => {
       /trailing slash/,
     ],
     [
+      'an instanceUrl that continues a placeholder with a path and no trailing slash',
+      { ...bearer, instanceUrl: '&{esv.receiver.host}/openidm' },
+      /trailing slash/,
+    ],
+    [
+      'an instanceUrl that ends with an unclosed placeholder',
+      { ...bearer, instanceUrl: 'https://receiving.example.com/&{esv.path' },
+      /trailing slash/,
+    ],
+    [
+      'an instanceUrl that ends with an empty placeholder',
+      { ...bearer, instanceUrl: 'https://receiving.example.com/&{}' },
+      /trailing slash/,
+    ],
+    [
       'a bearer proxy without a token endpoint',
       { ...bearer, tokenEndpoint: undefined },
       /tokenEndpoint/,
@@ -184,6 +199,97 @@ describe('RemoteProxyOps validation', () => {
       state,
     });
     expect(putConfigEntity).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('RemoteProxyOps ESV placeholders in the receiver URLs', () => {
+  it.each([
+    ['the whole value', '&{esv.receiver.idm}'],
+    ['the host', 'https://&{esv.receiver.host}'],
+    [
+      'the host with a path and a trailing slash',
+      'https://&{esv.receiver.host}/openidm/',
+    ],
+    ['everything but a path', '&{esv.receiver.host}/openidm/'],
+    ['the end of a path', 'https://receiving.example.com/&{esv.receiver.path}'],
+  ])(
+    'accepts an instanceUrl whose %s is a placeholder',
+    async (_name, instanceUrl) => {
+      await RemoteProxyOps.updateRemoteProxy({
+        proxyId: 'a',
+        proxyData: { ...bearer, instanceUrl },
+        state,
+      });
+      expect(putConfigEntity).toHaveBeenCalledTimes(1);
+      expect(putConfigEntity.mock.calls[0][0].entityData.instanceUrl).toBe(
+        instanceUrl
+      );
+    }
+  );
+
+  it('accepts a token endpoint that is a placeholder', async () => {
+    await RemoteProxyOps.updateRemoteProxy({
+      proxyId: 'a',
+      proxyData: { ...bearer, tokenEndpoint: '&{esv.receiver.token}' },
+      state,
+    });
+    expect(putConfigEntity).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('RemoteProxyOps getFixedHostUrls', () => {
+  it.each([
+    ['both URLs written out', bearer, ['instanceUrl', 'tokenEndpoint']],
+    [
+      'whole-value placeholders',
+      { ...bearer, instanceUrl: '&{esv.a}', tokenEndpoint: '&{esv.b}' },
+      [],
+    ],
+    [
+      'a placeholder for the host',
+      {
+        ...bearer,
+        instanceUrl: 'https://&{esv.host}/openidm/',
+        tokenEndpoint:
+          '&{esv.host}/am/oauth2/realms/root/realms/alpha/access_token',
+      },
+      [],
+    ],
+    [
+      'a host written out with a placeholder only in the path',
+      { ...bearer, instanceUrl: 'https://receiving.example.com/&{esv.path}' },
+      ['instanceUrl', 'tokenEndpoint'],
+    ],
+    [
+      'a placeholder with a default that contains slashes',
+      { ...bearer, instanceUrl: '&{esv.url|https://x.example.com/openidm/}' },
+      ['tokenEndpoint'],
+    ],
+    [
+      'a placeholder for the instanceUrl and a written out token endpoint',
+      { ...bearer, instanceUrl: '&{esv.a}' },
+      ['tokenEndpoint'],
+    ],
+    ['a basic proxy, which has no token endpoint', basic, ['instanceUrl']],
+    [
+      'a URL that is empty or not a string',
+      { ...bearer, instanceUrl: '', tokenEndpoint: 5 },
+      [],
+    ],
+  ])('lists %s', (_name, proxyData, expected) => {
+    expect(RemoteProxyOps.getFixedHostUrls(proxyData as any)).toEqual(expected);
+  });
+
+  it('lists nothing for a missing proxy', () => {
+    expect(RemoteProxyOps.getFixedHostUrls(undefined as any)).toEqual([]);
+    expect(RemoteProxyOps.getFixedHostUrls(null as any)).toEqual([]);
+  });
+
+  it('is on the facade', () => {
+    expect(createRemoteProxyOps(state).getFixedHostUrls(bearer)).toEqual([
+      'instanceUrl',
+      'tokenEndpoint',
+    ]);
   });
 });
 

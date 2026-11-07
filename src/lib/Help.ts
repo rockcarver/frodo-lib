@@ -4273,6 +4273,56 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "RemoteProxy",
+    methodName: "isValidRemoteProxyName",
+    signature: "isValidRemoteProxyName(proxyId: string): boolean",
+    description: "Check the name of a remote proxy. The name becomes part of the IDM entity id `external.idm/<name>` and of a REST path, so it is restricted: 1 to 100 characters, starting with a letter or a digit, containing only letters, digits, `.`, `_` and `-`. Every operation of this module refuses any other name before it makes a request.",
+    params: [
+      { name: "proxyId", type: "string", description: "name of the remote proxy without the type prefix", required: true },
+    ],
+    returns: "{boolean} true if the name is allowed",
+  },
+  {
+    typeName: "RemoteProxy",
+    methodName: "getTenantBoundSecrets",
+    signature: "getTenantBoundSecrets(proxyData: RemoteProxySkeleton): string[]",
+    description: "Get the properties of a remote proxy that hold a secret encrypted by the tenant it was read from. IDM encrypts a plain text `password` or `clientSecret` on write and returns it as an encrypted `$crypto` object. That value belongs to one tenant: another tenant accepts it unchecked, and it fails only when the proxy is used. An ESV placeholder (`&{esv.name}`) is not encrypted and is the portable way to configure a secret.",
+    params: [
+      { name: "proxyData", type: "RemoteProxySkeleton", description: "remote proxy object", required: true },
+    ],
+    returns: "{string[]} names of the properties that hold a tenant-bound secret",
+  },
+  {
+    typeName: "RemoteProxy",
+    methodName: "getFixedHostUrls",
+    signature: "getFixedHostUrls(proxyData: RemoteProxySkeleton): string[]",
+    description: "Get the URL properties (`instanceUrl`, `tokenEndpoint`) of a remote proxy whose host is written out. Such a URL names one receiving tenant, so a promotion carries that address to the next environment unchanged. A URL whose host is an ESV placeholder (`&{esv.name}`, `https://&{esv.name}/openidm/`) is resolved by each environment from its own ESV and is portable.",
+    params: [
+      { name: "proxyData", type: "RemoteProxySkeleton", description: "remote proxy object", required: true },
+    ],
+    returns: "{string[]} names of the URL properties that have a fixed host",
+  },
+  {
+    typeName: "RemoteProxy",
+    methodName: "generateRemoteProxySecret",
+    signature: "generateRemoteProxySecret(length?: number): string",
+    description: "Generate a random secret for the OAuth2 client of a remote proxy: URL-safe characters from a cryptographically secure random source.",
+    params: [
+      { name: "length", type: "number", description: "number of characters, 32 to 256 (default: 48)", required: false },
+    ],
+    returns: "{string} the secret",
+  },
+  {
+    typeName: "RemoteProxy",
+    methodName: "testRemoteProxy",
+    signature: "testRemoteProxy(proxyId: string): Promise<RemoteProxyTestResult>",
+    description: "Check that a remote proxy works: make one read through it (`GET /openidm/info/login` on the receiving tenant) and classify the answer. A working proxy answers with the identity and roles the proxy is mapped to, which shows at once that the token request, the static user mapping and the routing work. It makes no change and returns no secret.",
+    params: [
+      { name: "proxyId", type: "string", description: "name of the remote proxy without the type prefix", required: true },
+    ],
+    returns: "{Promise<RemoteProxyTestResult>} a promise that resolves to the result of the check",
+  },
+  {
+    typeName: "RemoteProxy",
     methodName: "createRemoteProxyExportTemplate",
     signature: "createRemoteProxyExportTemplate(): RemoteProxyExportInterface",
     description: "Create an empty remote proxy export template",
@@ -5197,6 +5247,64 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "tokenId", type: "string", description: "session token", required: true },
     ],
     returns: "{Promise<SessionInfoType>} a promise resolving to a session info object",
+  },
+  {
+    typeName: "StaticUserMapping",
+    methodName: "readStaticUserMappings",
+    signature: "readStaticUserMappings(): Promise<StaticUserMappingSkeleton[]>",
+    description: "Read all static user mappings of the IDM authentication configuration",
+    params: [],
+    returns: "{Promise<StaticUserMappingSkeleton[]>} a promise that resolves to an array of static user mappings (empty if there are none)",
+  },
+  {
+    typeName: "StaticUserMapping",
+    methodName: "readStaticUserMapping",
+    signature: "readStaticUserMapping(subject: string): Promise<StaticUserMappingSkeleton>",
+    description: "Read the static user mapping of a subject. Fails if there is none.",
+    params: [
+      { name: "subject", type: "string", description: "the subject (the `sub` of the access token, e.g. an OAuth2 client id)", required: true },
+    ],
+    returns: "{Promise<StaticUserMappingSkeleton>} a promise that resolves to a static user mapping",
+  },
+  {
+    typeName: "StaticUserMapping",
+    methodName: "createStaticUserMapping",
+    signature: "createStaticUserMapping( mapping: StaticUserMappingSkeleton ): Promise<StaticUserMappingSkeleton>",
+    description: "Create the static user mapping of a subject. Fails if the subject has one already.",
+    params: [
+      { name: "mapping", type: "StaticUserMappingSkeleton", description: "the static user mapping", required: true },
+    ],
+    returns: "{Promise<StaticUserMappingSkeleton>} a promise that resolves to the created static user mapping",
+  },
+  {
+    typeName: "StaticUserMapping",
+    methodName: "updateStaticUserMapping",
+    signature: "updateStaticUserMapping( mapping: StaticUserMappingSkeleton ): Promise<StaticUserMappingSkeleton>",
+    description: "Update or create the static user mapping of a subject. An existing mapping of the subject is replaced as given.",
+    params: [
+      { name: "mapping", type: "StaticUserMappingSkeleton", description: "the static user mapping", required: true },
+    ],
+    returns: "{Promise<StaticUserMappingSkeleton>} a promise that resolves to the written static user mapping",
+  },
+  {
+    typeName: "StaticUserMapping",
+    methodName: "ensureStaticUserMapping",
+    signature: "ensureStaticUserMapping( mapping: StaticUserMappingSkeleton ): Promise<StaticUserMappingResult>",
+    description: "Make sure a subject has a static user mapping with at least the given roles, and change nothing that is there already: a missing mapping is created, the roles of an existing one are merged (never removed), other properties of an existing mapping are kept, and nothing is written when there is nothing to add. An existing mapping that names another local user (or another `userRoles`) is not changed: that would point the subject at a different identity, so the call fails, and `updateStaticUserMapping` is the explicit way.",
+    params: [
+      { name: "mapping", type: "StaticUserMappingSkeleton", description: "the static user mapping to ensure", required: true },
+    ],
+    returns: "{Promise<StaticUserMappingResult>} a promise that resolves to the resulting mapping and what was done",
+  },
+  {
+    typeName: "StaticUserMapping",
+    methodName: "deleteStaticUserMapping",
+    signature: "deleteStaticUserMapping(subject: string): Promise<StaticUserMappingSkeleton>",
+    description: "Delete the static user mapping of a subject. Fails if there is none. Other mappings are not touched.",
+    params: [
+      { name: "subject", type: "string", description: "the subject", required: true },
+    ],
+    returns: "{Promise<StaticUserMappingSkeleton>} a promise that resolves to the deleted static user mapping",
   },
   {
     typeName: "Theme",

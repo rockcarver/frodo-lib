@@ -58,6 +58,16 @@ export type RemoteProxy = {
    */
   getTenantBoundSecrets(proxyData: RemoteProxySkeleton): string[];
   /**
+   * Get the URL properties (`instanceUrl`, `tokenEndpoint`) of a remote proxy
+   * whose host is written out. Such a URL names one receiving tenant, so a
+   * promotion carries that address to the next environment unchanged. A URL
+   * whose host is an ESV placeholder (`&{esv.name}`, `https://&{esv.name}/openidm/`)
+   * is resolved by each environment from its own ESV and is portable.
+   * @param {RemoteProxySkeleton} proxyData remote proxy object
+   * @returns {string[]} names of the URL properties that have a fixed host
+   */
+  getFixedHostUrls(proxyData: RemoteProxySkeleton): string[];
+  /**
    * Build the OAuth2 client a remote proxy needs on the receiving tenant: client
    * credentials grant, `client_secret_post`, scope `fr:idm:*` and nothing
    * broader. The result is data, ready for `frodo.oauth2oidc.client.createOAuth2Client`;
@@ -189,6 +199,9 @@ export default (state: State): RemoteProxy => {
     },
     getTenantBoundSecrets(proxyData: RemoteProxySkeleton): string[] {
       return getTenantBoundSecrets(proxyData);
+    },
+    getFixedHostUrls(proxyData: RemoteProxySkeleton): string[] {
+      return getFixedHostUrls(proxyData);
     },
     buildRemoteProxyClient(params): NoIdObjectSkeletonInterface {
       return buildRemoteProxyClient(params);
@@ -334,6 +347,47 @@ export function getTenantBoundSecrets(
 }
 
 /**
+ * A placeholder IDM resolves from a variable when it loads the configuration,
+ * e.g. `&{esv.receiver.url}`
+ */
+const PLACEHOLDER = /&\{[^{}]+\}/g;
+
+/**
+ * The properties of a remote proxy that hold the address of the receiving tenant
+ */
+const URL_PROPERTIES = ['instanceUrl', 'tokenEndpoint'] as const;
+
+/**
+ * Check if the host of a URL is a placeholder, so each environment supplies its
+ * own: the whole value (`&{esv.url}`), or the host part (`https://&{esv.host}/x`)
+ * @param {string} url the URL
+ * @returns {boolean} true if the host part contains a placeholder
+ */
+function hostIsPlaceholder(url: string): boolean {
+  const marker = '\u0000';
+  const authority = url
+    .replace(PLACEHOLDER, marker)
+    .replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
+    .split('/')[0];
+  return authority.includes(marker);
+}
+
+/**
+ * Get the URL properties of a remote proxy whose host is written out, see
+ * {@link RemoteProxy.getFixedHostUrls}
+ * @param {RemoteProxySkeleton} proxyData remote proxy object
+ * @returns {string[]} names of the URL properties that have a fixed host
+ */
+export function getFixedHostUrls(proxyData: RemoteProxySkeleton): string[] {
+  return URL_PROPERTIES.filter((property) => {
+    const value = proxyData?.[property];
+    return (
+      typeof value === 'string' && value !== '' && !hostIsPlaceholder(value)
+    );
+  });
+}
+
+/**
  * A remote proxy configuration: the connection from this tenant to a
  * receiving tenant. The id is the name of the receiving tenant.
  */
@@ -341,7 +395,8 @@ export type RemoteProxySkeleton = IdObjectSkeletonInterface & {
   enabled?: boolean;
   authType: 'basic' | 'bearer';
   /**
-   * URL of the receiving tenant's IDM, with a trailing slash
+   * URL of the receiving tenant's IDM, with a trailing slash. It may end with
+   * an ESV placeholder (`&{esv.name}`), whose value then supplies the slash.
    */
   instanceUrl: string;
   // authType 'basic'
@@ -652,10 +707,13 @@ function validateRemoteProxy(
   }
   if (
     typeof proxyData.instanceUrl !== 'string' ||
-    !proxyData.instanceUrl.endsWith('/')
+    !(
+      proxyData.instanceUrl.endsWith('/') ||
+      /&\{[^{}]+\}$/.test(proxyData.instanceUrl)
+    )
   ) {
     throw new FrodoError(
-      `Remote proxy ${proxyId} needs an instanceUrl that ends with a trailing slash`
+      `Remote proxy ${proxyId} needs an instanceUrl that ends with a trailing slash (or with an ESV placeholder whose value does)`
     );
   }
   const missing = REQUIRED_PROPERTIES[authType].filter(
