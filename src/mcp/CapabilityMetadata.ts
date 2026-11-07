@@ -2246,6 +2246,11 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     // makes no request and is not a standalone operation an agent could call.
     excluded: true,
   },
+  'idm.remoteProxy.getFixedHostUrls': {
+    // A pure inspection of a remote proxy object that is already in hand. It
+    // makes no request and is not a standalone operation an agent could call.
+    excluded: true,
+  },
   'idm.system': {
     deploymentTypes: IDM_DEPLOYMENTS,
     preferredDeploymentTypes: IDM_DEPLOYMENTS,
