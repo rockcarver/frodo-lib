@@ -89,12 +89,16 @@ export type RemoteProxy = {
    * endpoint of the realm, client secret post, scope `fr:idm:*`, and the secret
    * as an ESV placeholder (`&{esv.name}`, derived from the id of the ESV secret
    * that holds it). It is the portable form: the secret never appears in the
-   * configuration.
+   * configuration. The URLs name the receiving tenant, so a promotion would
+   * carry them to the next environment unchanged; with `hostVariableId` they
+   * hold an ESV placeholder instead of the host (`https://&{esv.name}/openidm/`)
+   * and each environment resolves its own receiver.
    * @param {object} params parameters
    * @param {string} params.receiverHost host URL of the receiving tenant, e.g. 'https://openam-my-tenant.forgeblocks.com/am' (https only)
    * @param {string} params.clientId id of the OAuth2 client on the receiving tenant
    * @param {string} params.secretId id of the ESV secret on the sending tenant that holds the client secret, e.g. 'esv-remote-proxy-my-tenant'
    * @param {string} params.realm realm of the client on the receiving tenant (default: 'alpha')
+   * @param {string} params.hostVariableId optional id of the ESV variable on the sending tenant that holds the host name of the receiving tenant (no scheme and no path, e.g. 'openam-my-tenant.forgeblocks.com'), e.g. 'esv-remote-proxy-my-tenant-host'. Without it the URLs carry the host of `receiverHost`. The variable is not created here.
    * @returns {RemoteProxySkeleton} the remote proxy configuration
    */
   buildRemoteProxyConfiguration(params: {
@@ -102,6 +106,7 @@ export type RemoteProxy = {
     clientId: string;
     secretId: string;
     realm?: string;
+    hostVariableId?: string;
   }): RemoteProxySkeleton;
   /**
    * Generate a random secret for the OAuth2 client of a remote proxy: URL-safe
@@ -427,6 +432,13 @@ const ESV_SECRET_ID_PATTERN = /^esv(-[a-z0-9]+)+$/;
 const MIN_CLIENT_SECRET_LENGTH = 16;
 
 /**
+ * The placeholder that refers to an ESV by its id: `esv-a-b` is `&{esv.a.b}`
+ */
+function esvPlaceholder(esvId: string): string {
+  return `&{${esvId.replaceAll('-', '.')}}`;
+}
+
+/**
  * Build the OAuth2 client a remote proxy needs on the receiving tenant, see
  * {@link RemoteProxy.buildRemoteProxyClient}
  */
@@ -485,11 +497,13 @@ export function buildRemoteProxyConfiguration({
   clientId,
   secretId,
   realm = 'alpha',
+  hostVariableId,
 }: {
   receiverHost: string;
   clientId: string;
   secretId: string;
   realm?: string;
+  hostVariableId?: string;
 }): RemoteProxySkeleton {
   let host: URL;
   try {
@@ -523,13 +537,30 @@ export function buildRemoteProxyConfiguration({
       `The realm ${JSON.stringify(realm)} is not allowed: use letters, digits, '_' and '-'`
     );
   }
-  const origin = getHostOnlyUrl(receiverHost);
+  if (
+    hostVariableId !== undefined &&
+    (typeof hostVariableId !== 'string' ||
+      !ESV_SECRET_ID_PATTERN.test(hostVariableId))
+  ) {
+    throw new FrodoError(
+      `The ESV variable id ${JSON.stringify(hostVariableId)} is not allowed: it starts with 'esv' and continues with lowercase letters and digits separated by '-'`
+    );
+  }
+  if (hostVariableId === secretId) {
+    throw new FrodoError(
+      `The ESV secret and the ESV variable for the host cannot have the same id (${secretId})`
+    );
+  }
+  const origin =
+    hostVariableId === undefined
+      ? getHostOnlyUrl(receiverHost)
+      : `https://${esvPlaceholder(hostVariableId)}`;
   const proxyData: RemoteProxySkeleton = {
     enabled: true,
     authType: 'bearer',
     instanceUrl: `${origin}/openidm/`,
     clientId,
-    clientSecret: `&{${secretId.replaceAll('-', '.')}}`,
+    clientSecret: esvPlaceholder(secretId),
     scope: [REMOTE_PROXY_SCOPE],
     tokenEndpoint: `${origin}/am/oauth2/realms/root/realms/${realm}/access_token`,
     tokenEndpointAuthMethod: 'client_secret_post',
