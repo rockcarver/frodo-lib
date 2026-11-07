@@ -924,7 +924,7 @@ export default (initialState: StateInterface): State => {
             retryDelay: exponentialDelay, // Use exponential backoff for delay
             retryCondition: (error) => {
               // Retry on all errors except 429 Too Many Requests
-              return error.response.status !== 429;
+              return error.response?.status !== 429;
             },
           };
           break;
