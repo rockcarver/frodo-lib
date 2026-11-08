@@ -935,6 +935,54 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "",
   },
   {
+    typeName: "Application",
+    methodName: "readApplicationReferences",
+    signature: "readApplicationReferences( applicationId: string ): Promise<ApplicationReferences>",
+    description: "Read what an application is made of: every object that its record points to, and the scripts, circles of trust and (on Identity Governance tenants) glossary schemas, request forms and request types that those objects use. Every reference says what it points to, whether the application owns it (it exists because of the application) or shares it (other applications can use it too), and where the reference comes from. References that could not be followed (the object does not exist, or could not be read) are listed as problems; they do not make the call fail.",
+    params: [
+      { name: "applicationId", type: "string", description: "application uuid", required: true },
+    ],
+    returns: "{Promise<ApplicationReferences>} a promise that resolves to the references of the application",
+  },
+  {
+    typeName: "Application",
+    methodName: "readApplicationReferencesByName",
+    signature: "readApplicationReferencesByName( applicationName: string ): Promise<ApplicationReferences>",
+    description: "Read what an application is made of, by application name. See readApplicationReferences.",
+    params: [
+      { name: "applicationName", type: "string", description: "application name", required: true },
+    ],
+    returns: "{Promise<ApplicationReferences>} a promise that resolves to the references of the application",
+  },
+  {
+    typeName: "Application",
+    methodName: "validateApplication",
+    signature: "validateApplication( applicationId: string ): Promise<ApplicationValidationFinding[]>",
+    description: "Validate an application: check that every object its record refers to, and every script, circle of trust and (on Identity Governance tenants) glossary schema, request form and request type that those objects use, exists. Reads only; no template is needed. One finding is returned for every reference that does not resolve or could not be checked.",
+    params: [
+      { name: "applicationId", type: "string", description: "application uuid", required: true },
+    ],
+    returns: "{Promise<ApplicationValidationFinding[]>} validation findings, empty if every reference resolves",
+  },
+  {
+    typeName: "Application",
+    methodName: "validateApplicationByName",
+    signature: "validateApplicationByName( applicationName: string ): Promise<ApplicationValidationFinding[]>",
+    description: "Validate an application by name. See validateApplication.",
+    params: [
+      { name: "applicationName", type: "string", description: "application name", required: true },
+    ],
+    returns: "{Promise<ApplicationValidationFinding[]>} validation findings, empty if every reference resolves",
+  },
+  {
+    typeName: "Application",
+    methodName: "validateApplications",
+    signature: "validateApplications(): Promise<ApplicationValidationFinding[]>",
+    description: "Validate all applications of the realm. See validateApplication. A reference that cannot be followed in one application does not stop the validation of the others.",
+    params: [],
+    returns: "{Promise<ApplicationValidationFinding[]>} validation findings of all applications, empty if every reference resolves",
+  },
+  {
     typeName: "Authenticate",
     methodName: "getTokens",
     signature: "getTokens( forceLoginAsUser?: boolean, autoRefresh?: boolean, types?: string[], callbackHandler?: CallbackHandler, useDeviceFlow?: boolean, promptHandler?: BrowserLoginPromptHandler, credentialOverride?: 'user' | 'svcacct' | 'amster' | 'browser' ): Promise<Tokens>",

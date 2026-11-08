@@ -352,6 +352,50 @@ export async function getSaml2ProviderMetadata({
 }
 
 /**
+ * Get the scripts a SAML entity provider refers to: the attribute mapper
+ * script and the IdP adapter script of an identity provider, and the SP
+ * adapter script of a service provider. `[Empty]` is not a reference.
+ * @param {Saml2ProviderSkeleton} providerData Object representing a SAML entity provider
+ * @returns {{ field: string; label: string; scriptId: string }[]} the script id, the dotted path of the field that refers to it and a label for messages
+ */
+export function getSaml2ProviderScriptReferences(
+  providerData: Saml2ProviderSkeleton
+): { field: string; label: string; scriptId: string }[] {
+  const fields: { path: string[]; label: string }[] = [
+    {
+      path: [
+        'identityProvider',
+        'assertionProcessing',
+        'attributeMapper',
+        'attributeMapperScript',
+      ],
+      label: 'attribute mapper script',
+    },
+    {
+      path: ['identityProvider', 'advanced', 'idpAdapter', 'idpAdapterScript'],
+      label: 'idp adapter script',
+    },
+    {
+      path: [
+        'serviceProvider',
+        'assertionProcessing',
+        'adapter',
+        'spAdapterScript',
+      ],
+      label: 'sp adapter script',
+    },
+  ];
+  const references: { field: string; label: string; scriptId: string }[] = [];
+  for (const { path, label } of fields) {
+    const scriptId = get(providerData, path);
+    if (scriptId && scriptId !== '[Empty]') {
+      references.push({ field: path.join('.'), label, scriptId });
+    }
+  }
+  return references;
+}
+
+/**
  * Include dependencies in the export file
  * @param {object} providerData Object representing a SAML entity provider
  * @param {object} fileData File data object to add dependencies to
@@ -366,70 +410,20 @@ async function exportDependencies({
   state: State;
 }) {
   const errors: Error[] = [];
-  const attrMapperScriptId = get(providerData, [
-    'identityProvider',
-    'assertionProcessing',
-    'attributeMapper',
-    'attributeMapperScript',
-  ]);
-  if (attrMapperScriptId && attrMapperScriptId !== '[Empty]') {
+  for (const { label, scriptId } of getSaml2ProviderScriptReferences(
+    providerData
+  )) {
     try {
       const scriptData = await getScript({
-        scriptId: attrMapperScriptId,
+        scriptId,
         state,
       });
       scriptData.script = convertBase64TextToArray(scriptData.script as string);
-      fileData.script[attrMapperScriptId] = scriptData;
+      fileData.script[scriptId] = scriptData;
     } catch (error) {
       errors.push(
         new FrodoError(
-          `Error getting ${getCurrentRealmName(state) + ' realm'} attribute mapper script`,
-          error
-        )
-      );
-    }
-  }
-  const idpAdapterScriptId = get(providerData, [
-    'identityProvider',
-    'advanced',
-    'idpAdapter',
-    'idpAdapterScript',
-  ]);
-  if (idpAdapterScriptId && idpAdapterScriptId !== '[Empty]') {
-    try {
-      const scriptData = await getScript({
-        scriptId: idpAdapterScriptId,
-        state,
-      });
-      scriptData.script = convertBase64TextToArray(scriptData.script as string);
-      fileData.script[idpAdapterScriptId] = scriptData;
-    } catch (error) {
-      errors.push(
-        new FrodoError(
-          `Error getting ${getCurrentRealmName(state) + ' realm'} idp adapter script`,
-          error
-        )
-      );
-    }
-  }
-  const spAdapterScriptId = get(providerData, [
-    'serviceProvider',
-    'assertionProcessing',
-    'adapter',
-    'spAdapterScript',
-  ]);
-  if (spAdapterScriptId && spAdapterScriptId !== '[Empty]') {
-    try {
-      const scriptData = await getScript({
-        scriptId: spAdapterScriptId,
-        state,
-      });
-      scriptData.script = convertBase64TextToArray(scriptData.script as string);
-      fileData.script[spAdapterScriptId] = scriptData;
-    } catch (error) {
-      errors.push(
-        new FrodoError(
-          `Error getting ${getCurrentRealmName(state) + ' realm'} sp adapter script`,
+          `Error getting ${getCurrentRealmName(state) + ' realm'} ${label}`,
           error
         )
       );

@@ -499,6 +499,30 @@ export async function deleteOAuth2Client({
 }
 
 /**
+ * Get the scripts an OAuth2 client refers to. They are the values of the keys
+ * ending in `Script` in `overrideOAuth2ClientConfig`, except `[Empty]`.
+ * @param {unknown} clientData oauth2 client data
+ * @returns {{ key: string; scriptId: string }[]} the script id and the key that refers to it
+ */
+export function getOAuth2ClientScriptReferences(
+  clientData: unknown
+): { key: string; scriptId: string }[] {
+  const references: { key: string; scriptId: string }[] = [];
+  const config = clientData?.['overrideOAuth2ClientConfig'];
+  if (config) {
+    for (const key of Object.keys(config)) {
+      if (key.endsWith('Script')) {
+        const scriptId = config[key];
+        if (scriptId !== '[Empty]') {
+          references.push({ key, scriptId });
+        }
+      }
+    }
+  }
+  return references;
+}
+
+/**
  * Helper function to export dependencies of an OAuth2 Client
  * @param {unknown} clientData oauth2 client data
  * @param {OAuth2ClientExportOptions} options export options
@@ -514,34 +538,29 @@ async function exportOAuth2ClientDependencies(
     message: `OAuth2ClientOps.exportOAuth2ClientDependencies: start [client=${clientData['_id']}]`,
     state,
   });
-  if (clientData['overrideOAuth2ClientConfig']) {
-    for (const key of Object.keys(clientData['overrideOAuth2ClientConfig'])) {
-      if (key.endsWith('Script')) {
-        const scriptId = clientData['overrideOAuth2ClientConfig'][key];
-        if (scriptId !== '[Empty]' && !exportData.script[scriptId]) {
-          try {
-            debugMessage({
-              message: `- ${scriptId} referenced by ${clientData['_id']}`,
-              state,
-            });
-            const scriptData = await readScript({ scriptId, state });
-            if (options.useStringArrays)
-              scriptData.script = convertBase64TextToArray(
-                scriptData.script as string
-              );
-            exportData.script[scriptId] = scriptData;
-          } catch (error) {
-            if (!(
-              (error as FrodoError).httpStatus === 403 &&
-              (error as FrodoError).httpMessage ===
-                'This operation is not available in PingOne Advanced Identity Cloud.'
-            )) {
-              throw new FrodoError(
-                `Error retrieving ${getCurrentRealmName(state) + ' realm'} script ${scriptId} referenced by ${key} key in client ${clientData['_id']}`,
-                error
-              );
-            }
-          }
+  for (const { key, scriptId } of getOAuth2ClientScriptReferences(clientData)) {
+    if (!exportData.script[scriptId]) {
+      try {
+        debugMessage({
+          message: `- ${scriptId} referenced by ${clientData['_id']}`,
+          state,
+        });
+        const scriptData = await readScript({ scriptId, state });
+        if (options.useStringArrays)
+          scriptData.script = convertBase64TextToArray(
+            scriptData.script as string
+          );
+        exportData.script[scriptId] = scriptData;
+      } catch (error) {
+        if (!(
+          (error as FrodoError).httpStatus === 403 &&
+          (error as FrodoError).httpMessage ===
+            'This operation is not available in PingOne Advanced Identity Cloud.'
+        )) {
+          throw new FrodoError(
+            `Error retrieving ${getCurrentRealmName(state) + ' realm'} script ${scriptId} referenced by ${key} key in client ${clientData['_id']}`,
+            error
+          );
         }
       }
     }
