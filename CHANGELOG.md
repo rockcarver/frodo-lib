@@ -10,6 +10,22 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-28] - 2026-11-08
+
+### Added
+- `deleteMappings` now accepts an optional `resultCallback` parameter, allowing for detailed failure summaries and improved error handling in bulk operations (#952).
+- Introduced `readApplicationReferences`, `readApplicationReferencesByName`, `validateApplication`, `validateApplicationByName`, and `validateApplications` functions to determine application composition and validate references (#962).
+- `removeOrphanedNodes` now takes a `resultCallback` parameter, enabling per-item reporting for orphaned node removals (#961).
+- `validateJourneys` can now report findings per journey while retaining results for other journeys (#961).
+
+### Fixed
+- Corrected the MCP descriptor for list or count skills to properly accept parameters, addressing issues where calls failed due to incorrect argument handling (#963).
+- Resolved compilation and test loading issues in `ApplicationOps` following merges of PRs #959 and #962, ensuring compatibility and functionality (#964).
+- Fixed type definitions for `ssoEntities` within `ApplicationSkeleton` to accurately reflect application data, resolving discrepancies in member, owner, and role types (#959).
+- Addressed bulk export/import errors to maintain their cause and item name, and ensured that a single unreadable service does not fail the entire services export (#960).
+- Improved error reporting for secret store export/import operations by ensuring failures are reported once per store by name (#960).
+- Enhanced `getResult` to correctly report falsy results that are not missing, ensuring accurate result handling (#961).
+
 ## [v5.0.0-27] - 2026-11-08
 
 ### Fixed
@@ -2847,6 +2863,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-28]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-27...v5.0.0-28
 [v5.0.0-27]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-26...v5.0.0-27
 [v5.0.0-26]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-25...v5.0.0-26
 [v5.0.0-25]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-24...v5.0.0-25
