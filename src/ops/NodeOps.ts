@@ -259,11 +259,15 @@ export type Node = {
    */
   findOrphanedNodes(): Promise<NodeSkeleton[]>;
   /**
-   * Remove orphaned nodes
+   * Remove orphaned nodes. Every orphaned node is tried: a node that cannot be deleted does not stop the others.
    * @param {NodeSkeleton[]} orphanedNodes Pass in an array of orphaned node configuration objects to remove
+   * @param {ResultCallback<NodeSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every node is passed to it as it happens (a failed node as an error that names it and carries the cause) and the error of a failed node is not printed. Without it, the error of a failed node is printed and nothing is passed on.
    * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an array nodes that encountered errors deleting
    */
-  removeOrphanedNodes(orphanedNodes: NodeSkeleton[]): Promise<NodeSkeleton[]>;
+  removeOrphanedNodes(
+    orphanedNodes: NodeSkeleton[],
+    resultCallback?: ResultCallback<NodeSkeleton>
+  ): Promise<NodeSkeleton[]>;
   /**
    * Get custom node usage by ID
    * @param {String} nodeId ID or service name of the custom node
@@ -426,9 +430,10 @@ export default (state: State): Node => {
       return findOrphanedNodes({ state });
     },
     async removeOrphanedNodes(
-      orphanedNodes: NodeSkeleton[]
+      orphanedNodes: NodeSkeleton[],
+      resultCallback: ResultCallback<NodeSkeleton> = undefined
     ): Promise<NodeSkeleton[]> {
-      return removeOrphanedNodes({ orphanedNodes, state });
+      return removeOrphanedNodes({ orphanedNodes, resultCallback, state });
     },
     async getCustomNodeUsage(nodeId: string): Promise<CustomNodeUsage> {
       return getCustomNodeUsage({
@@ -1622,15 +1627,18 @@ export async function findOrphanedNodes({
 }
 
 /**
- * Remove orphaned nodes
+ * Remove orphaned nodes. Every orphaned node is tried: a node that cannot be deleted does not stop the others.
  * @param {NodeSkeleton[]} orphanedNodes Pass in an array of orphaned node configuration objects to remove
+ * @param {ResultCallback<NodeSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every node is passed to it as it happens (a failed node as an error that names it and carries the cause) and the error of a failed node is not printed. Without it, the error of a failed node is printed and nothing is passed on.
  * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an array nodes that encountered errors deleting
  */
 export async function removeOrphanedNodes({
   orphanedNodes,
+  resultCallback,
   state,
 }: {
   orphanedNodes: NodeSkeleton[];
+  resultCallback?: ResultCallback<NodeSkeleton>;
   state: State;
 }): Promise<NodeSkeleton[]> {
   const errorNodes = [];
@@ -1672,6 +1680,8 @@ export async function removeOrphanedNodes({
       message: `Removing ${node['_id']}...`,
       state,
     });
+    let deleteFailed = false;
+    let deleteError: Error;
     try {
       await deleteNode({
         nodeId: node['_id'],
@@ -1679,20 +1689,31 @@ export async function removeOrphanedNodes({
         nodeTypeVersion,
         state,
       });
-    } catch (deleteError) {
-      if (!errorNodeIds.has(node._id)) {
-        errorNodeIds.add(node._id);
-        errorNodes.push(node);
-      }
+    } catch (error) {
+      deleteFailed = true;
+      deleteError = error as Error;
+    }
+    if (!deleteFailed) {
+      if (resultCallback) resultCallback(undefined, node);
+      continue;
+    }
+    if (!errorNodeIds.has(node._id)) {
+      errorNodeIds.add(node._id);
+      errorNodes.push(node);
+    }
+    const nodeContext =
+      `Failed to delete orphaned node ${node['_id']} ` +
+      `(${node['_type']['_id']} v${nodeTypeVersion})`;
+    if (resultCallback) {
+      // the caller reports the failure: name the node and keep the cause
+      resultCallback(new FrodoError(nodeContext, deleteError), undefined);
+    } else {
       const failedRequestUrl = getFailedRequestUrl(deleteError);
-      const nodeContext =
-        `Failed to delete orphaned node ${node['_id']} ` +
-        `(${node['_type']['_id']} v${nodeTypeVersion})`;
       const details = failedRequestUrl
         ? `\n  Request URL: ${failedRequestUrl}`
         : '';
       printError({
-        error: deleteError as Error,
+        error: deleteError,
         message: `${nodeContext}${details}\n`,
         state,
       });

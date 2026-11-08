@@ -2623,6 +2623,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'low',
   },
   'authn.node.removeOrphanedNodes': {
+    excludeParameters: ['resultCallback'],
     operationType: 'delete',
     objectType: 'OrphanedNode',
     mutating: true,

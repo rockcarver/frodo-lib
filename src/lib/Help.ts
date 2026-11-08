@@ -3490,10 +3490,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Node",
     methodName: "removeOrphanedNodes",
-    signature: "removeOrphanedNodes(orphanedNodes: NodeSkeleton[]): Promise<NodeSkeleton[]>",
-    description: "Remove orphaned nodes",
+    signature: "removeOrphanedNodes( orphanedNodes: NodeSkeleton[], resultCallback?: ResultCallback<NodeSkeleton> ): Promise<NodeSkeleton[]>",
+    description: "Remove orphaned nodes. Every orphaned node is tried: a node that cannot be deleted does not stop the others.",
     params: [
       { name: "orphanedNodes", type: "NodeSkeleton[]", description: "Pass in an array of orphaned node configuration objects to remove", required: true },
+      { name: "resultCallback", type: "ResultCallback<NodeSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every node is passed to it as it happens (a failed node as an error that names it and carries the cause) and the error of a failed node is not printed. Without it, the error of a failed node is printed and nothing is passed on.", required: false },
     ],
     returns: "{Promise<NodeSkeleton[]>} a promise that resolves to an array nodes that encountered errors deleting",
   },
