@@ -36,7 +36,7 @@ import {
   replaceRelationship,
 } from './ManagedObjectOps';
 import { readManagedObjectSchema } from './ManagedObjectSchemaOps';
-import { type ExportMetaData } from './OpsTypes';
+import { type ExportMetaData, type ResultCallback } from './OpsTypes';
 
 export type Agent = {
   /**
@@ -69,8 +69,9 @@ export type Agent = {
   readAgent(agentId: string, globalConfig: boolean): Promise<AgentSkeleton>;
   /**
    * Delete all agents
+   * @param {ResultCallback<AgentSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried. Failing to read the agents always throws.
    */
-  deleteAgents(): Promise<void>;
+  deleteAgents(resultCallback?: ResultCallback<AgentSkeleton>): Promise<void>;
   /**
    * Delete agent
    * @param agentId agent id/name
@@ -148,8 +149,11 @@ export type Agent = {
   ): Promise<AgentSkeleton>;
   /**
    * Delete all identity gateway agents
+   * @param {ResultCallback<AgentSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried. Failing to read the agents always throws.
    */
-  deleteIdentityGatewayAgents(): Promise<void>;
+  deleteIdentityGatewayAgents(
+    resultCallback?: ResultCallback<AgentSkeleton>
+  ): Promise<void>;
   /**
    * Delete identity gateway agent
    * @param agentId agent id/name
@@ -215,8 +219,11 @@ export type Agent = {
   ): Promise<AgentSkeleton>;
   /**
    * Delete all java agents
+   * @param {ResultCallback<AgentSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried. Failing to read the agents always throws.
    */
-  deleteJavaAgents(): Promise<void>;
+  deleteJavaAgents(
+    resultCallback?: ResultCallback<AgentSkeleton>
+  ): Promise<void>;
   /**
    * Delete java agent
    * @param agentId agent id/name
@@ -282,8 +289,11 @@ export type Agent = {
   ): Promise<AgentSkeleton>;
   /**
    * Delete all web agents
+   * @param {ResultCallback<AgentSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried. Failing to read the agents always throws.
    */
-  deleteWebAgents(): Promise<void>;
+  deleteWebAgents(
+    resultCallback?: ResultCallback<AgentSkeleton>
+  ): Promise<void>;
   /**
    * Delete web agent
    * @param agentId agent id/name
@@ -358,8 +368,9 @@ export type Agent = {
   ): Promise<AgentSkeleton>;
   /**
    * Delete all AI agents and their agent identity and privileges
+   * @param {ResultCallback<AgentSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried. Failing to read the agents always throws.
    */
-  deleteAIAgents(): Promise<void>;
+  deleteAIAgents(resultCallback?: ResultCallback<AgentSkeleton>): Promise<void>;
   /**
    * Delete AI agent and agent identity and privileges
    * @param {string} agentId agent id/name
@@ -473,8 +484,8 @@ export default (state: State): Agent => {
     async readAgent(agentId, globalConfig = false) {
       return readAgent({ agentId, globalConfig, state });
     },
-    async deleteAgents() {
-      return deleteAgents({ state });
+    async deleteAgents(resultCallback?: ResultCallback<AgentSkeleton>) {
+      return deleteAgents({ resultCallback, state });
     },
     async deleteAgent(agentId) {
       return deleteAgent({ agentId, state });
@@ -505,8 +516,10 @@ export default (state: State): Agent => {
     async updateIdentityGatewayAgent(gatewayId, gatewayData) {
       return updateIdentityGatewayAgent({ gatewayId, gatewayData, state });
     },
-    async deleteIdentityGatewayAgents() {
-      return deleteIdentityGatewayAgents({ state });
+    async deleteIdentityGatewayAgents(
+      resultCallback?: ResultCallback<AgentSkeleton>
+    ) {
+      return deleteIdentityGatewayAgents({ resultCallback, state });
     },
     async deleteIdentityGatewayAgent(agentId) {
       return deleteIdentityGatewayAgent({ agentId, state });
@@ -537,8 +550,8 @@ export default (state: State): Agent => {
     async updateJavaAgent(agentId, agentData) {
       return updateJavaAgent({ agentId, agentData, state });
     },
-    async deleteJavaAgents() {
-      return deleteJavaAgents({ state });
+    async deleteJavaAgents(resultCallback?: ResultCallback<AgentSkeleton>) {
+      return deleteJavaAgents({ resultCallback, state });
     },
     async deleteJavaAgent(agentId) {
       return deleteJavaAgent({ agentId, state });
@@ -569,8 +582,8 @@ export default (state: State): Agent => {
     async updateWebAgent(agentId, agentData) {
       return updateWebAgent({ agentId, agentData, state });
     },
-    async deleteWebAgents() {
-      return deleteWebAgents({ state });
+    async deleteWebAgents(resultCallback?: ResultCallback<AgentSkeleton>) {
+      return deleteWebAgents({ resultCallback, state });
     },
     async deleteWebAgent(agentId) {
       return deleteWebAgent({ agentId, state });
@@ -601,8 +614,8 @@ export default (state: State): Agent => {
     async updateAIAgent(agentId, agentData, includeAgentIdentity = true) {
       return updateAIAgent({ agentId, agentData, includeAgentIdentity, state });
     },
-    async deleteAIAgents() {
-      return deleteAIAgents({ state });
+    async deleteAIAgents(resultCallback?: ResultCallback<AgentSkeleton>) {
+      return deleteAIAgents({ resultCallback, state });
     },
     async deleteAIAgent(agentId) {
       return deleteAIAgent({ agentId, state });
@@ -885,33 +898,88 @@ export async function readAgent({
 }
 
 /**
- * Delete all agents
+ * Delete the given agents one by one. Every agent is tried: a failed delete does not stop the others.
+ * @param {object} params structured and named parameters
+ * @param {AgentSkeleton[]} params.agents the agents to delete
+ * @param {string} params.debugName name used in the debug messages
+ * @param {Function} params.deleteOne deletes one agent
+ * @param {Function} params.errorMessage message of the error for an agent that could not be deleted
+ * @param {ResultCallback<AgentSkeleton>} params.resultCallback Optional callback to process individual results. When given, every outcome is passed to it and nothing is collected.
+ * @param {State} params.state state object
+ * @returns {Promise<FrodoError[]>} the errors of the agents that could not be deleted (empty if there is a result callback)
  */
-export async function deleteAgents({ state }: { state: State }) {
-  const errors: Error[] = [];
+async function _deleteEachAgent({
+  agents,
+  debugName,
+  deleteOne,
+  errorMessage,
+  resultCallback,
+  state,
+}: {
+  agents: AgentSkeleton[];
+  debugName: string;
+  deleteOne: (agent: AgentSkeleton) => Promise<unknown>;
+  errorMessage: (agent: AgentSkeleton) => string;
+  resultCallback?: ResultCallback<AgentSkeleton>;
+  state: State;
+}): Promise<FrodoError[]> {
+  const errors: FrodoError[] = [];
+  for (const agent of agents) {
+    let failure: FrodoError | undefined;
+    try {
+      debugMessage({
+        message: `AgentOps.${debugName}: '${agent['_id']}'`,
+        state,
+      });
+      await deleteOne(agent);
+    } catch (error) {
+      failure = new FrodoError(errorMessage(agent), error);
+    }
+    if (failure) {
+      if (resultCallback) {
+        resultCallback(failure, undefined);
+      } else {
+        errors.push(failure);
+      }
+    } else if (resultCallback) {
+      resultCallback(undefined, agent);
+    }
+  }
+  return errors;
+}
+
+/**
+ * Delete all agents
+ * @param {object} params structured and named parameters
+ * @param {ResultCallback<AgentSkeleton>} params.resultCallback Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
+ * @param {State} params.state state object
+ * @throws {FrodoError} If the agents cannot be read (always), or if one or more agents cannot be deleted and there is no result callback.
+ */
+export async function deleteAgents({
+  resultCallback,
+  state,
+}: {
+  resultCallback?: ResultCallback<AgentSkeleton>;
+  state: State;
+}) {
+  let errors: FrodoError[] = [];
   try {
     debugMessage({ message: `AgentOps.deleteAgents: start`, state });
     const agents = await readAgents({ state, globalConfig: false });
-    for (const agent of agents) {
-      try {
-        debugMessage({
-          message: `AgentOps.deleteAgents: '${agent['_id']}'`,
-          state,
-        });
-        await _deleteAgentByTypeAndId({
+    errors = await _deleteEachAgent({
+      agents,
+      debugName: 'deleteAgents',
+      deleteOne: (agent) =>
+        _deleteAgentByTypeAndId({
           agentType: agent['_type']['_id'] as AgentType,
           agentId: agent['_id'],
           state,
-        });
-      } catch (error) {
-        errors.push(
-          new FrodoError(
-            `Error deleting ${getCurrentRealmName(state) + ' realm'} agent ${agent['_id']} of type ${agent['_type']['_id']}`,
-            error
-          )
-        );
-      }
-    }
+        }),
+      errorMessage: (agent) =>
+        `Error deleting ${getCurrentRealmName(state) + ' realm'} agent ${agent['_id']} of type ${agent['_type']['_id']}`,
+      resultCallback,
+      state,
+    });
     if (errors.length > 0) {
       throw new FrodoError(`Error deleting agents`, errors);
     }
@@ -1360,35 +1428,39 @@ export async function updateIdentityGatewayAgent({
 
 /**
  * Delete all identity gateway agents
+ * @param {object} params structured and named parameters
+ * @param {ResultCallback<AgentSkeleton>} params.resultCallback Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
+ * @param {State} params.state state object
+ * @throws {FrodoError} If the agents cannot be read (always), or if one or more agents cannot be deleted and there is no result callback.
  */
-export async function deleteIdentityGatewayAgents({ state }: { state: State }) {
-  const errors: Error[] = [];
+export async function deleteIdentityGatewayAgents({
+  resultCallback,
+  state,
+}: {
+  resultCallback?: ResultCallback<AgentSkeleton>;
+  state: State;
+}) {
+  let errors: FrodoError[] = [];
   try {
     debugMessage({
       message: `AgentOps.deleteIdentityGatewayAgents: start`,
       state,
     });
     const agents = await readIdentityGatewayAgents({ state });
-    for (const agent of agents) {
-      try {
-        debugMessage({
-          message: `AgentOps.deleteIdentityGatewayAgent: '${agent['_id']}'`,
-          state,
-        });
-        await _deleteAgentByTypeAndId({
+    errors = await _deleteEachAgent({
+      agents,
+      debugName: 'deleteIdentityGatewayAgent',
+      deleteOne: (agent) =>
+        _deleteAgentByTypeAndId({
           agentType: agent['_type']['_id'] as AgentType,
           agentId: agent['_id'],
           state,
-        });
-      } catch (error) {
-        errors.push(
-          new FrodoError(
-            `Error deleting ${getCurrentRealmName(state) + ' realm'} agent ${agent['_id']} of type ${agent['_type']['_id']}`,
-            error
-          )
-        );
-      }
-    }
+        }),
+      errorMessage: (agent) =>
+        `Error deleting ${getCurrentRealmName(state) + ' realm'} agent ${agent['_id']} of type ${agent['_type']['_id']}`,
+      resultCallback,
+      state,
+    });
     if (errors.length > 0) {
       throw new FrodoError(`Error deleting identity gateway agents`, errors);
     }
@@ -1792,32 +1864,36 @@ export async function updateJavaAgent({
 
 /**
  * Delete all java agents
+ * @param {object} params structured and named parameters
+ * @param {ResultCallback<AgentSkeleton>} params.resultCallback Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
+ * @param {State} params.state state object
+ * @throws {FrodoError} If the agents cannot be read (always), or if one or more agents cannot be deleted and there is no result callback.
  */
-export async function deleteJavaAgents({ state }: { state: State }) {
-  const errors: Error[] = [];
+export async function deleteJavaAgents({
+  resultCallback,
+  state,
+}: {
+  resultCallback?: ResultCallback<AgentSkeleton>;
+  state: State;
+}) {
+  let errors: FrodoError[] = [];
   try {
     debugMessage({ message: `AgentOps.deleteJavaAgents: start`, state });
     const agents = await readJavaAgents({ state });
-    for (const agent of agents) {
-      try {
-        debugMessage({
-          message: `AgentOps.deleteJavaAgent: '${agent['_id']}'`,
-          state,
-        });
-        await _deleteAgentByTypeAndId({
+    errors = await _deleteEachAgent({
+      agents,
+      debugName: 'deleteJavaAgent',
+      deleteOne: (agent) =>
+        _deleteAgentByTypeAndId({
           agentType: agent['_type']['_id'] as AgentType,
           agentId: agent['_id'],
           state,
-        });
-      } catch (error) {
-        errors.push(
-          new FrodoError(
-            `Error deleting ${getCurrentRealmName(state) + ' realm'} agent ${agent['_id']} of type ${agent['_type']['_id']}`,
-            error
-          )
-        );
-      }
-    }
+        }),
+      errorMessage: (agent) =>
+        `Error deleting ${getCurrentRealmName(state) + ' realm'} agent ${agent['_id']} of type ${agent['_type']['_id']}`,
+      resultCallback,
+      state,
+    });
     if (errors.length > 0) {
       throw new FrodoError(
         `Error deleting ${getCurrentRealmName(state) + ' realm'} java agents`,
@@ -2187,32 +2263,36 @@ export async function updateWebAgent({
 
 /**
  * Delete all web agents
+ * @param {object} params structured and named parameters
+ * @param {ResultCallback<AgentSkeleton>} params.resultCallback Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
+ * @param {State} params.state state object
+ * @throws {FrodoError} If the agents cannot be read (always), or if one or more agents cannot be deleted and there is no result callback.
  */
-export async function deleteWebAgents({ state }: { state: State }) {
-  const errors: Error[] = [];
+export async function deleteWebAgents({
+  resultCallback,
+  state,
+}: {
+  resultCallback?: ResultCallback<AgentSkeleton>;
+  state: State;
+}) {
+  let errors: FrodoError[] = [];
   try {
     debugMessage({ message: `AgentOps.deleteWebAgents: start`, state });
     const agents = await readWebAgents({ state });
-    for (const agent of agents) {
-      try {
-        debugMessage({
-          message: `AgentOps.deleteWebAgent: '${agent['_id']}'`,
-          state,
-        });
-        await _deleteAgentByTypeAndId({
+    errors = await _deleteEachAgent({
+      agents,
+      debugName: 'deleteWebAgent',
+      deleteOne: (agent) =>
+        _deleteAgentByTypeAndId({
           agentType: agent['_type']['_id'] as AgentType,
           agentId: agent['_id'],
           state,
-        });
-      } catch (error) {
-        errors.push(
-          new FrodoError(
-            `Error deleting ${getCurrentRealmName(state) + ' realm'} agent ${agent['_id']} of type ${agent['_type']['_id']}`,
-            error
-          )
-        );
-      }
-    }
+        }),
+      errorMessage: (agent) =>
+        `Error deleting ${getCurrentRealmName(state) + ' realm'} agent ${agent['_id']} of type ${agent['_type']['_id']}`,
+      resultCallback,
+      state,
+    });
     if (errors.length > 0) {
       throw new FrodoError(
         `Error deleting ${getCurrentRealmName(state) + ' realm'} web agents`,
@@ -3019,32 +3099,33 @@ export async function updateAIAgent({
 /**
  * Delete all AI agents
  * @param {object} params structured and named parameters
+ * @param {ResultCallback<AgentSkeleton>} params.resultCallback Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
  * @param {State} params.state state object
+ * @throws {FrodoError} If the agents cannot be read (always), or if one or more agents cannot be deleted and there is no result callback.
  */
-export async function deleteAIAgents({ state }: { state: State }) {
-  const errors: Error[] = [];
+export async function deleteAIAgents({
+  resultCallback,
+  state,
+}: {
+  resultCallback?: ResultCallback<AgentSkeleton>;
+  state: State;
+}) {
+  let errors: FrodoError[] = [];
   try {
     debugMessage({
       message: `AgentOps.deleteAIAgents: start`,
       state,
     });
     const agents = await readAIAgents({ includeAgentIdentity: false, state });
-    for (const agent of agents) {
-      try {
-        debugMessage({
-          message: `AgentOps.deleteAIAgents: '${agent['_id']}'`,
-          state,
-        });
-        await deleteAIAgent({ agentId: agent['_id'], state });
-      } catch (error) {
-        errors.push(
-          new FrodoError(
-            `Error deleting ${getCurrentRealmName(state) + ' realm'} AI agent ${agent['_id']}`,
-            error
-          )
-        );
-      }
-    }
+    errors = await _deleteEachAgent({
+      agents,
+      debugName: 'deleteAIAgents',
+      deleteOne: (agent) => deleteAIAgent({ agentId: agent['_id'], state }),
+      errorMessage: (agent) =>
+        `Error deleting ${getCurrentRealmName(state) + ' realm'} AI agent ${agent['_id']}`,
+      resultCallback,
+      state,
+    });
     if (errors.length > 0) {
       throw new FrodoError(
         `Error deleting ${getCurrentRealmName(state) + ' realm'} AI agents`,

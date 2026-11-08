@@ -70,10 +70,11 @@ export type Mapping = {
    */
   updateSyncMappings(mappings: MappingSkeleton[]): Promise<MappingSkeleton[]>;
   /**
-   * Delete all mappings
+   * Delete all mappings. Every mapping is tried: a mapping that cannot be deleted does not stop the others.
    * @param {string} connectorId limit mappings to connector
    * @param {string} moType limit mappings to managed object type
    * @returns {Promise<MappingSkeleton[]>} a promise that resolves to an array of mapping objects
+   * @throws {FrodoError} If the mappings cannot be read, or if one or more mappings cannot be deleted. The error carries one nested error per failed mapping, naming it.
    */
   deleteMappings(
     connectorId?: string,
@@ -650,10 +651,11 @@ export async function updateLegacyMappings({
 }
 
 /**
- * Delete mappings
+ * Delete mappings. Every mapping is tried: a mapping that cannot be deleted does not stop the others.
  * @param {string} connectorId limit mappings to connector
  * @param {string} moType limit mappings to managed object type
  * @returns {Promise<MappingSkeleton[]>} a promise that resolves to an array of mapping objects
+ * @throws {FrodoError} If the mappings cannot be read, or if one or more mappings cannot be deleted. The error carries one nested error per failed mapping, naming it.
  */
 export async function deleteMappings({
   connectorId,
@@ -664,25 +666,46 @@ export async function deleteMappings({
   moType?: string;
   state: State;
 }): Promise<MappingSkeleton[]> {
+  const errors: FrodoError[] = [];
   try {
     debugMessage({ message: `MappingOps.deleteMappings: start`, state });
     const mappings = await readMappings({ state });
     const deletedMappings: MappingSkeleton[] = [];
+    // delete the new-style mappings one by one: a failed delete is collected and does not stop the others
+    const deleteNewMappings = async (toDelete: MappingSkeleton[]) => {
+      for (const mapping of toDelete) {
+        try {
+          deletedMappings.push(
+            await deleteMapping({ mappingId: mapping._id, state })
+          );
+        } catch (error) {
+          // deleteMapping names the mapping in its error
+          errors.push(error);
+        }
+      }
+    };
     // delete all mappings
     if (!connectorId && !moType) {
-      // delete all mappings in sync.json
-      await updateLegacyMappings({
-        mappings: [],
-        state,
-      });
-      for (const mapping of mappings.filter((it) => isLegacyMapping(it._id))) {
-        deletedMappings.push(mapping);
+      // delete all mappings in sync.json (one update: if it fails, that is one error)
+      try {
+        await updateLegacyMappings({
+          mappings: [],
+          state,
+        });
+        for (const mapping of mappings.filter((it) =>
+          isLegacyMapping(it._id)
+        )) {
+          deletedMappings.push(mapping);
+        }
+      } catch (error) {
+        errors.push(error);
       }
       // delete all the new mappings
-      for (const mapping of mappings.filter((it) => !isLegacyMapping(it._id))) {
-        deletedMappings.push(
-          await deleteMapping({ mappingId: mapping._id, state })
-        );
+      await deleteNewMappings(
+        mappings.filter((it) => !isLegacyMapping(it._id))
+      );
+      if (errors.length > 0) {
+        throw new FrodoError(`Error deleting mappings`, errors);
       }
       return deletedMappings;
     }
@@ -732,33 +755,38 @@ export async function deleteMappings({
           .join(', ')}`,
         state,
       });
-      // update the mappings
-      const finalMappings = await updateLegacyMappings({
-        mappings: updatedLegacyMappings,
-        state,
-      });
-      for (const mapping of mappings.filter((it) => isLegacyMapping(it._id))) {
-        deletedMappings.push(mapping);
-      }
-      debugMessage({
-        message: `MappingOps.deleteMappings: ${
-          finalMappings.length
-        } mappings after update: ${finalMappings
-          .map((mapping) => mapping._id)
-          .join(', ')}`,
-        state,
-      });
-      // are there any mappings that were not deleted?
-      const undeletedMappings = finalMappings.filter((mapping) =>
-        legacyMappingIdsToDelete.includes(mapping._id)
-      );
-      // delete all the new mappings
-      for (const mapping of mappings.filter((it) => !isLegacyMapping(it._id))) {
-        deletedMappings.push(
-          await deleteMapping({ mappingId: mapping._id, state })
+      // update the mappings (one update: if it fails, that is one error)
+      let undeletedMappings: MappingSkeleton[] = [];
+      try {
+        const finalMappings = await updateLegacyMappings({
+          mappings: updatedLegacyMappings,
+          state,
+        });
+        for (const mapping of mappings.filter((it) =>
+          isLegacyMapping(it._id)
+        )) {
+          deletedMappings.push(mapping);
+        }
+        debugMessage({
+          message: `MappingOps.deleteMappings: ${
+            finalMappings.length
+          } mappings after update: ${finalMappings
+            .map((mapping) => mapping._id)
+            .join(', ')}`,
+          state,
+        });
+        // are there any mappings that were not deleted?
+        undeletedMappings = finalMappings.filter((mapping) =>
+          legacyMappingIdsToDelete.includes(mapping._id)
         );
+      } catch (error) {
+        errors.push(error);
       }
-      // if there were undeleted mappings, throw exception
+      // delete all the new mappings
+      await deleteNewMappings(
+        mappings.filter((it) => !isLegacyMapping(it._id))
+      );
+      // if there were undeleted mappings, that is an error too
       if (undeletedMappings.length > 0) {
         const message = `${
           undeletedMappings.length
@@ -769,7 +797,10 @@ export async function deleteMappings({
           message,
           state,
         });
-        throw new FrodoError(message);
+        errors.push(new FrodoError(message));
+      }
+      if (errors.length > 0) {
+        throw new FrodoError(`Error deleting mappings`, errors);
       }
       debugMessage({
         message: `MappingOps.deleteMappings: deleted ${
@@ -782,6 +813,10 @@ export async function deleteMappings({
       return deletedMappings;
     }
   } catch (error) {
+    // just re-throw previously collected errors
+    if (errors.length > 0) {
+      throw error;
+    }
     throw new FrodoError(`Error deleting mappings`, error);
   }
 }
