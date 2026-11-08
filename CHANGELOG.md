@@ -10,6 +10,18 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-26] - 2026-11-08
+
+### Changed
+- Enhanced error handling for agent reads to ensure failures other than HTTP 501 are visible, preventing incomplete data returns. Only HTTP 501 errors, indicating unsupported agent types, are skipped (#944).
+- Improved `deleteMappings`, `deleteSaml2Providers`, and `exportServers` to attempt every item and report failures per item. These operations now throw a `FrodoError` containing all failed items after completion (#949, #947).
+- Updated file export functions to throw a `FrodoError` when write operations fail, ensuring errors are propagated correctly and preventing false success reports (#941).
+- Refined batch service operations to aggregate and report all failures after attempts, enhancing error visibility in `getFullServices` and `deleteFullServices` (#940).
+- Adjusted the retry strategy to handle errors without responses, preventing TypeErrors and ensuring retries for connection issues, timeouts, and DNS failures (#934).
+
+### Fixed
+- Corrected error messages in `importJourneys` to report the actual journey name instead of "journey undefined," improving clarity in failure reports (#933).
+
 ## [v5.0.0-25] - 2026-11-07
 
 ### Added
@@ -2830,6 +2842,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-26]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-25...v5.0.0-26
 [v5.0.0-25]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-24...v5.0.0-25
 [v5.0.0-24]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-23...v5.0.0-24
 [v5.0.0-23]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-22...v5.0.0-23

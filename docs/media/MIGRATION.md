@@ -30,6 +30,30 @@ releases missed):
 
 **Behavior changes**:
 
+- `agent list`, `agent export` and `agent delete -a` (`readAgents` and every
+  library function that calls it) now skip an unavailable agent type only when
+  its request returns HTTP 501. Other per-type request failures are collected
+  and thrown in one `FrodoError` naming the failed types after all types have
+  been read; previously, they were silently treated as empty lists and the
+  command returned the agents from the remaining readable types.
+- `frodo.utils.saveTextToFile` and `frodo.utils.saveJsonToFile`
+  (`src/utils/ExportImportUtils.ts`) now return `void` on success instead of
+  `true`. Directory-creation and file-write failures throw a `FrodoError`
+  naming the file and carrying the original error, rather than printing an
+  error and returning `false`. Callers that ignored the result now receive a
+  thrown `FrodoError` where they previously received only a printed message
+  and no exception. TypeScript callers that test the result no longer compile
+  because the functions return `void`. Replace boolean-result checks with
+  `try`/`catch`; callers are responsible for reporting or collecting the
+  failure. The `ERROR - can't save <file>` line is no longer printed through
+  the print handler, so the caller prints the thrown error once.
+  `frodo.utils.saveToFile` propagates the same error.
+- `frodo.mapping.deleteMappings` (`src/ops/MappingOps.ts`) now tries every
+  mapping. A mapping that cannot be deleted no longer stops the others: after
+  all of them were tried, the function throws one `FrodoError` that carries one
+  nested error per failed mapping, naming it. It used to throw at the first
+  failure and leave the later mappings in place, and it reported neither the
+  ones already deleted nor the ones it never reached.
 - `frodo.authn.journey.importJourney`, `importJourneys` and
   `frodo.config.importFullConfiguration` now validate journeys before writing
   them. Structural errors (missing node definition, node ID mismatch, missing
@@ -53,6 +77,16 @@ releases missed):
   `FrodoError` that carries the original error. In the types, `PromotionStatus`
   is now the union of status names; the former object type is
   `PromotionStatusResponse`.
+- `frodo.saml2.entityProvider.deleteSaml2Providers` and `frodo.server.exportServers`
+  now try every provider or server before they fail. When any of them fails,
+  they still reject with one `FrodoError`, but its `originalErrors` now hold
+  one nested error per failed provider or server, each naming its provider
+  (entity id) or server (url and id), where the first failure used to end the
+  call and the rest were never attempted. `exportServers` returns nothing when
+  a server fails, as before; `deleteSaml2Providers` has deleted every provider
+  that could be deleted by the time it rejects. The message of the error from
+  `exportServers` for a failed server is now `Error exporting servers`; it was
+  `Error reading servers`.
 
 **Deprecation**:
 
