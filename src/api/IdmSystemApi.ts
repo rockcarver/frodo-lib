@@ -39,6 +39,8 @@ export interface SystemStatusInterface {
   displayName: string;
   objectTypes: string[];
   ok: boolean;
+  /** The reason a connection test failed, for example `connector not available` right after a connector was enabled. */
+  error?: string;
 }
 
 /**

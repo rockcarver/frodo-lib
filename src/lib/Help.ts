@@ -1027,6 +1027,76 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<ApplicationValidationFinding[]>} validation findings of all applications, empty if every reference resolves",
   },
   {
+    typeName: "Application",
+    methodName: "readApplicationStatus",
+    signature: "readApplicationStatus( applicationId: string ): Promise<ApplicationStatusResult>",
+    description: "Read the status of an application. Only a provisioning application, one with a connector, has a status, and it is the state of its connector: `active` if the connector is enabled, `inactive` if it is disabled. Every other application, and one whose connector configuration does not exist, has status `none`.",
+    params: [
+      { name: "applicationId", type: "string", description: "application uuid", required: true },
+    ],
+    returns: "{Promise<ApplicationStatusResult>} a promise that resolves to the status of the application",
+  },
+  {
+    typeName: "Application",
+    methodName: "readApplicationStatusByName",
+    signature: "readApplicationStatusByName( applicationName: string ): Promise<ApplicationStatusResult>",
+    description: "Read the status of an application by name. See readApplicationStatus.",
+    params: [
+      { name: "applicationName", type: "string", description: "application name", required: true },
+    ],
+    returns: "{Promise<ApplicationStatusResult>} a promise that resolves to the status of the application",
+  },
+  {
+    typeName: "Application",
+    methodName: "readApplicationStatuses",
+    signature: "readApplicationStatuses(): Promise<ApplicationStatusResult[]>",
+    description: "Read the status of every application of the realm: the applications are read once and the enabled state of all connectors in one more request. See readApplicationStatus.",
+    params: [],
+    returns: "{Promise<ApplicationStatusResult[]>} a promise that resolves to the status of every application",
+  },
+  {
+    typeName: "Application",
+    methodName: "enableApplication",
+    signature: "enableApplication( applicationId: string, options?: ConnectorEnableOptions ): Promise<ApplicationStatusChangeResult>",
+    description: "Enable an application: enable its connector and wait until the connector answers its connection test (see ConnectorOps.enableConnector). An application without a connector has no status to change and is an error.",
+    params: [
+      { name: "applicationId", type: "string", description: "application uuid", required: true },
+      { name: "options", type: "ConnectorEnableOptions", description: "how long to wait for the connector to answer (milliseconds)", required: false },
+    ],
+    returns: "{Promise<ApplicationStatusChangeResult>} a promise that resolves to the status of the application after the change",
+  },
+  {
+    typeName: "Application",
+    methodName: "enableApplicationByName",
+    signature: "enableApplicationByName( applicationName: string, options?: ConnectorEnableOptions ): Promise<ApplicationStatusChangeResult>",
+    description: "Enable an application by name. See enableApplication.",
+    params: [
+      { name: "applicationName", type: "string", description: "application name", required: true },
+      { name: "options", type: "ConnectorEnableOptions", description: "how long to wait for the connector to answer (milliseconds)", required: false },
+    ],
+    returns: "{Promise<ApplicationStatusChangeResult>} a promise that resolves to the status of the application after the change",
+  },
+  {
+    typeName: "Application",
+    methodName: "disableApplication",
+    signature: "disableApplication( applicationId: string ): Promise<ApplicationStatusChangeResult>",
+    description: "Disable an application: disable its connector. An application without a connector has no status to change and is an error.",
+    params: [
+      { name: "applicationId", type: "string", description: "application uuid", required: true },
+    ],
+    returns: "{Promise<ApplicationStatusChangeResult>} a promise that resolves to the status of the application after the change",
+  },
+  {
+    typeName: "Application",
+    methodName: "disableApplicationByName",
+    signature: "disableApplicationByName( applicationName: string ): Promise<ApplicationStatusChangeResult>",
+    description: "Disable an application by name. See disableApplication.",
+    params: [
+      { name: "applicationName", type: "string", description: "application name", required: true },
+    ],
+    returns: "{Promise<ApplicationStatusChangeResult>} a promise that resolves to the status of the application after the change",
+  },
+  {
     typeName: "Authenticate",
     methodName: "getTokens",
     signature: "getTokens( forceLoginAsUser?: boolean, autoRefresh?: boolean, types?: string[], callbackHandler?: CallbackHandler, useDeviceFlow?: boolean, promptHandler?: BrowserLoginPromptHandler, credentialOverride?: 'user' | 'svcacct' | 'amster' | 'browser' ): Promise<Tokens>",
@@ -1563,6 +1633,45 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "options", type: "ConnectorImportOptions", description: "import options", required: false },
     ],
     returns: "{Promise<ConnectorSkeleton[]>} a promise resolving to an array of ConnectorSkeleton objects",
+  },
+  {
+    typeName: "Connector",
+    methodName: "enableConnector",
+    signature: "enableConnector( connectorId: string, options?: ConnectorEnableOptions ): Promise<ConnectorStateResult>",
+    description: "Enable a connector, the way the Admin UI does it, and wait until the connector answers its connection test. A connector that is enabled already is left alone (`changed` is false) but is still waited for. A connector that is enabled but does not answer in time is not an error: `ready` is false and `error` holds the last answer of the test.",
+    params: [
+      { name: "connectorId", type: "string", description: "id/name of the connector without the type prefix", required: true },
+      { name: "options", type: "ConnectorEnableOptions", description: "how long to wait for the connector to answer (milliseconds)", required: false },
+    ],
+    returns: "{Promise<ConnectorStateResult>} a promise that resolves to the connector configuration after the change and whether the connector answers",
+  },
+  {
+    typeName: "Connector",
+    methodName: "disableConnector",
+    signature: "disableConnector(connectorId: string): Promise<ConnectorStateResult>",
+    description: "Disable a connector, the way the Admin UI does it. A connector that is disabled already is left alone (`changed` is false). A disabled connector is not a registered system any more, so there is nothing to wait for.",
+    params: [
+      { name: "connectorId", type: "string", description: "id/name of the connector without the type prefix", required: true },
+    ],
+    returns: "{Promise<ConnectorStateResult>} a promise that resolves to the connector configuration after the change",
+  },
+  {
+    typeName: "Connector",
+    methodName: "isConnectorEnabled",
+    signature: "isConnectorEnabled(connectorId: string): Promise<boolean>",
+    description: "Check if a connector is enabled. A configuration without an `enabled` flag counts as enabled, as it does in IDM.",
+    params: [
+      { name: "connectorId", type: "string", description: "id/name of the connector without the type prefix", required: true },
+    ],
+    returns: "{Promise<boolean>} a promise that resolves to true if the connector is enabled, false if it is disabled",
+  },
+  {
+    typeName: "Connector",
+    methodName: "readConnectorEnabledStates",
+    signature: "readConnectorEnabledStates(): Promise<Record<string, boolean>>",
+    description: "Read whether each connector is enabled, in one request",
+    params: [],
+    returns: "{Promise<Record<string, boolean>>} a promise that resolves to an object that maps the id/name of each connector (without the type prefix) to whether it is enabled",
   },
   {
     typeName: "EmailTemplate",

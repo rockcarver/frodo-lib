@@ -53,12 +53,17 @@ import {
   readRequestType,
 } from './cloud/iga/IgaRequestTypeOps';
 import {
+  ConnectorEnableOptions,
   ConnectorExportInterface,
   ConnectorSkeleton,
   deleteConnector,
+  disableConnector,
+  enableConnector,
   exportConnector,
   importConnector,
+  isConnectorEnabled,
   readConnector,
+  readConnectorEnabledStates,
 } from './ConnectorOps';
 import { FrodoError, isNotFoundError } from './FrodoError';
 import {
@@ -329,6 +334,63 @@ export type Application = {
    * @returns {Promise<ApplicationValidationFinding[]>} validation findings of all applications, empty if every reference resolves
    */
   validateApplications(): Promise<ApplicationValidationFinding[]>;
+  /**
+   * Read the status of an application. Only a provisioning application, one with a connector, has a status, and it is the state of its connector: `active` if the connector is enabled, `inactive` if it is disabled. Every other application, and one whose connector configuration does not exist, has status `none`.
+   * @param {string} applicationId application uuid
+   * @returns {Promise<ApplicationStatusResult>} a promise that resolves to the status of the application
+   */
+  readApplicationStatus(
+    applicationId: string
+  ): Promise<ApplicationStatusResult>;
+  /**
+   * Read the status of an application by name. See readApplicationStatus.
+   * @param {string} applicationName application name
+   * @returns {Promise<ApplicationStatusResult>} a promise that resolves to the status of the application
+   */
+  readApplicationStatusByName(
+    applicationName: string
+  ): Promise<ApplicationStatusResult>;
+  /**
+   * Read the status of every application of the realm: the applications are read once and the enabled state of all connectors in one more request. See readApplicationStatus.
+   * @returns {Promise<ApplicationStatusResult[]>} a promise that resolves to the status of every application
+   */
+  readApplicationStatuses(): Promise<ApplicationStatusResult[]>;
+  /**
+   * Enable an application: enable its connector and wait until the connector answers its connection test (see ConnectorOps.enableConnector). An application without a connector has no status to change and is an error.
+   * @param {string} applicationId application uuid
+   * @param {ConnectorEnableOptions} options how long to wait for the connector to answer (milliseconds)
+   * @returns {Promise<ApplicationStatusChangeResult>} a promise that resolves to the status of the application after the change
+   */
+  enableApplication(
+    applicationId: string,
+    options?: ConnectorEnableOptions
+  ): Promise<ApplicationStatusChangeResult>;
+  /**
+   * Enable an application by name. See enableApplication.
+   * @param {string} applicationName application name
+   * @param {ConnectorEnableOptions} options how long to wait for the connector to answer (milliseconds)
+   * @returns {Promise<ApplicationStatusChangeResult>} a promise that resolves to the status of the application after the change
+   */
+  enableApplicationByName(
+    applicationName: string,
+    options?: ConnectorEnableOptions
+  ): Promise<ApplicationStatusChangeResult>;
+  /**
+   * Disable an application: disable its connector. An application without a connector has no status to change and is an error.
+   * @param {string} applicationId application uuid
+   * @returns {Promise<ApplicationStatusChangeResult>} a promise that resolves to the status of the application after the change
+   */
+  disableApplication(
+    applicationId: string
+  ): Promise<ApplicationStatusChangeResult>;
+  /**
+   * Disable an application by name. See disableApplication.
+   * @param {string} applicationName application name
+   * @returns {Promise<ApplicationStatusChangeResult>} a promise that resolves to the status of the application after the change
+   */
+  disableApplicationByName(
+    applicationName: string
+  ): Promise<ApplicationStatusChangeResult>;
 };
 
 export default (state: State): Application => {
@@ -491,6 +553,41 @@ export default (state: State): Application => {
     },
     async validateApplications(): Promise<ApplicationValidationFinding[]> {
       return validateApplications({ state });
+    },
+    async readApplicationStatus(
+      applicationId: string
+    ): Promise<ApplicationStatusResult> {
+      return readApplicationStatus({ applicationId, state });
+    },
+    async readApplicationStatusByName(
+      applicationName: string
+    ): Promise<ApplicationStatusResult> {
+      return readApplicationStatusByName({ applicationName, state });
+    },
+    async readApplicationStatuses(): Promise<ApplicationStatusResult[]> {
+      return readApplicationStatuses({ state });
+    },
+    async enableApplication(
+      applicationId: string,
+      options?: ConnectorEnableOptions
+    ): Promise<ApplicationStatusChangeResult> {
+      return enableApplication({ applicationId, options, state });
+    },
+    async enableApplicationByName(
+      applicationName: string,
+      options?: ConnectorEnableOptions
+    ): Promise<ApplicationStatusChangeResult> {
+      return enableApplicationByName({ applicationName, options, state });
+    },
+    async disableApplication(
+      applicationId: string
+    ): Promise<ApplicationStatusChangeResult> {
+      return disableApplication({ applicationId, state });
+    },
+    async disableApplicationByName(
+      applicationName: string
+    ): Promise<ApplicationStatusChangeResult> {
+      return disableApplicationByName({ applicationName, state });
     },
   };
 };
@@ -2898,6 +2995,311 @@ export async function validateApplications({
   } catch (error) {
     throw new FrodoError(
       `Error validating ${getCurrentRealmName(state) + ' realm'} applications`,
+      error
+    );
+  }
+}
+
+/**
+ * The status of an application. Only a provisioning application has one, and it is the state of its connector: `active` if the connector is enabled, `inactive` if it is disabled. `none` is every other application, and a provisioning application whose connector configuration does not exist.
+ */
+export type ApplicationStatus = 'active' | 'inactive' | 'none';
+
+/**
+ * The status of an application
+ */
+export type ApplicationStatusResult = {
+  /** Application uuid. */
+  applicationId: string;
+  /** Application name. */
+  applicationName: string;
+  /** The connector of a provisioning application. Not set for the other applications. */
+  connectorId?: string;
+  /** The status of the application. */
+  status: ApplicationStatus;
+};
+
+/**
+ * The result of enabling or disabling an application
+ */
+export type ApplicationStatusChangeResult = ApplicationStatusResult & {
+  /** False if the application was in the requested state already and nothing was written. */
+  changed: boolean;
+  /** Enabling only: whether the connector answered its connection test within the timeout. */
+  ready?: boolean;
+  /** Enabling only: the last answer of the connection test, if the connector did not answer within the timeout. */
+  error?: string;
+};
+
+function getApplicationStatusResult(
+  applicationData: ApplicationSkeleton,
+  status: ApplicationStatus
+): ApplicationStatusResult {
+  return {
+    applicationId: applicationData._id,
+    applicationName: applicationData.name,
+    ...(isProvisioningApplication(applicationData) && {
+      connectorId: getConnectorId(applicationData),
+    }),
+    status,
+  };
+}
+
+async function resolveApplicationStatus({
+  applicationData,
+  state,
+}: {
+  applicationData: ApplicationSkeleton;
+  state: State;
+}): Promise<ApplicationStatusResult> {
+  if (!isProvisioningApplication(applicationData)) {
+    return getApplicationStatusResult(applicationData, 'none');
+  }
+  try {
+    const enabled = await isConnectorEnabled({
+      connectorId: getConnectorId(applicationData),
+      state,
+    });
+    return getApplicationStatusResult(
+      applicationData,
+      enabled ? 'active' : 'inactive'
+    );
+  } catch (error) {
+    // the connector configuration the application names does not exist
+    if (isNotFoundError(error)) {
+      return getApplicationStatusResult(applicationData, 'none');
+    }
+    throw error;
+  }
+}
+
+async function setApplicationStatus({
+  applicationData,
+  enabled,
+  options,
+  state,
+}: {
+  applicationData: ApplicationSkeleton;
+  enabled: boolean;
+  options?: ConnectorEnableOptions;
+  state: State;
+}): Promise<ApplicationStatusChangeResult> {
+  if (!isProvisioningApplication(applicationData)) {
+    throw new Error(
+      `${getCurrentRealmName(state) + ' realm'} application '${applicationData.name}' has no connector, so it has no status to change`
+    );
+  }
+  const connectorId = getConnectorId(applicationData);
+  if (enabled) {
+    const { changed, ready, error } = await enableConnector({
+      connectorId,
+      options,
+      state,
+    });
+    return {
+      ...getApplicationStatusResult(applicationData, 'active'),
+      changed,
+      ready,
+      ...(error !== undefined && { error }),
+    };
+  }
+  const { changed } = await disableConnector({ connectorId, state });
+  return {
+    ...getApplicationStatusResult(applicationData, 'inactive'),
+    changed,
+  };
+}
+
+/**
+ * Read the status of an application. Only a provisioning application, one with a connector, has a status, and it is the state of its connector: `active` if the connector is enabled, `inactive` if it is disabled. Every other application, and one whose connector configuration does not exist, has status `none`.
+ * @param {string} applicationId application uuid
+ * @returns {Promise<ApplicationStatusResult>} a promise that resolves to the status of the application
+ */
+export async function readApplicationStatus({
+  applicationId,
+  state,
+}: {
+  applicationId: string;
+  state: State;
+}): Promise<ApplicationStatusResult> {
+  try {
+    return await resolveApplicationStatus({
+      applicationData: await readApplication({ applicationId, state }),
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading the status of ${getCurrentRealmName(state) + ' realm'} application ${applicationId}`,
+      error
+    );
+  }
+}
+
+/**
+ * Read the status of an application by name. See readApplicationStatus.
+ * @param {string} applicationName application name
+ * @returns {Promise<ApplicationStatusResult>} a promise that resolves to the status of the application
+ */
+export async function readApplicationStatusByName({
+  applicationName,
+  state,
+}: {
+  applicationName: string;
+  state: State;
+}): Promise<ApplicationStatusResult> {
+  try {
+    return await resolveApplicationStatus({
+      applicationData: await readApplicationByName({ applicationName, state }),
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading the status of ${getCurrentRealmName(state) + ' realm'} application ${applicationName}`,
+      error
+    );
+  }
+}
+
+/**
+ * Read the status of every application of the realm: the applications are read once and the enabled state of all connectors in one more request. See readApplicationStatus.
+ * @returns {Promise<ApplicationStatusResult[]>} a promise that resolves to the status of every application
+ */
+export async function readApplicationStatuses({
+  state,
+}: {
+  state: State;
+}): Promise<ApplicationStatusResult[]> {
+  try {
+    const applications = await readApplications({ state });
+    const states = applications.some((application) =>
+      isProvisioningApplication(application)
+    )
+      ? await readConnectorEnabledStates({ state })
+      : {};
+    return applications.map((application) => {
+      const enabled = isProvisioningApplication(application)
+        ? states[getConnectorId(application)]
+        : undefined;
+      return getApplicationStatusResult(
+        application,
+        enabled === undefined ? 'none' : enabled ? 'active' : 'inactive'
+      );
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading the status of ${getCurrentRealmName(state) + ' realm'} applications`,
+      error
+    );
+  }
+}
+
+/**
+ * Enable an application: enable its connector and wait until the connector answers its connection test (see ConnectorOps.enableConnector). An application without a connector has no status to change and is an error.
+ * @param {string} applicationId application uuid
+ * @param {ConnectorEnableOptions} options how long to wait for the connector to answer (milliseconds)
+ * @returns {Promise<ApplicationStatusChangeResult>} a promise that resolves to the status of the application after the change
+ */
+export async function enableApplication({
+  applicationId,
+  options,
+  state,
+}: {
+  applicationId: string;
+  options?: ConnectorEnableOptions;
+  state: State;
+}): Promise<ApplicationStatusChangeResult> {
+  try {
+    return await setApplicationStatus({
+      applicationData: await readApplication({ applicationId, state }),
+      enabled: true,
+      options,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error enabling ${getCurrentRealmName(state) + ' realm'} application ${applicationId}`,
+      error
+    );
+  }
+}
+
+/**
+ * Enable an application by name. See enableApplication.
+ * @param {string} applicationName application name
+ * @param {ConnectorEnableOptions} options how long to wait for the connector to answer (milliseconds)
+ * @returns {Promise<ApplicationStatusChangeResult>} a promise that resolves to the status of the application after the change
+ */
+export async function enableApplicationByName({
+  applicationName,
+  options,
+  state,
+}: {
+  applicationName: string;
+  options?: ConnectorEnableOptions;
+  state: State;
+}): Promise<ApplicationStatusChangeResult> {
+  try {
+    return await setApplicationStatus({
+      applicationData: await readApplicationByName({ applicationName, state }),
+      enabled: true,
+      options,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error enabling ${getCurrentRealmName(state) + ' realm'} application ${applicationName}`,
+      error
+    );
+  }
+}
+
+/**
+ * Disable an application: disable its connector. An application without a connector has no status to change and is an error.
+ * @param {string} applicationId application uuid
+ * @returns {Promise<ApplicationStatusChangeResult>} a promise that resolves to the status of the application after the change
+ */
+export async function disableApplication({
+  applicationId,
+  state,
+}: {
+  applicationId: string;
+  state: State;
+}): Promise<ApplicationStatusChangeResult> {
+  try {
+    return await setApplicationStatus({
+      applicationData: await readApplication({ applicationId, state }),
+      enabled: false,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error disabling ${getCurrentRealmName(state) + ' realm'} application ${applicationId}`,
+      error
+    );
+  }
+}
+
+/**
+ * Disable an application by name. See disableApplication.
+ * @param {string} applicationName application name
+ * @returns {Promise<ApplicationStatusChangeResult>} a promise that resolves to the status of the application after the change
+ */
+export async function disableApplicationByName({
+  applicationName,
+  state,
+}: {
+  applicationName: string;
+  state: State;
+}): Promise<ApplicationStatusChangeResult> {
+  try {
+    return await setApplicationStatus({
+      applicationData: await readApplicationByName({ applicationName, state }),
+      enabled: false,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error disabling ${getCurrentRealmName(state) + ' realm'} application ${applicationName}`,
       error
     );
   }

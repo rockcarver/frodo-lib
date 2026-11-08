@@ -492,6 +492,98 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Same as validateApplication, for every application of the realm. One application that cannot be checked does not stop the others. Reads only.',
   },
+  'app.enableApplication': {
+    operationType: 'update',
+    objectType: 'ManagedApplication',
+    argumentMode: 'named',
+    parameterOverrides: {
+      applicationId: {
+        description:
+          'Application uuid: the _id of the application record, not its name.',
+        examples: ['9c1101aa-0000-4000-8000-0000000011a1'],
+      },
+      options: {
+        description:
+          'How long to wait for the connector to answer its connection test after it was enabled: { timeout, interval } in milliseconds. Defaults: 30000 and 500.',
+        schema: {
+          type: 'object',
+          properties: {
+            timeout: { type: 'integer' },
+            interval: { type: 'integer' },
+          },
+          additionalProperties: false,
+        },
+        examples: [{ timeout: 30000, interval: 500 }],
+      },
+    },
+    supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Enables the connector of a provisioning application (the same PATCH of /enabled the Admin UI sends) and waits until the connector answers its connection test, so provisioning to the target system starts. An application without a connector has no status and is an error. Reversible with disableApplication.',
+  },
+  'app.enableApplicationByName': {
+    operationType: 'update',
+    objectType: 'ManagedApplication',
+    argumentMode: 'named',
+    parameterOverrides: {
+      applicationName: {
+        description: 'Application name. Names are unique in a realm.',
+        examples: ['My Provisioning App'],
+      },
+      options: {
+        description:
+          'How long to wait for the connector to answer its connection test after it was enabled: { timeout, interval } in milliseconds. Defaults: 30000 and 500.',
+        schema: {
+          type: 'object',
+          properties: {
+            timeout: { type: 'integer' },
+            interval: { type: 'integer' },
+          },
+          additionalProperties: false,
+        },
+        examples: [{ timeout: 30000, interval: 500 }],
+      },
+    },
+    supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Same as enableApplication, for the application with the given name. Prefer namedArgs { applicationName }.',
+  },
+  'app.disableApplication': {
+    operationType: 'update',
+    objectType: 'ManagedApplication',
+    argumentMode: 'named',
+    parameterOverrides: {
+      applicationId: {
+        description:
+          'Application uuid: the _id of the application record, not its name.',
+        examples: ['9c1101aa-0000-4000-8000-0000000011a1'],
+      },
+    },
+    supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Disables the connector of a provisioning application (the same PATCH of /enabled the Admin UI sends), which stops provisioning to the target system. An application without a connector has no status and is an error. Reversible with enableApplication.',
+  },
+  'app.disableApplicationByName': {
+    operationType: 'update',
+    objectType: 'ManagedApplication',
+    argumentMode: 'named',
+    parameterOverrides: {
+      applicationName: {
+        description: 'Application name. Names are unique in a realm.',
+        examples: ['My Provisioning App'],
+      },
+    },
+    supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Same as disableApplication, for the application with the given name. Prefer namedArgs { applicationName }.',
+  },
   'role.queryInternalRoles': {
     argumentMode: 'named',
     parameterOverrides: {
@@ -718,6 +810,70 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     },
     supportsRealm: true,
     notes: 'Update a connector with namedArgs { connectorId, connectorData }.',
+  },
+  'idm.connector.enableConnector': {
+    operationType: 'update',
+    objectType: 'Connector',
+    argumentMode: 'named',
+    parameterOverrides: {
+      connectorId: {
+        description:
+          'Connector id/name without the type prefix: ldap for provisioner.openicf/ldap.',
+        examples: ['ldap'],
+      },
+      options: {
+        description:
+          'How long to wait for the connector to answer its connection test after it was enabled: { timeout, interval } in milliseconds. Defaults: 30000 and 500.',
+        schema: {
+          type: 'object',
+          properties: {
+            timeout: { type: 'integer' },
+            interval: { type: 'integer' },
+          },
+          additionalProperties: false,
+        },
+        examples: [{ timeout: 30000, interval: 500 }],
+      },
+    },
+    supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Enables a connector (PATCH of /enabled on provisioner.openicf/<connectorId> with waitForCompletion, as the Admin UI does) and waits until it answers its connection test. A connector that does not answer in time is not an error: the result has ready false and the last answer in error. Reversible with disableConnector.',
+  },
+  'idm.connector.disableConnector': {
+    operationType: 'update',
+    objectType: 'Connector',
+    argumentMode: 'named',
+    parameterOverrides: {
+      connectorId: {
+        description:
+          'Connector id/name without the type prefix: ldap for provisioner.openicf/ldap.',
+        examples: ['ldap'],
+      },
+    },
+    supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Disables a connector (PATCH of /enabled on provisioner.openicf/<connectorId> with waitForCompletion, as the Admin UI does), which stops provisioning through it. A disabled connector is not a registered system any more. Reversible with enableConnector.',
+  },
+  'idm.connector.isConnectorEnabled': {
+    operationType: 'read',
+    objectType: 'Connector',
+    argumentMode: 'named',
+    parameterOverrides: {
+      connectorId: {
+        description:
+          'Connector id/name without the type prefix: ldap for provisioner.openicf/ldap.',
+        examples: ['ldap'],
+      },
+    },
+    supportsRealm: true,
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Reads the connector configuration and answers whether it is enabled. For all connectors at once use readConnectorEnabledStates.',
   },
   'idm.connector.createConnectorExportTemplate': {
     // Pure local builder (no API calls), used internally by exportConnector/

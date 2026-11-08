@@ -7,6 +7,7 @@ import {
   IdObjectSkeletonInterface,
   NoIdObjectSkeletonInterface,
   PagedResult,
+  PatchOperationInterface,
 } from './ApiTypes';
 import { generateIdmApi } from './BaseApi';
 
@@ -67,26 +68,34 @@ export async function getConfigEntities({
  * Get IDM config entities by type
  * @param {string} type the desired type of config entity
  * @param {boolean} includeDefault Include default email templates if true, false to exclude them. Default: false
+ * @param {string[]} fields only return these fields (and the id). Default: all fields
  * @returns {Promise} a promise that resolves to an object containing all IDM config entities of the desired type
  */
 export async function getConfigEntitiesByType({
   type,
   includeDefault = false,
+  fields = [],
   state,
 }: {
   type: string;
   includeDefault?: boolean;
+  fields?: string[];
   state: State;
 }): Promise<PagedResult<NoIdObjectSkeletonInterface>> {
   // Due to a bug (as of Ping IDM 7.5.0) with the query filter for email templates (it happens using both sw or co), in order to get all the email templates, including default, you need to use 'emailTemplat' instead.
   if (type === EMAIL_TEMPLATE_TYPE && includeDefault) {
     type = EMAIL_TEMPLATE_TYPE.substring(0, EMAIL_TEMPLATE_TYPE.length - 1);
   }
-  const urlString = util.format(
-    idmConfigEntityQueryTemplate,
-    getIdmBaseUrl(state),
-    encodeURIComponent(`_id sw '${type}'`)
-  );
+  const fieldsParameter =
+    fields.length > 0
+      ? `&_fields=${fields.map((field) => encodeURIComponent(field)).join(',')}`
+      : '';
+  const urlString =
+    util.format(
+      idmConfigEntityQueryTemplate,
+      getIdmBaseUrl(state),
+      encodeURIComponent(`_id sw '${type}'`)
+    ) + fieldsParameter;
   const { data } = await generateIdmApi({
     requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     state,
@@ -146,6 +155,37 @@ export async function putConfigEntity({
     requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     state,
   }).put(urlString, entityData);
+  return data;
+}
+
+/**
+ * Patch IDM config entity
+ * @param {object} params config parameters
+ * @param {string} params.entityId config entity id
+ * @param {PatchOperationInterface[]} params.operations the patch operations
+ * @param {boolean} params.wait delay the response until an OSGi service event confirms the change has been consumed by the corresponding service or the request times out.
+ * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to the IDM config entity after the patch
+ */
+export async function patchConfigEntity({
+  entityId,
+  operations,
+  wait = false,
+  state,
+}: {
+  entityId: string;
+  operations: PatchOperationInterface[];
+  wait?: boolean;
+  state: State;
+}): Promise<IdObjectSkeletonInterface> {
+  const urlString = util.format(
+    idmConfigURLTemplate,
+    getIdmBaseUrl(state),
+    wait ? `${entityId}?waitForCompletion=true` : entityId
+  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    state,
+  }).patch(urlString, operations);
   return data;
 }
 

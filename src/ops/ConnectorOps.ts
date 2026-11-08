@@ -1,9 +1,12 @@
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import {
   deleteConfigEntity,
+  getConfigEntitiesByType,
   getConfigEntity,
+  patchConfigEntity,
   putConfigEntity,
 } from '../api/IdmConfigApi';
+import { readSystemStatus } from '../api/IdmSystemApi';
 import { State } from '../shared/State';
 import {
   createProgressIndicator,
@@ -126,6 +129,33 @@ export type Connector = {
     importData: ConnectorExportInterface,
     options?: ConnectorImportOptions
   ): Promise<ConnectorSkeleton[]>;
+  /**
+   * Enable a connector, the way the Admin UI does it, and wait until the connector answers its connection test. A connector that is enabled already is left alone (`changed` is false) but is still waited for. A connector that is enabled but does not answer in time is not an error: `ready` is false and `error` holds the last answer of the test.
+   * @param {string} connectorId id/name of the connector without the type prefix
+   * @param {ConnectorEnableOptions} options how long to wait for the connector to answer (milliseconds)
+   * @returns {Promise<ConnectorStateResult>} a promise that resolves to the connector configuration after the change and whether the connector answers
+   */
+  enableConnector(
+    connectorId: string,
+    options?: ConnectorEnableOptions
+  ): Promise<ConnectorStateResult>;
+  /**
+   * Disable a connector, the way the Admin UI does it. A connector that is disabled already is left alone (`changed` is false). A disabled connector is not a registered system any more, so there is nothing to wait for.
+   * @param {string} connectorId id/name of the connector without the type prefix
+   * @returns {Promise<ConnectorStateResult>} a promise that resolves to the connector configuration after the change
+   */
+  disableConnector(connectorId: string): Promise<ConnectorStateResult>;
+  /**
+   * Check if a connector is enabled. A configuration without an `enabled` flag counts as enabled, as it does in IDM.
+   * @param {string} connectorId id/name of the connector without the type prefix
+   * @returns {Promise<boolean>} a promise that resolves to true if the connector is enabled, false if it is disabled
+   */
+  isConnectorEnabled(connectorId: string): Promise<boolean>;
+  /**
+   * Read whether each connector is enabled, in one request
+   * @returns {Promise<Record<string, boolean>>} a promise that resolves to an object that maps the id/name of each connector (without the type prefix) to whether it is enabled
+   */
+  readConnectorEnabledStates(): Promise<Record<string, boolean>>;
 };
 
 export default (state: State): Connector => {
@@ -196,6 +226,21 @@ export default (state: State): Connector => {
       options?: ConnectorImportOptions
     ): Promise<ConnectorSkeleton[]> {
       return importConnectors({ importData, options, state });
+    },
+    async enableConnector(
+      connectorId: string,
+      options?: ConnectorEnableOptions
+    ): Promise<ConnectorStateResult> {
+      return enableConnector({ connectorId, options, state });
+    },
+    async disableConnector(connectorId: string): Promise<ConnectorStateResult> {
+      return disableConnector({ connectorId, state });
+    },
+    async isConnectorEnabled(connectorId: string): Promise<boolean> {
+      return isConnectorEnabled({ connectorId, state });
+    },
+    async readConnectorEnabledStates(): Promise<Record<string, boolean>> {
+      return readConnectorEnabledStates({ state });
     },
   };
 };
@@ -297,6 +342,50 @@ export interface ConnectorImportOptions {
    * Include any dependencies (mappings).
    */
   deps: boolean;
+}
+
+/**
+ * Options of enabling a connector
+ */
+export interface ConnectorEnableOptions {
+  /**
+   * How long to wait, in milliseconds, for the connector to answer its connection test after it was enabled. 0 tests once. Default: 30000
+   */
+  timeout?: number;
+  /**
+   * How long to wait, in milliseconds, between two connection tests. Default: 500
+   */
+  interval?: number;
+}
+
+/**
+ * The result of enabling or disabling a connector
+ */
+export interface ConnectorStateResult {
+  /**
+   * id/name of the connector without the type prefix
+   */
+  connectorId: string;
+  /**
+   * The connector configuration after the call
+   */
+  connector: ConnectorSkeleton;
+  /**
+   * Whether the connector is enabled after the call
+   */
+  enabled: boolean;
+  /**
+   * False if the connector was in the requested state already and nothing was written
+   */
+  changed: boolean;
+  /**
+   * Enabling only: whether the connector answered its connection test within the timeout
+   */
+  ready?: boolean;
+  /**
+   * Enabling only: the last answer of the connection test, if the connector did not answer within the timeout
+   */
+  error?: string;
 }
 
 export interface ConnectorExportInterface {
@@ -753,4 +842,231 @@ export async function importConnectors({
     throw new FrodoError(`Error importing connectors`, errors);
   }
   return response;
+}
+
+/**
+ * How long to wait for an enabled connector to answer its connection test: milliseconds
+ */
+const DEFAULT_READY_TIMEOUT = 30000;
+
+/**
+ * How long to wait between two connection tests of an enabled connector: milliseconds
+ */
+const DEFAULT_READY_INTERVAL = 500;
+
+/**
+ * Whether a connector configuration is enabled. IDM treats a configuration without the flag as enabled.
+ * @param {ConnectorSkeleton} connector connector configuration
+ * @returns {boolean} true if the connector is enabled
+ */
+function isEnabledConfiguration(connector: ConnectorSkeleton): boolean {
+  return connector.enabled !== false;
+}
+
+/**
+ * Switch the `enabled` flag of a connector the way the Admin UI does: one patch of `/enabled` that waits for IDM to have consumed it. A connector that is in the requested state already is not written.
+ * @param {string} connectorId id/name of the connector without the type prefix
+ * @param {boolean} enabled the requested state
+ * @returns {Promise<{ connector: ConnectorSkeleton; changed: boolean }>} the connector configuration after the call, and whether anything was written
+ */
+async function setConnectorEnabled({
+  connectorId,
+  enabled,
+  state,
+}: {
+  connectorId: string;
+  enabled: boolean;
+  state: State;
+}): Promise<{ connector: ConnectorSkeleton; changed: boolean }> {
+  const current = await readConnector({ connectorId, state });
+  if (isEnabledConfiguration(current) === enabled) {
+    debugMessage({
+      message: `ConnectorOps.setConnectorEnabled: connector ${connectorId} is ${enabled ? 'enabled' : 'disabled'} already`,
+      state,
+    });
+    return { connector: current, changed: false };
+  }
+  const connector = await patchConfigEntity({
+    entityId: `${CONNECTOR_TYPE}/${connectorId}`,
+    operations: [{ operation: 'replace', field: '/enabled', value: enabled }],
+    wait: true,
+    state,
+  });
+  return { connector: connector as ConnectorSkeleton, changed: true };
+}
+
+/**
+ * Repeat the connection test of a connector until it answers ok. Right after a connector was enabled the first answers are `connector not available` (or the system is not registered yet), so a failed test is not an error until the timeout has passed.
+ * @param {string} connectorId id/name of the connector without the type prefix
+ * @param {number} timeout how long to wait in milliseconds
+ * @param {number} interval how long to wait between two tests in milliseconds
+ * @returns {Promise<{ ready: boolean; error?: string }>} whether the connector answered ok and, if not, the last answer
+ */
+async function waitForConnector({
+  connectorId,
+  timeout,
+  interval,
+  state,
+}: {
+  connectorId: string;
+  timeout: number;
+  interval: number;
+  state: State;
+}): Promise<{ ready: boolean; error?: string }> {
+  const pause = Math.max(1, interval);
+  const deadline = Date.now() + Math.max(0, timeout);
+  let error: string | undefined;
+  for (;;) {
+    try {
+      const status = await readSystemStatus({ systemName: connectorId, state });
+      if (status?.ok) {
+        return { ready: true };
+      }
+      error = status?.error ?? 'the connection test did not succeed';
+    } catch (testError) {
+      error = testError instanceof Error ? testError.message : `${testError}`;
+    }
+    if (Date.now() + pause > deadline) {
+      return { ready: false, error };
+    }
+    debugMessage({
+      message: `ConnectorOps.waitForConnector: connector ${connectorId} does not answer yet: ${error}`,
+      state,
+    });
+    await new Promise((resolve) => setTimeout(resolve, pause));
+  }
+}
+
+/**
+ * Enable a connector, the way the Admin UI does it, and wait until the connector answers its connection test. A connector that is enabled already is left alone (`changed` is false) but is still waited for. A connector that is enabled but does not answer in time is not an error: `ready` is false and `error` holds the last answer of the test.
+ * @param {string} connectorId id/name of the connector without the type prefix
+ * @param {ConnectorEnableOptions} options how long to wait for the connector to answer (milliseconds)
+ * @returns {Promise<ConnectorStateResult>} a promise that resolves to the connector configuration after the change and whether the connector answers
+ */
+export async function enableConnector({
+  connectorId,
+  options = {},
+  state,
+}: {
+  connectorId: string;
+  options?: ConnectorEnableOptions;
+  state: State;
+}): Promise<ConnectorStateResult> {
+  const { timeout = DEFAULT_READY_TIMEOUT, interval = DEFAULT_READY_INTERVAL } =
+    options;
+  try {
+    debugMessage({
+      message: `ConnectorOps.enableConnector: start [connector=${connectorId}]`,
+      state,
+    });
+    const { connector, changed } = await setConnectorEnabled({
+      connectorId,
+      enabled: true,
+      state,
+    });
+    const { ready, error } = await waitForConnector({
+      connectorId,
+      timeout,
+      interval,
+      state,
+    });
+    debugMessage({
+      message: `ConnectorOps.enableConnector: end [connector=${connectorId}, changed=${changed}, ready=${ready}]`,
+      state,
+    });
+    return {
+      connectorId,
+      connector,
+      enabled: true,
+      changed,
+      ready,
+      ...(error !== undefined && { error }),
+    };
+  } catch (error) {
+    throw new FrodoError(`Error enabling connector ${connectorId}`, error);
+  }
+}
+
+/**
+ * Disable a connector, the way the Admin UI does it. A connector that is disabled already is left alone (`changed` is false). A disabled connector is not a registered system any more, so there is nothing to wait for.
+ * @param {string} connectorId id/name of the connector without the type prefix
+ * @returns {Promise<ConnectorStateResult>} a promise that resolves to the connector configuration after the change
+ */
+export async function disableConnector({
+  connectorId,
+  state,
+}: {
+  connectorId: string;
+  state: State;
+}): Promise<ConnectorStateResult> {
+  try {
+    debugMessage({
+      message: `ConnectorOps.disableConnector: start [connector=${connectorId}]`,
+      state,
+    });
+    const { connector, changed } = await setConnectorEnabled({
+      connectorId,
+      enabled: false,
+      state,
+    });
+    debugMessage({
+      message: `ConnectorOps.disableConnector: end [connector=${connectorId}, changed=${changed}]`,
+      state,
+    });
+    return { connectorId, connector, enabled: false, changed };
+  } catch (error) {
+    throw new FrodoError(`Error disabling connector ${connectorId}`, error);
+  }
+}
+
+/**
+ * Check if a connector is enabled. A configuration without an `enabled` flag counts as enabled, as it does in IDM.
+ * @param {string} connectorId id/name of the connector without the type prefix
+ * @returns {Promise<boolean>} a promise that resolves to true if the connector is enabled, false if it is disabled
+ */
+export async function isConnectorEnabled({
+  connectorId,
+  state,
+}: {
+  connectorId: string;
+  state: State;
+}): Promise<boolean> {
+  return isEnabledConfiguration(await readConnector({ connectorId, state }));
+}
+
+/**
+ * Read whether each connector is enabled, in one request. Configurations that are not connectors or have no `enabled` flag (for example `provisioner.openicf.connectorinfoprovider`) are left out.
+ * @returns {Promise<Record<string, boolean>>} a promise that resolves to an object that maps the id/name of each connector (without the type prefix) to whether it is enabled
+ */
+export async function readConnectorEnabledStates({
+  state,
+}: {
+  state: State;
+}): Promise<Record<string, boolean>> {
+  try {
+    const { result } = await getConfigEntitiesByType({
+      type: CONNECTOR_TYPE,
+      fields: ['enabled'],
+      state,
+    });
+    const prefix = `${CONNECTOR_TYPE}/`;
+    const states: Record<string, boolean> = {};
+    for (const entity of result as unknown as {
+      _id?: string;
+      enabled?: unknown;
+    }[]) {
+      if (
+        entity._id?.startsWith(prefix) &&
+        typeof entity.enabled === 'boolean'
+      ) {
+        states[entity._id.substring(prefix.length)] = entity.enabled;
+      }
+    }
+    return states;
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading the enabled state of connectors`,
+      error
+    );
+  }
 }
