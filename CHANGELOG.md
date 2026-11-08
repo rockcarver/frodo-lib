@@ -10,6 +10,11 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-27] - 2026-11-08
+
+### Fixed
+- Resolved an issue in `deleteMappings` where specifying a connector or a managed object type resulted in deleting more mappings than intended. The operation now correctly deletes only the specified mappings, ensuring precise control over deletions (#951, commit 3deb0896c).
+
 ## [v5.0.0-26] - 2026-11-08
 
 ### Changed
@@ -2842,6 +2847,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-27]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-26...v5.0.0-27
 [v5.0.0-26]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-25...v5.0.0-26
 [v5.0.0-25]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-24...v5.0.0-25
 [v5.0.0-24]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-23...v5.0.0-24

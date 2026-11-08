@@ -30,6 +30,14 @@ releases missed):
 
 **Behavior changes**:
 
+- `frodo.mapping.deleteMappings` (`src/ops/MappingOps.ts`) with `connectorId`
+  and/or `moType` now deletes only the mappings that belong to them (with both,
+  only the mappings that belong to both) and returns only what it deleted.
+  Before, it deleted every new-style mapping, reported every legacy mapping as
+  deleted, and wrote the new-style mappings back into `sync.json`; with `moType`
+  alone it selected nothing. If you relied on the old behavior of deleting
+  everything, call `deleteMappings` without a filter. That a mapping which
+  cannot be deleted no longer stops the others is described in the entry below.
 - `agent list`, `agent export` and `agent delete -a` (`readAgents` and every
   library function that calls it) now skip an unavailable agent type only when
   its request returns HTTP 501. Other per-type request failures are collected
