@@ -4,6 +4,7 @@
 
 import { jest } from '@jest/globals';
 import { frodo } from '../lib/FrodoLib';
+import { buildCapabilityInventory } from './CapabilityRegistry';
 import type { McpCapabilityDescriptor } from './CapabilityTypes';
 import type { McpToolManifest } from './ToolManifest';
 import {
@@ -2351,6 +2352,378 @@ describe('MCP hybrid runtime', () => {
 
       expect(result.data).toEqual(items);
       expect(result.metadata?.pagination?.hasMore).toBeUndefined();
+    });
+  });
+
+  describe('managed-object type arguments', () => {
+    // Real descriptors from the capability registry, so that the argument
+    // contract under test is the one an MCP client actually sees.
+    const idmCapabilities = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['idm'],
+      includeUtils: false,
+    });
+    const realDescriptor = (id: string): McpCapabilityDescriptor => {
+      const found = idmCapabilities.find((capability) => capability.id === id);
+      if (!found) {
+        throw new Error(`descriptor ${id} not found in the registry`);
+      }
+      return found;
+    };
+    const cloudContext = {
+      auth: {
+        mode: 'state-config' as const,
+        config: { deploymentType: 'cloud' as const },
+      },
+    };
+    const managedObjectTypes = ['alpha_user', 'bravo_user', 'alpha_role'];
+
+    function runtimeWith(
+      descriptors: McpCapabilityDescriptor[],
+      managed: Record<string, unknown>,
+      options: McpToolRuntimeOptions = {}
+    ) {
+      return createToolRuntime(makeManifest(descriptors), descriptors, {
+        managedObjectTypes,
+        managedObjectHydrationStatus: 'available',
+        resolveFrodoForRequest: () =>
+          ({
+            login: { getTokens: jest.fn(async () => {}) },
+            idm: { managed },
+          }) as any,
+        ...options,
+      });
+    }
+
+    test('dispatch passes namedArgs to idm.managed.readManagedObjects', async () => {
+      const readManagedObjects = jest.fn(async () => [{ _id: 'u1' }]);
+      const descriptor = realDescriptor('idm.managed.readManagedObjects');
+      const runtime = runtimeWith([descriptor], { readManagedObjects });
+
+      const result = await runtime.executeTool({
+        toolName: 'frodo_dispatch_read_only',
+        arguments: {
+          skillId: descriptor.id,
+          namedArgs: { type: 'alpha_user', fields: ['_id'] },
+        },
+        context: cloudContext,
+      });
+
+      expect(readManagedObjects).toHaveBeenCalledWith('alpha_user', ['_id']);
+      expect(result.data).toEqual([{ _id: 'u1' }]);
+    });
+
+    test('find_skills recommends a dispatch for an exact type that the skill accepts', async () => {
+      const readManagedObjects = jest.fn(async () => [{ _id: 'u1' }]);
+      const descriptor = realDescriptor('idm.managed.readManagedObjects');
+      const runtime = runtimeWith([descriptor], { readManagedObjects });
+
+      const found = await runtime.executeTool({
+        toolName: 'frodo_find_skills',
+        arguments: {
+          query: 'list alpha_user',
+          skillIdPrefix: descriptor.id,
+          executeRecommended: false,
+        },
+        context: cloudContext,
+      });
+      const recommended = (
+        found.data as {
+          recommendedDispatch?: {
+            toolName: string;
+            arguments: Record<string, unknown>;
+          };
+        }
+      ).recommendedDispatch;
+      expect(recommended).toEqual({
+        toolName: 'frodo_dispatch_read_only',
+        arguments: {
+          skillId: descriptor.id,
+          namedArgs: { type: 'alpha_user' },
+        },
+      });
+
+      await runtime.executeTool({
+        toolName: recommended!.toolName as 'frodo_dispatch_read_only',
+        arguments: recommended!.arguments,
+        context: cloudContext,
+      });
+      expect(readManagedObjects).toHaveBeenCalledWith('alpha_user', undefined);
+    });
+
+    test('every namedArgs recommendation of find_skills is accepted by the skill it targets', async () => {
+      // Registry-wide: whatever find_skills recommends for an exact
+      // managed-object type must pass the descriptor's own argument contract.
+      const rejected: string[] = [];
+      let recommendations = 0;
+      for (const descriptor of idmCapabilities.filter(
+        (capability) => capability.operationType !== 'special'
+      )) {
+        const runtime = runtimeWith(
+          [descriptor],
+          new Proxy({}, { get: () => jest.fn(async () => ({})) })
+        );
+        const found = await runtime.executeTool({
+          toolName: 'frodo_find_skills',
+          arguments: {
+            query: 'list alpha_user',
+            skillIdPrefix: descriptor.id,
+            includeIncompatible: true,
+            executeRecommended: false,
+          },
+          context: cloudContext,
+        });
+        const recommended = (
+          found.data as {
+            recommendedDispatch?: {
+              toolName: string;
+              arguments: Record<string, unknown>;
+            };
+          }
+        ).recommendedDispatch;
+        if (!recommended?.arguments.namedArgs) {
+          continue;
+        }
+        recommendations += 1;
+        try {
+          await runtime.executeTool({
+            toolName: recommended.toolName as 'frodo_dispatch_read_only',
+            arguments: recommended.arguments,
+            context: cloudContext,
+          });
+        } catch (error) {
+          const message = (error as Error).message;
+          if (
+            /does not accept|is missing required|requires (namedArgs|positionalArgs)/.test(
+              message
+            )
+          ) {
+            rejected.push(`${descriptor.id}: ${message}`);
+          }
+        }
+      }
+      expect(recommendations).toBeGreaterThan(0);
+      expect(rejected).toEqual([]);
+    });
+
+    test('find_skills recommends an exact type only for a read-only skill that needs nothing else', async () => {
+      const typeOnly = {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+      };
+      const readOnlyTwin = makeDescriptor({
+        id: 'idm.managed.readTypeInfo',
+        methodName: 'readTypeInfo',
+        modulePath: ['idm', 'managed'],
+        domain: 'idm',
+        objectType: 'ManagedObject',
+        operationType: 'read',
+        argumentMode: 'mixed',
+        parameters: [typeOnly],
+        identitySurface: 'managed',
+        objectTypePatterns: ['*'],
+      });
+      const mutatingTwin = makeDescriptor({
+        id: 'idm.managed.removeTypeInfo',
+        methodName: 'removeTypeInfo',
+        modulePath: ['idm', 'managed'],
+        domain: 'idm',
+        objectType: 'ManagedObject',
+        operationType: 'delete',
+        argumentMode: 'mixed',
+        parameters: [typeOnly],
+        mutating: true,
+        destructive: true,
+        identitySurface: 'managed',
+        objectTypePatterns: ['*'],
+      });
+      const recommendationFor = async (descriptor: McpCapabilityDescriptor) => {
+        const found = await runtimeWith([descriptor], {}).executeTool({
+          toolName: 'frodo_find_skills',
+          arguments: {
+            query: 'alpha_user',
+            skillIdPrefix: descriptor.id,
+            executeRecommended: false,
+          },
+          context: cloudContext,
+        });
+        return (found.data as { recommendedDispatch?: unknown })
+          .recommendedDispatch;
+      };
+
+      expect(await recommendationFor(readOnlyTwin)).toEqual({
+        toolName: 'frodo_dispatch_read_only',
+        arguments: {
+          skillId: readOnlyTwin.id,
+          namedArgs: { type: 'alpha_user' },
+        },
+      });
+      expect(await recommendationFor(mutatingTwin)).toBeUndefined();
+    });
+
+    test('dispatch resolves a semanticTarget into the type argument of a single-type skill', async () => {
+      const readManagedObjects = jest.fn(async () => [{ _id: 'r1' }]);
+      const descriptor = realDescriptor('idm.managed.readManagedObjects');
+      const runtime = runtimeWith([descriptor], { readManagedObjects });
+
+      await runtime.executeTool({
+        toolName: 'frodo_dispatch_read_only',
+        arguments: {
+          skillId: descriptor.id,
+          semanticTarget: { family: 'role' },
+        },
+        context: cloudContext,
+      });
+      expect(readManagedObjects).toHaveBeenCalledTimes(1);
+      expect(readManagedObjects).toHaveBeenCalledWith('alpha_role', undefined);
+    });
+
+    test('dispatch narrows a semanticTarget by realm and keeps the other arguments', async () => {
+      const readManagedObjects = jest.fn(async () => []);
+      const descriptor = realDescriptor('idm.managed.readManagedObjects');
+      const runtime = runtimeWith([descriptor], { readManagedObjects });
+
+      await runtime.executeTool({
+        toolName: 'frodo_dispatch_read_only',
+        arguments: {
+          skillId: descriptor.id,
+          semanticTarget: { family: 'user', realm: 'bravo' },
+          namedArgs: { fields: ['userName'] },
+        },
+        context: cloudContext,
+      });
+      expect(readManagedObjects).toHaveBeenCalledWith('bravo_user', [
+        'userName',
+      ]);
+    });
+
+    test('dispatch refuses a semanticTarget that matches several types and calls nothing', async () => {
+      const readManagedObjects = jest.fn(async () => []);
+      const descriptor = realDescriptor('idm.managed.readManagedObjects');
+      const runtime = runtimeWith([descriptor], { readManagedObjects });
+
+      await expect(
+        runtime.executeTool({
+          toolName: 'frodo_dispatch_read_only',
+          arguments: {
+            skillId: descriptor.id,
+            semanticTarget: { family: 'user' },
+          },
+          context: cloudContext,
+        })
+      ).rejects.toThrow(
+        "semantic family 'user' matched 2 managed-object types (alpha_user, bravo_user)"
+      );
+      expect(readManagedObjects).not.toHaveBeenCalled();
+    });
+
+    test('dispatch refuses a semanticTarget that matches no type and calls nothing', async () => {
+      const readManagedObjects = jest.fn(async () => []);
+      const descriptor = realDescriptor('idm.managed.readManagedObjects');
+      const runtime = runtimeWith([descriptor], { readManagedObjects });
+
+      await expect(
+        runtime.executeTool({
+          toolName: 'frodo_dispatch_read_only',
+          arguments: {
+            skillId: descriptor.id,
+            semanticTarget: { family: 'user', realm: 'charlie' },
+          },
+          context: cloudContext,
+        })
+      ).rejects.toThrow('no managed-object types matched semantic family');
+      expect(readManagedObjects).not.toHaveBeenCalled();
+    });
+
+    test('dispatch refuses a semanticTarget combined with an explicit type', async () => {
+      const readManagedObjects = jest.fn(async () => []);
+      const descriptor = realDescriptor('idm.managed.readManagedObjects');
+      const runtime = runtimeWith([descriptor], { readManagedObjects });
+
+      await expect(
+        runtime.executeTool({
+          toolName: 'frodo_dispatch_read_only',
+          arguments: {
+            skillId: descriptor.id,
+            semanticTarget: { family: 'role' },
+            namedArgs: { type: 'alpha_role' },
+          },
+          context: cloudContext,
+        })
+      ).rejects.toThrow('either semanticTarget or an explicit type');
+      expect(readManagedObjects).not.toHaveBeenCalled();
+    });
+
+    test('dispatch refuses a semanticTarget for a skill that takes no managed-object type', async () => {
+      const readMappings = jest.fn(async () => []);
+      const descriptor = realDescriptor('idm.mapping.readMappings');
+      const runtime = createToolRuntime(
+        makeManifest([descriptor]),
+        [descriptor],
+        {
+          managedObjectTypes,
+          managedObjectHydrationStatus: 'available',
+          resolveFrodoForRequest: () =>
+            ({
+              login: { getTokens: jest.fn(async () => {}) },
+              idm: { mapping: { readMappings } },
+            }) as any,
+        }
+      );
+
+      await expect(
+        runtime.executeTool({
+          toolName: 'frodo_dispatch_read_only',
+          arguments: {
+            skillId: descriptor.id,
+            semanticTarget: { family: 'user' },
+          },
+          context: cloudContext,
+        })
+      ).rejects.toThrow('does not accept semanticTarget');
+      expect(readMappings).not.toHaveBeenCalled();
+    });
+
+    test('dispatch refuses a semanticTarget while the managed-object types are not hydrated', async () => {
+      const readManagedObjects = jest.fn(async () => []);
+      const descriptor = realDescriptor('idm.managed.readManagedObjects');
+      const runtime = runtimeWith(
+        [descriptor],
+        { readManagedObjects },
+        {
+          managedObjectHydrationStatus: 'failed',
+        }
+      );
+
+      await expect(
+        runtime.executeTool({
+          toolName: 'frodo_dispatch_read_only',
+          arguments: {
+            skillId: descriptor.id,
+            semanticTarget: { family: 'role' },
+          },
+          context: cloudContext,
+        })
+      ).rejects.toThrow('hydration failed');
+      expect(readManagedObjects).not.toHaveBeenCalled();
+    });
+
+    test('dispatch never calls a skill with required parameters without any arguments', async () => {
+      const readManagedObjects = jest.fn(async () => []);
+      const descriptor = realDescriptor('idm.managed.readManagedObjects');
+      const runtime = runtimeWith([descriptor], { readManagedObjects });
+
+      await expect(
+        runtime.executeTool({
+          toolName: 'frodo_dispatch_read_only',
+          arguments: { skillId: descriptor.id },
+          context: cloudContext,
+        })
+      ).rejects.toThrow(
+        "descriptor 'idm.managed.readManagedObjects' requires arguments"
+      );
+      expect(readManagedObjects).not.toHaveBeenCalled();
     });
   });
 });

@@ -1534,6 +1534,18 @@ async function invokeGenericDescriptorMethod(
   managedObjectTypes: readonly string[],
   managedObjectHydrationStatus?: McpManagedObjectHydrationStatus
 ): Promise<unknown> {
+  if (
+    args.semanticTarget &&
+    descriptor.id !== 'idm.managed.countManagedObjects'
+  ) {
+    args = resolveSemanticTargetIntoType(
+      args,
+      descriptor,
+      managedObjectTypes,
+      managedObjectHydrationStatus
+    );
+  }
+
   if (descriptor.id === 'script.createScript') {
     return invokeScriptCreate(scopedFrodo, args, descriptor);
   }
@@ -1562,19 +1574,29 @@ async function invokeGenericDescriptorMethod(
   );
 }
 
-async function invokeManagedObjectFamilyCount(
-  scopedFrodo: Frodo,
+/**
+ * Resolves a `semanticTarget` to the managed-object types it names.
+ *
+ * @param args Dispatch arguments carrying the semantic target.
+ * @param descriptor Descriptor of the skill that is dispatched.
+ * @param managedObjectTypes Managed-object types of the connected tenant.
+ * @param managedObjectHydrationStatus Outcome of the type discovery.
+ * @param purpose What the types are resolved for, used in the error messages.
+ * @returns The resolved family, the requested realm, if any, and the matching types.
+ */
+function resolveSemanticManagedObjectTypes(
   args: McpGenericExecutionArguments,
   descriptor: McpCapabilityDescriptor,
   managedObjectTypes: readonly string[],
-  managedObjectHydrationStatus?: McpManagedObjectHydrationStatus
-): Promise<unknown> {
+  managedObjectHydrationStatus: McpManagedObjectHydrationStatus | undefined,
+  purpose: 'count' | 'target'
+) {
   if (
     managedObjectHydrationStatus === 'failed' ||
     managedObjectHydrationStatus === 'timed-out'
   ) {
     throw new FrodoError(
-      `MCP runtime error: semantic count is unavailable because managed-object type hydration ${managedObjectHydrationStatus}. Use exact dispatch with namedArgs.type or restart the server after restoring tenant access.`
+      `MCP runtime error: semantic ${purpose} is unavailable because managed-object type hydration ${managedObjectHydrationStatus}. Use exact dispatch with namedArgs.type or restart the server after restoring tenant access.`
     );
   }
   const resolution = resolveSemanticObjectFamily(
@@ -1610,6 +1632,73 @@ async function invokeManagedObjectFamilyCount(
       }. Exact dispatch remains available with namedArgs.type.`
     );
   }
+  return { family, requestedRealm, matches };
+}
+
+/**
+ * Resolves a `semanticTarget` into the `type` argument of a skill that works on
+ * exactly one managed-object type per call.
+ *
+ * @remarks
+ * The target is never dropped silently: a skill that takes no `type`, a target
+ * that is combined with an explicit type, and a target that names several types
+ * are all rejected before the underlying method is called.
+ *
+ * @param args Dispatch arguments carrying the semantic target.
+ * @param descriptor Descriptor of the skill that is dispatched.
+ * @param managedObjectTypes Managed-object types of the connected tenant.
+ * @param managedObjectHydrationStatus Outcome of the type discovery.
+ * @returns The dispatch arguments with `namedArgs.type` set to the resolved type.
+ */
+function resolveSemanticTargetIntoType(
+  args: McpGenericExecutionArguments,
+  descriptor: McpCapabilityDescriptor,
+  managedObjectTypes: readonly string[],
+  managedObjectHydrationStatus?: McpManagedObjectHydrationStatus
+): McpGenericExecutionArguments {
+  if (!descriptor.parameters?.some((parameter) => parameter.name === 'type')) {
+    throw new FrodoError(
+      `MCP runtime error: descriptor '${descriptor.id}' does not accept semanticTarget because it takes no managed-object type. Pass namedArgs or positionalArgs instead.`
+    );
+  }
+  if (args.namedArgs?.type !== undefined || args.positionalArgs !== undefined) {
+    throw new FrodoError(
+      `MCP runtime error: descriptor '${descriptor.id}' takes either semanticTarget or an explicit type (namedArgs.type or positionalArgs), not both.`
+    );
+  }
+  const { family, matches } = resolveSemanticManagedObjectTypes(
+    args,
+    descriptor,
+    managedObjectTypes,
+    managedObjectHydrationStatus,
+    'target'
+  );
+  if (matches.length !== 1) {
+    throw new FrodoError(
+      `MCP runtime error: semantic family '${family}' matched ${matches.length} managed-object types (${matches
+        .map((match) => match.type)
+        .join(
+          ', '
+        )}) but '${descriptor.id}' takes exactly one. Add semanticTarget.realm or pass namedArgs.type.`
+    );
+  }
+  return { ...args, namedArgs: { ...args.namedArgs, type: matches[0].type } };
+}
+
+async function invokeManagedObjectFamilyCount(
+  scopedFrodo: Frodo,
+  args: McpGenericExecutionArguments,
+  descriptor: McpCapabilityDescriptor,
+  managedObjectTypes: readonly string[],
+  managedObjectHydrationStatus?: McpManagedObjectHydrationStatus
+): Promise<unknown> {
+  const { family, requestedRealm, matches } = resolveSemanticManagedObjectTypes(
+    args,
+    descriptor,
+    managedObjectTypes,
+    managedObjectHydrationStatus,
+    'count'
+  );
   if (requestedRealm && matches.length !== 1) {
     throw new FrodoError(
       `MCP runtime error: realm '${requestedRealm}' resolved to ${matches.length} managed-object types for family '${family}'. Use namedArgs.type for an exact count.`
@@ -2117,17 +2206,18 @@ function findSkills(
         const exactManagedObjectType = managedObjectMatches.matches.find(
           (type) => args.query?.toLowerCase().includes(type.toLowerCase())
         );
-        const recommendedCountArguments = exactManagedObjectType
-          ? {
-              skillId: descriptor.id,
-              namedArgs: { type: exactManagedObjectType },
-            }
-          : semanticCountFamily
+        const recommendedCountArguments =
+          exactManagedObjectType && acceptsExactTypeAlone(descriptor)
             ? {
                 skillId: descriptor.id,
-                semanticTarget: { family: semanticCountFamily },
+                namedArgs: { type: exactManagedObjectType },
               }
-            : undefined;
+            : semanticCountFamily
+              ? {
+                  skillId: descriptor.id,
+                  semanticTarget: { family: semanticCountFamily },
+                }
+              : undefined;
         return {
           skillId: descriptor.id,
           kind: descriptor.kind,
@@ -2195,6 +2285,40 @@ function findSkills(
       }),
     skills: results,
   };
+}
+
+/**
+ * Whether `namedArgs { type }` is a complete argument set that the skill accepts
+ * and may be dispatched read-only.
+ *
+ * @remarks
+ * `frodo_find_skills` recommends an exact dispatch when the query names a
+ * managed-object type. The recommendation must be something the dispatcher
+ * accepts: a skill that takes no arguments, takes them positionally, needs
+ * more than the type, or changes data is not recommended.
+ *
+ * @param descriptor Descriptor of the skill.
+ * @returns True if the recommendation is safe to hand to the client.
+ */
+function acceptsExactTypeAlone(descriptor: McpCapabilityDescriptor): boolean {
+  if (descriptor.mutating) {
+    return false;
+  }
+  const argumentMode = descriptor.argumentMode ?? 'mixed';
+  if (argumentMode === 'none' || argumentMode === 'positional') {
+    return false;
+  }
+  const parameters = descriptor.parameters;
+  if (!parameters || parameters.length === 0) {
+    // No declared contract: nothing to contradict.
+    return true;
+  }
+  return (
+    parameters.some((parameter) => parameter.name === 'type') &&
+    parameters.every(
+      (parameter) => !parameter.required || parameter.name === 'type'
+    )
+  );
 }
 
 function isUserIdentitySelector(args: McpFindSkillsArguments): boolean {
@@ -2748,6 +2872,18 @@ function validateInvocationArguments(
   if (argumentMode === 'positional' && hasNamed) {
     throw new FrodoError(
       `MCP runtime error: descriptor '${descriptor.id}' requires positionalArgs in the documented order.`
+    );
+  }
+  if (
+    argumentMode !== 'none' &&
+    !hasPositional &&
+    !hasNamed &&
+    requiresNamedParameters
+  ) {
+    // Without arguments the method would be called with `undefined` for every
+    // parameter (for example GET /openidm/managed/undefined).
+    throw new FrodoError(
+      `MCP runtime error: descriptor '${descriptor.id}' requires arguments. Allowed parameters: ${formatDescriptorParameters(descriptor)}.`
     );
   }
 
