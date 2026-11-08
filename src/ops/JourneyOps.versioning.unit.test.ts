@@ -1113,3 +1113,178 @@ describe('JourneyOps versioning unit coverage', () => {
     ]);
   });
 });
+
+/**
+ * With a result callback, validateJourneys passes the outcome of every journey to it as it
+ * happens (the findings of the journey, or an error that names it) and returns the findings
+ * of all journeys that could be validated, instead of throwing one error that loses them.
+ * Origin: frodo-cli#1099 (record 0040): `journey validate` called the function once per
+ * journey because one unreadable journey threw away the findings of all the others.
+ */
+describe('validateJourneys with a result callback', () => {
+  function liveJourneys(failing: string[] = []) {
+    getTreeMock.mockImplementation(async ({ id }: { id: string }) => {
+      if (failing.includes(id)) throw new Error('Journey not found');
+      return id === 'BrokenJourney'
+        ? journeyExport(id, 'missing-target').tree
+        : journeyExport(id).tree;
+    });
+    readNodeMock.mockImplementation(
+      async ({ nodeId }: { nodeId: string }) =>
+        journeyExport('ignored').nodes[nodeId]
+    );
+  }
+
+  test('offline: returns the findings of the journeys that could be validated and reports each journey', async () => {
+    const resultCallback = jest.fn();
+
+    const findings = await JourneyOps.validateJourneys({
+      journeyIds: ['BrokenJourney', 'MissingJourney', 'HealthyJourney'],
+      journeysExport: multiJourneyExport(),
+      resultCallback,
+      state: validationState(),
+    });
+
+    expect(findings).toContainEqual(
+      expect.objectContaining({
+        code: 'MISSING_CONNECTION_TARGET',
+        journeyId: 'BrokenJourney',
+      })
+    );
+    expect(resultCallback).toHaveBeenCalledTimes(3);
+    const [brokenError, brokenFindings] = resultCallback.mock.calls[0] as any[];
+    expect(brokenError).toBeUndefined();
+    expect(brokenFindings).toEqual(findings);
+    const [missingError, missingFindings] = resultCallback.mock
+      .calls[1] as any[];
+    expect(missingError).toMatchObject({
+      name: 'FrodoError',
+      message: "Error validating alpha realm journey 'MissingJourney'",
+    });
+    expect(missingFindings).toBeUndefined();
+    expect(resultCallback).toHaveBeenNthCalledWith(3, undefined, []);
+  });
+
+  test('live: a journey that cannot be read does not lose the findings of the others', async () => {
+    liveJourneys(['MissingJourney']);
+    const resultCallback = jest.fn();
+
+    const findings = await JourneyOps.validateJourneys({
+      journeyIds: ['MissingJourney', 'BrokenJourney', 'HealthyJourney'],
+      resultCallback,
+      state: validationState(),
+    });
+
+    // only the journey that could be read and is broken has findings, and none is lost
+    expect(findings.map((finding) => finding.journeyId)).toEqual([
+      'BrokenJourney',
+      'BrokenJourney',
+    ]);
+    expect(findings).toContainEqual(
+      expect.objectContaining({ code: 'MISSING_CONNECTION_TARGET' })
+    );
+    expect(getTreeMock).toHaveBeenCalledTimes(3);
+    expect(resultCallback).toHaveBeenCalledTimes(3);
+    const [error, result] = resultCallback.mock.calls[0] as any[];
+    expect(error).toMatchObject({
+      name: 'FrodoError',
+      message: "Error validating alpha realm journey 'MissingJourney'",
+    });
+    expect(error.originalErrors).toHaveLength(1);
+    expect(result).toBeUndefined();
+    expect(resultCallback).toHaveBeenNthCalledWith(2, undefined, findings);
+    expect(resultCallback).toHaveBeenNthCalledWith(3, undefined, []);
+  });
+
+  test('a blank journey ID is reported to the callback and does not throw', async () => {
+    liveJourneys();
+    const resultCallback = jest.fn();
+
+    const findings = await JourneyOps.validateJourneys({
+      journeyIds: ['', 'HealthyJourney'],
+      resultCallback,
+      state: validationState(),
+    });
+
+    expect(findings).toEqual([]);
+    expect(resultCallback).toHaveBeenCalledTimes(2);
+    expect(resultCallback.mock.calls[0][0]).toMatchObject({
+      message: "Error validating alpha realm journey ''",
+    });
+    expect(resultCallback).toHaveBeenNthCalledWith(2, undefined, []);
+  });
+
+  test('reports a journey once: a failed journey is not also reported as validated', async () => {
+    liveJourneys(['MissingJourney']);
+    const resultCallback = jest.fn();
+
+    await JourneyOps.validateJourneys({
+      journeyIds: ['MissingJourney'],
+      resultCallback,
+      state: validationState(),
+    });
+
+    expect(resultCallback).toHaveBeenCalledTimes(1);
+    expect(resultCallback.mock.calls[0][1]).toBeUndefined();
+  });
+
+  test('failing to list the journeys of the realm still throws, and reports no journey', async () => {
+    getTreesMock.mockRejectedValue(new Error('cannot list'));
+    const resultCallback = jest.fn();
+
+    await expect(
+      JourneyOps.validateJourneys({ resultCallback, state: validationState() })
+    ).rejects.toMatchObject({
+      name: 'FrodoError',
+      message: 'Error validating alpha realm journeys',
+    });
+    expect(resultCallback).not.toHaveBeenCalled();
+  });
+
+  test('invalid arguments still throw before API access', async () => {
+    const resultCallback = jest.fn();
+
+    await expect(
+      JourneyOps.validateJourneys({
+        journeyIds: 'Login' as unknown as string[],
+        resultCallback,
+        state: validationState(),
+      })
+    ).rejects.toMatchObject({ name: 'FrodoError' });
+    expect(getTreesMock).not.toHaveBeenCalled();
+    expect(getTreeMock).not.toHaveBeenCalled();
+    expect(resultCallback).not.toHaveBeenCalled();
+  });
+
+  test('the facade passes the callback on', async () => {
+    const resultCallback = jest.fn();
+
+    const findings = await JourneyOps.default(
+      validationState()
+    ).validateJourneys(
+      ['BrokenJourney', 'MissingJourney'],
+      multiJourneyExport(),
+      resultCallback
+    );
+
+    expect(findings.length).toBeGreaterThan(0);
+    expect(resultCallback).toHaveBeenCalledTimes(2);
+  });
+
+  test('without a callback a failed journey still throws and the findings are not returned', async () => {
+    liveJourneys(['MissingJourney']);
+
+    await expect(
+      JourneyOps.validateJourneys({
+        journeyIds: ['MissingJourney', 'BrokenJourney'],
+        state: validationState(),
+      })
+    ).rejects.toMatchObject({
+      name: 'FrodoError',
+      message: 'Error validating alpha realm journeys',
+      originalErrors: [
+        { message: "Error validating alpha realm journey 'MissingJourney'" },
+      ],
+    });
+  });
+});

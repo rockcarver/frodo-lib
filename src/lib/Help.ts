@@ -2302,11 +2302,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Journey",
     methodName: "validateJourneys",
-    signature: "validateJourneys( journeyIds?: string[], journeysExport?: MultiTreeExportInterface ): Promise<JourneyValidationFinding[]>",
-    description: "Validate journeys for referential integrity. | `journeyIds` | `journeysExport` | Behavior | | --- | --- | --- | | omitted, `null` or `[]` | omitted | Read and validate all journeys in the realm. | | `['login']` | omitted | Read and validate journey `login` from the realm. | | omitted, `null` or `[]` | supplied | Validate all journeys in the export offline. | | `['login']` | supplied | Validate tree `login` in the export offline. | Duplicate IDs are processed once. Live validation reads each journey once; findings are returned without printing. When verbose, live validation prints the export trace as `exportJourney` does (findings are never printed). Missing, blank, or unreadable journeys are reported together after all requested journeys are processed. Dependency-completeness warnings are export-only: each non-empty dependency section is checked against that journey's node references. Empty sections are skipped. Live validation reads with `deps: false`, so it performs no dependency checks and does not check resource existence in the tenant.",
+    signature: "validateJourneys( journeyIds?: string[], journeysExport?: MultiTreeExportInterface, resultCallback?: ResultCallback<JourneyValidationFinding[]> ): Promise<JourneyValidationFinding[]>",
+    description: "Validate journeys for referential integrity. | `journeyIds` | `journeysExport` | Behavior | | --- | --- | --- | | omitted, `null` or `[]` | omitted | Read and validate all journeys in the realm. | | `['login']` | omitted | Read and validate journey `login` from the realm. | | omitted, `null` or `[]` | supplied | Validate all journeys in the export offline. | | `['login']` | supplied | Validate tree `login` in the export offline. | Duplicate IDs are processed once. Live validation reads each journey once; findings are returned without printing. When verbose, live validation prints the export trace as `exportJourney` does (findings are never printed). Missing, blank, or unreadable journeys are reported together after all requested journeys are processed: without a result callback the function then throws one error that nests one error per failed journey and returns no findings; with one, each journey's outcome is passed to the callback as it happens (the findings of the journey, or an error that names the journey), the function does not throw for a failed journey and returns the findings of all journeys that could be validated. Dependency-completeness warnings are export-only: each non-empty dependency section is checked against that journey's node references. Empty sections are skipped. Live validation reads with `deps: false`, so it performs no dependency checks and does not check resource existence in the tenant.",
     params: [
       { name: "journeyIds", type: "string[]", description: "journey names; omit or pass an empty array to validate all journeys", required: false },
       { name: "journeysExport", type: "MultiTreeExportInterface", description: "optional export; when supplied, validation is offline", required: false },
+      { name: "resultCallback", type: "ResultCallback<JourneyValidationFinding[]>", description: "Optional callback to process individual results: the findings of one journey (an empty array for a journey without findings) or an error that names the journey that could not be validated. Failing to list the journeys of the realm, and invalid arguments, always throw.", required: false },
     ],
     returns: "{Promise<JourneyValidationFinding[]>} validation findings",
   },
@@ -3494,10 +3495,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Node",
     methodName: "removeOrphanedNodes",
-    signature: "removeOrphanedNodes(orphanedNodes: NodeSkeleton[]): Promise<NodeSkeleton[]>",
-    description: "Remove orphaned nodes",
+    signature: "removeOrphanedNodes( orphanedNodes: NodeSkeleton[], resultCallback?: ResultCallback<NodeSkeleton> ): Promise<NodeSkeleton[]>",
+    description: "Remove orphaned nodes. Every orphaned node is tried: a node that cannot be deleted does not stop the others.",
     params: [
       { name: "orphanedNodes", type: "NodeSkeleton[]", description: "Pass in an array of orphaned node configuration objects to remove", required: true },
+      { name: "resultCallback", type: "ResultCallback<NodeSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every node is passed to it as it happens (a failed node as an error that names it and carries the cause) and the error of a failed node is not printed. Without it, the error of a failed node is printed and nothing is passed on.", required: false },
     ],
     returns: "{Promise<NodeSkeleton[]>} a promise that resolves to an array nodes that encountered errors deleting",
   },
