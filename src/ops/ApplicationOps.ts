@@ -26,7 +26,7 @@ import {
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
-import { get, mergeDeep } from '../utils/JsonUtils';
+import { mergeDeep } from '../utils/JsonUtils';
 import {
   CirclesOfTrustExportInterface,
   exportCirclesOfTrust,
@@ -205,9 +205,10 @@ export type Application = {
     options?: ApplicationExportOptions
   ): Promise<ApplicationExportInterface>;
   /**
-   * Import application. The import data is usually read from an application export file.
+   * Import application. The import data is usually read from an application export file. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.
    * @param {string} applicationId application uuid
    * @param {ApplicationExportInterface} importData application import data.
+   * @param {ApplicationImportOptions} options import options (`deps`: also import the dependencies of the application)
    * @returns {Promise<ApplicationGlossarySkeleton>} Promise resolving to an application object.
    */
   importApplication(
@@ -216,9 +217,10 @@ export type Application = {
     options: ApplicationImportOptions
   ): Promise<ApplicationGlossarySkeleton>;
   /**
-   * Import application by name. The import data is usually read from an application export file.
+   * Import application by name. The import data is usually read from an application export file. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.
    * @param {string} applicationName application name
    * @param {ApplicationExportInterface} importData application import data.
+   * @param {ApplicationImportOptions} options import options (`deps`: also import the dependencies of the application)
    * @returns {Promise<ApplicationGlossarySkeleton>} Promise resolving to an application object.
    */
   importApplicationByName(
@@ -227,16 +229,18 @@ export type Application = {
     options: ApplicationImportOptions
   ): Promise<ApplicationGlossarySkeleton>;
   /**
-   * Import first application. The import data is usually read from an application export file.
+   * Import first application. The import data is usually read from an application export file. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.
    * @param {ApplicationExportInterface} importData application import data.
+   * @param {ApplicationImportOptions} options import options (`deps`: also import the dependencies of the application)
    */
   importFirstApplication(
     importData: ApplicationExportInterface,
     options: ApplicationImportOptions
   ): Promise<ApplicationGlossarySkeleton[]>;
   /**
-   * Import applications. The import data is usually read from an application export file.
+   * Import applications. The import data is usually read from an application export file. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.
    * @param {ApplicationExportInterface} importData application import data.
+   * @param {ApplicationImportOptions} options import options (`deps`: also import the dependencies of the application)
    */
   importApplications(
     importData: ApplicationExportInterface,
@@ -365,22 +369,73 @@ export default (state: State): Application => {
   };
 };
 
+/**
+ * A relationship of an application to a managed object, such as a user.
+ * The runtime access data (`members`, `owners`, `roles`) are references by id: they differ per environment.
+ */
+export type ApplicationRelationship = {
+  _ref: string;
+  _refResourceCollection: string;
+  _refResourceId: string;
+  _refProperties?: {
+    _id?: string;
+    _rev?: string;
+    [key: string]: unknown;
+  };
+};
+
+/**
+ * The pointers from an application to the objects that implement its sign-on. Which keys are present depends on the
+ * template type of the application; provisioning and bookmark applications have none.
+ */
+export type ApplicationSsoEntities = {
+  /** OIDC (web, native, service): id of the OAuth2 client of the application */
+  oidcId?: string;
+  /** OIDC (usually), SAML and WS-Fed */
+  idpLoginUrl?: string;
+  /** SAML and WS-Fed */
+  domain?: string;
+  /** SAML */
+  idpLocation?: string;
+  /** SAML: entity id of the identity provider, base64 encoded without padding */
+  idpPrivateId?: string;
+  /** SAML */
+  key?: string;
+  /** SAML */
+  spLocation?: string;
+  /** SAML: entity id of the service provider, base64 encoded without padding */
+  spPrivateId?: string;
+  /** WS-Fed */
+  pfApcId?: string;
+  /** WS-Fed */
+  pfIdpAdapterId?: string;
+  /** WS-Fed */
+  pfPolicyId?: string;
+  /** WS-Fed */
+  pfSigningCertId?: string;
+  /** WS-Fed */
+  pfSpConnectionId?: string;
+  /**
+   * @deprecated No application record has this key; the service provider entity id is `spPrivateId`. Kept so code that
+   * names it still compiles.
+   */
+  spPrivate?: string;
+};
+
 export type ApplicationSkeleton = IdObjectSkeletonInterface & {
   authoritative: boolean;
   connectorId: string;
   description: string;
   icon: string;
   mappingNames: string[];
-  members;
+  /** Not read by default: the fields are only returned when asked for */
+  members?: ApplicationRelationship[];
   name: string;
-  owners;
-  roles;
-  ssoEntities: {
-    idpLocation: string;
-    idpPrivateId: string;
-    spLocation: string;
-    spPrivate: string;
-  };
+  /** Not read by default: the fields are only returned when asked for */
+  owners?: ApplicationRelationship[];
+  /** Not read by default: the fields are only returned when asked for */
+  roles?: ApplicationRelationship[];
+  ssoEntities?: ApplicationSsoEntities;
   templateName: string;
   templateVersion: string;
   uiConfig: object;
@@ -447,7 +502,8 @@ export interface ApplicationExportInterface {
  */
 export type ApplicationExportOptions = {
   /**
-   * Include any dependencies (scripts, oauth2 clients, saml providers, circles of trust, etc).
+   * Include the dependencies of the application: scripts, OAuth2 clients, SAML providers and circles of trust,
+   * connectors and mappings, and on Identity Governance tenants the glossary schema, request forms and request types.
    */
   deps: boolean;
   /**
@@ -457,11 +513,12 @@ export type ApplicationExportOptions = {
 };
 
 /**
- * Application export options
+ * Application import options
  */
 export type ApplicationImportOptions = {
   /**
-   * Import any dependencies (scripts).
+   * Import the dependencies of the application: scripts, OAuth2 clients, SAML providers and circles of trust,
+   * connectors and mappings, and on Identity Governance tenants the glossary schema, request forms and request types.
    */
   deps: boolean;
 };
@@ -644,23 +701,23 @@ export async function updateApplication({
 }
 
 function isOidcApplication(applicationData: ApplicationSkeleton): boolean {
-  return get(applicationData, ['ssoEntities', 'oidcId']) ? true : false;
+  return applicationData.ssoEntities?.oidcId ? true : false;
 }
 
-function getOAuth2ClientId(applicationData): string {
-  return get(applicationData, ['ssoEntities', 'oidcId']);
+function getOAuth2ClientId(applicationData: ApplicationSkeleton): string {
+  return applicationData.ssoEntities?.oidcId;
 }
 
 function isSaml2Application(applicationData: ApplicationSkeleton): boolean {
-  return get(applicationData, ['ssoEntities', 'idpPrivateId']) ? true : false;
+  return applicationData.ssoEntities?.idpPrivateId ? true : false;
 }
 
 function getSaml2IdpEntityId(applicationData: ApplicationSkeleton): string {
-  return decode(get(applicationData, ['ssoEntities', 'idpPrivateId']));
+  return decode(applicationData.ssoEntities?.idpPrivateId);
 }
 
 function getSaml2SpEntityId(applicationData: ApplicationSkeleton): string {
-  return decode(get(applicationData, ['ssoEntities', 'spPrivateId']));
+  return decode(applicationData.ssoEntities?.spPrivateId);
 }
 
 function getGlossarySchemaNames(
@@ -699,11 +756,11 @@ async function getRequestFormIds(
 function isProvisioningApplication(
   applicationData: ApplicationSkeleton
 ): boolean {
-  return get(applicationData, ['connectorId']) ? true : false;
+  return applicationData.connectorId ? true : false;
 }
 
 function getConnectorId(applicationData: ApplicationSkeleton): string {
-  return get(applicationData, ['connectorId']);
+  return applicationData.connectorId;
 }
 
 async function exportDependencies({
@@ -1497,11 +1554,11 @@ export async function exportApplications({
 }
 
 /**
- * Import application
- * @param {string} clientId client id
+ * Import application. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.
+ * @param {string} applicationId application uuid
  * @param {ApplicationExportInterface} importData import data
  * @param {ApplicationImportOptions} options import options
- * @returns {Promise<ApplicationGlossarySkeleton>} a promise resolving to an oauth2 client
+ * @returns {Promise<ApplicationGlossarySkeleton>} a promise resolving to an application object
  */
 export async function importApplication({
   applicationId,
@@ -1575,11 +1632,11 @@ export async function importApplication({
 }
 
 /**
- * Import application
- * @param {string} clientId client id
+ * Import application by name. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.
+ * @param {string} applicationName application name
  * @param {ApplicationExportInterface} importData import data
  * @param {ApplicationImportOptions} options import options
- * @returns {Promise<ApplicationGlossarySkeleton>} a promise resolving to an oauth2 client
+ * @returns {Promise<ApplicationGlossarySkeleton>} a promise resolving to an application object
  */
 export async function importApplicationByName({
   applicationName: applicationName,
@@ -1655,10 +1712,10 @@ export async function importApplicationByName({
 }
 
 /**
- * Import first application
+ * Import first application. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.
  * @param {ApplicationExportInterface} importData import data
  * @param {ApplicationImportOptions} options import options
- * @returns {Promise<ApplicationGlossarySkeleton[]>} a promise resolving to an array of oauth2 clients
+ * @returns {Promise<ApplicationGlossarySkeleton[]>} a promise resolving to an array of application objects
  */
 export async function importFirstApplication({
   importData,
@@ -1729,10 +1786,10 @@ export async function importFirstApplication({
 }
 
 /**
- * Import applications
+ * Import applications. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.
  * @param {ApplicationExportInterface} importData import data
  * @param {ApplicationImportOptions} options import options
- * @returns {Promise<ApplicationGlossarySkeleton[]>} a promise resolving to an array of oauth2 clients
+ * @returns {Promise<ApplicationGlossarySkeleton[]>} a promise resolving to an array of application objects
  */
 export async function importApplications({
   importData,
