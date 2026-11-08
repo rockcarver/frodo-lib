@@ -34,8 +34,13 @@ releases missed):
   (`src/utils/ExportImportUtils.ts`) now return `void` on success instead of
   `true`. Directory-creation and file-write failures throw a `FrodoError`
   naming the file and carrying the original error, rather than printing an
-  error and returning `false`. Replace boolean-result checks with `try`/`catch`;
-  callers are responsible for reporting or collecting the failure.
+  error and returning `false`. Callers that ignored the result now receive a
+  thrown `FrodoError` where they previously received only a printed message
+  and no exception. TypeScript callers that test the result no longer compile
+  because the functions return `void`. Replace boolean-result checks with
+  `try`/`catch`; callers are responsible for reporting or collecting the
+  failure. The `ERROR - can't save <file>` line is no longer printed through
+  the print handler, so the caller prints the thrown error once.
   `frodo.utils.saveToFile` propagates the same error.
 - `frodo.authn.journey.importJourney`, `importJourneys` and
   `frodo.config.importFullConfiguration` now validate journeys before writing

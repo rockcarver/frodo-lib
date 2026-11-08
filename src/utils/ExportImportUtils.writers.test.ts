@@ -94,6 +94,27 @@ describe('saveTextToFile (shared chokepoint)', () => {
     );
   });
 
+  test('prints nothing when a save fails', () => {
+    const filename = join(baseTmp, 'silent-write-target-directory');
+    fs.mkdirSync(filename, { recursive: true });
+    const previousPrintHandler = state.getPrintHandler();
+    const previousErrorHandler = state.getErrorHandler();
+    const printed: unknown[] = [];
+    const errors: unknown[] = [];
+    try {
+      state.setPrintHandler((...args) => printed.push(args));
+      state.setErrorHandler((...args) => errors.push(args));
+      expect(() => saveTextToFile({ data: 'x', filename, state })).toThrow(
+        FrodoError
+      );
+      expect(printed).toEqual([]);
+      expect(errors).toEqual([]);
+    } finally {
+      state.setPrintHandler(previousPrintHandler);
+      state.setErrorHandler(previousErrorHandler);
+    }
+  });
+
   test('does not add another newline to text that already ends with one', () => {
     const filename = join(baseTmp, 'newline.txt');
     expect(
@@ -209,6 +230,19 @@ describe('saveJsonToFile', () => {
 });
 
 describe('writer error propagation', () => {
+  test('facade writers return nothing on success', () => {
+    expect(
+      frodo.utils.saveTextToFile('x', join(baseTmp, 'facade-success.txt'))
+    ).toBeUndefined();
+    expect(
+      frodo.utils.saveJsonToFile(
+        { k: 'v' },
+        join(baseTmp, 'facade-success.json'),
+        false
+      )
+    ).toBeUndefined();
+  });
+
   test.each([
     [
       'saveJsonToFile',
