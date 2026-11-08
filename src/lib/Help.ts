@@ -5052,7 +5052,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "SecretStore",
     methodName: "exportSecretStores",
     signature: "exportSecretStores( globalConfig: boolean, resultCallback?: ResultCallback<SecretStoreSkeleton> ): Promise<SecretStoreExportInterface>",
-    description: "Export all secret stores. The response can be saved to file as is.",
+    description: "Export all secret stores. The response can be saved to file as is. A secret store whose mappings cannot be read is not exported: the callback gets one error that names the store, or, without a callback, the function throws.",
     params: [
       { name: "globalConfig", type: "boolean", description: "true if global secret stores are the target of the operation, false otherwise. Default: false.", required: true },
       { name: "resultCallback", type: "ResultCallback", description: "Optional callback to process individual results", required: false },
@@ -5087,7 +5087,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "SecretStore",
     methodName: "importSecretStores",
     signature: "importSecretStores( importData: SecretStoreExportInterface, globalConfig: boolean, secretStoreId?: string, secretStoreTypeId?: string, resultCallback?: ResultCallback<SecretStoreSkeleton> ): Promise<SecretStoreExportSkeleton[]>",
-    description: "Import secret stores and mappings",
+    description: "Import secret stores and mappings. A secret store that cannot be imported, or one of whose mappings cannot be imported, is reported to the callback once as an error that names the store, and is not part of the result.",
     params: [
       { name: "importData", type: "SecretStoreExportInterface", description: "secret store import data", required: true },
       { name: "globalConfig", type: "boolean", description: "true if the secret store mapping is global, false otherwise. Default: false.", required: true },
