@@ -14,7 +14,7 @@ import {
   readConfigEntitiesByType,
   readConfigEntity,
 } from './IdmConfigOps';
-import { ExportMetaData } from './OpsTypes';
+import { ExportMetaData, ResultCallback } from './OpsTypes';
 
 export type Mapping = {
   /**
@@ -73,12 +73,14 @@ export type Mapping = {
    * Delete all mappings, or only the mappings of a connector and/or a managed object type. With both, only the mappings that belong to both are deleted. Every selected mapping is tried: a mapping that cannot be deleted does not stop the others. Mappings that are not selected are left alone.
    * @param {string} connectorId limit mappings to connector
    * @param {string} moType limit mappings to managed object type
+   * @param {ResultCallback<MappingSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the mapping) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every mapping was tried. Failing to read the mappings always throws.
    * @returns {Promise<MappingSkeleton[]>} a promise that resolves to an array of the deleted mapping objects
-   * @throws {FrodoError} If the mappings cannot be read, or if one or more mappings cannot be deleted. The error carries one nested error per failed mapping, naming it.
+   * @throws {FrodoError} If the mappings cannot be read (always), or if one or more mappings cannot be deleted and there is no result callback. The error carries one nested error per failed mapping, naming it.
    */
   deleteMappings(
     connectorId?: string,
-    moType?: string
+    moType?: string,
+    resultCallback?: ResultCallback<MappingSkeleton>
   ): Promise<MappingSkeleton[]>;
   /**
    * Delete mapping
@@ -192,9 +194,10 @@ export default (state: State): Mapping => {
     },
     async deleteMappings(
       connectorId: string = undefined,
-      moType: string = undefined
+      moType: string = undefined,
+      resultCallback: ResultCallback<MappingSkeleton> = undefined
     ): Promise<MappingSkeleton[]> {
-      return deleteMappings({ connectorId, moType, state });
+      return deleteMappings({ connectorId, moType, resultCallback, state });
     },
     async deleteMapping(mappingId: string): Promise<MappingSkeleton> {
       return deleteMapping({ mappingId, state });
@@ -676,16 +679,19 @@ export async function updateLegacyMappings({
  * Delete all mappings, or only the mappings of a connector and/or a managed object type. With both, only the mappings that belong to both are deleted. Every selected mapping is tried: a mapping that cannot be deleted does not stop the others. Mappings that are not selected are left alone.
  * @param {string} connectorId limit mappings to connector
  * @param {string} moType limit mappings to managed object type
+ * @param {ResultCallback<MappingSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the mapping) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every mapping was tried. Failing to read the mappings always throws.
  * @returns {Promise<MappingSkeleton[]>} a promise that resolves to an array of the deleted mapping objects
- * @throws {FrodoError} If the mappings cannot be read, or if one or more mappings cannot be deleted. The error carries one nested error per failed mapping, naming it.
+ * @throws {FrodoError} If the mappings cannot be read (always), or if one or more mappings cannot be deleted and there is no result callback. The error carries one nested error per failed mapping, naming it.
  */
 export async function deleteMappings({
   connectorId,
   moType,
+  resultCallback,
   state,
 }: {
   connectorId?: string;
   moType?: string;
+  resultCallback?: ResultCallback<MappingSkeleton>;
   state: State;
 }): Promise<MappingSkeleton[]> {
   const errors: FrodoError[] = [];
@@ -693,34 +699,50 @@ export async function deleteMappings({
     debugMessage({ message: `MappingOps.deleteMappings: start`, state });
     const mappings = await readMappings({ state });
     const deletedMappings: MappingSkeleton[] = [];
-    // delete the new-style mappings one by one: a failed delete is collected and does not stop the others
+    // a deleted mapping goes to the result and to the callback
+    const succeed = (mapping: MappingSkeleton) => {
+      deletedMappings.push(mapping);
+      if (resultCallback) resultCallback(undefined, mapping);
+    };
+    // a failure goes to the callback, or is collected to be thrown after every mapping was tried
+    const fail = (error: FrodoError) => {
+      if (resultCallback) resultCallback(error, undefined);
+      else errors.push(error);
+    };
+    // delete the new-style mappings one by one: a failed delete does not stop the others
     const deleteNewMappings = async (toDelete: MappingSkeleton[]) => {
       for (const mapping of toDelete) {
+        let deleted: MappingSkeleton;
+        let failure: FrodoError;
         try {
-          deletedMappings.push(
-            await deleteMapping({ mappingId: mapping._id, state })
-          );
+          deleted = await deleteMapping({ mappingId: mapping._id, state });
         } catch (error) {
           // deleteMapping names the mapping in its error
-          errors.push(error);
+          failure = error;
         }
+        if (failure) fail(failure);
+        else succeed(deleted);
       }
     };
     // delete all mappings
     if (!connectorId && !moType) {
       // delete all mappings in sync.json (one update: if it fails, that is one error)
+      let failure: FrodoError;
       try {
         await updateLegacyMappings({
           mappings: [],
           state,
         });
+      } catch (error) {
+        failure = error;
+      }
+      if (failure) fail(failure);
+      else {
         for (const mapping of mappings.filter((it) =>
           isLegacyMapping(it._id)
         )) {
-          deletedMappings.push(mapping);
+          succeed(mapping);
         }
-      } catch (error) {
-        errors.push(error);
       }
       // delete all the new mappings
       await deleteNewMappings(
@@ -778,14 +800,18 @@ export async function deleteMappings({
       // update sync.json only if a legacy mapping was selected (one update: if it fails, that is one error)
       let undeletedMappings: MappingSkeleton[] = [];
       if (legacyMappingsToDelete.length > 0) {
+        let finalMappings: MappingSkeleton[];
+        let failure: FrodoError;
         try {
-          const finalMappings = await updateLegacyMappings({
+          finalMappings = await updateLegacyMappings({
             mappings: updatedLegacyMappings,
             state,
           });
-          for (const mapping of legacyMappingsToDelete) {
-            deletedMappings.push(mapping);
-          }
+        } catch (error) {
+          failure = error;
+        }
+        if (failure) fail(failure);
+        else {
           debugMessage({
             message: `MappingOps.deleteMappings: ${
               finalMappings.length
@@ -798,8 +824,12 @@ export async function deleteMappings({
           undeletedMappings = finalMappings.filter((mapping) =>
             legacyMappingIdsToDelete.includes(mapping._id)
           );
-        } catch (error) {
-          errors.push(error);
+          const undeletedIds = undeletedMappings.map((it) => it._id);
+          for (const mapping of legacyMappingsToDelete.filter(
+            (it) => !undeletedIds.includes(it._id)
+          )) {
+            succeed(mapping);
+          }
         }
       }
       // delete the selected new mappings
@@ -815,7 +845,7 @@ export async function deleteMappings({
           message,
           state,
         });
-        errors.push(new FrodoError(message));
+        fail(new FrodoError(message));
       }
       if (errors.length > 0) {
         throw new FrodoError(`Error deleting mappings`, errors);

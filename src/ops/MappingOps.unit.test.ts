@@ -38,8 +38,12 @@ jest.unstable_mockModule('../utils/ExportImportUtils', () => ({
   getMetadata: jest.fn(() => ({ exportedBy: 'jest' })),
 }));
 
-const { deleteMapping, deleteMappings, readMappings } =
-  await import('./MappingOps');
+const {
+  default: MappingOps,
+  deleteMapping,
+  deleteMappings,
+  readMappings,
+} = await import('./MappingOps');
 const { FrodoError } = await import('./FrodoError');
 
 const state = {
@@ -398,6 +402,195 @@ describe('deleteMappings, mappings of a connector or a managed object type', () 
       'Error deleting mapping mapping/ldapRole',
       '1 mappings were not deleted from sync.json: sync/legacyLdapUser',
     ]);
+  });
+});
+
+/**
+ * With a result callback, the outcome of every mapping goes to the callback as it happens
+ * (a failed delete as an error that names the mapping) and a failed delete does not throw.
+ */
+describe('deleteMappings, with a result callback', () => {
+  /** What the callback was given: 'ok <name>' for a deleted mapping, the message for an error. */
+  let reported: string[];
+  const resultCallback = (error?: any, result?: any) => {
+    reported.push(error ? error.message : `ok ${result.name}`);
+  };
+
+  beforeEach(() => {
+    reported = [];
+  });
+
+  test('every outcome goes to the callback, in the order they were tried, and nothing is thrown', async () => {
+    failing.add('mapping/b');
+
+    const result = await deleteMappings({ resultCallback, state });
+
+    expect(attempted).toEqual(['mapping/a', 'mapping/b', 'mapping/c']);
+    expect(reported).toEqual([
+      'ok legacyA',
+      'ok a',
+      'Error deleting mapping mapping/b',
+      'ok c',
+    ]);
+    expect(names(result)).toEqual(['legacyA', 'a', 'c']);
+  });
+
+  test('every deleted mapping is reported exactly once', async () => {
+    const result = await deleteMappings({ resultCallback, state });
+
+    expect(reported).toEqual(['ok legacyA', 'ok a', 'ok b', 'ok c']);
+    expect(names(result)).toEqual(['legacyA', 'a', 'b', 'c']);
+  });
+
+  test('a deleted new mapping is reported as deleteMapping returned it, the same object as in the result', async () => {
+    deleteConfigEntity.mockImplementation(async ({ entityId }: any) => ({
+      ...mapping(entityId.split('/')[1]),
+      _id: entityId,
+      deletedWith: 'the delete response',
+    }));
+    const results: any[] = [];
+
+    const result = await deleteMappings({
+      resultCallback: (_error?: any, deleted?: any) => results.push(deleted),
+      state,
+    });
+
+    const newMappings = results.filter((it) => it.deletedWith);
+    expect(newMappings).toHaveLength(3);
+    for (const reportedMapping of newMappings) {
+      expect(result).toContain(reportedMapping);
+    }
+  });
+
+  test('the error passed to the callback carries the cause', async () => {
+    failing.add('mapping/a');
+    const errors: any[] = [];
+
+    await deleteMappings({
+      resultCallback: (error?: any) => {
+        if (error) errors.push(error);
+      },
+      state,
+    });
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toBeInstanceOf(FrodoError);
+    expect(rootCause(errors[0])).toBe(failure);
+  });
+
+  test('a failed update of sync.json is one error, the legacy mappings are not reported as deleted and the new mappings are still tried', async () => {
+    putConfigEntity.mockRejectedValue(failure);
+
+    const result = await deleteMappings({ resultCallback, state });
+
+    expect(reported).toEqual([
+      'Error updating legacy mappings',
+      'ok a',
+      'ok b',
+      'ok c',
+    ]);
+    expect(names(result)).toEqual(['a', 'b', 'c']);
+  });
+
+  test('the facade passes the callback on', async () => {
+    failing.add('mapping/b');
+
+    await MappingOps(state).deleteMappings(
+      undefined,
+      undefined,
+      resultCallback
+    );
+
+    expect(reported).toEqual([
+      'ok legacyA',
+      'ok a',
+      'Error deleting mapping mapping/b',
+      'ok c',
+    ]);
+  });
+
+  test('a failed read of the mappings still throws and the callback is not called', async () => {
+    readConfigEntity.mockRejectedValue(failure);
+
+    const error: any = await deleteMappings({ resultCallback, state }).catch(
+      (e) => e
+    );
+
+    expect(error).toBeInstanceOf(FrodoError);
+    expect(error.message).toBe('Error deleting mappings');
+    expect(rootCause(error)).toBe(failure);
+    expect(reported).toEqual([]);
+    expect(attempted).toEqual([]);
+  });
+
+  test('connector: only the selected mappings are reported, a failed one does not throw', async () => {
+    setUpFilteredMappings();
+    failing.add('mapping/ldapRole');
+
+    const result = await deleteMappings({
+      connectorId: 'ldap',
+      resultCallback,
+      state,
+    });
+
+    expect([...reported].sort()).toEqual(
+      [
+        'Error deleting mapping mapping/ldapRole',
+        'ok ldapUser',
+        'ok legacyLdapRole',
+        'ok legacyLdapUser',
+      ].sort()
+    );
+    expect(names(result).sort()).toEqual(
+      ['ldapUser', 'legacyLdapRole', 'legacyLdapUser'].sort()
+    );
+    // the csv mappings are neither deleted nor reported
+    expect([...attempted].sort()).toEqual([
+      'mapping/ldapRole',
+      'mapping/ldapUser',
+    ]);
+  });
+
+  test('nothing selected: nothing is reported', async () => {
+    setUpFilteredMappings();
+
+    const result = await deleteMappings({
+      connectorId: 'nosuchconnector',
+      resultCallback,
+      state,
+    });
+
+    expect(reported).toEqual([]);
+    expect(result).toEqual([]);
+  });
+
+  test('a selected legacy mapping that is still in sync.json after the update is reported as an error, not as deleted', async () => {
+    setUpFilteredMappings();
+    // sync.json answers the update with a selected mapping still in it
+    putConfigEntity.mockImplementation(async () => ({
+      mappings: [
+        {
+          ...mappingOf('legacyLdapUser', 'ldap', 'user'),
+          _id: 'sync/legacyLdapUser',
+        },
+      ],
+    }));
+
+    const result = await deleteMappings({
+      connectorId: 'ldap',
+      resultCallback,
+      state,
+    });
+
+    expect([...reported].sort()).toEqual(
+      [
+        '1 mappings were not deleted from sync.json: sync/legacyLdapUser',
+        'ok ldapRole',
+        'ok ldapUser',
+        'ok legacyLdapRole',
+      ].sort()
+    );
+    expect(names(result)).not.toContain('legacyLdapUser');
   });
 });
 
