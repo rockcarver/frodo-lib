@@ -524,7 +524,8 @@ export async function exportCirclesOfTrust({
       return exportData;
     } else {
       throw new FrodoError(
-        `Error exporting ${getCurrentRealmName(state) + ' realm'} circles of trust`
+        `Error exporting ${getCurrentRealmName(state) + ' realm'} circles of trust`,
+        error
       );
     }
   }
@@ -857,7 +858,8 @@ export async function importCirclesOfTrust({
     }
     if (errors.length > 0) {
       throw new FrodoError(
-        `Error importing ${getCurrentRealmName(state) + ' realm'} circles of trust`
+        `Error importing ${getCurrentRealmName(state) + ' realm'} circles of trust`,
+        errors
       );
     }
     return responses;

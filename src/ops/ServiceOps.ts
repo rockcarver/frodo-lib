@@ -21,7 +21,7 @@ import { getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
 import { FrodoError } from './FrodoError';
-import { type ExportMetaData } from './OpsTypes';
+import { type ExportMetaData, type ResultCallback } from './OpsTypes';
 
 export type Service = {
   createServiceExportTemplate(): ServiceExportInterface;
@@ -35,10 +35,14 @@ export type Service = {
   /**
    * Get all services including their descendents.
    * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+   * @param {ResultCallback<FullService>} resultCallback Optional callback to process individual results. With a callback, a service that cannot be read is passed to it as an error that names the service and does not fail the read: the services that could be read are returned.
    * @returns Promise resolving to an array of services with their descendants
-   * @throws {FrodoError} After all services are attempted, names each failed service. Services unavailable in PingOne Advanced Identity Cloud are skipped.
+   * @throws {FrodoError} Without a callback, after all services are attempted, names each failed service. Services unavailable in PingOne Advanced Identity Cloud are skipped.
    */
-  getFullServices(globalConfig?: boolean): Promise<FullService[]>;
+  getFullServices(
+    globalConfig?: boolean,
+    resultCallback?: ResultCallback<FullService>
+  ): Promise<FullService[]>;
   /**
    * Deletes the specified service
    * @param {string} serviceId The service to delete
@@ -68,8 +72,12 @@ export type Service = {
   /**
    * Export all services
    * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+   * @param {ResultCallback<FullService>} resultCallback Optional callback to process individual results. With a callback, a service that cannot be read is passed to it as an error that names the service and is left out of the export; without one the export fails.
    */
-  exportServices(globalConfig?: boolean): Promise<ServiceExportInterface>;
+  exportServices(
+    globalConfig?: boolean,
+    resultCallback?: ResultCallback<FullService>
+  ): Promise<ServiceExportInterface>;
   /**
    * Imports a single service using a reference to the service and a file to read the data from. Optionally clean (remove) an existing service first
    * @param {string} serviceId The service id/name to add
@@ -111,10 +119,14 @@ export default (state: State): Service => {
     /**
      * Get all services including their descendents.
      * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+     * @param {ResultCallback<FullService>} resultCallback Optional callback to process individual results
      * @returns Promise resolving to an array of services with their descendants
      */
-    async getFullServices(globalConfig = false): Promise<FullService[]> {
-      return getFullServices({ globalConfig, state });
+    async getFullServices(
+      globalConfig = false,
+      resultCallback: ResultCallback<FullService> = void 0
+    ): Promise<FullService[]> {
+      return getFullServices({ globalConfig, resultCallback, state });
     },
 
     /**
@@ -155,11 +167,13 @@ export default (state: State): Service => {
     /**
      * Export all services
      * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+     * @param {ResultCallback<FullService>} resultCallback Optional callback to process individual results
      */
     async exportServices(
-      globalConfig = false
+      globalConfig = false,
+      resultCallback: ResultCallback<FullService> = void 0
     ): Promise<ServiceExportInterface> {
-      return exportServices({ globalConfig, state });
+      return exportServices({ globalConfig, resultCallback, state });
     },
 
     /**
@@ -299,14 +313,18 @@ export async function getListOfServices({
 
 /**
  * Get all services including their descendents.
+ * Every service is attempted. Without a result callback the function throws one error after all services were attempted that carries one nested error per service that could not be read. With a result callback each service is passed to it as it is read (a service that cannot be read as an error that names the service), nothing is thrown for such a service, and the services that could be read are returned. A failure to list the services always throws.
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+ * @param {ResultCallback<FullService>} resultCallback Optional callback to process individual results
  * @returns Promise resolving to an array of services with their descendants
  */
 export async function getFullServices({
   globalConfig = false,
+  resultCallback = void 0,
   state,
 }: {
   globalConfig: boolean;
+  resultCallback?: ResultCallback<FullService>;
   state: State;
 }): Promise<FullService[]> {
   const errors: FrodoError[] = [];
@@ -346,18 +364,20 @@ export async function getFullServices({
             return;
           }
 
-          return {
+          const fullService = {
             ...service.value,
             nextDescendents: nextDescendents.value,
           };
+          if (resultCallback) resultCallback(undefined, fullService);
+          return fullService;
         } catch (error) {
           if (!isUnavailableServiceError(error)) {
-            errors.push(
-              new FrodoError(
-                `Unable to retrieve data for service '${listItem._id}'`,
-                error
-              )
+            const failure = new FrodoError(
+              `Unable to retrieve data for service '${listItem._id}'`,
+              error
             );
+            if (resultCallback) resultCallback(failure);
+            else errors.push(failure);
           }
         }
       })
@@ -747,12 +767,15 @@ export async function exportService({
 /**
  * Export all services
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+ * @param {ResultCallback<FullService>} resultCallback Optional callback to process individual results. With a callback, a service that cannot be read is passed to it as an error that names the service and is left out of the export; without one the export fails.
  */
 export async function exportServices({
   globalConfig = false,
+  resultCallback = void 0,
   state,
 }: {
   globalConfig: boolean;
+  resultCallback?: ResultCallback<FullService>;
   state: State;
 }): Promise<ServiceExportInterface> {
   debugMessage({
@@ -762,7 +785,11 @@ export async function exportServices({
   let indicatorId: string;
   try {
     const exportData = createServiceExportTemplate({ state });
-    const services = await getFullServices({ globalConfig, state });
+    const services = await getFullServices({
+      globalConfig,
+      resultCallback,
+      state,
+    });
     indicatorId = createProgressIndicator({
       total: services.length,
       message: `Exporting ${globalConfig ? 'global' : `${getCurrentRealmName(state) + ' realm'}`} services...`,

@@ -113,7 +113,7 @@ export type SecretStore = {
     globalConfig: boolean
   ): Promise<SecretStoreExportInterface>;
   /**
-   * Export all secret stores. The response can be saved to file as is.
+   * Export all secret stores. The response can be saved to file as is. A secret store whose mappings cannot be read is not exported: the callback gets one error that names the store, or, without a callback, the function throws.
    * @param {boolean} globalConfig true if global secret stores are the target of the operation, false otherwise. Default: false.
    * @param {ResultCallback} resultCallback Optional callback to process individual results
    * @returns {Promise<SecretStoreExportInterface>} Promise resolving to a SecretStoreExportInterface object.
@@ -147,7 +147,7 @@ export type SecretStore = {
     globalConfig: boolean
   ): Promise<SecretStoreMappingSkeleton>;
   /**
-   * Import secret stores and mappings
+   * Import secret stores and mappings. A secret store that cannot be imported, or one of whose mappings cannot be imported, is reported to the callback once as an error that names the store, and is not part of the result.
    * @param {SecretStoreExportInterface} importData secret store import data
    * @param {boolean} globalConfig true if the secret store mapping is global, false otherwise. Default: false.
    * @param {string} secretStoreId optional secret store id. If supplied, only the secret store of that id is imported.
@@ -763,8 +763,9 @@ export async function exportSecretStore({
 }
 
 /**
- * Export all secret stores. The response can be saved to file as is.
+ * Export all secret stores. The response can be saved to file as is. A secret store whose mappings cannot be read is not exported: the callback gets one error that names the store, or, without a callback, the function throws.
  * @param {boolean} globalConfig true if global secret stores are the target of the operation, false otherwise. Default: false.
+ * @param {ResultCallback} resultCallback Optional callback to process individual results
  * @returns {Promise<SecretStoreExportInterface>} Promise resolving to a SecretStoreExportInterface object.
  */
 export async function exportSecretStores({
@@ -804,7 +805,14 @@ export async function exportSecretStores({
             state,
           });
         } catch (e) {
-          if (resultCallback) resultCallback(e);
+          // a store without its mappings is not a complete export of the store
+          const error = new FrodoError(
+            `Error exporting ${getCurrentRealmName(state) + ' realm'} secret store ${secretStore._id}`,
+            e
+          );
+          if (!resultCallback) throw error;
+          resultCallback(error);
+          continue;
         }
       }
       exportData.secretstore[secretStore._id] =
@@ -888,7 +896,7 @@ export async function updateSecretStoreMapping({
   });
 }
 /**
- * Import secret stores and mappings
+ * Import secret stores and mappings. A secret store that cannot be imported, or one of whose mappings cannot be imported, is reported to the callback once as an error that names the store, and is not part of the result.
  * @param {SecretStoreExportInterface} importData secret store import data
  * @param {boolean} globalConfig true if the secret store mapping is global, false otherwise. Default: false.
  * @param {string} secretStoreId optional secret store id. If supplied, only the secret store of that id is imported.
@@ -942,27 +950,29 @@ export async function importSecretStores({
       secretStore.mappings = secretStoreMappings;
       // Do mapping imports next
       if (secretStoreMappings) {
-        try {
-          result.mappings = [];
-          for (const mapping of secretStoreMappings) {
-            result.mappings.push(
-              await updateSecretStoreMapping({
-                secretStoreId: secretStore._id,
-                secretStoreTypeId: secretStore._type._id,
-                secretStoreMappingData: mapping,
-                globalConfig,
-                state,
-              })
-            );
-          }
-        } catch (e) {
-          if (resultCallback) resultCallback(e);
+        result.mappings = [];
+        for (const mapping of secretStoreMappings) {
+          result.mappings.push(
+            await updateSecretStoreMapping({
+              secretStoreId: secretStore._id,
+              secretStoreTypeId: secretStore._type._id,
+              secretStoreMappingData: mapping,
+              globalConfig,
+              state,
+            })
+          );
         }
       }
       response.push(result);
       if (resultCallback) resultCallback(undefined, result);
     } catch (error) {
-      if (resultCallback) resultCallback(error);
+      if (resultCallback)
+        resultCallback(
+          new FrodoError(
+            `Error importing ${getCurrentRealmName(state) + ' realm'} secret store ${secretStore._id}`,
+            error
+          )
+        );
     }
   }
   debugMessage({ message: `SecretStoreOps.importSecretStores: end`, state });

@@ -580,3 +580,124 @@ describe('ServiceOps unit coverage for AM service management', () => {
     );
   });
 });
+
+describe('getFullServices and exportServices with a result callback', () => {
+  type Outcome = { error?: any; result?: any };
+  let outcomes: Outcome[];
+  const callback = (error?: any, result?: any) =>
+    outcomes.push({ error, result });
+
+  beforeEach(() => {
+    outcomes = [];
+    getListOfServicesMock.mockResolvedValue({
+      result: [
+        makeService({ _id: 'one' }),
+        makeService({ _id: 'broken' }),
+        makeService({ _id: 'three' }),
+      ],
+    });
+    getServiceMock.mockImplementation(
+      async ({ serviceId }: { serviceId: string }) => {
+        if (serviceId === 'broken') {
+          throw Object.assign(new Error('Server error'), {
+            response: { status: 500, data: { message: 'Server error' } },
+          });
+        }
+        return makeService({
+          _id: serviceId,
+          _type: { _id: serviceId, name: 'Service', collection: false },
+        });
+      }
+    );
+  });
+
+  const ids = (list: any[]) => list.map((it) => it._id).sort();
+
+  test('getFullServices returns the services that could be read and reports each service once', async () => {
+    const services = await ServiceOps.getFullServices({
+      globalConfig: false,
+      resultCallback: callback,
+      state,
+    });
+
+    expect(ids(services)).toEqual(['one', 'three']);
+    expect(outcomes).toHaveLength(3);
+    expect(
+      ids(outcomes.filter((it) => it.result).map((it) => it.result))
+    ).toEqual(['one', 'three']);
+    const failures = outcomes.filter((it) => it.error);
+    expect(failures).toHaveLength(1);
+    expect(failures[0].error).toBeInstanceOf(FrodoError);
+    expect(failures[0].error.getCombinedMessage()).toContain('broken');
+    expect(failures[0].error.getCombinedMessage()).toContain('Server error');
+  });
+
+  test('exportServices exports the services that could be read and reports the others', async () => {
+    const response = await ServiceOps.exportServices({
+      globalConfig: false,
+      resultCallback: callback,
+      state,
+    });
+
+    expect(Object.keys(response.service).sort()).toEqual(['one', 'three']);
+    const failures = outcomes.filter((it) => it.error);
+    expect(failures).toHaveLength(1);
+    expect(failures[0].error.getCombinedMessage()).toContain('broken');
+  });
+
+  test('a service that is not available in the cloud is skipped, not reported', async () => {
+    getServiceMock.mockImplementation(
+      async ({ serviceId }: { serviceId: string }) => {
+        if (serviceId === 'broken') {
+          throw Object.assign(new Error('Unavailable'), {
+            response: {
+              status: 403,
+              data: {
+                message:
+                  'This operation is not available in PingOne Advanced Identity Cloud.',
+              },
+            },
+          });
+        }
+        return makeService({ _id: serviceId });
+      }
+    );
+
+    const services = await ServiceOps.getFullServices({
+      globalConfig: false,
+      resultCallback: callback,
+      state,
+    });
+
+    expect(ids(services)).toEqual(['one', 'three']);
+    expect(outcomes.filter((it) => it.error)).toHaveLength(0);
+    expect(outcomes).toHaveLength(2);
+  });
+
+  test('a failure to list the services still throws', async () => {
+    getListOfServicesMock.mockRejectedValue(
+      Object.assign(new Error('Server error'), {
+        response: { status: 500, data: { message: 'Server error' } },
+      })
+    );
+
+    await expect(
+      ServiceOps.getFullServices({
+        globalConfig: false,
+        resultCallback: callback,
+        state,
+      })
+    ).rejects.toBeInstanceOf(FrodoError);
+    expect(outcomes).toHaveLength(0);
+  });
+
+  test('the facade passes the callback on', async () => {
+    const services = await ServiceOps.default({ state }).getFullServices(
+      false,
+      callback
+    );
+
+    expect(ids(services)).toEqual(['one', 'three']);
+    expect(outcomes.filter((it) => it.error)).toHaveLength(1);
+  });
+});

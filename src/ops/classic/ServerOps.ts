@@ -568,10 +568,16 @@ export async function importServers({
     }
     // Import default server properties
     if (options.includeDefault) {
-      response.defaultProperties = await putDefaultServerProperties({
-        defaultServerPropertiesData: importData.defaultProperties,
-        state,
-      });
+      try {
+        response.defaultProperties = await putDefaultServerProperties({
+          defaultServerPropertiesData: importData.defaultProperties,
+          state,
+        });
+      } catch (error) {
+        errors.push(
+          new FrodoError(`Error importing default server properties`, error)
+        );
+      }
     }
     if (errors.length > 0) {
       throw new FrodoError(`Error importing servers`, errors);
