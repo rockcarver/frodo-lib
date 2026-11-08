@@ -1114,7 +1114,8 @@ function isCausedByInsufficientScope(error: unknown): boolean {
 }
 
 /**
- * Helper that calls a function expecting a result, and handles that result in the given result callback if it exists
+ * Helper that calls a function expecting a result, and handles that result in the given result callback if it exists.
+ * A result that is not null or undefined is passed to the callback as a success, including a falsy one (false, 0 or an empty string); an error is passed to it as a failure.
  * @param {ResultCallback<R> | undefined} resultCallback The result callback
  * @param {string} errorMessage The error message to associate with the error if one occurs
  * @param {(...params: any) => Promise<R | null>} func The function to call to get the result
@@ -1129,7 +1130,8 @@ export async function getResult<R>(
 ): Promise<R | null> {
   try {
     const result = await func(...parameters);
-    if (result && resultCallback) {
+    // a call that succeeded is reported, also when its result is falsy (false, 0, an empty string)
+    if (result !== null && result !== undefined && resultCallback) {
       resultCallback(undefined, result);
     }
     return result;
