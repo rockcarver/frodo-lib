@@ -5177,10 +5177,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Service",
     methodName: "getFullServices",
-    signature: "getFullServices(globalConfig?: boolean): Promise<FullService[]>",
+    signature: "getFullServices( globalConfig?: boolean, resultCallback?: ResultCallback<FullService> ): Promise<FullService[]>",
     description: "Get all services including their descendents.",
     params: [
       { name: "globalConfig", type: "boolean", description: "true if the global service is the target of the operation, false otherwise. Default: false.", required: false },
+      { name: "resultCallback", type: "ResultCallback<FullService>", description: "Optional callback to process individual results. With a callback, a service that cannot be read is passed to it as an error that names the service and does not fail the read: the services that could be read are returned.", required: false },
     ],
     returns: "Promise resolving to an array of services with their descendants",
   },
@@ -5219,10 +5220,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Service",
     methodName: "exportServices",
-    signature: "exportServices(globalConfig?: boolean): Promise<ServiceExportInterface>",
+    signature: "exportServices( globalConfig?: boolean, resultCallback?: ResultCallback<FullService> ): Promise<ServiceExportInterface>",
     description: "Export all services",
     params: [
       { name: "globalConfig", type: "boolean", description: "true if the global service is the target of the operation, false otherwise. Default: false.", required: false },
+      { name: "resultCallback", type: "ResultCallback<FullService>", description: "Optional callback to process individual results. With a callback, a service that cannot be read is passed to it as an error that names the service and is left out of the export; without one the export fails.", required: false },
     ],
     returns: "",
   },
