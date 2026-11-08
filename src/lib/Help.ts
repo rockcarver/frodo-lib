@@ -3183,11 +3183,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Mapping",
     methodName: "deleteMappings",
-    signature: "deleteMappings( connectorId?: string, moType?: string ): Promise<MappingSkeleton[]>",
+    signature: "deleteMappings( connectorId?: string, moType?: string, resultCallback?: ResultCallback<MappingSkeleton> ): Promise<MappingSkeleton[]>",
     description: "Delete all mappings, or only the mappings of a connector and/or a managed object type. With both, only the mappings that belong to both are deleted. Every selected mapping is tried: a mapping that cannot be deleted does not stop the others. Mappings that are not selected are left alone.",
     params: [
       { name: "connectorId", type: "string", description: "limit mappings to connector", required: false },
       { name: "moType", type: "string", description: "limit mappings to managed object type", required: false },
+      { name: "resultCallback", type: "ResultCallback<MappingSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the mapping) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every mapping was tried. Failing to read the mappings always throws.", required: false },
     ],
     returns: "{Promise<MappingSkeleton[]>} a promise that resolves to an array of the deleted mapping objects",
   },
