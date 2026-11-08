@@ -237,6 +237,7 @@ describe('createMcpService', () => {
       toolName: 'frodo_dispatch_read_only',
       arguments: {
         skillId: descriptor.id,
+        namedArgs: { journeyId: 'Login' },
       },
       context: {
         auth: {
@@ -248,5 +249,6 @@ describe('createMcpService', () => {
 
     expect(result.toolName).toBe('frodo_dispatch_read_only');
     expect(result.data).toEqual({ ok: true });
+    expect(readJourney).toHaveBeenCalledWith('Login');
   });
 });

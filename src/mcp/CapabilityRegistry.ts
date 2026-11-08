@@ -261,11 +261,12 @@ function buildDescriptor(path: string[]): McpCapabilityDescriptor {
     meta?.destructive ?? isDestructive(operationType, methodName);
   const annotations = inferAnnotations(operationType, mutating, destructive);
 
-  const argumentMode = meta?.argumentMode ?? inferArgumentMode(operationType);
   const derivedParameters =
     deriveParametersFromHelp(methodName) ??
     inferParameters(methodName, objectType, operationType);
   const parameters = applyParameterOverlay(derivedParameters, meta);
+  const argumentMode =
+    meta?.argumentMode ?? inferArgumentMode(operationType, parameters);
   const supportsPaging =
     meta?.supportsPaging ??
     (operationType === 'list' || operationType === 'search');
@@ -322,11 +323,26 @@ function buildDescriptor(path: string[]): McpCapabilityDescriptor {
 
 /**
  * Infers the default MCP-facing argument mode for a capability.
+ *
+ * @remarks
+ * A `list` or `count` method takes no arguments by naming convention
+ * (`readJourneys()`), but not always (`readManagedObjects(type, fields?)`,
+ * `countUsers(filter?)`). The mode is therefore derived from the parameters the
+ * descriptor declares, so that a descriptor never lists parameters and, at the
+ * same time, rejects every argument at dispatch (`'none'`).
+ *
+ * @param operationType Normalized operation type of the capability.
+ * @param parameters Parameters the descriptor declares, if any.
+ * @returns The default argument mode.
  */
 function inferArgumentMode(
-  operationType: McpCapabilityOperationType
+  operationType: McpCapabilityOperationType,
+  parameters: McpCapabilityParameter[] | undefined
 ): McpCapabilityArgumentMode {
-  if (operationType === 'list' || operationType === 'count') {
+  if (
+    (operationType === 'list' || operationType === 'count') &&
+    (parameters ?? []).length === 0
+  ) {
     return 'none';
   }
   if (operationType === 'search') {

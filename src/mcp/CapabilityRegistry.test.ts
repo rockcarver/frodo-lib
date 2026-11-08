@@ -230,6 +230,60 @@ describe('MCP capability foundation', () => {
     );
   });
 
+  describe('argument mode follows the declared parameters', () => {
+    const capabilities = buildCapabilityInventory(frodo, {
+      includeUtils: false,
+    });
+    const byId = (id: string) =>
+      capabilities.find((capability) => capability.id === id);
+
+    test('no capability declares argumentMode none and parameters at the same time', () => {
+      // A descriptor that lists parameters but refuses every argument cannot be
+      // called: the runtime rejects positionalArgs and namedArgs for 'none'.
+      const offenders = capabilities
+        .filter((capability) => capability.argumentMode === 'none')
+        .filter((capability) => (capability.parameters ?? []).length > 0)
+        .map((capability) => capability.id)
+        .sort();
+      expect(offenders).toEqual([]);
+    });
+
+    test('a list or count capability whose method takes parameters accepts arguments', () => {
+      const readManagedObjects = byId('idm.managed.readManagedObjects');
+      expect(readManagedObjects?.operationType).toBe('list');
+      expect(readManagedObjects?.argumentMode).toBe('mixed');
+      expect(readManagedObjects?.parameters).toEqual([
+        expect.objectContaining({
+          name: 'type',
+          required: true,
+          position: 0,
+        }),
+        expect.objectContaining({
+          name: 'fields',
+          required: false,
+          position: 1,
+        }),
+      ]);
+      expect(byId('user.countUsers')?.operationType).toBe('count');
+      expect(byId('user.countUsers')?.argumentMode).toBe('mixed');
+      expect(byId('user.readUsers')?.argumentMode).toBe('mixed');
+    });
+
+    test('a list capability without parameters keeps argumentMode none', () => {
+      // Explicit metadata entry.
+      expect(byId('cloud.log.getLogApiKeys')?.argumentMode).toBe('none');
+      expect(byId('cloud.log.getLogApiKeys')?.parameters).toBeUndefined();
+      // Inferred: the method takes no parameters at all.
+      const inferredNone = capabilities.filter(
+        (capability) =>
+          capability.operationType === 'list' &&
+          capability.argumentMode === 'none' &&
+          resolveCapabilityMeta(capability.id)?.argumentMode === undefined
+      );
+      expect(inferredNone.length).toBeGreaterThan(0);
+    });
+  });
+
   test('builds capability inventory for selected domains', () => {
     const capabilities = buildCapabilityInventory(frodo, {
       includeTopLevelDomains: ['authn'],
