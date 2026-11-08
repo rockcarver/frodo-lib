@@ -2558,6 +2558,12 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     mutating: false,
     riskClass: 'low',
   },
+  // Pure data helpers on application records the caller already has: they
+  // make no request and are not standalone operations an agent could call.
+  // The reading call, app.readApplicationOwnership, is inferred from its name.
+  'app.getApplicationRecordReferences': { excluded: true },
+  'app.getApplicationOwnership': { excluded: true },
+  'app.getApplicationOwners': { excluded: true },
 
   'authn.journey.disableJourney': {
     operationType: 'update',

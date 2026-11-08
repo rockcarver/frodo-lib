@@ -960,6 +960,46 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Application",
+    methodName: "getApplicationRecordReferences",
+    signature: "getApplicationRecordReferences( applicationData: ApplicationSkeleton ): ApplicationReference[]",
+    description: "List the references that an application record holds itself: the OAuth2 client, the SAML entity providers, the connector and the mappings it names, all of them owned by the application. Nothing is read, so this works on a record that comes from a file as well as on one read from a tenant.",
+    params: [
+      { name: "applicationData", type: "ApplicationSkeleton", description: "application record", required: true },
+    ],
+    returns: "{ApplicationReference[]} the references in the record",
+  },
+  {
+    typeName: "Application",
+    methodName: "getApplicationOwnership",
+    signature: "getApplicationOwnership( applications: ApplicationSkeleton[] ): ApplicationOwnership",
+    description: "Build the ownership index from application records that you already have (read from a tenant or from files). Nothing is read. See readApplicationOwnership.",
+    params: [
+      { name: "applications", type: "ApplicationSkeleton[]", description: "application records", required: true },
+    ],
+    returns: "{ApplicationOwnership} which application owns which OAuth2 client, SAML provider, connector and mapping",
+  },
+  {
+    typeName: "Application",
+    methodName: "getApplicationOwners",
+    signature: "getApplicationOwners( ownership: ApplicationOwnership, kind: ApplicationOwnedKind, id: string ): ApplicationOwner[]",
+    description: "Find the applications that own an object in an ownership index.",
+    params: [
+      { name: "ownership", type: "ApplicationOwnership", description: "the ownership index", required: true },
+      { name: "kind", type: "ApplicationOwnedKind", description: "what kind of object it is", required: true },
+      { name: "id", type: "string", description: "the OAuth2 client id, the SAML entity id (decoded), the connector name or the mapping name", required: true },
+    ],
+    returns: "{ApplicationOwner[]} the applications that name the object, empty if none does",
+  },
+  {
+    typeName: "Application",
+    methodName: "readApplicationOwnership",
+    signature: "readApplicationOwnership(): Promise<ApplicationOwnership>",
+    description: "Read which application owns which object in the current realm: every OAuth2 client, SAML provider, connector and mapping that an application record names. Reads the applications once and nothing else, because the owned objects are named in the records. An object that two applications name lists both of them as owners; what that means is up to the caller. Objects that applications only share (scripts, circles of trust and the like) are not indexed.",
+    params: [],
+    returns: "{Promise<ApplicationOwnership>} a promise that resolves to the ownership index",
+  },
+  {
+    typeName: "Application",
     methodName: "validateApplication",
     signature: "validateApplication( applicationId: string ): Promise<ApplicationValidationFinding[]>",
     description: "Validate an application: check that every object its record refers to, and every script, circle of trust and (on Identity Governance tenants) glossary schema, request form and request type that those objects use, exists. Reads only; no template is needed. One finding is returned for every reference that does not resolve or could not be checked.",
