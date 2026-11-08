@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { FrodoError } from './FrodoError';
 
 const getAgentByTypeAndId = jest.fn(async (_args?: any): Promise<any> => ({}));
 const getAgentsByType = jest.fn(async (_args?: any): Promise<any> => ({
@@ -185,102 +186,6 @@ describe('createAIAgent', () => {
     });
   });
 
-  describe('readAgents', () => {
-    const agentTypes = ['FirstAgent', 'SecondAgent', 'ThirdAgent'];
-
-    beforeEach(() => {
-      getAgentTypes.mockReset();
-      getAgentTypes.mockResolvedValue({
-        result: agentTypes.map((_id) => ({ _id })),
-      });
-      getAgentsByType.mockReset();
-      getAgentsByType.mockImplementation(async ({ agentType }: any) => ({
-        result: [{ _id: agentType }],
-      }));
-    });
-
-    test('reports a non-501 failure after requesting every agent type', async () => {
-      const failure = errorWithStatus(500);
-      getAgentsByType.mockImplementation(async ({ agentType }: any) => {
-        if (agentType === 'SecondAgent') {
-          throw failure;
-        }
-        return { result: [{ _id: agentType }] };
-      });
-
-      await expect(readAgents({ state: mockState() })).rejects.toMatchObject({
-        message: expect.stringContaining('SecondAgent'),
-        originalErrors: [
-          expect.objectContaining({
-            message: expect.stringContaining('SecondAgent'),
-            originalErrors: [failure],
-          }),
-        ],
-      });
-      expect(getAgentsByType).toHaveBeenCalledTimes(3);
-    });
-
-    test.each([
-      ['httpStatus', { httpStatus: 501 }],
-      ['response.status', { response: { status: 501 } }],
-    ])(
-      'skips an unsupported type when 501 is in %s',
-      async (_field, failure) => {
-        getAgentsByType.mockImplementation(async ({ agentType }: any) => {
-          if (agentType === 'SecondAgent') {
-            throw failure;
-          }
-          return { result: [{ _id: agentType }] };
-        });
-
-        await expect(readAgents({ state: mockState() })).resolves.toEqual([
-          { _id: 'FirstAgent' },
-          { _id: 'ThirdAgent' },
-        ]);
-        expect(getAgentsByType).toHaveBeenCalledTimes(3);
-      }
-    );
-
-    test('does not skip a 403 failure', async () => {
-      getAgentsByType.mockImplementation(async ({ agentType }: any) => {
-        if (agentType === 'SecondAgent') {
-          throw errorWithStatus(403);
-        }
-        return { result: [{ _id: agentType }] };
-      });
-
-      await expect(readAgents({ state: mockState() })).rejects.toThrow(
-        'SecondAgent'
-      );
-      expect(getAgentsByType).toHaveBeenCalledTimes(3);
-    });
-
-    test('reports every failed agent type in one error', async () => {
-      getAgentsByType.mockImplementation(async ({ agentType }: any) => {
-        if (agentType === 'SecondAgent') {
-          throw errorWithStatus(500);
-        }
-        if (agentType === 'ThirdAgent') {
-          throw errorWithStatus(403);
-        }
-        return { result: [{ _id: agentType }] };
-      });
-
-      await expect(readAgents({ state: mockState() })).rejects.toMatchObject({
-        message: expect.stringContaining('SecondAgent, ThirdAgent'),
-        originalErrors: expect.arrayContaining([
-          expect.objectContaining({
-            message: expect.stringContaining('SecondAgent'),
-          }),
-          expect.objectContaining({
-            message: expect.stringContaining('ThirdAgent'),
-          }),
-        ]),
-      });
-      expect(getAgentsByType).toHaveBeenCalledTimes(3);
-    });
-  });
-
   test('a core agent-creation failure still rejects even when includeAgentIdentity is true', async () => {
     getAgentByTypeAndId.mockRejectedValue(errorWithStatus(404));
     putAgentByTypeAndId.mockRejectedValue(new Error('put failed'));
@@ -296,5 +201,102 @@ describe('createAIAgent', () => {
       })
     ).rejects.toThrow();
     expect(createManagedObject).not.toHaveBeenCalled();
+  });
+});
+
+describe('readAgents', () => {
+  const agentTypes = ['FirstAgent', 'SecondAgent', 'ThirdAgent'];
+
+  beforeEach(() => {
+    getAgentTypes.mockReset();
+    getAgentTypes.mockResolvedValue({
+      result: agentTypes.map((_id) => ({ _id })),
+    });
+    getAgentsByType.mockReset();
+    getAgentsByType.mockImplementation(async ({ agentType }: any) => ({
+      result: [{ _id: agentType }],
+    }));
+  });
+
+  test('reports a non-501 failure after requesting every agent type', async () => {
+    const failure = errorWithStatus(500);
+    getAgentsByType.mockImplementation(async ({ agentType }: any) => {
+      if (agentType === 'SecondAgent') {
+        throw failure;
+      }
+      return { result: [{ _id: agentType }] };
+    });
+
+    await expect(readAgents({ state: mockState() })).rejects.toMatchObject({
+      message: expect.stringContaining('SecondAgent'),
+      originalErrors: [
+        expect.objectContaining({
+          message: expect.stringContaining('SecondAgent'),
+          originalErrors: [failure],
+        }),
+      ],
+    });
+    expect(getAgentsByType).toHaveBeenCalledTimes(3);
+  });
+
+  test.each([
+    ['httpStatus', { httpStatus: 501 }],
+    ['response.status', { response: { status: 501 } }],
+  ])('skips an unsupported type when 501 is in %s', async (_field, failure) => {
+    getAgentsByType.mockImplementation(async ({ agentType }: any) => {
+      if (agentType === 'SecondAgent') {
+        throw failure;
+      }
+      return { result: [{ _id: agentType }] };
+    });
+
+    await expect(readAgents({ state: mockState() })).resolves.toEqual([
+      { _id: 'FirstAgent' },
+      { _id: 'ThirdAgent' },
+    ]);
+    expect(getAgentsByType).toHaveBeenCalledTimes(3);
+  });
+
+  test.each([403, 404])('does not skip a %i failure', async (status) => {
+    getAgentsByType.mockImplementation(async ({ agentType }: any) => {
+      if (agentType === 'SecondAgent') {
+        throw errorWithStatus(status);
+      }
+      return { result: [{ _id: agentType }] };
+    });
+
+    const error = await readAgents({ state: mockState() }).catch(
+      (caughtError) => caughtError
+    );
+    expect(error.message).toContain('SecondAgent');
+    if (status === 403) {
+      expect(error).toBeInstanceOf(FrodoError);
+    }
+    expect(getAgentsByType).toHaveBeenCalledTimes(3);
+  });
+
+  test('reports every failed agent type in one error', async () => {
+    getAgentsByType.mockImplementation(async ({ agentType }: any) => {
+      if (agentType === 'SecondAgent') {
+        throw errorWithStatus(500);
+      }
+      if (agentType === 'ThirdAgent') {
+        throw errorWithStatus(403);
+      }
+      return { result: [{ _id: agentType }] };
+    });
+
+    await expect(readAgents({ state: mockState() })).rejects.toMatchObject({
+      message: expect.stringContaining('SecondAgent, ThirdAgent'),
+      originalErrors: expect.arrayContaining([
+        expect.objectContaining({
+          message: expect.stringContaining('SecondAgent'),
+        }),
+        expect.objectContaining({
+          message: expect.stringContaining('ThirdAgent'),
+        }),
+      ]),
+    });
+    expect(getAgentsByType).toHaveBeenCalledTimes(3);
   });
 });
