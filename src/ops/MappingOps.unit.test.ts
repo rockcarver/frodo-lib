@@ -4,6 +4,9 @@ import { jest } from '@jest/globals';
  * `deleteMappings` tries every mapping. A mapping that cannot be deleted does
  * not stop the others; after all of them were tried the function throws one
  * error that carries one nested error per failed mapping, naming it.
+ * With a connector and/or a managed object type, only the mappings that belong
+ * to them are touched: the others are neither deleted nor written to sync.json
+ * and not reported as deleted.
  * Mocked unit test: no recordings.
  */
 
@@ -35,7 +38,8 @@ jest.unstable_mockModule('../utils/ExportImportUtils', () => ({
   getMetadata: jest.fn(() => ({ exportedBy: 'jest' })),
 }));
 
-const { deleteMappings } = await import('./MappingOps');
+const { deleteMapping, deleteMappings, readMappings } =
+  await import('./MappingOps');
 const { FrodoError } = await import('./FrodoError');
 
 const state = {
@@ -56,6 +60,13 @@ const mapping = (name: string) => ({
   name,
   source: 'system/ldap/account',
   target: 'managed/user',
+});
+
+/** A mapping of a connector to a managed object type. */
+const mappingOf = (name: string, connector: string, moType: string) => ({
+  name,
+  source: `system/${connector}/account`,
+  target: `managed/${moType}`,
 });
 
 let attempted: string[];
@@ -175,39 +186,178 @@ describe('deleteMappings, all mappings', () => {
   });
 });
 
-describe('deleteMappings, mappings of a connector', () => {
-  test('deletes them and returns the deleted mappings', async () => {
-    const result = await deleteMappings({ connectorId: 'ldap', state });
+/**
+ * Two connectors (ldap, csv) and two managed object types (user, role):
+ *   in sync.json (legacy):  legacyLdapUser, legacyLdapRole, legacyCsvUser
+ *   new-style:              ldapUser, ldapRole, csvUser, csvRole
+ */
+function setUpFilteredMappings({ withNew = true } = {}) {
+  readConfigEntity.mockReset();
+  readConfigEntity.mockImplementation(async () => ({
+    mappings: [
+      mappingOf('legacyLdapUser', 'ldap', 'user'),
+      mappingOf('legacyLdapRole', 'ldap', 'role'),
+      mappingOf('legacyCsvUser', 'csv', 'user'),
+    ],
+  }));
+  readConfigEntitiesByType.mockReset();
+  readConfigEntitiesByType.mockImplementation(async () =>
+    withNew
+      ? [
+          mappingOf('ldapUser', 'ldap', 'user'),
+          mappingOf('ldapRole', 'ldap', 'role'),
+          mappingOf('csvUser', 'csv', 'user'),
+          mappingOf('csvRole', 'csv', 'role'),
+        ]
+      : []
+  );
+}
 
-    expect(names(result)).toEqual(expect.arrayContaining(['a', 'b', 'c']));
-    expect(attempted).toEqual(
-      expect.arrayContaining(['mapping/a', 'mapping/b', 'mapping/c'])
+/** The ids written back to sync.json by the one update, or undefined if there was none. */
+const writtenToSyncJson = () =>
+  putConfigEntity.mock.calls.length === 0
+    ? undefined
+    : putConfigEntity.mock.calls[0][0].entityData.mappings.map(
+        (it: any) => it._id ?? it.name
+      );
+
+describe('readMappings, selection by connector and managed object type', () => {
+  beforeEach(() => setUpFilteredMappings());
+
+  test('connector only', async () => {
+    const result = await readMappings({ connectorId: 'ldap', state });
+    expect(names(result).sort()).toEqual(
+      ['ldapRole', 'ldapUser', 'legacyLdapRole', 'legacyLdapUser'].sort()
     );
-    expect(putConfigEntity).toHaveBeenCalledTimes(1);
   });
 
-  test('tries every mapping when one fails, and throws one error that names it', async () => {
-    failing.add('mapping/b');
+  test('managed object type only', async () => {
+    const result = await readMappings({ moType: 'role', state });
+    expect(names(result).sort()).toEqual(
+      ['csvRole', 'ldapRole', 'legacyLdapRole'].sort()
+    );
+  });
+
+  test('both: only the mappings that belong to both', async () => {
+    const result = await readMappings({
+      connectorId: 'ldap',
+      moType: 'user',
+      state,
+    });
+    expect(names(result).sort()).toEqual(['ldapUser', 'legacyLdapUser']);
+  });
+});
+
+describe('deleteMappings, mappings of a connector or a managed object type', () => {
+  beforeEach(() => setUpFilteredMappings());
+
+  test('connector: deletes only its new mappings, writes only the other legacy mappings to sync.json and returns only what it deleted', async () => {
+    const result = await deleteMappings({ connectorId: 'ldap', state });
+
+    expect(names(result).sort()).toEqual(
+      ['ldapRole', 'ldapUser', 'legacyLdapRole', 'legacyLdapUser'].sort()
+    );
+    // the new mappings of the other connector are left alone
+    expect([...attempted].sort()).toEqual([
+      'mapping/ldapRole',
+      'mapping/ldapUser',
+    ]);
+    // sync.json gets the legacy mappings that were not selected, and no new-style mapping
+    expect(putConfigEntity).toHaveBeenCalledTimes(1);
+    expect(writtenToSyncJson()).toEqual(['sync/legacyCsvUser']);
+  });
+
+  test('managed object type only: selects the mappings of that type, of every connector', async () => {
+    const result = await deleteMappings({ moType: 'role', state });
+
+    expect(names(result).sort()).toEqual(
+      ['csvRole', 'ldapRole', 'legacyLdapRole'].sort()
+    );
+    expect([...attempted].sort()).toEqual([
+      'mapping/csvRole',
+      'mapping/ldapRole',
+    ]);
+    expect(writtenToSyncJson()?.sort()).toEqual([
+      'sync/legacyCsvUser',
+      'sync/legacyLdapUser',
+    ]);
+  });
+
+  test('connector and managed object type: only the mappings that belong to both', async () => {
+    const result = await deleteMappings({
+      connectorId: 'ldap',
+      moType: 'user',
+      state,
+    });
+
+    expect(names(result).sort()).toEqual(['ldapUser', 'legacyLdapUser']);
+    expect(attempted).toEqual(['mapping/ldapUser']);
+    expect(writtenToSyncJson()?.sort()).toEqual([
+      'sync/legacyCsvUser',
+      'sync/legacyLdapRole',
+    ]);
+  });
+
+  test('only new mappings selected: sync.json is not written', async () => {
+    const result = await deleteMappings({
+      connectorId: 'csv',
+      moType: 'role',
+      state,
+    });
+
+    expect(names(result)).toEqual(['csvRole']);
+    expect(attempted).toEqual(['mapping/csvRole']);
+    expect(putConfigEntity).not.toHaveBeenCalled();
+  });
+
+  test('only legacy mappings selected: no new mapping is deleted', async () => {
+    setUpFilteredMappings({ withNew: false });
+
+    const result = await deleteMappings({
+      connectorId: 'csv',
+      moType: 'user',
+      state,
+    });
+
+    expect(names(result)).toEqual(['legacyCsvUser']);
+    expect(attempted).toEqual([]);
+    expect(writtenToSyncJson()?.sort()).toEqual([
+      'sync/legacyLdapRole',
+      'sync/legacyLdapUser',
+    ]);
+  });
+
+  test('nothing selected: nothing is deleted, sync.json is not written and the result is empty', async () => {
+    const result = await deleteMappings({ connectorId: 'unknown', state });
+
+    expect(result).toEqual([]);
+    expect(attempted).toEqual([]);
+    expect(putConfigEntity).not.toHaveBeenCalled();
+  });
+
+  test('tries every selected mapping when one fails, leaves the others alone, and throws one error that names it', async () => {
+    failing.add('mapping/ldapRole');
 
     const error: any = await deleteMappings({
       connectorId: 'ldap',
       state,
     }).catch((e) => e);
 
-    // mapping/c comes after the failed mapping/b
-    expect(attempted).toEqual(
-      expect.arrayContaining(['mapping/a', 'mapping/b', 'mapping/c'])
-    );
+    // ldapUser comes after the failed ldapRole in some orders: both were tried; the csv mappings were not
+    expect([...attempted].sort()).toEqual([
+      'mapping/ldapRole',
+      'mapping/ldapUser',
+    ]);
     expect(error).toBeInstanceOf(FrodoError);
     expect(error.message).toBe('Error deleting mappings');
     expect(error.originalErrors).toHaveLength(1);
     expect(error.originalErrors[0].message).toBe(
-      'Error deleting mapping mapping/b'
+      'Error deleting mapping mapping/ldapRole'
     );
     expect(rootCause(error)).toBe(failure);
   });
 
-  test('a failed update of sync.json is one error and the new mappings are still tried', async () => {
+  test('a failed update of sync.json is one error; the selected new mappings are still tried, the others are not', async () => {
     putConfigEntity.mockRejectedValue(failure);
 
     const error: any = await deleteMappings({
@@ -215,21 +365,28 @@ describe('deleteMappings, mappings of a connector', () => {
       state,
     }).catch((e) => e);
 
-    expect(attempted).toEqual(
-      expect.arrayContaining(['mapping/a', 'mapping/b', 'mapping/c'])
-    );
+    expect([...attempted].sort()).toEqual([
+      'mapping/ldapRole',
+      'mapping/ldapUser',
+    ]);
     expect(error.originalErrors).toHaveLength(1);
     expect(error.originalErrors[0].message).toBe(
       'Error updating legacy mappings'
     );
+    expect(rootCause(error)).toBe(failure);
   });
 
-  test('a legacy mapping that is still in sync.json after the update is reported together with a failed mapping', async () => {
-    // sync.json answers the update with the mapping still in it
+  test('a selected legacy mapping that is still in sync.json after the update is reported together with a failed mapping', async () => {
+    // sync.json answers the update with a selected mapping still in it
     putConfigEntity.mockImplementation(async () => ({
-      mappings: [{ ...mapping('legacyA'), _id: 'sync/legacyA' }],
+      mappings: [
+        {
+          ...mappingOf('legacyLdapUser', 'ldap', 'user'),
+          _id: 'sync/legacyLdapUser',
+        },
+      ],
     }));
-    failing.add('mapping/b');
+    failing.add('mapping/ldapRole');
 
     const error: any = await deleteMappings({
       connectorId: 'ldap',
@@ -238,8 +395,31 @@ describe('deleteMappings, mappings of a connector', () => {
 
     expect(error.message).toBe('Error deleting mappings');
     expect(error.originalErrors.map((e: any) => e.message)).toEqual([
-      'Error deleting mapping mapping/b',
-      '1 mappings were not deleted from sync.json: sync/legacyA',
+      'Error deleting mapping mapping/ldapRole',
+      '1 mappings were not deleted from sync.json: sync/legacyLdapUser',
     ]);
+  });
+});
+
+describe('deleteMapping, a legacy mapping that is still in sync.json after the update', () => {
+  test('names the mapping by its id, not as [object Object]', async () => {
+    setUpFilteredMappings();
+    putConfigEntity.mockImplementation(async () => ({
+      mappings: [
+        {
+          ...mappingOf('legacyLdapUser', 'ldap', 'user'),
+          _id: 'sync/legacyLdapUser',
+        },
+      ],
+    }));
+
+    const error: any = await deleteMapping({
+      mappingId: 'sync/legacyLdapUser',
+      state,
+    }).catch((e) => e);
+
+    expect(rootCause(error).message).toBe(
+      'Mapping sync/legacyLdapUser was not deleted from sync.json after successful update.'
+    );
   });
 });

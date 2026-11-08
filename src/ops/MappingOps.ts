@@ -70,10 +70,10 @@ export type Mapping = {
    */
   updateSyncMappings(mappings: MappingSkeleton[]): Promise<MappingSkeleton[]>;
   /**
-   * Delete all mappings. Every mapping is tried: a mapping that cannot be deleted does not stop the others.
+   * Delete all mappings, or only the mappings of a connector and/or a managed object type. With both, only the mappings that belong to both are deleted. Every selected mapping is tried: a mapping that cannot be deleted does not stop the others. Mappings that are not selected are left alone.
    * @param {string} connectorId limit mappings to connector
    * @param {string} moType limit mappings to managed object type
-   * @returns {Promise<MappingSkeleton[]>} a promise that resolves to an array of mapping objects
+   * @returns {Promise<MappingSkeleton[]>} a promise that resolves to an array of the deleted mapping objects
    * @throws {FrodoError} If the mappings cannot be read, or if one or more mappings cannot be deleted. The error carries one nested error per failed mapping, naming it.
    */
   deleteMappings(
@@ -455,6 +455,39 @@ export async function readNewMappings({
 }
 
 /**
+ * Select the mappings that belong to a connector and/or a managed object type.
+ * With both, a mapping has to belong to both. With neither, every mapping is selected.
+ * @param {MappingSkeleton[]} mappings the mappings to select from
+ * @param {string} connectorId limit mappings to connector
+ * @param {string} moType limit mappings to managed object type
+ * @returns {MappingSkeleton[]} the selected mappings
+ */
+function filterMappings({
+  mappings,
+  connectorId,
+  moType,
+}: {
+  mappings: MappingSkeleton[];
+  connectorId?: string;
+  moType?: string;
+}): MappingSkeleton[] {
+  let selected = mappings;
+  if (connectorId)
+    selected = selected.filter(
+      (mapping) =>
+        mapping.source.startsWith(`system/${connectorId}/`) ||
+        mapping.target.startsWith(`system/${connectorId}/`)
+    );
+  if (moType)
+    selected = selected.filter(
+      (mapping) =>
+        mapping.source === `managed/${moType}` ||
+        mapping.target === `managed/${moType}`
+    );
+  return selected;
+}
+
+/**
  * Read mappings in order of which they are synced.
  * @param {string} connectorId limit mappings to connector
  * @param {string} moType limit mappings to managed object type
@@ -478,18 +511,7 @@ export async function readMappings({
     });
     let mappings = await readSyncMappings({ state });
     mappings = mappings.concat(await readNewMappings({ state }));
-    if (connectorId)
-      mappings = mappings.filter(
-        (mapping) =>
-          mapping.source.startsWith(`system/${connectorId}/`) ||
-          mapping.target.startsWith(`system/${connectorId}/`)
-      );
-    if (moType)
-      mappings = mappings.filter(
-        (mapping) =>
-          mapping.source === `managed/${moType}` ||
-          mapping.target === `managed/${moType}`
-      );
+    mappings = filterMappings({ mappings, connectorId, moType });
     debugMessage({
       message: `MappingOps.readMappings: end`,
       state,
@@ -651,10 +673,10 @@ export async function updateLegacyMappings({
 }
 
 /**
- * Delete mappings. Every mapping is tried: a mapping that cannot be deleted does not stop the others.
+ * Delete all mappings, or only the mappings of a connector and/or a managed object type. With both, only the mappings that belong to both are deleted. Every selected mapping is tried: a mapping that cannot be deleted does not stop the others. Mappings that are not selected are left alone.
  * @param {string} connectorId limit mappings to connector
  * @param {string} moType limit mappings to managed object type
- * @returns {Promise<MappingSkeleton[]>} a promise that resolves to an array of mapping objects
+ * @returns {Promise<MappingSkeleton[]>} a promise that resolves to an array of the deleted mapping objects
  * @throws {FrodoError} If the mappings cannot be read, or if one or more mappings cannot be deleted. The error carries one nested error per failed mapping, naming it.
  */
 export async function deleteMappings({
@@ -711,81 +733,77 @@ export async function deleteMappings({
     }
     // delete filtered mappings
     else {
-      let mappingsToDelete: MappingSkeleton[] = [];
-      if (connectorId) {
-        debugMessage({
-          message: `MappingOps.deleteMappings: select mappings for connector ${connectorId}`,
-          state,
-        });
-        mappingsToDelete = mappings.filter(
-          (mapping) =>
-            mapping.source.startsWith(`system/${connectorId}/`) ||
-            mapping.target.startsWith(`system/${connectorId}/`)
-        );
-      }
-      if (moType) {
-        debugMessage({
-          message: `MappingOps.deleteMappings: select mappings for managed object type ${moType}`,
-          state,
-        });
-        mappingsToDelete = mappingsToDelete.filter(
-          (mapping) =>
-            mapping.source === `managed/${moType}` ||
-            mapping.target === `managed/${moType}`
-        );
-      }
-      // filter only sync mappings
-      const legacyMappingIdsToDelete = mappingsToDelete
-        .filter((it) => isLegacyMapping(it._id))
-        .map((it) => it._id);
+      // select first: only the selected mappings are touched
+      debugMessage({
+        message: `MappingOps.deleteMappings: select mappings [connectorId=${
+          connectorId ? connectorId : 'all'
+        }, moType=${moType ? moType : 'all'}]`,
+        state,
+      });
+      const mappingsToDelete = filterMappings({
+        mappings,
+        connectorId,
+        moType,
+      });
+      const legacyMappingsToDelete = mappingsToDelete.filter((it) =>
+        isLegacyMapping(it._id)
+      );
+      const newMappingsToDelete = mappingsToDelete.filter(
+        (it) => !isLegacyMapping(it._id)
+      );
+      const legacyMappingIdsToDelete = legacyMappingsToDelete.map(
+        (it) => it._id
+      );
       debugMessage({
         message: `MappingOps.deleteMappings: selected ${
           mappingsToDelete.length
-        } mappings: ${legacyMappingIdsToDelete.join(', ')}`,
+        } mappings: ${mappingsToDelete.map((it) => it._id).join(', ')}`,
         state,
       });
+      // the legacy mappings that stay in sync.json: the legacy mappings that were not selected
+      // (the new-style mappings are not part of sync.json and must never be written to it)
       const updatedLegacyMappings = mappings.filter(
-        (mapping) => !legacyMappingIdsToDelete.includes(mapping._id)
+        (mapping) =>
+          isLegacyMapping(mapping._id) &&
+          !legacyMappingIdsToDelete.includes(mapping._id)
       );
       debugMessage({
         message: `MappingOps.deleteMappings: ${
           updatedLegacyMappings.length
-        } remaining mappings: ${updatedLegacyMappings
+        } remaining legacy mappings: ${updatedLegacyMappings
           .map((mapping) => mapping._id)
           .join(', ')}`,
         state,
       });
-      // update the mappings (one update: if it fails, that is one error)
+      // update sync.json only if a legacy mapping was selected (one update: if it fails, that is one error)
       let undeletedMappings: MappingSkeleton[] = [];
-      try {
-        const finalMappings = await updateLegacyMappings({
-          mappings: updatedLegacyMappings,
-          state,
-        });
-        for (const mapping of mappings.filter((it) =>
-          isLegacyMapping(it._id)
-        )) {
-          deletedMappings.push(mapping);
+      if (legacyMappingsToDelete.length > 0) {
+        try {
+          const finalMappings = await updateLegacyMappings({
+            mappings: updatedLegacyMappings,
+            state,
+          });
+          for (const mapping of legacyMappingsToDelete) {
+            deletedMappings.push(mapping);
+          }
+          debugMessage({
+            message: `MappingOps.deleteMappings: ${
+              finalMappings.length
+            } mappings after update: ${finalMappings
+              .map((mapping) => mapping._id)
+              .join(', ')}`,
+            state,
+          });
+          // are there any mappings that were not deleted?
+          undeletedMappings = finalMappings.filter((mapping) =>
+            legacyMappingIdsToDelete.includes(mapping._id)
+          );
+        } catch (error) {
+          errors.push(error);
         }
-        debugMessage({
-          message: `MappingOps.deleteMappings: ${
-            finalMappings.length
-          } mappings after update: ${finalMappings
-            .map((mapping) => mapping._id)
-            .join(', ')}`,
-          state,
-        });
-        // are there any mappings that were not deleted?
-        undeletedMappings = finalMappings.filter((mapping) =>
-          legacyMappingIdsToDelete.includes(mapping._id)
-        );
-      } catch (error) {
-        errors.push(error);
       }
-      // delete all the new mappings
-      await deleteNewMappings(
-        mappings.filter((it) => !isLegacyMapping(it._id))
-      );
+      // delete the selected new mappings
+      await deleteNewMappings(newMappingsToDelete);
       // if there were undeleted mappings, that is an error too
       if (undeletedMappings.length > 0) {
         const message = `${
@@ -804,8 +822,8 @@ export async function deleteMappings({
       }
       debugMessage({
         message: `MappingOps.deleteMappings: deleted ${
-          mappingsToDelete.length
-        } mappings: ${legacyMappingIdsToDelete.join(', ')}`,
+          deletedMappings.length
+        } mappings: ${deletedMappings.map((it) => it._id).join(', ')}`,
         state,
       });
       debugMessage({ message: `MappingOps.deleteMappings: end`, state });
@@ -878,7 +896,7 @@ export async function deleteMapping({
       );
       // if so, throw exception
       if (undeletedMappings.length > 0) {
-        const message = `Mapping ${undeletedMappings[0]} was not deleted from sync.json after successful update.`;
+        const message = `Mapping ${undeletedMappings[0]._id} was not deleted from sync.json after successful update.`;
         debugMessage({
           message,
           state,
