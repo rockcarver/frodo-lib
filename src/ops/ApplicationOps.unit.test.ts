@@ -20,7 +20,9 @@ const exportOAuth2Client = jest.fn(async (_args?: any): Promise<any> => ({}));
 jest.unstable_mockModule('./OAuth2ClientOps', () => ({
   deleteOAuth2Client: jest.fn(),
   exportOAuth2Client,
+  getOAuth2ClientScriptReferences: jest.fn(() => []),
   importOAuth2Client,
+  readOAuth2Client: jest.fn(),
 }));
 
 const importSaml2Provider = jest.fn(async (_args?: any): Promise<any> => ({}));
@@ -28,7 +30,10 @@ const exportSaml2Provider = jest.fn(async (_args?: any): Promise<any> => ({}));
 jest.unstable_mockModule('./Saml2Ops', () => ({
   deleteSaml2Provider: jest.fn(),
   exportSaml2Provider,
+  getSaml2ProviderScriptReferences: jest.fn(() => []),
   importSaml2Provider,
+  readSaml2EntityIds: jest.fn(),
+  readSaml2Provider: jest.fn(),
 }));
 
 const importCirclesOfTrust = jest.fn(async (_args?: any): Promise<any> => []);
@@ -46,6 +51,7 @@ jest.unstable_mockModule('./ConnectorOps', () => ({
   deleteConnector: jest.fn(),
   exportConnector,
   importConnector,
+  readConnector: jest.fn(),
 }));
 
 const readManagedObject = jest.fn(async (_args?: any): Promise<any> => ({}));

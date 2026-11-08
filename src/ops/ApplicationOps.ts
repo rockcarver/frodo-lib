@@ -2131,7 +2131,7 @@ function getRecordReferences(
       ownership: 'owned',
       from: 'ssoEntities.idpPrivateId',
     });
-    if (get(applicationData, ['ssoEntities', 'spPrivateId'])) {
+    if (applicationData.ssoEntities?.spPrivateId) {
       references.push({
         kind: 'saml2Provider',
         id: getSaml2SpEntityId(applicationData),
