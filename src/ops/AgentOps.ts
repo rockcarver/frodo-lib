@@ -803,6 +803,7 @@ export async function readAgents({
   state: State;
   globalConfig: boolean;
 }): Promise<AgentSkeleton[]> {
+  let hasAgentTypeErrors = false;
   try {
     debugMessage({ message: `AgentOps.readAgents: start`, state });
     let agents = [];
@@ -811,21 +812,51 @@ export async function readAgents({
       agents = agents.concat(resolved.result);
     } else {
       const agentTypes = await readAgentTypes({ state });
-      const resolved = await Promise.all(
-        agentTypes
-          .filter((t) => !AgentTypeBlacklist.includes(t))
-          .map((agentType) =>
-            _getAgentsByType({ agentType, state }).catch(() => {
-              return { result: [] };
-            })
-          )
+      const availableAgentTypes = agentTypes.filter(
+        (agentType) => !AgentTypeBlacklist.includes(agentType)
       );
-      agents = agents.concat(...resolved.map((response) => response.result));
+      const resolved = await Promise.allSettled(
+        availableAgentTypes.map((agentType) =>
+          _getAgentsByType({ agentType, state })
+        )
+      );
+      const errors: Error[] = [];
+      const failedAgentTypes: AgentType[] = [];
+      resolved.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          agents = agents.concat(result.value.result);
+        } else {
+          const error = result.reason as Error & {
+            httpStatus?: number;
+            response?: { status?: number };
+          };
+          if (error.httpStatus !== 501 && error.response?.status !== 501) {
+            const agentType = availableAgentTypes[index];
+            failedAgentTypes.push(agentType);
+            errors.push(
+              new FrodoError(
+                `Error reading ${getCurrentRealmName(state) + ' realm'} agents of type '${agentType}'`,
+                error
+              )
+            );
+          }
+        }
+      });
+      if (errors.length > 0) {
+        hasAgentTypeErrors = true;
+        throw new FrodoError(
+          `Error reading ${getCurrentRealmName(state) + ' realm'} agents of types: ${failedAgentTypes.join(', ')}`,
+          errors
+        );
+      }
     }
     agents.sort((a, b) => a._id.localeCompare(b._id));
     debugMessage({ message: `AgentOps.readAgents: end`, state });
     return agents;
   } catch (error) {
+    if (hasAgentTypeErrors) {
+      throw error;
+    }
     if (
       (error.response?.status === 403 &&
         error.response?.data?.message ===
