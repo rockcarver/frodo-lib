@@ -449,6 +449,49 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Search applications with a CREST filter. Prefer namedArgs { filter, fields } so the query intent is explicit.',
   },
+  'app.validateApplication': {
+    operationType: 'special',
+    objectType: 'ManagedApplication',
+    argumentMode: 'named',
+    parameterOverrides: {
+      applicationId: {
+        description:
+          'Application uuid: the _id of the application record, not its name.',
+        examples: ['9c1101aa-0000-4000-8000-0000000011a1'],
+      },
+    },
+    supportsRealm: true,
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Checks that everything the application record refers to exists (OAuth2 client, SAML entity providers, connector, mappings), and the scripts those use, and on Identity Governance tenants the glossary schemas, request forms and request types. Returns findings (code, severity, applicationId, applicationName, message, referenceKind, referenceId, from); empty means every reference resolves. Reads only. Prefer namedArgs { applicationId }.',
+  },
+  'app.validateApplicationByName': {
+    operationType: 'special',
+    objectType: 'ManagedApplication',
+    argumentMode: 'named',
+    parameterOverrides: {
+      applicationName: {
+        description: 'Application name. Names are unique in a realm.',
+        examples: ['My SAML App'],
+      },
+    },
+    supportsRealm: true,
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Same as validateApplication, for the application with the given name. Reads only. Prefer namedArgs { applicationName }.',
+  },
+  'app.validateApplications': {
+    operationType: 'special',
+    objectType: 'ManagedApplication',
+    argumentMode: 'none',
+    supportsRealm: true,
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Same as validateApplication, for every application of the realm. One application that cannot be checked does not stop the others. Reads only.',
+  },
   'role.queryInternalRoles': {
     argumentMode: 'named',
     parameterOverrides: {

@@ -14,7 +14,7 @@ import {
 import { RequestTypeSkeleton } from '../api/cloud/iga/IgaRequestTypeApi';
 import { type OAuth2ClientSkeleton } from '../api/OAuth2ClientApi';
 import { Saml2ProviderSkeleton } from '../api/Saml2Api';
-import { type ScriptSkeleton } from '../api/ScriptApi';
+import { getScriptByName, type ScriptSkeleton } from '../api/ScriptApi';
 import constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { decode } from '../utils/Base64Utils';
@@ -39,22 +39,28 @@ import {
   exportGlossarySchemaByNameAndObjectType,
   GlossarySchemaExportInterface,
   importGlossarySchemas,
+  readGlossarySchemas,
 } from './cloud/iga/IgaGlossaryOps';
 import {
   deleteOrphanedRequestFormAssignments,
   deleteRequestForm,
   exportRequestForm,
   importRequestForms,
+  readRequestForm,
 } from './cloud/iga/IgaRequestFormOps';
-import { deleteRequestType } from './cloud/iga/IgaRequestTypeOps';
+import {
+  deleteRequestType,
+  readRequestType,
+} from './cloud/iga/IgaRequestTypeOps';
 import {
   ConnectorExportInterface,
   ConnectorSkeleton,
   deleteConnector,
   exportConnector,
   importConnector,
+  readConnector,
 } from './ConnectorOps';
-import { FrodoError } from './FrodoError';
+import { FrodoError, isNotFoundError } from './FrodoError';
 import {
   createManagedObject,
   deleteManagedObject,
@@ -63,20 +69,26 @@ import {
   readManagedObjects,
   updateManagedObject,
 } from './ManagedObjectOps';
-import { MappingSkeleton } from './MappingOps';
+import { MappingSkeleton, readMappings } from './MappingOps';
 import {
   deleteOAuth2Client,
   exportOAuth2Client,
+  getOAuth2ClientScriptReferences,
   importOAuth2Client,
   OAuth2ClientExportInterface,
+  readOAuth2Client,
 } from './OAuth2ClientOps';
 import { type ExportMetaData } from './OpsTypes';
 import {
   deleteSaml2Provider,
   exportSaml2Provider,
+  getSaml2ProviderScriptReferences,
   importSaml2Provider,
+  readSaml2EntityIds,
+  readSaml2Provider,
   Saml2ExportInterface,
 } from './Saml2Ops';
+import { getLibraryScriptNames, readScript } from './ScriptOps';
 
 const defaultFields = [
   'authoritative',
@@ -246,6 +258,44 @@ export type Application = {
     importData: ApplicationExportInterface,
     options: ApplicationImportOptions
   ): Promise<ApplicationGlossarySkeleton[]>;
+  /**
+   * Read what an application is made of: every object that its record points to, and the scripts, circles of trust and (on Identity Governance tenants) glossary schemas, request forms and request types that those objects use.
+   * Every reference says what it points to, whether the application owns it (it exists because of the application) or shares it (other applications can use it too), and where the reference comes from. References that could not be followed (the object does not exist, or could not be read) are listed as problems; they do not make the call fail.
+   * @param {string} applicationId application uuid
+   * @returns {Promise<ApplicationReferences>} a promise that resolves to the references of the application
+   */
+  readApplicationReferences(
+    applicationId: string
+  ): Promise<ApplicationReferences>;
+  /**
+   * Read what an application is made of, by application name. See readApplicationReferences.
+   * @param {string} applicationName application name
+   * @returns {Promise<ApplicationReferences>} a promise that resolves to the references of the application
+   */
+  readApplicationReferencesByName(
+    applicationName: string
+  ): Promise<ApplicationReferences>;
+  /**
+   * Validate an application: check that every object its record refers to, and every script, circle of trust and (on Identity Governance tenants) glossary schema, request form and request type that those objects use, exists. Reads only; no template is needed. One finding is returned for every reference that does not resolve or could not be checked.
+   * @param {string} applicationId application uuid
+   * @returns {Promise<ApplicationValidationFinding[]>} validation findings, empty if every reference resolves
+   */
+  validateApplication(
+    applicationId: string
+  ): Promise<ApplicationValidationFinding[]>;
+  /**
+   * Validate an application by name. See validateApplication.
+   * @param {string} applicationName application name
+   * @returns {Promise<ApplicationValidationFinding[]>} validation findings, empty if every reference resolves
+   */
+  validateApplicationByName(
+    applicationName: string
+  ): Promise<ApplicationValidationFinding[]>;
+  /**
+   * Validate all applications of the realm. See validateApplication. A reference that cannot be followed in one application does not stop the validation of the others.
+   * @returns {Promise<ApplicationValidationFinding[]>} validation findings of all applications, empty if every reference resolves
+   */
+  validateApplications(): Promise<ApplicationValidationFinding[]>;
 };
 
 export default (state: State): Application => {
@@ -366,6 +416,29 @@ export default (state: State): Application => {
     ): Promise<ApplicationGlossarySkeleton[]> {
       return importApplications({ importData, options, state });
     },
+    async readApplicationReferences(
+      applicationId: string
+    ): Promise<ApplicationReferences> {
+      return readApplicationReferences({ applicationId, state });
+    },
+    async readApplicationReferencesByName(
+      applicationName: string
+    ): Promise<ApplicationReferences> {
+      return readApplicationReferencesByName({ applicationName, state });
+    },
+    async validateApplication(
+      applicationId: string
+    ): Promise<ApplicationValidationFinding[]> {
+      return validateApplication({ applicationId, state });
+    },
+    async validateApplicationByName(
+      applicationName: string
+    ): Promise<ApplicationValidationFinding[]> {
+      return validateApplicationByName({ applicationName, state });
+    },
+    async validateApplications(): Promise<ApplicationValidationFinding[]> {
+      return validateApplications({ state });
+    },
   };
 };
 
@@ -445,6 +518,129 @@ export type ApplicationSkeleton = IdObjectSkeletonInterface & {
 export type ApplicationGlossarySkeleton = ApplicationSkeleton & {
   glossary?: GlossarySkeleton;
 };
+
+/**
+ * The kinds of object an application can refer to.
+ */
+export type ApplicationReferenceKind =
+  | 'oauth2Client'
+  | 'saml2Provider'
+  | 'circleOfTrust'
+  | 'connector'
+  | 'mapping'
+  | 'script'
+  | 'glossarySchema'
+  | 'requestForm'
+  | 'requestType';
+
+/**
+ * A reference that points to something that exists because of the application
+ * is `owned`; a reference to something other applications can use as well is
+ * `shared`.
+ */
+export type ApplicationReferenceOwnership = 'owned' | 'shared';
+
+/**
+ * One thing an application is made of.
+ */
+export interface ApplicationReference {
+  /** What kind of object the reference points to. */
+  kind: ApplicationReferenceKind;
+  /**
+   * How the object is addressed: the OAuth2 client id, the SAML entity id, the circle of trust id, the connector name, the mapping name, the script id, the glossary schema name, the request form id or the request type id. A library script that could not be found is addressed by the name it is required by.
+   */
+  id: string;
+  /** The name of the object, where it is not the id and was read (scripts). */
+  name?: string;
+  /** For scripts: whether it is one of the default scripts of the platform. */
+  isDefault?: boolean;
+  /**
+   * `owned`: the object exists because of the application (the OAuth2 client of an OIDC application, the SAML entity providers, the connector and the mappings of the record). `shared`: other applications can use it as well (scripts, circles of trust, glossary schemas, request forms, request types).
+   */
+  ownership: ApplicationReferenceOwnership;
+  /**
+   * Where the reference comes from: the field of the application record (`ssoEntities.oidcId`, `ssoEntities.idpPrivateId`, `ssoEntities.spPrivateId`, `connectorId`, `mappingNames`), or the field or lookup of the object it was found in (`overrideOAuth2ClientConfig.accessTokenModificationScript`, `identityProvider.advanced.idpAdapter.idpAdapterScript`, `trustedProviders`, `require`, `glossary`, `requestFormAssignments`).
+   */
+  from: string;
+  /** The reference this one was found through. Not set for the references in the application record. */
+  via?: { kind: ApplicationReferenceKind; id: string };
+}
+
+/**
+ * A reference that could not be followed.
+ */
+export interface ApplicationReferenceProblem {
+  /** The reference that could not be followed. Not set when a whole class of references could not be listed (for example the circles of trust). */
+  reference?: ApplicationReference;
+  /** The kind of object that was not found or could not be read. */
+  kind: ApplicationReferenceKind;
+  /** `missing`: the object does not exist. `unreadable`: it could not be read, so nothing is known about it or about what it refers to. */
+  reason: 'missing' | 'unreadable';
+  /** The error, for `unreadable`. */
+  error?: FrodoError;
+}
+
+/**
+ * What an application is made of.
+ */
+export interface ApplicationReferences {
+  /** Application uuid. */
+  applicationId: string;
+  /** Application name. */
+  applicationName: string;
+  /** Every thing the application refers to, directly or through another object, without duplicates. The ones in the application record come first. */
+  references: ApplicationReference[];
+  /** The references that could not be followed. */
+  problems: ApplicationReferenceProblem[];
+}
+
+/**
+ * Stable validation codes of applications.
+ *
+ * | Code | The application refers to... |
+ * | --- | --- |
+ * | MISSING_OAUTH2_CLIENT | an OAuth2 client that does not exist. |
+ * | MISSING_SAML2_PROVIDER | a SAML entity provider that does not exist. |
+ * | MISSING_CONNECTOR | a connector that does not exist. |
+ * | MISSING_MAPPING | a mapping that does not exist. |
+ * | MISSING_SCRIPT | a script that does not exist, directly or as a library script. |
+ * | MISSING_GLOSSARY_SCHEMA | a glossary schema that does not exist (Identity Governance). |
+ * | MISSING_REQUEST_FORM | a request form that does not exist (Identity Governance). |
+ * | MISSING_REQUEST_TYPE | a request type that does not exist (Identity Governance). |
+ * | UNREADABLE_REFERENCE | something that could not be read, so it could not be checked. |
+ */
+export type ApplicationValidationCode =
+  | 'MISSING_OAUTH2_CLIENT'
+  | 'MISSING_SAML2_PROVIDER'
+  | 'MISSING_CONNECTOR'
+  | 'MISSING_MAPPING'
+  | 'MISSING_SCRIPT'
+  | 'MISSING_GLOSSARY_SCHEMA'
+  | 'MISSING_REQUEST_FORM'
+  | 'MISSING_REQUEST_TYPE'
+  | 'UNREADABLE_REFERENCE';
+
+/**
+ * An application validation result.
+ */
+export interface ApplicationValidationFinding {
+  /** Stable identifier for the validation rule that produced this finding. */
+  code: ApplicationValidationCode;
+  /** `error`: the application will not work as configured. */
+  severity: 'error' | 'warning';
+  /** Application uuid. */
+  applicationId: string;
+  /** Application name. */
+  applicationName: string;
+  /** Human-readable explanation. */
+  message: string;
+  /** The kind of object that was not found or could not be read. Not set when the application as a whole could not be validated. */
+  referenceKind?: ApplicationReferenceKind;
+  /** The id of the reference, when there is one (see {@link ApplicationReference.id}). */
+  referenceId?: string;
+  /** Where the reference comes from (see {@link ApplicationReference.from}). */
+  from?: string;
+}
 
 /**
  * Export format for applications
@@ -1883,4 +2079,625 @@ async function readApplicationGlossary({
     }
   }
   return null;
+}
+
+const REFERENCE_KIND_LABELS: Record<ApplicationReferenceKind, string> = {
+  oauth2Client: 'OAuth2 client',
+  saml2Provider: 'SAML entity provider',
+  circleOfTrust: 'circle of trust',
+  connector: 'connector',
+  mapping: 'mapping',
+  script: 'script',
+  glossarySchema: 'glossary schema',
+  requestForm: 'request form',
+  requestType: 'request type',
+};
+
+const MISSING_REFERENCE_CODES: Partial<
+  Record<ApplicationReferenceKind, ApplicationValidationCode>
+> = {
+  oauth2Client: 'MISSING_OAUTH2_CLIENT',
+  saml2Provider: 'MISSING_SAML2_PROVIDER',
+  connector: 'MISSING_CONNECTOR',
+  mapping: 'MISSING_MAPPING',
+  script: 'MISSING_SCRIPT',
+  glossarySchema: 'MISSING_GLOSSARY_SCHEMA',
+  requestForm: 'MISSING_REQUEST_FORM',
+  requestType: 'MISSING_REQUEST_TYPE',
+};
+
+/**
+ * The references an application record holds itself: the OAuth2 client, the
+ * SAML entity providers, the connector and the mappings. Nothing is read.
+ * @param {ApplicationSkeleton} applicationData application record
+ * @returns {ApplicationReference[]} the references in the record
+ */
+function getRecordReferences(
+  applicationData: ApplicationSkeleton
+): ApplicationReference[] {
+  const references: ApplicationReference[] = [];
+  if (isOidcApplication(applicationData)) {
+    references.push({
+      kind: 'oauth2Client',
+      id: getOAuth2ClientId(applicationData),
+      ownership: 'owned',
+      from: 'ssoEntities.oidcId',
+    });
+  }
+  if (isSaml2Application(applicationData)) {
+    references.push({
+      kind: 'saml2Provider',
+      id: getSaml2IdpEntityId(applicationData),
+      ownership: 'owned',
+      from: 'ssoEntities.idpPrivateId',
+    });
+    if (get(applicationData, ['ssoEntities', 'spPrivateId'])) {
+      references.push({
+        kind: 'saml2Provider',
+        id: getSaml2SpEntityId(applicationData),
+        ownership: 'owned',
+        from: 'ssoEntities.spPrivateId',
+      });
+    }
+  }
+  if (isProvisioningApplication(applicationData)) {
+    references.push({
+      kind: 'connector',
+      id: getConnectorId(applicationData),
+      ownership: 'owned',
+      from: 'connectorId',
+    });
+  }
+  for (const mappingName of applicationData.mappingNames ?? []) {
+    references.push({
+      kind: 'mapping',
+      id: mappingName,
+      ownership: 'owned',
+      from: 'mappingNames',
+    });
+  }
+  return references;
+}
+
+/**
+ * The message of the error at the bottom of a chain of errors
+ * @param {unknown} error error
+ * @returns {string} the message of the root cause
+ */
+function describeCause(error: unknown): string {
+  let current = error as Error;
+  while ((current as FrodoError)?.originalErrors?.length) {
+    current = (current as FrodoError).originalErrors[0];
+  }
+  return current?.message ?? String(error);
+}
+
+function asFrodoError(error: unknown, message: string): FrodoError {
+  return error instanceof FrodoError
+    ? error
+    : new FrodoError(message, error as Error);
+}
+
+/**
+ * Find everything an application is made of, and check that it exists.
+ * Reads the objects the record points to (they are needed to find the scripts
+ * they use), and lists the circles of trust, mappings and glossary schemas
+ * once. Never throws: what cannot be followed is returned as a problem.
+ * @param {ApplicationSkeleton} applicationData application record
+ * @returns {Promise<ApplicationReferences>} the references and the problems
+ */
+async function resolveApplicationReferences({
+  applicationData,
+  state,
+}: {
+  applicationData: ApplicationSkeleton;
+  state: State;
+}): Promise<ApplicationReferences> {
+  const references: ApplicationReference[] = [];
+  const problems: ApplicationReferenceProblem[] = [];
+  const seen = new Set<string>();
+  const realm = getCurrentRealmName(state) + ' realm';
+  const add = (reference: ApplicationReference): boolean => {
+    const key = `${reference.kind}:${reference.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    references.push(reference);
+    return true;
+  };
+  const missing = (reference: ApplicationReference) => {
+    problems.push({ reference, kind: reference.kind, reason: 'missing' });
+  };
+  const unreadable = (
+    kind: ApplicationReferenceKind,
+    error: unknown,
+    reference?: ApplicationReference
+  ) => {
+    problems.push({
+      reference,
+      kind,
+      reason: 'unreadable',
+      error: asFrodoError(
+        error,
+        `Error reading ${realm} ${REFERENCE_KIND_LABELS[kind]}${reference ? ' ' + reference.id : 's'}`
+      ),
+    });
+  };
+  const attempt = async <T>(
+    reference: ApplicationReference,
+    read: () => Promise<T>
+  ): Promise<T | undefined> => {
+    try {
+      return await read();
+    } catch (error) {
+      if (isNotFoundError(error)) {
+        missing(reference);
+      } else {
+        unreadable(reference.kind, error, reference);
+      }
+      return undefined;
+    }
+  };
+  const viaOf = (reference: ApplicationReference) => ({
+    kind: reference.kind,
+    id: reference.id,
+  });
+
+  // scripts, and the library scripts they require
+  const lookedUp = new Set<string>();
+  const followLibraryScripts = async (
+    script: ScriptSkeleton,
+    via: ApplicationReference
+  ) => {
+    for (const scriptName of getLibraryScriptNames(script)) {
+      if (lookedUp.has(scriptName)) continue;
+      lookedUp.add(scriptName);
+      const required: ApplicationReference = {
+        kind: 'script',
+        id: scriptName,
+        name: scriptName,
+        ownership: 'shared',
+        from: 'require',
+        via: viaOf(via),
+      };
+      let found: ScriptSkeleton[];
+      try {
+        found = (await getScriptByName({ scriptName, state })).result;
+      } catch (error) {
+        if (add(required)) unreadable('script', error, required);
+        continue;
+      }
+      if (found.length === 1) {
+        const library: ApplicationReference = {
+          ...required,
+          id: found[0]._id,
+          name: found[0].name,
+          isDefault: found[0].default,
+        };
+        if (add(library)) await followLibraryScripts(found[0], library);
+      } else if (add(required)) {
+        if (found.length === 0) {
+          missing(required);
+        } else {
+          unreadable(
+            'script',
+            new FrodoError(
+              `${found.length} ${realm} scripts named '${scriptName}' found`
+            ),
+            required
+          );
+        }
+      }
+    }
+  };
+  const followScript = async (
+    scriptId: string,
+    from: string,
+    via: ApplicationReference
+  ) => {
+    const reference: ApplicationReference = {
+      kind: 'script',
+      id: scriptId,
+      ownership: 'shared',
+      from,
+      via: viaOf(via),
+    };
+    if (!add(reference)) return;
+    const script = await attempt(reference, () =>
+      readScript({ scriptId, state })
+    );
+    if (script) {
+      reference.name = script.name;
+      reference.isDefault = script.default;
+      await followLibraryScripts(script, reference);
+    }
+  };
+
+  // the references in the record come first
+  const direct = getRecordReferences(applicationData);
+  direct.forEach(add);
+
+  // OAuth2 client
+  for (const reference of direct.filter((r) => r.kind === 'oauth2Client')) {
+    const client = await attempt(reference, () =>
+      readOAuth2Client({ clientId: reference.id, state })
+    );
+    if (client) {
+      for (const { key, scriptId } of getOAuth2ClientScriptReferences(client)) {
+        await followScript(
+          scriptId,
+          `overrideOAuth2ClientConfig.${key}`,
+          reference
+        );
+      }
+    }
+  }
+
+  // SAML entity providers, then the circles of trust that list them
+  const providers = direct.filter((r) => r.kind === 'saml2Provider');
+  if (providers.length > 0) {
+    let entityIds: string[];
+    try {
+      entityIds = await readSaml2EntityIds({ state });
+    } catch (error) {
+      providers.forEach((reference) =>
+        unreadable('saml2Provider', error, reference)
+      );
+    }
+    const found: ApplicationReference[] = [];
+    if (entityIds) {
+      for (const reference of providers) {
+        if (!entityIds.includes(reference.id)) {
+          missing(reference);
+          continue;
+        }
+        const provider = await attempt(reference, () =>
+          readSaml2Provider({ entityId: reference.id, state })
+        );
+        if (provider) {
+          found.push(reference);
+          for (const { field, scriptId } of getSaml2ProviderScriptReferences(
+            provider
+          )) {
+            await followScript(scriptId, field, reference);
+          }
+        }
+      }
+    }
+    if (found.length > 0) {
+      try {
+        const cots = await readCirclesOfTrust({
+          entityProviders: found.map((r) => r.id),
+          state,
+        });
+        for (const cot of cots) {
+          const provider = found.find((r) =>
+            cot.trustedProviders?.includes(`${r.id}|saml2`)
+          );
+          add({
+            kind: 'circleOfTrust',
+            id: cot._id,
+            ownership: 'shared',
+            from: 'trustedProviders',
+            via: provider ? viaOf(provider) : undefined,
+          });
+        }
+      } catch (error) {
+        unreadable('circleOfTrust', error);
+      }
+    }
+  }
+
+  // connector
+  for (const reference of direct.filter((r) => r.kind === 'connector')) {
+    await attempt(reference, () =>
+      readConnector({ connectorId: reference.id, state })
+    );
+  }
+
+  // mappings
+  const mappings = direct.filter((r) => r.kind === 'mapping');
+  if (mappings.length > 0) {
+    let names: Set<string>;
+    try {
+      names = new Set((await readMappings({ state })).map((m) => m.name));
+    } catch (error) {
+      mappings.forEach((reference) => unreadable('mapping', error, reference));
+    }
+    if (names) {
+      mappings.filter((r) => !names.has(r.id)).forEach(missing);
+    }
+  }
+
+  // Identity Governance: glossary schemas, request forms and request types
+  if (state.getIsIGA()) {
+    try {
+      const glossary = await readApplicationGlossary({
+        applicationId: applicationData._id,
+        state,
+      });
+      const schemas = Object.keys(glossary ?? {}).map(
+        (name): ApplicationReference => ({
+          kind: 'glossarySchema',
+          id: name,
+          ownership: 'shared',
+          from: 'glossary',
+        })
+      );
+      schemas.forEach(add);
+      if (schemas.length > 0) {
+        let defined: Set<string>;
+        try {
+          defined = new Set(
+            (await readGlossarySchemas({ state }))
+              .filter(
+                (s) =>
+                  s.objectType === constants.GLOSSARY_APPLICATION_OBJECT_TYPE
+              )
+              .map((s) => s.name)
+          );
+        } catch (error) {
+          schemas.forEach((reference) =>
+            unreadable('glossarySchema', error, reference)
+          );
+        }
+        if (defined) {
+          schemas.filter((r) => !defined.has(r.id)).forEach(missing);
+        }
+      }
+    } catch (error) {
+      unreadable('glossarySchema', error);
+    }
+    try {
+      const formIds = [
+        ...new Set(
+          (
+            await getRequestFormAssignments({
+              applicationId: applicationData._id,
+              state,
+            })
+          ).map((a) => a.formId)
+        ),
+      ];
+      for (const formId of formIds) {
+        const form: ApplicationReference = {
+          kind: 'requestForm',
+          id: formId,
+          ownership: 'shared',
+          from: 'requestFormAssignments',
+        };
+        if (!add(form)) continue;
+        const skeleton = await attempt(form, () =>
+          readRequestForm({ formId, state })
+        );
+        if (skeleton) {
+          form.name = skeleton.name;
+          // as in the export, only a request form of type request has request types
+          if (skeleton.type === 'request') {
+            try {
+              const typeIds = (
+                await getRequestFormAssignments({ formId, state })
+              )
+                .filter((a) => a.objectId.startsWith('requestType/'))
+                .map((a) => a.objectId.split('/').pop());
+              for (const typeId of new Set(typeIds)) {
+                const type: ApplicationReference = {
+                  kind: 'requestType',
+                  id: typeId,
+                  ownership: 'shared',
+                  from: 'requestFormAssignments',
+                  via: viaOf(form),
+                };
+                if (add(type)) {
+                  await attempt(type, () => readRequestType({ typeId, state }));
+                }
+              }
+            } catch (error) {
+              unreadable('requestType', error);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      unreadable('requestForm', error);
+    }
+  }
+
+  return {
+    applicationId: applicationData._id,
+    applicationName: applicationData.name,
+    references,
+    problems,
+  };
+}
+
+/**
+ * The findings for the references of an application that could not be followed
+ * @param {ApplicationReferences} applicationReferences the references and problems of an application
+ * @returns {ApplicationValidationFinding[]} one finding per problem
+ */
+function getApplicationFindings({
+  applicationReferences,
+  state,
+}: {
+  applicationReferences: ApplicationReferences;
+  state: State;
+}): ApplicationValidationFinding[] {
+  const { applicationId, applicationName } = applicationReferences;
+  const subject = `${getCurrentRealmName(state) + ' realm'} application '${applicationName}'`;
+  return applicationReferences.problems.map((problem) => {
+    const label = REFERENCE_KIND_LABELS[problem.kind];
+    const reference = problem.reference;
+    const code =
+      problem.reason === 'missing'
+        ? (MISSING_REFERENCE_CODES[problem.kind] ?? 'UNREADABLE_REFERENCE')
+        : 'UNREADABLE_REFERENCE';
+    const message =
+      problem.reason === 'missing'
+        ? `${subject} refers to ${label} '${reference?.id}' (${reference?.from}), which does not exist`
+        : reference
+          ? `${subject}: unable to check ${label} '${reference.id}' (${reference.from}): ${describeCause(problem.error)}`
+          : `${subject}: unable to read its ${label} references: ${describeCause(problem.error)}`;
+    return {
+      code,
+      severity: 'error',
+      applicationId,
+      applicationName,
+      message,
+      referenceKind: problem.kind,
+      referenceId: reference?.id,
+      from: reference?.from,
+    };
+  });
+}
+
+/**
+ * Read what an application is made of
+ * @param {string} applicationId application uuid
+ * @returns {Promise<ApplicationReferences>} a promise that resolves to the references of the application
+ */
+export async function readApplicationReferences({
+  applicationId,
+  state,
+}: {
+  applicationId: string;
+  state: State;
+}): Promise<ApplicationReferences> {
+  try {
+    const applicationData = await readApplication({ applicationId, state });
+    return await resolveApplicationReferences({ applicationData, state });
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading references of ${getCurrentRealmName(state) + ' realm'} application ${applicationId}`,
+      error
+    );
+  }
+}
+
+/**
+ * Read what an application is made of, by application name
+ * @param {string} applicationName application name
+ * @returns {Promise<ApplicationReferences>} a promise that resolves to the references of the application
+ */
+export async function readApplicationReferencesByName({
+  applicationName,
+  state,
+}: {
+  applicationName: string;
+  state: State;
+}): Promise<ApplicationReferences> {
+  try {
+    const applicationData = await readApplicationByName({
+      applicationName,
+      state,
+    });
+    return await resolveApplicationReferences({ applicationData, state });
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading references of ${getCurrentRealmName(state) + ' realm'} application ${applicationName}`,
+      error
+    );
+  }
+}
+
+/**
+ * Validate an application: check that everything it refers to exists
+ * @param {string} applicationId application uuid
+ * @returns {Promise<ApplicationValidationFinding[]>} validation findings, empty if every reference resolves
+ */
+export async function validateApplication({
+  applicationId,
+  state,
+}: {
+  applicationId: string;
+  state: State;
+}): Promise<ApplicationValidationFinding[]> {
+  try {
+    const applicationData = await readApplication({ applicationId, state });
+    return getApplicationFindings({
+      applicationReferences: await resolveApplicationReferences({
+        applicationData,
+        state,
+      }),
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error validating ${getCurrentRealmName(state) + ' realm'} application ${applicationId}`,
+      error
+    );
+  }
+}
+
+/**
+ * Validate an application by name: check that everything it refers to exists
+ * @param {string} applicationName application name
+ * @returns {Promise<ApplicationValidationFinding[]>} validation findings, empty if every reference resolves
+ */
+export async function validateApplicationByName({
+  applicationName,
+  state,
+}: {
+  applicationName: string;
+  state: State;
+}): Promise<ApplicationValidationFinding[]> {
+  try {
+    const applicationData = await readApplicationByName({
+      applicationName,
+      state,
+    });
+    return getApplicationFindings({
+      applicationReferences: await resolveApplicationReferences({
+        applicationData,
+        state,
+      }),
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error validating ${getCurrentRealmName(state) + ' realm'} application ${applicationName}`,
+      error
+    );
+  }
+}
+
+/**
+ * Validate all applications of the realm: check that everything they refer to exists
+ * @returns {Promise<ApplicationValidationFinding[]>} validation findings of all applications, empty if every reference resolves
+ */
+export async function validateApplications({
+  state,
+}: {
+  state: State;
+}): Promise<ApplicationValidationFinding[]> {
+  try {
+    const findings: ApplicationValidationFinding[] = [];
+    for (const applicationData of await readApplications({ state })) {
+      try {
+        findings.push(
+          ...getApplicationFindings({
+            applicationReferences: await resolveApplicationReferences({
+              applicationData,
+              state,
+            }),
+            state,
+          })
+        );
+      } catch (error) {
+        // never lose the findings of the other applications
+        findings.push({
+          code: 'UNREADABLE_REFERENCE',
+          severity: 'error',
+          applicationId: applicationData._id,
+          applicationName: applicationData.name,
+          message: `${getCurrentRealmName(state) + ' realm'} application '${applicationData.name}': unable to validate: ${describeCause(error)}`,
+        });
+      }
+    }
+    return findings;
+  } catch (error) {
+    throw new FrodoError(
+      `Error validating ${getCurrentRealmName(state) + ' realm'} applications`,
+      error
+    );
+  }
 }
