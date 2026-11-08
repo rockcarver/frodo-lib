@@ -42,6 +42,12 @@ releases missed):
   failure. The `ERROR - can't save <file>` line is no longer printed through
   the print handler, so the caller prints the thrown error once.
   `frodo.utils.saveToFile` propagates the same error.
+- `frodo.mapping.deleteMappings` (`src/ops/MappingOps.ts`) now tries every
+  mapping. A mapping that cannot be deleted no longer stops the others: after
+  all of them were tried, the function throws one `FrodoError` that carries one
+  nested error per failed mapping, naming it. It used to throw at the first
+  failure and leave the later mappings in place, and it reported neither the
+  ones already deleted nor the ones it never reached.
 - `frodo.authn.journey.importJourney`, `importJourneys` and
   `frodo.config.importFullConfiguration` now validate journeys before writing
   them. Structural errors (missing node definition, node ID mismatch, missing

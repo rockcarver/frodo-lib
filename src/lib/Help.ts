@@ -98,9 +98,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Agent",
     methodName: "deleteAgents",
-    signature: "deleteAgents(): Promise<void>",
+    signature: "deleteAgents(resultCallback?: ResultCallback<AgentSkeleton>): Promise<void>",
     description: "Delete all agents",
-    params: [],
+    params: [
+      { name: "resultCallback", type: "ResultCallback<AgentSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried. Failing to read the agents always throws.", required: false },
+    ],
     returns: "",
   },
   {
@@ -200,9 +202,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Agent",
     methodName: "deleteIdentityGatewayAgents",
-    signature: "deleteIdentityGatewayAgents(): Promise<void>",
+    signature: "deleteIdentityGatewayAgents( resultCallback?: ResultCallback<AgentSkeleton> ): Promise<void>",
     description: "Delete all identity gateway agents",
-    params: [],
+    params: [
+      { name: "resultCallback", type: "ResultCallback<AgentSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried. Failing to read the agents always throws.", required: false },
+    ],
     returns: "",
   },
   {
@@ -297,9 +301,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Agent",
     methodName: "deleteJavaAgents",
-    signature: "deleteJavaAgents(): Promise<void>",
+    signature: "deleteJavaAgents( resultCallback?: ResultCallback<AgentSkeleton> ): Promise<void>",
     description: "Delete all java agents",
-    params: [],
+    params: [
+      { name: "resultCallback", type: "ResultCallback<AgentSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried. Failing to read the agents always throws.", required: false },
+    ],
     returns: "",
   },
   {
@@ -394,9 +400,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Agent",
     methodName: "deleteWebAgents",
-    signature: "deleteWebAgents(): Promise<void>",
+    signature: "deleteWebAgents( resultCallback?: ResultCallback<AgentSkeleton> ): Promise<void>",
     description: "Delete all web agents",
-    params: [],
+    params: [
+      { name: "resultCallback", type: "ResultCallback<AgentSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried. Failing to read the agents always throws.", required: false },
+    ],
     returns: "",
   },
   {
@@ -496,9 +504,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Agent",
     methodName: "deleteAIAgents",
-    signature: "deleteAIAgents(): Promise<void>",
+    signature: "deleteAIAgents(resultCallback?: ResultCallback<AgentSkeleton>): Promise<void>",
     description: "Delete all AI agents and their agent identity and privileges",
-    params: [],
+    params: [
+      { name: "resultCallback", type: "ResultCallback<AgentSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried. Failing to read the agents always throws.", required: false },
+    ],
     returns: "",
   },
   {
@@ -3174,7 +3184,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Mapping",
     methodName: "deleteMappings",
     signature: "deleteMappings( connectorId?: string, moType?: string ): Promise<MappingSkeleton[]>",
-    description: "Delete all mappings",
+    description: "Delete all mappings. Every mapping is tried: a mapping that cannot be deleted does not stop the others.",
     params: [
       { name: "connectorId", type: "string", description: "limit mappings to connector", required: false },
       { name: "moType", type: "string", description: "limit mappings to managed object type", required: false },
