@@ -276,6 +276,39 @@ export type Application = {
     applicationName: string
   ): Promise<ApplicationReferences>;
   /**
+   * List the references that an application record holds itself: the OAuth2 client, the SAML entity providers, the connector and the mappings it names, all of them owned by the application. Nothing is read, so this works on a record that comes from a file as well as on one read from a tenant.
+   * @param {ApplicationSkeleton} applicationData application record
+   * @returns {ApplicationReference[]} the references in the record
+   */
+  getApplicationRecordReferences(
+    applicationData: ApplicationSkeleton
+  ): ApplicationReference[];
+  /**
+   * Build the ownership index from application records that you already have (read from a tenant or from files). Nothing is read. See readApplicationOwnership.
+   * @param {ApplicationSkeleton[]} applications application records
+   * @returns {ApplicationOwnership} which application owns which OAuth2 client, SAML provider, connector and mapping
+   */
+  getApplicationOwnership(
+    applications: ApplicationSkeleton[]
+  ): ApplicationOwnership;
+  /**
+   * Find the applications that own an object in an ownership index.
+   * @param {ApplicationOwnership} ownership the ownership index
+   * @param {ApplicationOwnedKind} kind what kind of object it is
+   * @param {string} id the OAuth2 client id, the SAML entity id (decoded), the connector name or the mapping name
+   * @returns {ApplicationOwner[]} the applications that name the object, empty if none does
+   */
+  getApplicationOwners(
+    ownership: ApplicationOwnership,
+    kind: ApplicationOwnedKind,
+    id: string
+  ): ApplicationOwner[];
+  /**
+   * Read which application owns which object in the current realm: every OAuth2 client, SAML provider, connector and mapping that an application record names. Reads the applications once and nothing else, because the owned objects are named in the records. An object that two applications name lists both of them as owners; what that means is up to the caller. Objects that applications only share (scripts, circles of trust and the like) are not indexed.
+   * @returns {Promise<ApplicationOwnership>} a promise that resolves to the ownership index
+   */
+  readApplicationOwnership(): Promise<ApplicationOwnership>;
+  /**
    * Validate an application: check that every object its record refers to, and every script, circle of trust and (on Identity Governance tenants) glossary schema, request form and request type that those objects use, exists. Reads only; no template is needed. One finding is returned for every reference that does not resolve or could not be checked.
    * @param {string} applicationId application uuid
    * @returns {Promise<ApplicationValidationFinding[]>} validation findings, empty if every reference resolves
@@ -425,6 +458,26 @@ export default (state: State): Application => {
       applicationName: string
     ): Promise<ApplicationReferences> {
       return readApplicationReferencesByName({ applicationName, state });
+    },
+    getApplicationRecordReferences(
+      applicationData: ApplicationSkeleton
+    ): ApplicationReference[] {
+      return getApplicationRecordReferences(applicationData);
+    },
+    getApplicationOwnership(
+      applications: ApplicationSkeleton[]
+    ): ApplicationOwnership {
+      return getApplicationOwnership(applications);
+    },
+    getApplicationOwners(
+      ownership: ApplicationOwnership,
+      kind: ApplicationOwnedKind,
+      id: string
+    ): ApplicationOwner[] {
+      return getApplicationOwners(ownership, kind, id);
+    },
+    async readApplicationOwnership(): Promise<ApplicationOwnership> {
+      return readApplicationOwnership({ state });
     },
     async validateApplication(
       applicationId: string
@@ -592,6 +645,50 @@ export interface ApplicationReferences {
   references: ApplicationReference[];
   /** The references that could not be followed. */
   problems: ApplicationReferenceProblem[];
+}
+
+/**
+ * The kinds of object an application owns: they exist because of the application, and its record names them. The
+ * kinds an application only shares (scripts, circles of trust, glossary schemas, request forms and request types)
+ * are not owned by any one application.
+ */
+export type ApplicationOwnedKind = Extract<
+  ApplicationReferenceKind,
+  'oauth2Client' | 'saml2Provider' | 'connector' | 'mapping'
+>;
+
+/**
+ * An application that owns an object.
+ */
+export interface ApplicationOwner {
+  /** Application uuid. Not set for a record without `_id`, such as a record read from a file. */
+  applicationId?: string;
+  /** Application name: the identity of an application across environments. */
+  applicationName: string;
+}
+
+/**
+ * An owned object and the applications that name it.
+ */
+export interface ApplicationOwnershipEntry {
+  /** What kind of object it is. */
+  kind: ApplicationOwnedKind;
+  /** How the object is addressed: the OAuth2 client id, the SAML entity id (decoded), the connector name or the mapping name. */
+  id: string;
+  /**
+   * Every application whose record names the object, ordered by name. Normally one. The library does not decide what it
+   * means when there are several: that is up to the caller.
+   */
+  owners: ApplicationOwner[];
+}
+
+/**
+ * Which application owns which object: every OAuth2 client, SAML provider, connector and mapping that an application
+ * record names. An object that no application names is not in the index.
+ */
+export interface ApplicationOwnership {
+  /** The owned objects, ordered by kind and id. */
+  entries: ApplicationOwnershipEntry[];
 }
 
 /**
@@ -2108,11 +2205,12 @@ const MISSING_REFERENCE_CODES: Partial<
 
 /**
  * The references an application record holds itself: the OAuth2 client, the
- * SAML entity providers, the connector and the mappings. Nothing is read.
+ * SAML entity providers, the connector and the mappings. Nothing is read, so
+ * it works on a record from a file as well as on one read from a tenant.
  * @param {ApplicationSkeleton} applicationData application record
  * @returns {ApplicationReference[]} the references in the record
  */
-function getRecordReferences(
+export function getApplicationRecordReferences(
   applicationData: ApplicationSkeleton
 ): ApplicationReference[] {
   const references: ApplicationReference[] = [];
@@ -2157,6 +2255,87 @@ function getRecordReferences(
     });
   }
   return references;
+}
+
+const OWNED_KINDS: ApplicationReferenceKind[] = [
+  'oauth2Client',
+  'saml2Provider',
+  'connector',
+  'mapping',
+];
+
+function isOwnedKind(
+  kind: ApplicationReferenceKind
+): kind is ApplicationOwnedKind {
+  return OWNED_KINDS.includes(kind);
+}
+
+/**
+ * Build the ownership index from application records: for every OAuth2 client,
+ * SAML provider, connector and mapping that a record names, the applications
+ * that name it. Nothing is read, so the records can come from a tenant or from
+ * files. An object that several applications name lists all of them; an
+ * application that names an object twice is listed once.
+ * @param {ApplicationSkeleton[]} applications application records
+ * @returns {ApplicationOwnership} which application owns which object
+ */
+export function getApplicationOwnership(
+  applications: ApplicationSkeleton[]
+): ApplicationOwnership {
+  const entries = new Map<string, ApplicationOwnershipEntry>();
+  for (const application of applications) {
+    for (const reference of getApplicationRecordReferences(application)) {
+      if (!isOwnedKind(reference.kind)) continue;
+      const key = `${reference.kind}\u0000${reference.id}`;
+      let entry = entries.get(key);
+      if (!entry) {
+        entry = { kind: reference.kind, id: reference.id, owners: [] };
+        entries.set(key, entry);
+      }
+      const named = entry.owners.some(
+        (owner) =>
+          owner.applicationName === application.name &&
+          owner.applicationId === application._id
+      );
+      if (!named) {
+        const owner: ApplicationOwner = { applicationName: application.name };
+        if (application._id) owner.applicationId = application._id;
+        entry.owners.push(owner);
+      }
+    }
+  }
+  const kindOrder = (kind: ApplicationOwnedKind) => OWNED_KINDS.indexOf(kind);
+  return {
+    entries: [...entries.values()]
+      .map((entry) => ({
+        ...entry,
+        owners: [...entry.owners].sort(
+          (a, b) =>
+            a.applicationName.localeCompare(b.applicationName) ||
+            (a.applicationId ?? '').localeCompare(b.applicationId ?? '')
+        ),
+      }))
+      .sort(
+        (a, b) =>
+          kindOrder(a.kind) - kindOrder(b.kind) || a.id.localeCompare(b.id)
+      ),
+  };
+}
+
+/**
+ * Find the applications that own an object in an ownership index.
+ * @param {ApplicationOwnership} ownership the ownership index
+ * @param {ApplicationOwnedKind} kind what kind of object it is
+ * @param {string} id the OAuth2 client id, the SAML entity id (decoded), the connector name or the mapping name
+ * @returns {ApplicationOwner[]} the applications that name the object, empty if none does
+ */
+export function getApplicationOwners(
+  ownership: ApplicationOwnership,
+  kind: ApplicationOwnedKind,
+  id: string
+): ApplicationOwner[] {
+  const entry = ownership.entries.find((e) => e.kind === kind && e.id === id);
+  return entry ? entry.owners.map((owner) => ({ ...owner })) : [];
 }
 
 /**
@@ -2313,7 +2492,7 @@ async function resolveApplicationReferences({
   };
 
   // the references in the record come first
-  const direct = getRecordReferences(applicationData);
+  const direct = getApplicationRecordReferences(applicationData);
   direct.forEach(add);
 
   // OAuth2 client
@@ -2594,6 +2773,28 @@ export async function readApplicationReferencesByName({
   } catch (error) {
     throw new FrodoError(
       `Error reading references of ${getCurrentRealmName(state) + ' realm'} application ${applicationName}`,
+      error
+    );
+  }
+}
+
+/**
+ * Read which application owns which object in the current realm. Reads the
+ * applications once and nothing else, because the owned objects are named in
+ * the records.
+ * @returns {Promise<ApplicationOwnership>} a promise that resolves to the ownership index
+ */
+export async function readApplicationOwnership({
+  state,
+}: {
+  state: State;
+}): Promise<ApplicationOwnership> {
+  try {
+    const applications = await readApplications({ state });
+    return getApplicationOwnership(applications);
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading ownership of ${getCurrentRealmName(state) + ' realm'} applications`,
       error
     );
   }
