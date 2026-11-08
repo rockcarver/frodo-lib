@@ -102,9 +102,13 @@ jest.unstable_mockModule('./cloud/iga/IgaRequestTypeOps', () => ({
 }));
 jest.unstable_mockModule('./ConnectorOps', () => ({
   deleteConnector: unused,
+  disableConnector: unused,
+  enableConnector: unused,
   exportConnector: unused,
   importConnector: unused,
+  isConnectorEnabled: unused,
   readConnector,
+  readConnectorEnabledStates: unused,
 }));
 jest.unstable_mockModule('./ManagedObjectOps', () => ({
   createManagedObject: unused,

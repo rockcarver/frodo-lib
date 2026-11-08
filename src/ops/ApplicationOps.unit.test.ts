@@ -49,9 +49,13 @@ const importConnector = jest.fn(async (_args?: any): Promise<any> => ({}));
 const exportConnector = jest.fn(async (_args?: any): Promise<any> => ({}));
 jest.unstable_mockModule('./ConnectorOps', () => ({
   deleteConnector: jest.fn(),
+  disableConnector: jest.fn(),
+  enableConnector: jest.fn(),
   exportConnector,
   importConnector,
+  isConnectorEnabled: jest.fn(),
   readConnector: jest.fn(),
+  readConnectorEnabledStates: jest.fn(),
 }));
 
 const readManagedObject = jest.fn(async (_args?: any): Promise<any> => ({}));
