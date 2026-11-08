@@ -64,9 +64,10 @@ export type Server = {
     options: ServerExportOptions
   ): Promise<ServerExportInterface>;
   /**
-   * Export all servers. The response can be saved to file as is.
+   * Export all servers. The response can be saved to file as is. Every server is tried: a server that cannot be read does not stop the others.
    * @param {ServerExportOptions} options Server export options
    * @returns {Promise<ServerExportInterface>} Promise resolving to a ServerExportInterface object.
+   * @throws {FrodoError} If the servers cannot be listed, or if any server cannot be exported. The error carries one nested error per failed server, naming its id and url, and nothing is returned.
    */
   exportServers(options: ServerExportOptions): Promise<ServerExportInterface>;
   /**
@@ -358,9 +359,10 @@ export async function exportServerByUrl({
 }
 
 /**
- * Export all servers. The response can be saved to file as is.
+ * Export all servers. The response can be saved to file as is. Every server is tried: a server that cannot be read does not stop the others.
  * @param {ServerExportOptions} options Server export options
  * @returns {Promise<ServerExportInterface>} Promise resolving to a ServerExportInterface object.
+ * @throws {FrodoError} If the servers cannot be listed, or if any server cannot be exported. The error carries one nested error per failed server, naming its id and url, and nothing is returned.
  */
 export async function exportServers({
   options = {
@@ -371,6 +373,7 @@ export async function exportServers({
   options: ServerExportOptions;
   state: State;
 }): Promise<ServerExportInterface> {
+  const errors: Error[] = [];
   let indicatorId: string;
   try {
     debugMessage({ message: `ServerOps.exportServers: start`, state });
@@ -387,16 +390,34 @@ export async function exportServers({
         message: `Exporting server ${server.url}`,
         state,
       });
-      server.properties = await getServerProperties({
-        serverId: server._id,
-        state,
-      });
-      exportData.server[server._id] = server as ServerExportSkeleton;
+      try {
+        server.properties = await getServerProperties({
+          serverId: server._id,
+          state,
+        });
+        exportData.server[server._id] = server as ServerExportSkeleton;
+      } catch (error) {
+        errors.push(
+          new FrodoError(
+            `Error exporting server ${server.url} (${server._id})`,
+            error
+          )
+        );
+      }
     }
     if (options.includeDefault) {
-      exportData.defaultProperties = await getDefaultServerProperties({
-        state,
-      });
+      try {
+        exportData.defaultProperties = await getDefaultServerProperties({
+          state,
+        });
+      } catch (error) {
+        errors.push(
+          new FrodoError(`Error reading default server properties`, error)
+        );
+      }
+    }
+    if (errors.length > 0) {
+      throw new FrodoError(`Error exporting servers`, errors);
     }
     stopProgressIndicator({
       id: indicatorId,
@@ -412,6 +433,10 @@ export async function exportServers({
       status: 'fail',
       state,
     });
+    // just re-throw the failures collected above
+    if (errors.length > 0) {
+      throw error;
+    }
     throw new FrodoError(`Error reading servers`, error);
   }
 }

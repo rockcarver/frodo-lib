@@ -82,8 +82,9 @@ export type Saml2 = {
    */
   deleteSaml2Provider(entityId: string): Promise<Saml2ProviderSkeleton>;
   /**
-   * Delete all entity providers.
+   * Delete all entity providers. Every provider is tried: a provider that cannot be deleted does not stop the others.
    * @returns {Promise<Saml2ProviderSkeleton[]>} Promise resolving to an array of Saml2ProviderSkeleton objects.
+   * @throws {FrodoError} If the providers cannot be read, or if any provider cannot be deleted. The error carries one nested error per failed provider, naming it.
    */
   deleteSaml2Providers(): Promise<Saml2ProviderSkeleton[]>;
   /**
@@ -669,25 +670,42 @@ export async function deleteSaml2Provider({
 }
 
 /**
- * Delete all entity providers.
+ * Delete all entity providers. Every provider is tried: a provider that cannot be deleted does not stop the others.
  * @returns {Promise<Saml2ProviderSkeleton[]>} Promise resolving to an array of Saml2ProviderSkeleton objects.
+ * @throws {FrodoError} If the providers cannot be read, or if any provider cannot be deleted. The error carries one nested error per failed provider, naming it.
  */
 export async function deleteSaml2Providers({
   state,
 }: {
   state: State;
 }): Promise<Saml2ProviderSkeleton[]> {
+  const errors: Error[] = [];
   try {
     debugMessage({ message: `Saml2Ops.deleteSaml2Providers: start`, state });
     const providers: Saml2ProviderSkeleton[] = [];
     const stubs = await readSaml2ProviderStubs({ state });
     for (const stub of stubs) {
-      const provider = await _deleteProvider({
-        location: stub.location,
-        entityId64: stub._id,
-        state,
-      });
-      providers.push(provider);
+      try {
+        const provider = await _deleteProvider({
+          location: stub.location,
+          entityId64: stub._id,
+          state,
+        });
+        providers.push(provider);
+      } catch (error) {
+        errors.push(
+          new FrodoError(
+            `Error deleting ${getCurrentRealmName(state) + ' realm'} saml2 provider ${stub.entityId}`,
+            error
+          )
+        );
+      }
+    }
+    if (errors.length > 0) {
+      throw new FrodoError(
+        `Error deleting ${getCurrentRealmName(state) + ' realm'} saml2 providers`,
+        errors
+      );
     }
     debugMessage({
       message: `Saml2Ops.deleteSaml2Providers: end [deleted ${providers.length} providers]`,
@@ -695,6 +713,10 @@ export async function deleteSaml2Providers({
     });
     return providers;
   } catch (error) {
+    // just re-throw the failures collected above
+    if (errors.length > 0) {
+      throw error;
+    }
     throw new FrodoError(
       `Error deleting ${getCurrentRealmName(state) + ' realm'} saml2 providers`,
       error

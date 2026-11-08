@@ -65,6 +65,16 @@ releases missed):
   `FrodoError` that carries the original error. In the types, `PromotionStatus`
   is now the union of status names; the former object type is
   `PromotionStatusResponse`.
+- `frodo.saml2.entityProvider.deleteSaml2Providers` and `frodo.server.exportServers`
+  now try every provider or server before they fail. When any of them fails,
+  they still reject with one `FrodoError`, but its `originalErrors` now hold
+  one nested error per failed provider or server, each naming its provider
+  (entity id) or server (url and id), where the first failure used to end the
+  call and the rest were never attempted. `exportServers` returns nothing when
+  a server fails, as before; `deleteSaml2Providers` has deleted every provider
+  that could be deleted by the time it rejects. The message of the error from
+  `exportServers` for a failed server is now `Error exporting servers`; it was
+  `Error reading servers`.
 
 **Deprecation**:
 

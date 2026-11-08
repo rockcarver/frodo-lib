@@ -4621,7 +4621,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Saml2",
     methodName: "deleteSaml2Providers",
     signature: "deleteSaml2Providers(): Promise<Saml2ProviderSkeleton[]>",
-    description: "Delete all entity providers.",
+    description: "Delete all entity providers. Every provider is tried: a provider that cannot be deleted does not stop the others.",
     params: [],
     returns: "{Promise<Saml2ProviderSkeleton[]>} Promise resolving to an array of Saml2ProviderSkeleton objects.",
   },
@@ -5811,7 +5811,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Server",
     methodName: "exportServers",
     signature: "exportServers(options: ServerExportOptions): Promise<ServerExportInterface>",
-    description: "Export all servers. The response can be saved to file as is.",
+    description: "Export all servers. The response can be saved to file as is. Every server is tried: a server that cannot be read does not stop the others.",
     params: [
       { name: "options", type: "ServerExportOptions", description: "Server export options", required: true },
     ],
