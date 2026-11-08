@@ -1085,10 +1085,9 @@ export async function importSaml2Providers({
     const remoteIds = Object.keys(importData.saml.remote);
     const providerIds = hostedIds.concat(remoteIds);
     for (const entityId64 of providerIds) {
+      const entityId = decodeBase64Url(entityId64);
       debugMessage({
-        message: `Saml2Ops.importSaml2Providers: entityId=${decodeBase64Url(
-          entityId64
-        )}`,
+        message: `Saml2Ops.importSaml2Providers: entityId=${entityId}`,
         state,
       });
       const location: Saml2ProiderLocation = hostedIds.includes(entityId64)
@@ -1103,7 +1102,12 @@ export async function importSaml2Providers({
             state,
           });
         } catch (error) {
-          errors.push(error);
+          errors.push(
+            new FrodoError(
+              `Error importing ${getCurrentRealmName(state) + ' realm'} saml2 provider ${entityId} dependencies`,
+              error
+            )
+          );
         }
       }
       let metaData = null;
@@ -1140,7 +1144,7 @@ export async function importSaml2Providers({
         } catch (updateProviderErr) {
           errors.push(
             new FrodoError(
-              `Error creating or updating ${getCurrentRealmName(state) + ' realm'} saml2 provider`,
+              `Error creating or updating ${getCurrentRealmName(state) + ' realm'} saml2 provider ${entityId}`,
               [createProviderErr, updateProviderErr]
             )
           );

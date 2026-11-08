@@ -629,7 +629,12 @@ export async function exportSocialIdentityProviders({
           exportData.script[idpData.transform] = scriptData;
         }
       } catch (error) {
-        errors.push(error);
+        errors.push(
+          new FrodoError(
+            `Error exporting ${getCurrentRealmName(state) + ' realm'} provider ${idpData._id}`,
+            error
+          )
+        );
       }
     }
     if (errors.length > 0) {
