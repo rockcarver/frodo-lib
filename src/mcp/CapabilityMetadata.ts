@@ -2556,6 +2556,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'special',
     objectType: 'Journey',
     argumentMode: 'named',
+    excludeParameters: ['resultCallback'],
     parameterOverrides: {
       journeyIds: {
         description:

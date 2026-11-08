@@ -115,18 +115,25 @@ export type Journey = {
    * findings are returned without printing. When verbose, live validation
    * prints the export trace as `exportJourney` does (findings are never
    * printed). Missing, blank, or unreadable journeys are reported together
-   * after all requested journeys are processed.
+   * after all requested journeys are processed: without a result callback the
+   * function then throws one error that nests one error per failed journey
+   * and returns no findings; with one, each journey's outcome is passed to
+   * the callback as it happens (the findings of the journey, or an error that
+   * names the journey), the function does not throw for a failed journey and
+   * returns the findings of all journeys that could be validated.
    * Dependency-completeness warnings are export-only: each non-empty dependency
    * section is checked against that journey's node references. Empty sections
    * are skipped. Live validation reads with `deps: false`, so it performs no
    * dependency checks and does not check resource existence in the tenant.
    * @param {string[]} journeyIds journey names; omit or pass an empty array to validate all journeys
    * @param {MultiTreeExportInterface} journeysExport optional export; when supplied, validation is offline
+   * @param {ResultCallback<JourneyValidationFinding[]>} resultCallback Optional callback to process individual results: the findings of one journey (an empty array for a journey without findings) or an error that names the journey that could not be validated. Failing to list the journeys of the realm, and invalid arguments, always throw.
    * @returns {Promise<JourneyValidationFinding[]>} validation findings
    */
   validateJourneys(
     journeyIds?: string[],
-    journeysExport?: MultiTreeExportInterface
+    journeysExport?: MultiTreeExportInterface,
+    resultCallback?: ResultCallback<JourneyValidationFinding[]>
   ): Promise<JourneyValidationFinding[]>;
   /**
    * Create an empty single tree export template
@@ -348,9 +355,15 @@ export default (state: State): Journey => {
     },
     async validateJourneys(
       journeyIds?: string[],
-      journeysExport?: MultiTreeExportInterface
+      journeysExport?: MultiTreeExportInterface,
+      resultCallback: ResultCallback<JourneyValidationFinding[]> = undefined
     ): Promise<JourneyValidationFinding[]> {
-      return validateJourneys({ journeyIds, journeysExport, state });
+      return validateJourneys({
+        journeyIds,
+        journeysExport,
+        resultCallback,
+        state,
+      });
     },
     async exportJourney(
       treeId: string,
@@ -1552,19 +1565,36 @@ async function exportSingleJourney({
 }
 
 /**
- * Validate journeys from an export or from the active tenant.
+ * Validate journeys from an export or from the active tenant. Every requested journey is processed: a journey that is missing, blank or unreadable does not stop the others.
+ * @param {string[]} journeyIds journey names; omit or pass an empty array to validate all journeys
+ * @param {MultiTreeExportInterface} journeysExport optional export; when supplied, validation is offline
+ * @param {ResultCallback<JourneyValidationFinding[]>} resultCallback Optional callback to process individual results. When given, the outcome of every journey is passed to it as it happens (the findings of the journey, an empty array when there are none, or an error that names the journey) and a failed journey does not throw. Without it, the failed journeys are collected and thrown as one error after all journeys were processed. Failing to list the journeys of the realm, and invalid arguments, always throw.
+ * @returns {Promise<JourneyValidationFinding[]>} a promise that resolves to the findings of all journeys that could be validated
+ * @throws {FrodoError} If an argument is invalid or the journeys cannot be listed (always), or if one or more journeys cannot be validated and there is no result callback. The error carries one nested error per failed journey, naming it.
  */
 export async function validateJourneys({
   journeyIds,
   journeysExport,
+  resultCallback,
   state,
 }: {
   journeyIds?: string[];
   journeysExport?: MultiTreeExportInterface;
+  resultCallback?: ResultCallback<JourneyValidationFinding[]>;
   state: State;
 }): Promise<JourneyValidationFinding[]> {
   const findings: JourneyValidationFinding[] = [];
   const errors: FrodoError[] = [];
+  // a validated journey goes to the result and to the callback
+  const succeed = (journeyFindings: JourneyValidationFinding[]) => {
+    findings.push(...journeyFindings);
+    if (resultCallback) resultCallback(undefined, journeyFindings);
+  };
+  // a failure goes to the callback, or is collected to be thrown after every journey was processed
+  const fail = (error: FrodoError) => {
+    if (resultCallback) resultCallback(error, undefined);
+    else errors.push(error);
+  };
   const realm = `${getCurrentRealmName(state)} realm`;
   const errorMessage = `Error validating ${realm} journeys`;
   if (
@@ -1616,16 +1646,14 @@ export async function validateJourneys({
   for (const journeyId of ids || []) {
     const message = `Error validating ${realm} journey '${journeyId}'`;
     if (typeof journeyId !== 'string' || !journeyId.trim()) {
-      errors.push(
-        new FrodoError(message, new Error('Journey ID must not be blank'))
-      );
+      fail(new FrodoError(message, new Error('Journey ID must not be blank')));
       continue;
     }
 
     if (journeysExport) {
       const journey = journeysExport.trees[journeyId];
       if (!journey) {
-        errors.push(
+        fail(
           new FrodoError(
             message,
             new Error(`Journey '${journeyId}' not found in supplied export`)
@@ -1633,22 +1661,24 @@ export async function validateJourneys({
         );
         continue;
       }
-      findings.push(
-        ...validateJourneysExport({ trees: { [journeyId]: journey } })
-      );
+      succeed(validateJourneysExport({ trees: { [journeyId]: journey } }));
       continue;
     }
 
+    let journeyFindings: JourneyValidationFinding[];
+    let failure: FrodoError;
     try {
       const journey = await exportSingleJourney({
         journeyId,
         options: { deps: false, useStringArrays: true, coords: false },
         state,
       });
-      findings.push(...validateJourneyReferences(journey));
+      journeyFindings = validateJourneyReferences(journey);
     } catch (error) {
-      errors.push(new FrodoError(message, error));
+      failure = new FrodoError(message, error);
     }
+    if (failure) fail(failure);
+    else succeed(journeyFindings);
   }
 
   if (errors.length > 0) {
