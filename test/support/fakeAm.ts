@@ -16,6 +16,8 @@ export type FakeAm = {
   logins(): number;
   /** The number of access tokens issued. */
   accessTokens(): number;
+  /** The session tokens that were logged out (`POST .../sessions?_action=logout`), in order. */
+  loggedOut(): string[];
   /** Ends every session and access token issued so far, as an administrator or a restart would. */
   revokeAll(): void;
   /** Answer 401 to the protected endpoint whatever credential it carries. */
@@ -34,6 +36,7 @@ export async function startFakeAm({
   const received: { path: string; body: string }[] = [];
   let logins = 0;
   let accessTokens = 0;
+  const loggedOut: string[] = [];
   let rejectEverything = false;
   // the sessions and access tokens that are valid
   const valid = new Set<string>();
@@ -103,6 +106,20 @@ export async function startFakeAm({
           realm: '/',
         });
       }
+      if (path.includes('/sessions') && req.url?.includes('_action=logout')) {
+        // the session token comes in the header that is named like the session cookie
+        const token = req.headers['iplanetdirectorypro'] as string | undefined;
+        if (!token || !valid.has(token)) {
+          return send(401, {
+            code: 401,
+            reason: 'Unauthorized',
+            message: 'Access Denied',
+          });
+        }
+        valid.delete(token);
+        loggedOut.push(token);
+        return send(200, { result: 'Successfully logged out' });
+      }
       if (path.includes('/sessions') && req.url?.includes('getSessionInfo')) {
         const now = Date.now();
         return send(200, {
@@ -163,6 +180,7 @@ export async function startFakeAm({
     requests,
     logins: () => logins,
     accessTokens: () => accessTokens,
+    loggedOut: () => [...loggedOut],
     revokeAll: () => valid.clear(),
     alwaysReject: () => {
       rejectEverything = true;

@@ -12,6 +12,7 @@ import {
 import { getAuthenticationSettings } from '../api/AuthenticationSettingsApi';
 import { ServiceAccountScope } from '../api/cloud/EnvServiceAccountScopesApi';
 import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';
+import { logoutSession } from '../api/SessionApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { theme } from '../utils/ColorTheme';
@@ -84,6 +85,26 @@ import {
   saveUserSessionToken,
   type tokenType,
 } from './TokenCacheOps';
+
+/**
+ * What `login.logout()` and `login.dispose()` report.
+ */
+export type LogoutResult = {
+  /**
+   * What happened to the user session of the instance:
+   * - `ended`: AM ended the session and its token stopped working;
+   * - `none`: the instance holds no user session (a service account, a token that a caller presented, or nothing),
+   *   so nothing was ended;
+   * - `kept`: `dispose()` left the session alone, because it may be in use by another process (it came from the token
+   *   cache or went into it) or because this instance did not create it;
+   * - `failed`: the logout request failed (reported by `dispose()`; `logout()` throws instead).
+   */
+  userSession: 'ended' | 'none' | 'kept' | 'failed';
+  /** The token cache entries that `logout()` removed: the ones that held the credentials of the session that it ended. */
+  cacheEntriesRemoved: number;
+  /** Why the logout request failed; set when `userSession` is `failed`. */
+  error?: FrodoError;
+};
 
 export type Authenticate = {
   /**
@@ -174,6 +195,34 @@ export type Authenticate = {
    * @returns {boolean} true if a fresh browser-login session is cached for the host
    */
   hasCachedBrowserSession(host: string): boolean;
+  /**
+   * Log out: end the user session of this instance at AM (`POST .../sessions?_action=logout` with the session token)
+   * and remove the token cache entries that hold the credentials of that session, so that no other process picks up a
+   * session that is gone. This is the explicit logout, for a caller who asks for it: it ends the session even when the
+   * instance restored it from the token cache. The instance stops refreshing by itself afterwards (no timer, no refresh
+   * handler) and holds no credentials; `getTokens()` logs in again when it is called.
+   *
+   * An instance without a user session (a service account, a token that a caller presented) has nothing to end:
+   * the answer is `none` and nothing changes. The access token of a login is not revoked: the Ping documentation
+   * describes the token revocation endpoint for the clients that authenticate with a secret, but not for the public
+   * clients that these logins use, so no revocation is attempted and the token ends by its own expiry.
+   * @returns {Promise<LogoutResult>} what happened to the session. Throws if the logout request fails; the instance is then left as it was.
+   */
+  logout(): Promise<LogoutResult>;
+  /**
+   * Dispose of the instance when it is no longer needed (a host that creates instances over its lifetime, or exits):
+   * cancel the auto refresh timer, clear the refresh and credential handlers, forget the credentials, and end the user
+   * session only when this instance created it and did not share it. A session that came out of the token cache or was
+   * stored in it may be in use by other processes and is left to expire; the same goes for a session that this instance
+   * did not create. With the token cache switched off, the sessions that the instance created are ended.
+   *
+   * A disposed instance does not log in by itself any more: no timer fires and a request that finds a credential stale
+   * fails instead of logging in. Calling `getTokens()`, `getTokensInteractive()` or `applyAccessToken()` makes it work
+   * again. A login that is still running when `dispose()` is called is not interrupted and its session is not ended.
+   * A failed logout request is reported in the result and never thrown, so that a shutdown goes on.
+   * @returns {Promise<LogoutResult>} what happened to the session
+   */
+  dispose(): Promise<LogoutResult>;
 };
 
 export default (state: State): Authenticate => {
@@ -191,6 +240,7 @@ export default (state: State): Authenticate => {
       // Only this entry point does: the refresh handler and the timer call
       // `getTokens()` from inside a login, where waiting for the login in
       // flight would wait for itself.
+      disposed.delete(state);
       const call = JSON.stringify([
         forceLoginAsUser,
         autoRefresh,
@@ -217,9 +267,11 @@ export default (state: State): Authenticate => {
       return promise;
     },
     async getTokensInteractive(options: BrowserLoginOptions) {
+      disposed.delete(state);
       return getTokensInteractive({ ...options, state });
     },
     async applyAccessToken(token: AccessTokenMetaType) {
+      disposed.delete(state);
       return applyAccessToken({ token, state });
     },
     async probeDeploymentType(host: string) {
@@ -227,6 +279,12 @@ export default (state: State): Authenticate => {
     },
     hasCachedBrowserSession(host: string) {
       return hasCachedBrowserSession({ host, state });
+    },
+    async logout() {
+      return logout({ state });
+    },
+    async dispose() {
+      return dispose({ state });
     },
   };
 };
@@ -1707,6 +1765,9 @@ const authenticatedAs = new WeakMap<
   }
 >();
 
+/** The instances that were disposed: a login that is still running ends without setting a refresh timer. */
+const disposed = new WeakSet<State>();
+
 /** The login that a consumer-facing `getTokens()` call has in flight, per instance. */
 const loginsInFlight = new WeakMap<
   State,
@@ -1846,6 +1907,120 @@ function forgetRejectedCredential(state: State): boolean | void {
 }
 
 /**
+ * The instance stops logging in by itself: no timer, and no handler that a
+ * request that finds a credential stale, or a rejected credential, could call.
+ * @param {State} state library state
+ */
+function stopRefreshing(state: State): void {
+  const timer = state.getAutoRefreshTimer();
+  if (timer) clearTimeout(timer);
+  state.setAutoRefreshTimer(undefined);
+  state.setTokenRefreshHandler(undefined);
+  state.setRejectedCredentialHandler(undefined);
+  state.setAmCredentialProvider(undefined);
+}
+
+/**
+ * The instance no longer counts as authenticated and holds no credential.
+ * @param {State} state library state
+ */
+function forgetCredentials(state: State): void {
+  authenticatedAs.delete(state);
+  state.setUserSessionTokenMeta(undefined);
+  state.setBearerTokenMeta(undefined);
+  state.setPfBearerTokenMeta(undefined);
+}
+
+/**
+ * Remove the token cache entries that hold the credentials of the session that
+ * the instance holds: the session and the bearer tokens that came with it. An
+ * entry that another process has replaced since stays.
+ * @param {State} state library state
+ * @returns {number} the number of entries that were removed
+ */
+function evictSessionEntries(state: State): number {
+  if (!state.getUseTokenCache()) return 0;
+  const browser =
+    state.getPreferredCredential() === 'browser' ||
+    state.getAuthMode() === 'interactive';
+  const session = state.getUserSessionTokenMeta()?.expires;
+  const bearer = state.getBearerTokenMeta()?.expires;
+  const pfBearer = state.getPfBearerTokenMeta()?.expires;
+  const entries: [tokenType, number | undefined][] = browser
+    ? [
+        ['browserUserSession', session],
+        ['browserUserBearer', bearer],
+      ]
+    : [
+        ['userSession', session],
+        ['userBearer', bearer],
+        ['pfUserBearer', pfBearer],
+      ];
+  let removed = 0;
+  for (const [type, expires] of entries) {
+    if (
+      Number.isFinite(expires) &&
+      evictToken({ tokenType: type, expires, state })
+    ) {
+      removed++;
+    }
+  }
+  return removed;
+}
+
+/**
+ * Explicit logout (see `Authenticate.logout`).
+ * @param {State} state library state
+ * @returns {Promise<LogoutResult>} what happened to the session
+ */
+async function logout({ state }: { state: State }): Promise<LogoutResult> {
+  const session = state.getUserSessionTokenMeta();
+  if (!session?.tokenId) {
+    return { userSession: 'none', cacheEntriesRemoved: 0 };
+  }
+  try {
+    // the session is ended first: when AM cannot be reached the instance is left as it was
+    await logoutSession({ tokenId: session.tokenId, state });
+  } catch (error) {
+    throw new FrodoError('Error logging out', error);
+  }
+  const cacheEntriesRemoved = evictSessionEntries(state);
+  stopRefreshing(state);
+  forgetCredentials(state);
+  return { userSession: 'ended', cacheEntriesRemoved };
+}
+
+/**
+ * Dispose of an instance (see `Authenticate.dispose`).
+ * @param {State} state library state
+ * @returns {Promise<LogoutResult>} what happened to the session
+ */
+async function dispose({ state }: { state: State }): Promise<LogoutResult> {
+  disposed.add(state);
+  stopRefreshing(state);
+  const result: LogoutResult = { userSession: 'none', cacheEntriesRemoved: 0 };
+  const session = state.getUserSessionTokenMeta();
+  if (session?.tokenId) {
+    // a session may be ended only when this instance created it and did not
+    // share it: what came from the cache or went into it may be in use by
+    // another process (core record 0021)
+    if (session.from_cache === false && !state.getUseTokenCache()) {
+      try {
+        await logoutSession({ tokenId: session.tokenId, state });
+        result.userSession = 'ended';
+      } catch (error) {
+        result.userSession = 'failed';
+        result.error = new FrodoError('Error logging out', error);
+      }
+    } else {
+      result.userSession = 'kept';
+    }
+  }
+  forgetCredentials(state);
+  return result;
+}
+
+/**
  * The longest delay of a timer in Node (2^31 - 1 ms, about 24.8 days): a longer
  * one runs after 1 ms instead.
  */
@@ -1871,6 +2046,11 @@ function scheduleAutoRefresh(
       state,
     });
     clearTimeout(timer);
+    state.setAutoRefreshTimer(undefined);
+  }
+  // a disposed instance does not log in by itself any more
+  if (disposed.has(state)) {
+    return;
   }
   // new timer
   if (autoRefresh) {

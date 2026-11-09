@@ -1152,6 +1152,22 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{boolean} true if a fresh browser-login session is cached for the host",
   },
   {
+    typeName: "Authenticate",
+    methodName: "logout",
+    signature: "logout(): Promise<LogoutResult>",
+    description: "Log out: end the user session of this instance at AM (`POST .../sessions?_action=logout` with the session token) and remove the token cache entries that hold the credentials of that session, so that no other process picks up a session that is gone. This is the explicit logout, for a caller who asks for it: it ends the session even when the instance restored it from the token cache. The instance stops refreshing by itself afterwards (no timer, no refresh handler) and holds no credentials; `getTokens()` logs in again when it is called. An instance without a user session (a service account, a token that a caller presented) has nothing to end: the answer is `none` and nothing changes. The access token of a login is not revoked: the Ping documentation describes the token revocation endpoint for the clients that authenticate with a secret, but not for the public clients that these logins use, so no revocation is attempted and the token ends by its own expiry.",
+    params: [],
+    returns: "{Promise<LogoutResult>} what happened to the session. Throws if the logout request fails; the instance is then left as it was.",
+  },
+  {
+    typeName: "Authenticate",
+    methodName: "dispose",
+    signature: "dispose(): Promise<LogoutResult>",
+    description: "Dispose of the instance when it is no longer needed (a host that creates instances over its lifetime, or exits): cancel the auto refresh timer, clear the refresh and credential handlers, forget the credentials, and end the user session only when this instance created it and did not share it. A session that came out of the token cache or was stored in it may be in use by other processes and is left to expire; the same goes for a session that this instance did not create. With the token cache switched off, the sessions that the instance created are ended. A disposed instance does not log in by itself any more: no timer fires and a request that finds a credential stale fails instead of logging in. Calling `getTokens()`, `getTokensInteractive()` or `applyAccessToken()` makes it work again. A login that is still running when `dispose()` is called is not interrupted and its session is not ended. A failed logout request is reported in the result and never thrown, so that a shutdown goes on.",
+    params: [],
+    returns: "{Promise<LogoutResult>} what happened to the session",
+  },
+  {
     typeName: "AuthenticationSettings",
     methodName: "readAuthenticationSettings",
     signature: "readAuthenticationSettings( globalConfig: boolean ): Promise<AuthenticationSettingsSkeleton>",
