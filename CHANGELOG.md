@@ -10,6 +10,11 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-31] - 2026-11-09
+
+### Added
+- Introduced `deleteApplicationOwnedObjects` and its variants (`...ById`, `...ByName`, and similar methods on `frodo.app`). These methods delete objects owned by an application, retain objects still named by another application, and report each object to an optional result callback. This functionality supports `config-manager delete applications` in frodo-cli (frodo-cli#1101) (#972).
+
 ## [v5.0.0-30] - 2026-11-09
 
 ### Added
@@ -2877,6 +2882,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-31]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-30...v5.0.0-31
 [v5.0.0-30]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-29...v5.0.0-30
 [v5.0.0-29]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-28...v5.0.0-29
 [v5.0.0-28]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-27...v5.0.0-28
