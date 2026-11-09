@@ -10,6 +10,14 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-30] - 2026-11-09
+
+### Added
+- Introduced `frodo.login.logout()` and `frodo.login.dispose()` methods to end a session and dispose of an instance, respectively. These methods are not yet invoked by the library or CLI, and access tokens are not revoked (#971).
+
+### Fixed
+- Resolved an issue where a realm-overridden MCP request for a service or admin account did not find the credential in the token cache. Now, the credential is correctly retrieved from the cache in all authentication modes, preventing unnecessary logins (#970).
+
 ## [v5.0.0-29] - 2026-11-09
 
 ### Added
@@ -2869,6 +2877,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-30]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-29...v5.0.0-30
 [v5.0.0-29]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-28...v5.0.0-29
 [v5.0.0-28]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-27...v5.0.0-28
 [v5.0.0-27]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-26...v5.0.0-27
