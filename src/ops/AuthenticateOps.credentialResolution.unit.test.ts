@@ -104,6 +104,7 @@ describe('AuthenticateOps username-only credential resolution', () => {
     expect(underlying.message).toMatch(
       /No stored password found for username 'svc-account'/
     );
+    expect(underlying.code).toBe('LOGIN_NO_STORED_PASSWORD');
     expect(state.getPassword()).toBeFalsy();
     expect(getServerInfo).not.toHaveBeenCalled();
   });
@@ -122,6 +123,7 @@ describe('AuthenticateOps username-only credential resolution', () => {
     expect(underlying.message).toMatch(
       /No stored password found for username 'svc-account'/
     );
+    expect(underlying.code).toBe('LOGIN_NO_STORED_PASSWORD');
     expect(getServerInfo).not.toHaveBeenCalled();
   });
 

@@ -1,6 +1,51 @@
 import { AxiosError } from 'axios';
 
+/**
+ * The error conditions that carry a stable identity (see `FrodoError.code`).
+ *
+ * A message of the library states facts. How to fix the condition is advice
+ * in the words of one interface (an option of a command line, a field of a
+ * form, a tool argument), and the library does not know its caller. A caller
+ * that wants to give that advice recognises the condition by its code instead
+ * of parsing the message.
+ *
+ * Codes are never renamed or reused. Add a code here when a caller needs to
+ * recognise a condition; a message without a code is not a promise.
+ */
+export const FRODO_ERROR_CODES = [
+  /** Browser login found no valid cached session for the host. */
+  'BROWSER_LOGIN_NO_SESSION',
+  /** A username was given, but the connection profile stores no password for it. */
+  'LOGIN_NO_STORED_PASSWORD',
+  /** Browser login could not establish the deployment type of the host. */
+  'BROWSER_LOGIN_DEPLOYMENT_TYPE_UNKNOWN',
+  /** A redirect URI other than the registered one was given with the built-in Cloud client. */
+  'BROWSER_LOGIN_REDIRECT_URI_NOT_SUPPORTED',
+  /** ForgeOps browser login needs an OAuth2 client id, and none is set. */
+  'BROWSER_LOGIN_FORGEOPS_CLIENT_ID_REQUIRED',
+  /** Classic browser login needs an OAuth2 client id, and none is set. */
+  'BROWSER_LOGIN_CLASSIC_CLIENT_ID_REQUIRED',
+  /** Classic browser login needs a session-capture script on the OAuth2 client, and the token carries no session. */
+  'BROWSER_LOGIN_CLASSIC_SESSION_CAPTURE_REQUIRED',
+] as const;
+
+/** The identity of an error condition, see {@link FRODO_ERROR_CODES}. */
+export type FrodoErrorCode = (typeof FRODO_ERROR_CODES)[number];
+
 export class FrodoError extends Error {
+  /**
+   * Every code that a `FrodoError` can carry, for a caller that keeps a table
+   * keyed by code and wants to be told when the library adds one.
+   */
+  static readonly codes: readonly FrodoErrorCode[] = FRODO_ERROR_CODES;
+
+  /**
+   * The stable identity of the condition this error reports, if it has one.
+   * It is stable across releases, unlike the message. An error that wraps
+   * another one does not copy its code: look through `originalErrors` for the
+   * condition underneath.
+   */
+  code?: FrodoErrorCode;
   originalErrors: Error[] = [];
   isHttpError: boolean = false;
   httpCode: string;
@@ -11,9 +56,14 @@ export class FrodoError extends Error {
   httpErrorReason: string;
   httpDescription: string;
 
-  constructor(message: string, originalErrors: Error | Error[] = null) {
+  constructor(
+    message: string,
+    originalErrors: Error | Error[] = null,
+    code?: FrodoErrorCode
+  ) {
     super(message);
     this.name = this.constructor.name;
+    if (code) this.code = code;
 
     if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, this.constructor);
@@ -31,7 +81,10 @@ export class FrodoError extends Error {
     if (originalErrors) {
       const originalError = this.originalErrors[0];
       this.isHttpError = originalError.name === 'AxiosError';
-      this.httpCode = originalError['code'];
+      // the code of a FrodoError names a condition of the library, not a
+      // transport error, so it never becomes the http code of the wrapper
+      this.httpCode =
+        originalError.name === 'FrodoError' ? undefined : originalError['code'];
       this.httpStatus = originalError['response']
         ? originalError['response'].status
         : null;

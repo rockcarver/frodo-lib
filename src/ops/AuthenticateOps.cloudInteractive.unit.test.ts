@@ -195,6 +195,7 @@ describe('Cloud browser login (getTokensInteractive)', () => {
     expect(error.message).toMatch(
       /not supported with cloud's built-in OAuth2 client/
     );
+    expect(error.code).toBe('BROWSER_LOGIN_REDIRECT_URI_NOT_SUPPORTED');
     expect(runInteractiveAuthorizationCodeFlow).not.toHaveBeenCalled();
   });
 
