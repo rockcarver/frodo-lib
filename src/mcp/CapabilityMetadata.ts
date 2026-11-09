@@ -3285,6 +3285,19 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Anonymous pre-auth probe of an AM host: two unauthenticated POSTs to /oauth2/authorize (the built-in admin client ids) to classify the deployment type (cloud/forgeops/classic), with a `conclusive` flag that is false when the host did not answer or is not an AM. No credentials sent, no token returned, no state written — reads only publicly reachable endpoint behavior.',
   },
+  'login.logout': {
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      "Ends the user session of the instance that runs the call (`POST .../sessions?_action=logout`), removes the token cache entries of that session, stops the instance's auto refresh and forgets its credentials. Only that identity is affected, but for a host such as the MCP server that identity is its own: afterwards it has no credentials and no refresh handler until it logs in again, so one call is enough to stop the host serving requests. The access token is not revoked. An instance without a user session (a service account) is left alone. High rather than medium for that reason.",
+  },
+  'login.dispose': {
+    // A lifecycle primitive for the host that owns the instance (cancel the
+    // refresh timer, clear the handlers, forget the credentials, end only a
+    // session the instance created and did not share): no standalone value to
+    // a tool caller, and calling it would disable the host's own instance.
+    excluded: true,
+  },
 
   'am.config.createConfigEntityExportTemplate': {
     // Pure local builder (no API calls), used internally by
