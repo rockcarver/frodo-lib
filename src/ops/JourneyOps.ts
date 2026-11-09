@@ -66,6 +66,7 @@ import {
   validateJourneyDependencies,
   validateJourneyExportKeys,
   validateJourneyReferences,
+  type JourneyValidationCode,
   type JourneyValidationFinding,
 } from '../utils/JourneyValidationUtils';
 import { findInArray } from '../utils/JsonUtils';
@@ -601,6 +602,125 @@ function reportJourneyFindings(
       }
     }
   }
+}
+
+/**
+ * Short names of the journey validation findings, for the one-line summary of
+ * an export of many journeys: `[singular, plural]`.
+ */
+const JOURNEY_FINDING_LABELS: Record<
+  JourneyValidationCode,
+  [singular: string, plural: string]
+> = {
+  MISSING_NODE_DEFINITION: [
+    'node without a definition',
+    'nodes without a definition',
+  ],
+  NODE_ID_MISMATCH: ['node ID mismatch', 'node ID mismatches'],
+  MISSING_CONNECTION_TARGET: [
+    'connection to a missing node',
+    'connections to a missing node',
+  ],
+  MISSING_ENTRY_NODE: ['unresolved entry node', 'unresolved entry nodes'],
+  MISSING_INNER_NODE: ['missing inner node', 'missing inner nodes'],
+  UNKNOWN_CONNECTION_OUTCOME: [
+    'unknown connection outcome',
+    'unknown connection outcomes',
+  ],
+  UNCONNECTED_OUTCOME: ['unconnected outcome', 'unconnected outcomes'],
+  UNREACHABLE_NODE: ['unreachable node', 'unreachable nodes'],
+  UNREFERENCED_INNER_NODE: [
+    'unreferenced inner node',
+    'unreferenced inner nodes',
+  ],
+  UNREPRESENTED_NODE: [
+    'node missing from the tree',
+    'nodes missing from the tree',
+  ],
+  PAGE_NODE_OUTCOME_MISMATCH: [
+    'page node outcome mismatch',
+    'page node outcome mismatches',
+  ],
+  NO_REACHABLE_TERMINAL: ['without a reachable end', 'without a reachable end'],
+  NODE_TYPE_MISMATCH: ['node type mismatch', 'node type mismatches'],
+  INNER_NODE_REFERENCED_BY_MULTIPLE_PAGES: [
+    'inner node used by several page nodes',
+    'inner nodes used by several page nodes',
+  ],
+  NODE_ID_COLLISION: ['node ID collision', 'node ID collisions'],
+  TREE_ID_MISMATCH: ['journey ID mismatch', 'journey ID mismatches'],
+  MISSING_SCRIPT_DEPENDENCY: ['missing script', 'missing scripts'],
+  MISSING_EMAIL_TEMPLATE_DEPENDENCY: [
+    'missing email template',
+    'missing email templates',
+  ],
+  MISSING_THEME_DEPENDENCY: ['missing theme', 'missing themes'],
+  MISSING_SOCIAL_IDENTITY_PROVIDER_DEPENDENCY: [
+    'missing social identity provider',
+    'missing social identity providers',
+  ],
+  MISSING_SAML_ENTITY_DEPENDENCY: [
+    'missing SAML entity',
+    'missing SAML entities',
+  ],
+};
+
+/**
+ * Report the findings of an export of many journeys. When the state is
+ * verbose: one line per journey and one per finding, as
+ * {@link reportJourneyFindings}. Otherwise one line for the whole export, which
+ * names how many journeys have findings and how many findings of each kind
+ * there are, because a realm of a few hundred journeys would print a line per
+ * journey that says nothing about what is wrong. The line states facts only: it
+ * never tells the reader how to see more, because how to ask for details is
+ * specific to the interface that calls the library.
+ * Exported for the unit tests only; it is not part of the `frodo` facade.
+ * @param {JourneyValidationFinding[]} findings the findings of all exported journeys
+ * @param {number} exportedCount the number of journeys that were exported
+ * @param {State} state the state
+ */
+export function reportJourneyExportFindings(
+  findings: JourneyValidationFinding[],
+  exportedCount: number,
+  state: State
+): void {
+  if (findings.length === 0) return;
+  if (state.getVerbose()) {
+    reportJourneyFindings(findings, state);
+    return;
+  }
+  const journeyCount = new Set(findings.map((finding) => finding.journeyId))
+    .size;
+  const errors = findings.filter(
+    (finding) => finding.severity === 'error'
+  ).length;
+  const warnings = findings.length - errors;
+  const countsByCode = new Map<string, number>();
+  for (const finding of findings) {
+    countsByCode.set(finding.code, (countsByCode.get(finding.code) ?? 0) + 1);
+  }
+  const kinds = [...countsByCode]
+    .map(([code, count]) => {
+      const labels = JOURNEY_FINDING_LABELS[code as JourneyValidationCode];
+      const label = labels ? labels[count === 1 ? 0 : 1] : code;
+      return { count, text: `${count} ${label}` };
+    })
+    .sort((a, b) => b.count - a.count || a.text.localeCompare(b.text))
+    .map(({ text }) => text);
+  const severities =
+    errors > 0
+      ? ` (${[
+          `${errors} error${errors === 1 ? '' : 's'}`,
+          warnings > 0 ? `${warnings} warning${warnings === 1 ? '' : 's'}` : '',
+        ]
+          .filter(Boolean)
+          .join(' and ')})`
+      : '';
+  printMessage({
+    message: `${journeyCount} of ${exportedCount} ${exportedCount === 1 ? 'journey' : 'journeys'} ${journeyCount === 1 ? 'has' : 'have'} validation findings${severities}: ${kinds.join(', ')}.`,
+    type: 'warn',
+    state,
+  });
 }
 
 function assertNoJourneyErrors(
@@ -1768,6 +1888,8 @@ export async function exportJourneys({
     message: `Exporting ${getCurrentRealmName(state) + ' realm'} journeys...`,
     state,
   });
+  const findings: JourneyValidationFinding[] = [];
+  let exportedCount = 0;
   for (const tree of trees) {
     const exportData: SingleTreeExportInterface = await getResult(
       resultCallback,
@@ -1780,12 +1902,12 @@ export async function exportJourneys({
       }
     );
     if (exportData) {
-      reportJourneyFindings(
-        validateJourneysExport({ trees: { [tree._id]: exportData } }),
-        state
+      findings.push(
+        ...validateJourneysExport({ trees: { [tree._id]: exportData } })
       );
       delete exportData.meta;
       multiTreeExport.trees[tree._id] = exportData;
+      exportedCount++;
       updateProgressIndicator({
         id: indicatorId,
         message: `Exporting ${getCurrentRealmName(state) + ' realm'} journey ${tree._id}`,
@@ -1793,9 +1915,14 @@ export async function exportJourneys({
       });
     }
   }
+  reportJourneyExportFindings(findings, exportedCount, state);
   stopProgressIndicator({
     id: indicatorId,
-    message: `Exported ${trees.length} ${getCurrentRealmName(state) + ' realm'} journeys.`,
+    message: `Exported ${
+      exportedCount === trees.length
+        ? exportedCount
+        : `${exportedCount} of ${trees.length}`
+    } ${getCurrentRealmName(state) + ' realm'} journeys.`,
     state,
   });
   return multiTreeExport;
