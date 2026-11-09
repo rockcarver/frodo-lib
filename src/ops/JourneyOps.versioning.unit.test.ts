@@ -6,6 +6,7 @@ const readNodeMock: any = jest.fn();
 const updateNodeMock: any = jest.fn();
 const putTreeMock: any = jest.fn();
 const printMessageMock: any = jest.fn();
+const stopProgressIndicatorMock: any = jest.fn();
 const readSocialIdentityProvidersMock: any = jest.fn();
 
 jest.unstable_mockModule('./IdpOps', () => ({
@@ -44,7 +45,7 @@ jest.unstable_mockModule('../utils/Console', () => ({
   printError: jest.fn(),
   verboseMessage: jest.fn(),
   curlirizeMessage: jest.fn(),
-  stopProgressIndicator: jest.fn(),
+  stopProgressIndicator: stopProgressIndicatorMock,
   updateProgressIndicator: jest.fn(),
 }));
 
@@ -531,7 +532,8 @@ describe('JourneyOps versioning unit coverage', () => {
     expect(printMessageMock).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'warn',
-        message: '1 warning in journey WarnedJourney',
+        message:
+          '1 of 1 journey has validation findings: 1 missing social identity provider. Use verbose output to list them.',
       })
     );
   });
@@ -1286,5 +1288,245 @@ describe('validateJourneys with a result callback', () => {
         { message: "Error validating alpha realm journey 'MissingJourney'" },
       ],
     });
+  });
+});
+
+describe('exportJourneys summarises the validation findings of all journeys', () => {
+  const successNode = '70e691a5-1e33-4ac3-a356-e7b6d60d92e0';
+
+  interface FakeJourney {
+    tree: any;
+    nodes: Record<string, any>;
+  }
+
+  /**
+   * A journey of one decision node. `unconnected` adds declared outcomes with no
+   * connection, `unreachable` adds nodes nobody leads to, `brokenTarget` leads the
+   * only connection to a node that does not exist.
+   */
+  function fakeJourney(
+    journeyId: string,
+    {
+      unconnected = 0,
+      unreachable = 0,
+      brokenTarget = false,
+    }: {
+      unconnected?: number;
+      unreachable?: number;
+      brokenTarget?: boolean;
+    } = {}
+  ): FakeJourney {
+    const nodeId = `${journeyId}-node`;
+    const type = { _id: 'DecisionNode', version: '1.0' };
+    const tree: any = {
+      _id: journeyId,
+      entryNodeId: nodeId,
+      nodes: {
+        [nodeId]: {
+          nodeType: 'DecisionNode',
+          version: '1.0',
+          connections: { done: brokenTarget ? 'missing-target' : successNode },
+        },
+      },
+      staticNodes: {},
+    };
+    const outcomes = [{ id: 'done' }];
+    for (let i = 0; i < unconnected; i++) outcomes.push({ id: `extra${i}` });
+    const nodes: Record<string, any> = {
+      [nodeId]: { _id: nodeId, _type: type, _outcomes: outcomes },
+    };
+    for (let i = 0; i < unreachable; i++) {
+      const orphanId = `${journeyId}-orphan${i}`;
+      tree.nodes[orphanId] = {
+        nodeType: 'DecisionNode',
+        version: '1.0',
+        connections: { done: successNode },
+      };
+      nodes[orphanId] = {
+        _id: orphanId,
+        _type: type,
+        _outcomes: [{ id: 'done' }],
+      };
+    }
+    return { tree, nodes };
+  }
+
+  /** Serve the journeys; the ones in `failing` cannot be read. */
+  function serve(journeys: FakeJourney[], failing: string[] = []) {
+    getTreesMock.mockResolvedValue({ result: journeys.map((j) => j.tree) });
+    getTreeMock.mockImplementation(async ({ id }: { id: string }) => {
+      if (failing.includes(id)) throw new Error(`cannot read ${id}`);
+      return journeys.find((j) => j.tree._id === id).tree;
+    });
+    readNodeMock.mockImplementation(async ({ nodeId }: { nodeId: string }) =>
+      journeys.map((j) => j.nodes[nodeId]).find(Boolean)
+    );
+  }
+
+  const exportOptions = { deps: false, useStringArrays: true, coords: false };
+
+  function warnMessages(): string[] {
+    return printMessageMock.mock.calls
+      .map(([args]: any[]) => args)
+      .filter((args: any) => args.type === 'warn')
+      .map((args: any) => args.message);
+  }
+
+  test('prints one line with the count of every kind instead of a line per journey', async () => {
+    serve([
+      fakeJourney('A', { unconnected: 3, unreachable: 1 }),
+      fakeJourney('B', { unreachable: 1 }),
+      fakeJourney('C'),
+    ]);
+
+    const exported = await JourneyOps.exportJourneys({
+      options: exportOptions,
+      state: validationState(),
+    });
+
+    expect(Object.keys(exported.trees)).toEqual(['A', 'B', 'C']);
+    expect(warnMessages()).toEqual([
+      '2 of 3 journeys have validation findings: 3 unconnected outcomes, 2 unreachable nodes. Use verbose output to list them.',
+    ]);
+  });
+
+  test('prints nothing when no journey has a finding', async () => {
+    serve([fakeJourney('A'), fakeJourney('B')]);
+
+    await JourneyOps.exportJourneys({
+      options: exportOptions,
+      state: validationState(),
+    });
+
+    expect(warnMessages()).toEqual([]);
+  });
+
+  test('verbose output keeps one line per journey and one per finding', async () => {
+    serve([
+      fakeJourney('A', { unconnected: 2, unreachable: 1 }),
+      fakeJourney('B', { unreachable: 1 }),
+      fakeJourney('C'),
+    ]);
+    const state = { ...validationState(), getVerbose: () => true };
+
+    await JourneyOps.exportJourneys({ options: exportOptions, state });
+
+    const lines = warnMessages();
+    expect(lines).toContain('3 warnings in journey A');
+    expect(lines).toContain('1 warning in journey B');
+    expect(
+      lines.filter((line) => line.startsWith('[UNCONNECTED_OUTCOME]'))
+    ).toHaveLength(2);
+    expect(
+      lines.filter((line) => line.startsWith('[UNREACHABLE_NODE]'))
+    ).toHaveLength(2);
+    expect(lines.some((line) => line.includes('validation findings'))).toBe(
+      false
+    );
+    expect(lines.some((line) => line.includes('journey C'))).toBe(false);
+  });
+
+  test('names the errors when there are any', async () => {
+    serve([fakeJourney('A', { brokenTarget: true }), fakeJourney('B')]);
+
+    await JourneyOps.exportJourneys({
+      options: exportOptions,
+      state: validationState(),
+    });
+
+    expect(warnMessages()).toEqual([
+      '1 of 2 journeys has validation findings (1 error and 1 warning): 1 connection to a missing node, 1 without a reachable end. Use verbose output to list them.',
+    ]);
+  });
+
+  test('says "journey" and "has" for one journey with one finding', async () => {
+    serve([fakeJourney('A', { unconnected: 1 })]);
+
+    await JourneyOps.exportJourneys({
+      options: exportOptions,
+      state: validationState(),
+    });
+
+    expect(warnMessages()).toEqual([
+      '1 of 1 journey has validation findings: 1 unconnected outcome. Use verbose output to list them.',
+    ]);
+  });
+
+  test('counts only the journeys that were exported, and says when some were not', async () => {
+    serve(
+      [
+        fakeJourney('A', { unconnected: 1 }),
+        fakeJourney('B', { unconnected: 1 }),
+        fakeJourney('C'),
+      ],
+      ['B']
+    );
+    const resultCallback = jest.fn();
+
+    const exported = await JourneyOps.exportJourneys({
+      options: exportOptions,
+      resultCallback,
+      state: validationState(),
+    });
+
+    expect(Object.keys(exported.trees)).toEqual(['A', 'C']);
+    expect(resultCallback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Error exporting the alpha realm journey B',
+      }),
+      undefined
+    );
+    expect(warnMessages()).toEqual([
+      '1 of 2 journeys has validation findings: 1 unconnected outcome. Use verbose output to list them.',
+    ]);
+    expect(stopProgressIndicatorMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Exported 2 of 3 alpha realm journeys.',
+      })
+    );
+  });
+
+  test('the end message is the plain count when every journey was exported', async () => {
+    serve([fakeJourney('A'), fakeJourney('B')]);
+
+    await JourneyOps.exportJourneys({
+      options: exportOptions,
+      state: validationState(),
+    });
+
+    expect(stopProgressIndicatorMock).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Exported 2 alpha realm journeys.' })
+    );
+  });
+
+  test('a code without a label is named by the code', () => {
+    JourneyOps.reportJourneyExportFindings(
+      [
+        {
+          code: 'SOMETHING_NEW',
+          severity: 'warning',
+          journeyId: 'A',
+          message: 'm',
+        },
+        {
+          code: 'SOMETHING_NEW',
+          severity: 'warning',
+          journeyId: 'B',
+          message: 'm',
+        },
+        {
+          code: 'UNREACHABLE_NODE',
+          severity: 'warning',
+          journeyId: 'B',
+          message: 'm',
+        },
+      ] as any,
+      5,
+      validationState()
+    );
+
+    expect(warnMessages()).toEqual([
+      '2 of 5 journeys have validation findings: 2 SOMETHING_NEW, 1 unreachable node. Use verbose output to list them.',
+    ]);
   });
 });
