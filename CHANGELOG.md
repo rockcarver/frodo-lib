@@ -10,6 +10,12 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-29] - 2026-11-09
+
+### Added
+- Introduced the ability to enable and disable a connector, and to read and switch the status of an application. This functionality is accessible via `ConnectorOps` and `ApplicationOps`, aligning with the Admin UI capabilities for managing connectors and applications (#968).
+- `ApplicationOps` now provides information on which application owns an OAuth2 client, SAML provider, connector, or mapping, enhancing application ownership insights (#967).
+
 ## [v5.0.0-28] - 2026-11-08
 
 ### Added
@@ -2863,6 +2869,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-29]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-28...v5.0.0-29
 [v5.0.0-28]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-27...v5.0.0-28
 [v5.0.0-27]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-26...v5.0.0-27
 [v5.0.0-26]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-25...v5.0.0-26
