@@ -230,7 +230,7 @@ describe('interfaceTermsInMessages', () => {
           "printMessage('a--b and -- alone and --- rule');",
           "const flag = '--password';",
           "const env = process.env['FRODO_HOST'];",
-          "const url = 'https://example.com/frodo-lib/README.md';",
+          "const url = 'https://example.com/frodo-lib/notes.md';",
           "throw new FrodoError('The frodo-lib package is out of date.');",
           "throw new FrodoError('If no other frodo process is running, delete the lock file.');",
         ].join('\n')
