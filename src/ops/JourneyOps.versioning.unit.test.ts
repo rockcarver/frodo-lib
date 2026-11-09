@@ -533,7 +533,7 @@ describe('JourneyOps versioning unit coverage', () => {
       expect.objectContaining({
         type: 'warn',
         message:
-          '1 of 1 journey has validation findings: 1 missing social identity provider. Use verbose output to list them.',
+          '1 of 1 journey has validation findings: 1 missing social identity provider.',
       })
     );
   });
@@ -1386,7 +1386,7 @@ describe('exportJourneys summarises the validation findings of all journeys', ()
 
     expect(Object.keys(exported.trees)).toEqual(['A', 'B', 'C']);
     expect(warnMessages()).toEqual([
-      '2 of 3 journeys have validation findings: 3 unconnected outcomes, 2 unreachable nodes. Use verbose output to list them.',
+      '2 of 3 journeys have validation findings: 3 unconnected outcomes, 2 unreachable nodes.',
     ]);
   });
 
@@ -1435,7 +1435,7 @@ describe('exportJourneys summarises the validation findings of all journeys', ()
     });
 
     expect(warnMessages()).toEqual([
-      '1 of 2 journeys has validation findings (1 error and 1 warning): 1 connection to a missing node, 1 without a reachable end. Use verbose output to list them.',
+      '1 of 2 journeys has validation findings (1 error and 1 warning): 1 connection to a missing node, 1 without a reachable end.',
     ]);
   });
 
@@ -1448,7 +1448,7 @@ describe('exportJourneys summarises the validation findings of all journeys', ()
     });
 
     expect(warnMessages()).toEqual([
-      '1 of 1 journey has validation findings: 1 unconnected outcome. Use verbose output to list them.',
+      '1 of 1 journey has validation findings: 1 unconnected outcome.',
     ]);
   });
 
@@ -1477,7 +1477,7 @@ describe('exportJourneys summarises the validation findings of all journeys', ()
       undefined
     );
     expect(warnMessages()).toEqual([
-      '1 of 2 journeys has validation findings: 1 unconnected outcome. Use verbose output to list them.',
+      '1 of 2 journeys has validation findings: 1 unconnected outcome.',
     ]);
     expect(stopProgressIndicatorMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1526,7 +1526,118 @@ describe('exportJourneys summarises the validation findings of all journeys', ()
     );
 
     expect(warnMessages()).toEqual([
-      '2 of 5 journeys have validation findings: 2 SOMETHING_NEW, 1 unreachable node. Use verbose output to list them.',
+      '2 of 5 journeys have validation findings: 2 SOMETHING_NEW, 1 unreachable node.',
     ]);
+  });
+  // How to ask for more detail is specific to the interface that calls the library,
+  // so the library states facts and never names an option, a flag or a command line.
+  const interfaceTerms = /--|verbose|option|flag|command line/i;
+
+  test('the messages of an export state facts and name no option, flag or command line', async () => {
+    serve([fakeJourney('A', { unconnected: 2 }), fakeJourney('B')]);
+
+    await JourneyOps.exportJourneys({
+      options: exportOptions,
+      state: validationState(),
+    });
+
+    const messages = [
+      ...warnMessages(),
+      ...stopProgressIndicatorMock.mock.calls.map(
+        ([args]: any[]) => args.message
+      ),
+    ];
+    expect(messages).toEqual([
+      '1 of 2 journeys has validation findings: 2 unconnected outcomes.',
+      'Exported 2 alpha realm journeys.',
+    ]);
+    for (const message of messages) {
+      expect(message).not.toMatch(interfaceTerms);
+    }
+  });
+
+  test('the message of a failed export and of an export with errors name no option, flag or command line', async () => {
+    serve(
+      [
+        fakeJourney('A', { unconnected: 2, unreachable: 1 }),
+        fakeJourney('B', { brokenTarget: true }),
+        fakeJourney('C', { unconnected: 1 }),
+        fakeJourney('D'),
+      ],
+      ['C']
+    );
+    await JourneyOps.exportJourneys({
+      options: exportOptions,
+      resultCallback: jest.fn(),
+      state: validationState(),
+    });
+
+    const messages = [
+      ...warnMessages(),
+      ...stopProgressIndicatorMock.mock.calls.map(
+        ([args]: any[]) => args.message
+      ),
+    ];
+    expect(messages).toEqual([
+      '2 of 3 journeys have validation findings (1 error and 4 warnings): 2 unconnected outcomes, 1 connection to a missing node, 1 unreachable node, 1 without a reachable end.',
+      'Exported 3 of 4 alpha realm journeys.',
+    ]);
+    for (const message of messages) {
+      expect(message).not.toMatch(interfaceTerms);
+    }
+  });
+
+  test('no name of a finding code, singular or plural, names an option, flag or command line', () => {
+    const codes = [
+      'MISSING_NODE_DEFINITION',
+      'NODE_ID_MISMATCH',
+      'MISSING_CONNECTION_TARGET',
+      'MISSING_ENTRY_NODE',
+      'MISSING_INNER_NODE',
+      'UNKNOWN_CONNECTION_OUTCOME',
+      'UNCONNECTED_OUTCOME',
+      'UNREACHABLE_NODE',
+      'UNREFERENCED_INNER_NODE',
+      'UNREPRESENTED_NODE',
+      'PAGE_NODE_OUTCOME_MISMATCH',
+      'NO_REACHABLE_TERMINAL',
+      'NODE_TYPE_MISMATCH',
+      'INNER_NODE_REFERENCED_BY_MULTIPLE_PAGES',
+      'NODE_ID_COLLISION',
+      'TREE_ID_MISMATCH',
+      'MISSING_SCRIPT_DEPENDENCY',
+      'MISSING_EMAIL_TEMPLATE_DEPENDENCY',
+      'MISSING_THEME_DEPENDENCY',
+      'MISSING_SOCIAL_IDENTITY_PROVIDER_DEPENDENCY',
+      'MISSING_SAML_ENTITY_DEPENDENCY',
+    ];
+    const findingsOf = (count: number, severity: string) =>
+      codes.flatMap((code) =>
+        Array.from({ length: count }, (_, i) => ({
+          code,
+          severity,
+          journeyId: `${code}-${i}`,
+          message: 'm',
+        }))
+      );
+
+    for (const [count, severity] of [
+      [1, 'warning'],
+      [2, 'warning'],
+      [1, 'error'],
+      [2, 'error'],
+    ] as [number, string][]) {
+      printMessageMock.mockClear();
+      JourneyOps.reportJourneyExportFindings(
+        findingsOf(count, severity) as any,
+        100,
+        validationState()
+      );
+      const [message] = warnMessages();
+      expect(warnMessages()).toHaveLength(1);
+      // every code has a name of its own: none falls back to the code
+      expect(message).not.toMatch(/[A-Z]{2,}_[A-Z_]+/);
+      expect(message).not.toMatch(interfaceTerms);
+    }
   });
 });

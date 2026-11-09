@@ -666,12 +666,14 @@ const JOURNEY_FINDING_LABELS: Record<
 };
 
 /**
- * Report the findings of an export of many journeys. Verbose: one line per
- * journey and one per finding, as {@link reportJourneyFindings}. Otherwise one
- * line for the whole export, which names how many journeys have findings and
- * how many findings of each kind there are, because a realm of a few hundred
- * journeys would print a line per journey that says nothing about what is
- * wrong.
+ * Report the findings of an export of many journeys. When the state is
+ * verbose: one line per journey and one per finding, as
+ * {@link reportJourneyFindings}. Otherwise one line for the whole export, which
+ * names how many journeys have findings and how many findings of each kind
+ * there are, because a realm of a few hundred journeys would print a line per
+ * journey that says nothing about what is wrong. The line states facts only: it
+ * never tells the reader how to see more, because how to ask for details is
+ * specific to the interface that calls the library.
  * Exported for the unit tests only; it is not part of the `frodo` facade.
  * @param {JourneyValidationFinding[]} findings the findings of all exported journeys
  * @param {number} exportedCount the number of journeys that were exported
@@ -715,7 +717,7 @@ export function reportJourneyExportFindings(
           .join(' and ')})`
       : '';
   printMessage({
-    message: `${journeyCount} of ${exportedCount} ${exportedCount === 1 ? 'journey' : 'journeys'} ${journeyCount === 1 ? 'has' : 'have'} validation findings${severities}: ${kinds.join(', ')}. Use verbose output to list them.`,
+    message: `${journeyCount} of ${exportedCount} ${exportedCount === 1 ? 'journey' : 'journeys'} ${journeyCount === 1 ? 'has' : 'have'} validation findings${severities}: ${kinds.join(', ')}.`,
     type: 'warn',
     state,
   });
