@@ -10,6 +10,14 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-32] - 2026-11-09
+
+### Added
+- An export of all journeys now prints a single summary of validation findings and counts what was exported, rather than printing one line per journey with findings. This improves clarity and reduces output clutter during large exports. (#974)
+
+### Fixed
+- Login errors have been updated to state only the facts about what is missing or not supported, removing guidance on which option, command, or environment variable to use. Each error condition now carries a stable code, allowing interfaces to add their own advice. This change addresses issues with unclear error messages. (#976)
+
 ## [v5.0.0-31] - 2026-11-09
 
 ### Added
@@ -2882,6 +2890,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-32]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-31...v5.0.0-32
 [v5.0.0-31]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-30...v5.0.0-31
 [v5.0.0-30]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-29...v5.0.0-30
 [v5.0.0-29]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-28...v5.0.0-29
