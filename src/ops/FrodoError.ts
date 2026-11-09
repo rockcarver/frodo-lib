@@ -27,6 +27,8 @@ export const FRODO_ERROR_CODES = [
   'BROWSER_LOGIN_CLASSIC_CLIENT_ID_REQUIRED',
   /** Classic browser login needs a session-capture script on the OAuth2 client, and the token carries no session. */
   'BROWSER_LOGIN_CLASSIC_SESSION_CAPTURE_REQUIRED',
+  /** A capability needs the Log API key and secret, and the connection has none. */
+  'LOG_API_CREDENTIAL_MISSING',
 ] as const;
 
 /** The identity of an error condition, see {@link FRODO_ERROR_CODES}. */

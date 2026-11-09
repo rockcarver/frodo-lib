@@ -999,7 +999,9 @@ function assertRequiredCredential(
       return;
     }
     throw new FrodoError(
-      `MCP runtime error: descriptor '${descriptor.id}' requires a Log API key/secret, which is not configured for this connection. Add logApiKey/logApiSecret to the connection profile (see 'cloud.log.createLogApiKey' to provision one), or set the FRODO_LOG_KEY/FRODO_LOG_SECRET environment variables.`
+      `MCP runtime error: descriptor '${descriptor.id}' requires a Log API key/secret, which is not configured for this connection. Add logApiKey/logApiSecret to the connection profile (see 'cloud.log.createLogApiKey' to provision one).`,
+      null,
+      'LOG_API_CREDENTIAL_MISSING'
     );
   }
 }
