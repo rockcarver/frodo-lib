@@ -74,7 +74,7 @@ import {
   readManagedObjects,
   updateManagedObject,
 } from './ManagedObjectOps';
-import { MappingSkeleton, readMappings } from './MappingOps';
+import { deleteMapping, MappingSkeleton, readMappings } from './MappingOps';
 import {
   deleteOAuth2Client,
   exportOAuth2Client,
@@ -83,7 +83,7 @@ import {
   OAuth2ClientExportInterface,
   readOAuth2Client,
 } from './OAuth2ClientOps';
-import { type ExportMetaData } from './OpsTypes';
+import { type ExportMetaData, type ResultCallback } from './OpsTypes';
 import {
   deleteSaml2Provider,
   exportSaml2Provider,
@@ -185,6 +185,36 @@ export type Application = {
    * @returns {Promise<ApplicationGlossarySkeleton[]>} a promise that resolves to an array of application objects
    */
   deleteApplications(deep?: boolean): Promise<ApplicationGlossarySkeleton[]>;
+  /**
+   * Delete the objects an application owns: the OAuth2 client, the SAML entity providers (and their membership in circles of trust), the mappings and the connector that its record names. The record itself is not deleted (delete it first, with `deep` off, and pass the record that comes back), and the objects an application only shares (scripts, circles of trust, glossary schemas, request forms, request types) are never touched. An object that another application still names is kept. Every object is reported to the result callback once; a failure of one object does not stop the others and is not thrown.
+   * @param {ApplicationSkeleton} applicationData the application record
+   * @param {ApplicationOwnedDeleteOptions} options the ownership index to use (read once if not given) and the result callback
+   * @returns {Promise<ApplicationOwnedObjectResult[]>} a promise that resolves to what happened to each owned object
+   */
+  deleteApplicationOwnedObjects(
+    applicationData: ApplicationSkeleton,
+    options?: ApplicationOwnedDeleteOptions
+  ): Promise<ApplicationOwnedObjectResult[]>;
+  /**
+   * Delete the objects an application owns, by application id. The application is read first, so it must still exist: to delete the record first, pass the record that deleteApplication returns to deleteApplicationOwnedObjects.
+   * @param {string} applicationId application uuid
+   * @param {ApplicationOwnedDeleteOptions} options the ownership index to use (read once if not given) and the result callback
+   * @returns {Promise<ApplicationOwnedObjectResult[]>} a promise that resolves to what happened to each owned object
+   */
+  deleteApplicationOwnedObjectsById(
+    applicationId: string,
+    options?: ApplicationOwnedDeleteOptions
+  ): Promise<ApplicationOwnedObjectResult[]>;
+  /**
+   * Delete the objects an application owns, by application name. The application is read first, so it must still exist: to delete the record first, pass the record that deleteApplicationByName returns to deleteApplicationOwnedObjects.
+   * @param {string} applicationName application name
+   * @param {ApplicationOwnedDeleteOptions} options the ownership index to use (read once if not given) and the result callback
+   * @returns {Promise<ApplicationOwnedObjectResult[]>} a promise that resolves to what happened to each owned object
+   */
+  deleteApplicationOwnedObjectsByName(
+    applicationName: string,
+    options?: ApplicationOwnedDeleteOptions
+  ): Promise<ApplicationOwnedObjectResult[]>;
   /**
    * Query applications
    * @param {string} filter CREST search filter
@@ -456,6 +486,39 @@ export default (state: State): Application => {
       deep = true
     ): Promise<ApplicationGlossarySkeleton[]> {
       return deleteApplications({ options: { deep }, state });
+    },
+    async deleteApplicationOwnedObjects(
+      applicationData: ApplicationSkeleton,
+      options: ApplicationOwnedDeleteOptions = {}
+    ): Promise<ApplicationOwnedObjectResult[]> {
+      return deleteApplicationOwnedObjects({
+        applicationData,
+        ownership: options.ownership,
+        resultCallback: options.resultCallback,
+        state,
+      });
+    },
+    async deleteApplicationOwnedObjectsById(
+      applicationId: string,
+      options: ApplicationOwnedDeleteOptions = {}
+    ): Promise<ApplicationOwnedObjectResult[]> {
+      return deleteApplicationOwnedObjectsById({
+        applicationId,
+        ownership: options.ownership,
+        resultCallback: options.resultCallback,
+        state,
+      });
+    },
+    async deleteApplicationOwnedObjectsByName(
+      applicationName: string,
+      options: ApplicationOwnedDeleteOptions = {}
+    ): Promise<ApplicationOwnedObjectResult[]> {
+      return deleteApplicationOwnedObjectsByName({
+        applicationName,
+        ownership: options.ownership,
+        resultCallback: options.resultCallback,
+        state,
+      });
     },
     async queryApplications(
       filter: string,
@@ -786,6 +849,42 @@ export interface ApplicationOwnershipEntry {
 export interface ApplicationOwnership {
   /** The owned objects, ordered by kind and id. */
   entries: ApplicationOwnershipEntry[];
+}
+
+/**
+ * What happened to one object that an application owns when its owned objects were deleted:
+ * `deleted`, `kept` because another application still names it, or `failed`.
+ */
+export type ApplicationOwnedObjectOutcome = 'deleted' | 'kept' | 'failed';
+
+/**
+ * The result for one owned object.
+ */
+export interface ApplicationOwnedObjectResult {
+  /** What kind of object it is. */
+  kind: ApplicationOwnedKind;
+  /** How the object is addressed: the OAuth2 client id, the SAML entity id (decoded), the connector name or the mapping name. */
+  id: string;
+  /** What happened to it. */
+  outcome: ApplicationOwnedObjectOutcome;
+  /** `kept` only: the other applications that still name the object. */
+  owners?: ApplicationOwner[];
+  /** `failed` only: what went wrong. */
+  error?: FrodoError;
+}
+
+/**
+ * Options of deleting the objects an application owns.
+ */
+export interface ApplicationOwnedDeleteOptions {
+  /**
+   * Which application owns which object, as read by readApplicationOwnership. An object that an application other than the one being deleted names is kept. If it is not given, the ownership is read once for the realm, so that the safe behaviour is the default.
+   */
+  ownership?: ApplicationOwnership;
+  /**
+   * Called once for every owned object, in the order they are deleted: `(undefined, result)` for a deleted or kept object, `(error, result)` for a failed one (the result names the object), so that a caller can run every removal as one operation.
+   */
+  resultCallback?: ResultCallback<ApplicationOwnedObjectResult>;
 }
 
 /**
@@ -1735,6 +1834,271 @@ export async function deleteApplications({
       error
     );
   }
+}
+
+/**
+ * The order in which owned objects are deleted: the OAuth2 client, the SAML
+ * providers, the mappings, then the connector they belong to.
+ */
+const OWNED_DELETE_ORDER: ApplicationOwnedKind[] = [
+  'oauth2Client',
+  'saml2Provider',
+  'mapping',
+  'connector',
+];
+
+/**
+ * Whether an owner of an object is the application that is being deleted
+ * @param {ApplicationOwner} owner an owner from the ownership index
+ * @param {ApplicationSkeleton} applicationData the application record
+ * @returns {boolean} true if the owner is that application
+ */
+function isSameApplication(
+  owner: ApplicationOwner,
+  applicationData: ApplicationSkeleton
+): boolean {
+  if (owner.applicationId && applicationData._id) {
+    return owner.applicationId === applicationData._id;
+  }
+  return owner.applicationName === applicationData.name;
+}
+
+/**
+ * Delete one owned object
+ * @param {ApplicationOwnedKind} kind what kind of object it is
+ * @param {string} id the OAuth2 client id, the SAML entity id (decoded), the connector name or the mapping name
+ * @param {Map<string, string> | FrodoError} mappingIds the ids of the mappings by name, read once for all mappings, or the error of reading them
+ */
+async function deleteOwnedObject({
+  kind,
+  id,
+  mappingIds,
+  state,
+}: {
+  kind: ApplicationOwnedKind;
+  id: string;
+  mappingIds: Map<string, string> | FrodoError;
+  state: State;
+}): Promise<void> {
+  switch (kind) {
+    case 'oauth2Client':
+      await deleteOAuth2Client({ clientId: id, state });
+      break;
+    case 'saml2Provider': {
+      await deleteSaml2Provider({ entityId: id, state });
+      // only take the provider out of its circles of trust, never delete a circle of trust
+      try {
+        const cots = await readCirclesOfTrust({
+          entityProviders: [id],
+          state,
+        });
+        for (const cot of cots) {
+          cot.trustedProviders = cot.trustedProviders.filter(
+            (provider) => provider !== `${id}|saml2`
+          );
+          await updateCircleOfTrust({ cotId: cot._id, cotData: cot, state });
+        }
+      } catch (error) {
+        throw new FrodoError(
+          `SAML provider ${id} was deleted, but it could not be removed from its circles of trust`,
+          error
+        );
+      }
+      break;
+    }
+    case 'mapping': {
+      if (mappingIds instanceof FrodoError) {
+        throw new FrodoError(
+          `Mapping ${id} could not be looked up, because the mappings could not be read`,
+          mappingIds
+        );
+      }
+      const mappingId = mappingIds.get(id);
+      if (!mappingId) {
+        throw new FrodoError(`Mapping ${id} not found`);
+      }
+      await deleteMapping({ mappingId, state });
+      break;
+    }
+    case 'connector':
+      // the mappings that the record names are deleted one by one, so that every one is reported and
+      // kept when another application names it: no deep delete, which removes every mapping of the connector
+      await deleteConnector({ connectorId: id, deep: false, state });
+      break;
+  }
+}
+
+/**
+ * Delete the objects an application owns: the OAuth2 client, the SAML entity
+ * providers (and their membership in circles of trust), the mappings and the
+ * connector that its record names. The record itself is not deleted (delete it
+ * first, with `deep` off, and pass the record that comes back), and the objects
+ * an application only shares (scripts, circles of trust, glossary schemas,
+ * request forms, request types) are never touched. An object that another
+ * application still names is kept. Every object is reported to the result
+ * callback once; a failure of one object does not stop the others and is not
+ * thrown.
+ * @param {ApplicationSkeleton} applicationData the application record
+ * @param {ApplicationOwnership} ownership which application owns which object. Default: read once for the realm
+ * @param {ResultCallback<ApplicationOwnedObjectResult>} resultCallback called once for every owned object: `(undefined, result)` for a deleted or kept object, `(error, result)` for a failed one
+ * @returns {Promise<ApplicationOwnedObjectResult[]>} a promise that resolves to what happened to each owned object, in the order they were handled
+ * @throws {FrodoError} if the ownership has to be read and cannot be
+ */
+export async function deleteApplicationOwnedObjects({
+  applicationData,
+  ownership,
+  resultCallback,
+  state,
+}: {
+  applicationData: ApplicationSkeleton;
+  ownership?: ApplicationOwnership;
+  resultCallback?: ResultCallback<ApplicationOwnedObjectResult>;
+  state: State;
+}): Promise<ApplicationOwnedObjectResult[]> {
+  try {
+    debugMessage({
+      message: `ApplicationOps.deleteApplicationOwnedObjects: start [application=${applicationData.name}]`,
+      state,
+    });
+    const references = getApplicationRecordReferences(applicationData)
+      .filter((reference) => isOwnedKind(reference.kind))
+      .sort(
+        (a, b) =>
+          OWNED_DELETE_ORDER.indexOf(a.kind as ApplicationOwnedKind) -
+          OWNED_DELETE_ORDER.indexOf(b.kind as ApplicationOwnedKind)
+      );
+    const results: ApplicationOwnedObjectResult[] = [];
+    if (references.length === 0) {
+      return results;
+    }
+    const index = ownership ?? (await readApplicationOwnership({ state }));
+    // the mappings are named in the record, but deleted by id: read the ids once
+    let mappingIds: Map<string, string> | FrodoError = new Map();
+    if (references.some((reference) => reference.kind === 'mapping')) {
+      try {
+        const ids = new Map<string, string>();
+        for (const mapping of await readMappings({ state })) {
+          ids.set(mapping.name, mapping._id);
+        }
+        mappingIds = ids;
+      } catch (error) {
+        // every mapping that has to be deleted is then reported as failed by name
+        mappingIds =
+          error instanceof FrodoError
+            ? error
+            : new FrodoError('Error reading mappings', error);
+      }
+    }
+    for (const reference of references) {
+      const kind = reference.kind as ApplicationOwnedKind;
+      const others = getApplicationOwners(index, kind, reference.id).filter(
+        (owner) => !isSameApplication(owner, applicationData)
+      );
+      let result: ApplicationOwnedObjectResult;
+      if (others.length > 0) {
+        result = { kind, id: reference.id, outcome: 'kept', owners: others };
+      } else {
+        try {
+          await deleteOwnedObject({
+            kind,
+            id: reference.id,
+            mappingIds,
+            state,
+          });
+          result = { kind, id: reference.id, outcome: 'deleted' };
+        } catch (error) {
+          result = {
+            kind,
+            id: reference.id,
+            outcome: 'failed',
+            error:
+              error instanceof FrodoError
+                ? error
+                : new FrodoError(
+                    `Error deleting ${kind} ${reference.id}`,
+                    error
+                  ),
+          };
+        }
+      }
+      results.push(result);
+      if (resultCallback) {
+        resultCallback(result.error, result);
+      }
+    }
+    debugMessage({
+      message: `ApplicationOps.deleteApplicationOwnedObjects: end`,
+      state,
+    });
+    return results;
+  } catch (error) {
+    throw new FrodoError(
+      `Error deleting the objects owned by ${getCurrentRealmName(state) + ' realm'} application ${applicationData.name}`,
+      error
+    );
+  }
+}
+
+/**
+ * Delete the objects an application owns, by application id. The application
+ * is read first, so it must still exist: to delete the record first, pass the
+ * record that `deleteApplication` returns to `deleteApplicationOwnedObjects`.
+ * @param {string} applicationId application uuid
+ * @param {ApplicationOwnership} ownership which application owns which object. Default: read once for the realm
+ * @param {ResultCallback<ApplicationOwnedObjectResult>} resultCallback called once for every owned object
+ * @returns {Promise<ApplicationOwnedObjectResult[]>} a promise that resolves to what happened to each owned object
+ */
+export async function deleteApplicationOwnedObjectsById({
+  applicationId,
+  ownership,
+  resultCallback,
+  state,
+}: {
+  applicationId: string;
+  ownership?: ApplicationOwnership;
+  resultCallback?: ResultCallback<ApplicationOwnedObjectResult>;
+  state: State;
+}): Promise<ApplicationOwnedObjectResult[]> {
+  const applicationData = await readApplication({ applicationId, state });
+  return deleteApplicationOwnedObjects({
+    applicationData,
+    ownership,
+    resultCallback,
+    state,
+  });
+}
+
+/**
+ * Delete the objects an application owns, by application name. The
+ * application is read first, so it must still exist: to delete the record
+ * first, pass the record that `deleteApplicationByName` returns to
+ * `deleteApplicationOwnedObjects`.
+ * @param {string} applicationName application name
+ * @param {ApplicationOwnership} ownership which application owns which object. Default: read once for the realm
+ * @param {ResultCallback<ApplicationOwnedObjectResult>} resultCallback called once for every owned object
+ * @returns {Promise<ApplicationOwnedObjectResult[]>} a promise that resolves to what happened to each owned object
+ */
+export async function deleteApplicationOwnedObjectsByName({
+  applicationName,
+  ownership,
+  resultCallback,
+  state,
+}: {
+  applicationName: string;
+  ownership?: ApplicationOwnership;
+  resultCallback?: ResultCallback<ApplicationOwnedObjectResult>;
+  state: State;
+}): Promise<ApplicationOwnedObjectResult[]> {
+  const applicationData = await readApplicationByName({
+    applicationName,
+    state,
+  });
+  return deleteApplicationOwnedObjects({
+    applicationData,
+    ownership,
+    resultCallback,
+    state,
+  });
 }
 
 export async function queryApplications({

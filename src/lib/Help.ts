@@ -853,6 +853,39 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Application",
+    methodName: "deleteApplicationOwnedObjects",
+    signature: "deleteApplicationOwnedObjects( applicationData: ApplicationSkeleton, options?: ApplicationOwnedDeleteOptions ): Promise<ApplicationOwnedObjectResult[]>",
+    description: "Delete the objects an application owns: the OAuth2 client, the SAML entity providers (and their membership in circles of trust), the mappings and the connector that its record names. The record itself is not deleted (delete it first, with `deep` off, and pass the record that comes back), and the objects an application only shares (scripts, circles of trust, glossary schemas, request forms, request types) are never touched. An object that another application still names is kept. Every object is reported to the result callback once; a failure of one object does not stop the others and is not thrown.",
+    params: [
+      { name: "applicationData", type: "ApplicationSkeleton", description: "the application record", required: true },
+      { name: "options", type: "ApplicationOwnedDeleteOptions", description: "the ownership index to use (read once if not given) and the result callback", required: false },
+    ],
+    returns: "{Promise<ApplicationOwnedObjectResult[]>} a promise that resolves to what happened to each owned object",
+  },
+  {
+    typeName: "Application",
+    methodName: "deleteApplicationOwnedObjectsById",
+    signature: "deleteApplicationOwnedObjectsById( applicationId: string, options?: ApplicationOwnedDeleteOptions ): Promise<ApplicationOwnedObjectResult[]>",
+    description: "Delete the objects an application owns, by application id. The application is read first, so it must still exist: to delete the record first, pass the record that deleteApplication returns to deleteApplicationOwnedObjects.",
+    params: [
+      { name: "applicationId", type: "string", description: "application uuid", required: true },
+      { name: "options", type: "ApplicationOwnedDeleteOptions", description: "the ownership index to use (read once if not given) and the result callback", required: false },
+    ],
+    returns: "{Promise<ApplicationOwnedObjectResult[]>} a promise that resolves to what happened to each owned object",
+  },
+  {
+    typeName: "Application",
+    methodName: "deleteApplicationOwnedObjectsByName",
+    signature: "deleteApplicationOwnedObjectsByName( applicationName: string, options?: ApplicationOwnedDeleteOptions ): Promise<ApplicationOwnedObjectResult[]>",
+    description: "Delete the objects an application owns, by application name. The application is read first, so it must still exist: to delete the record first, pass the record that deleteApplicationByName returns to deleteApplicationOwnedObjects.",
+    params: [
+      { name: "applicationName", type: "string", description: "application name", required: true },
+      { name: "options", type: "ApplicationOwnedDeleteOptions", description: "the ownership index to use (read once if not given) and the result callback", required: false },
+    ],
+    returns: "{Promise<ApplicationOwnedObjectResult[]>} a promise that resolves to what happened to each owned object",
+  },
+  {
+    typeName: "Application",
     methodName: "queryApplications",
     signature: "queryApplications( filter: string, fields?: string[] ): Promise<ApplicationSkeleton[]>",
     description: "Query applications",

@@ -97,7 +97,10 @@ jest.unstable_mockModule('./ManagedObjectOps', () => ({
   readManagedObjects,
   updateManagedObject: unused,
 }));
-jest.unstable_mockModule('./MappingOps', () => ({ readMappings: unused }));
+jest.unstable_mockModule('./MappingOps', () => ({
+  deleteMapping: unused,
+  readMappings: unused,
+}));
 jest.unstable_mockModule('./OAuth2ClientOps', () => ({
   deleteOAuth2Client: unused,
   exportOAuth2Client: unused,
