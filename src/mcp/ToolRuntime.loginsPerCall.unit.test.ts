@@ -4,17 +4,11 @@
  *        npm run test:only ToolRuntime.loginsPerCall
  *
  * The session churn of the MCP server (frodo-lib#905, follow-up to #897): how
- * many logins a tool call causes. A test that describes behaviour that is not
- * there yet is marked `knownToFail` with the issue that fixes it: it passes
- * while the behaviour is missing, and fails (so that someone removes the mark)
- * as soon as the fix lands. (`test.failing` is not available with this
- * repository's jest runner.)
- *
- * The runtime calls `login.getTokens()` for every request; what that costs is
- * decided by the library (frodo-lib#906). Those cases therefore count the
- * logins that the real login code sends to a fake AM. The cases about another
- * instance (frodo-lib#907) count the `login.getTokens` of fakes; no request is
- * made.
+ * many logins a tool call causes. The runtime calls `login.getTokens()` for
+ * every request; what that costs is decided by the library (frodo-lib#906).
+ * Those cases therefore count the logins that the real login code sends to a
+ * fake AM. What a realm-overridden request costs is in
+ * ToolRuntime.realmOverrideLogins.unit.test.ts (frodo-lib#907).
  */
 import '../index';
 import { jest } from '@jest/globals';
@@ -77,25 +71,6 @@ const manifest = {
   backingDescriptorCount: 1,
   totalToolCount: 2,
 } as unknown as McpToolManifest;
-
-/**
- * Passes while `fn` still fails on an assertion, and fails when it passes, so
- * that the mark is removed together with the fix. Anything that is not an
- * assertion mismatch (a setup error) is a real failure and is rethrown.
- */
-function knownToFail(issue: string, name: string, fn: () => Promise<void>) {
-  test(`${name} [known to fail until ${issue}]`, async () => {
-    try {
-      await fn();
-    } catch (e) {
-      if (!(e as any)?.matcherResult) throw e;
-      return;
-    }
-    throw new Error(
-      `${issue} appears to be fixed: remove knownToFail from this test.`
-    );
-  });
-}
 
 /** A real instance whose login and one read are counted fakes. */
 function countedInstance(host = HOST) {
@@ -203,47 +178,4 @@ describe('MCP runtime logins per tool call', () => {
       expect(am.logins()).toBe(1);
     });
   });
-
-  // lib#907: a realm override derives from the authenticated instance
-  knownToFail(
-    'frodo-lib#907',
-    '4: a realm override causes no new instance and no new login',
-    async () => {
-      const root = countedInstance();
-      authenticate(root.instance, 30 * 60 * 1000);
-      const created: ReturnType<typeof countedInstance>[] = [];
-      (root.instance as any).createInstanceWithServiceAccount = jest.fn(() => {
-        const scoped = countedInstance();
-        created.push(scoped);
-        return scoped.instance;
-      });
-      const runtime = createToolRuntime(
-        manifest,
-        [descriptor],
-        root.instance,
-        {}
-      );
-      const context = {
-        auth: {
-          mode: 'service-account',
-          host: HOST,
-          serviceAccountId: 'service-account',
-          serviceAccountJwk: '{}',
-          realm: 'bravo',
-          deploymentType: 'cloud',
-        },
-      };
-      for (let i = 0; i < 3; i++) {
-        await call(runtime, context);
-      }
-      const logins = created.reduce(
-        (n, c) => n + c.getTokens.mock.calls.length,
-        0
-      );
-      expect(
-        (root.instance as any).createInstanceWithServiceAccount
-      ).not.toHaveBeenCalled();
-      expect(logins).toBe(0);
-    }
-  );
 });

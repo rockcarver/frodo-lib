@@ -1368,6 +1368,36 @@ async function resolveScopedFrodoInstance(
     // actionable error below.
   }
 
+  // The request-scoped factory helpers of the service account and of the admin
+  // account set no token cache option, so such an instance has the cache off
+  // and logs in on every realm-overridden request, however the server was
+  // started (frodo-lib#907). The cache key does not contain the realm of the
+  // request, so the instance finds the credential that the root instance (or an
+  // earlier request) stored. A scoped instance takes the cache switch and the
+  // cache path of the root instance unless it has a setting of its own (a custom
+  // resolver may set one); these two kinds of credential are encrypted with a
+  // key derived from the credential itself, so the master key plays no part. A
+  // bearer token that a caller presented is never cached (it belongs to the
+  // caller), and a browser login keeps its own session reuse; neither is
+  // touched. The `state-config` mode copies the whole state and needs nothing.
+  if (
+    (context.auth.mode === 'service-account' ||
+      context.auth.mode === 'admin-account') &&
+    scopedFrodo?.state &&
+    frodoRoot?.state &&
+    scopedFrodo !== frodoRoot &&
+    scopedFrodo.state.getUseTokenCache() === undefined
+  ) {
+    const rootUseTokenCache = frodoRoot.state.getUseTokenCache();
+    if (rootUseTokenCache !== undefined) {
+      scopedFrodo.state.setUseTokenCache(rootUseTokenCache);
+      const rootTokenCachePath = frodoRoot.state.getTokenCachePath();
+      if (rootTokenCachePath && !scopedFrodo.state.getTokenCachePath()) {
+        scopedFrodo.state.setTokenCachePath(rootTokenCachePath);
+      }
+    }
+  }
+
   // A caller-configuration error, not an authentication failure — thrown
   // outside the try/catch below so its specific message isn't swallowed by
   // the generic "authentication failed" wrapper.
