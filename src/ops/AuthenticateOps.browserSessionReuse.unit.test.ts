@@ -482,6 +482,7 @@ describe('getTokens() reuses a cached browser-login session instead of a fresh i
     expect(caught.originalErrors?.[0]?.message).toMatch(
       /No valid cached browser-login session/
     );
+    expect(caught.originalErrors?.[0]?.code).toBe('BROWSER_LOGIN_NO_SESSION');
     expect(runInteractiveAuthorizationCodeFlow).not.toHaveBeenCalled();
   });
 

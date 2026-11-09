@@ -290,6 +290,9 @@ describe('getTokensInteractive() resolves a non-URL host before use', () => {
     expect(caught.originalErrors?.[0]?.message).toMatch(
       /could not determine the deployment type of https:\/\/openam-no-profile-no-type\.forgeblocks\.com\/am/
     );
+    expect(caught.originalErrors?.[0]?.code).toBe(
+      'BROWSER_LOGIN_DEPLOYMENT_TYPE_UNKNOWN'
+    );
     expect(authorize).toHaveBeenCalledTimes(2);
   });
 

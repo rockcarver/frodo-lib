@@ -136,6 +136,7 @@ describe('ForgeOps browser login (getTokensInteractive)', () => {
       })
     );
     expect(error.message).toMatch(/requires an OAuth2 client id/);
+    expect(error.code).toBe('BROWSER_LOGIN_FORGEOPS_CLIENT_ID_REQUIRED');
     expect(runInteractiveAuthorizationCodeFlow).not.toHaveBeenCalled();
   });
 

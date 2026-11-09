@@ -121,6 +121,7 @@ describe('Classic browser login (getTokensInteractive)', () => {
       })
     );
     expect(error.message).toMatch(/requires an OAuth2 client id/);
+    expect(error.code).toBe('BROWSER_LOGIN_CLASSIC_CLIENT_ID_REQUIRED');
     expect(runInteractiveAuthorizationCodeFlow).not.toHaveBeenCalled();
   });
 
@@ -144,6 +145,7 @@ describe('Classic browser login (getTokensInteractive)', () => {
     );
 
     expect(error.message).toMatch(/requires a session-capture script/);
+    expect(error.code).toBe('BROWSER_LOGIN_CLASSIC_SESSION_CAPTURE_REQUIRED');
     expect(state.getUseBearerTokenForAmApis()).toBeFalsy();
     expect(getAuthenticationSettings).not.toHaveBeenCalled();
   });

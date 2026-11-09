@@ -2469,7 +2469,9 @@ export async function getTokens({
         return withEscalation(reused);
       }
       throw new FrodoError(
-        `No valid cached browser-login session exists for this host. Run 'frodo login --browser' first.`
+        `No valid cached browser-login session exists for this host.`,
+        null,
+        'BROWSER_LOGIN_NO_SESSION'
       );
     }
     if (credentialOverride) {
@@ -2628,7 +2630,9 @@ export async function getTokens({
         });
       } else {
         throw new FrodoError(
-          `No stored password found for username '${state.getUsername()}' in the connection profile for '${state.getHost()}'. Provide --password explicitly, or omit --username to use the full stored connection profile.`
+          `No stored password found for username '${state.getUsername()}' in the connection profile for '${state.getHost()}'.`,
+          null,
+          'LOGIN_NO_STORED_PASSWORD'
         );
       }
     }
@@ -3103,7 +3107,7 @@ async function applyForgeopsInteractiveToken({
   const accepted = await probeAmBearerTokenAcceptance({ state });
   if (!accepted) {
     printMessage({
-      message: `Warning: this OAuth2 client has no session-capture script configured, and AM did not accept its bearer token directly. AM-domain operations will likely fail; IDM-domain operations still work. See BROWSER_LOGIN.md for the recommended session-capture script setup.`,
+      message: `Warning: this OAuth2 client has no session-capture script configured, and AM did not accept its bearer token directly. AM-domain operations will likely fail; IDM-domain operations still work.`,
       type: 'warn',
       state,
     });
@@ -3132,7 +3136,9 @@ async function applyClassicInteractiveToken({
   state.setBearerTokenMeta(token);
   if (!token.sessionId) {
     throw new FrodoError(
-      `Browser login on classic requires a session-capture script configured on this OAuth2 client — classic has no IDM and no supported bearer-token fallback for AM-domain access. See BROWSER_LOGIN.md's classic section for the required AM OAuth2 Provider and script setup.`
+      `Browser login on classic requires a session-capture script configured on this OAuth2 client — classic has no IDM and no supported bearer-token fallback for AM-domain access.`,
+      null,
+      'BROWSER_LOGIN_CLASSIC_SESSION_CAPTURE_REQUIRED'
     );
   }
   return applySessionCaptureToken({ sessionId: token.sessionId, state });
@@ -3485,7 +3491,9 @@ async function resolveBrowserLoginTarget({
   }
   if (!resolved) {
     throw new FrodoError(
-      `Browser login could not determine the deployment type of ${state.getHost()}: pass --type cloud, forgeops or classic, or save a connection profile for this host with a deployment type set.`
+      `Browser login could not determine the deployment type of ${state.getHost()}: none is set, the connection profile for this host has none, and the host did not reveal it.`,
+      null,
+      'BROWSER_LOGIN_DEPLOYMENT_TYPE_UNKNOWN'
     );
   }
   state.setDeploymentType(resolved);
@@ -3665,7 +3673,9 @@ export async function getTokensInteractive({
           resolvedRedirectUri !== CLOUD_BROWSER_LOGIN_REDIRECT_URI
         ) {
           throw new FrodoError(
-            `--login-redirect-uri is not supported with cloud's built-in OAuth2 client (${CLOUD_BROWSER_LOGIN_CLIENT_ID}): AM only accepts the exact redirect URI "${CLOUD_BROWSER_LOGIN_REDIRECT_URI}" for it. Pass --login-client-id with your own registered OAuth2 client if you need a different redirect URI.`
+            `A custom redirect URI is not supported with cloud's built-in OAuth2 client (${CLOUD_BROWSER_LOGIN_CLIENT_ID}): AM only accepts the exact redirect URI "${CLOUD_BROWSER_LOGIN_REDIRECT_URI}" for it. A different redirect URI needs your own registered OAuth2 client.`,
+            null,
+            'BROWSER_LOGIN_REDIRECT_URI_NOT_SUPPORTED'
           );
         }
         const effectiveRedirectUri = usingBuiltInClient
@@ -3749,7 +3759,9 @@ export async function getTokensInteractive({
         const clientId = loginClientId || state.getAdminClientId();
         if (!clientId) {
           throw new FrodoError(
-            `Browser login on ForgeOps requires an OAuth2 client id. Pass --login-client-id (or set FRODO_LOGIN_CLIENT_ID), pointing at a public client registered in your realm's own OAuth2 provider. See BROWSER_LOGIN.md for the recommended client and session-capture-script setup.`
+            `Browser login on ForgeOps requires an OAuth2 client id, and none is set. The client must be a public client registered in the realm's own OAuth2 provider.`,
+            null,
+            'BROWSER_LOGIN_FORGEOPS_CLIENT_ID_REQUIRED'
           );
         }
         // Mirrors FORGEOPS_ADMIN_DEFAULT_SCOPES (same permission set as
@@ -3804,7 +3816,9 @@ export async function getTokensInteractive({
         const clientId = loginClientId || state.getAdminClientId();
         if (!clientId) {
           throw new FrodoError(
-            `Browser login on classic requires an OAuth2 client id. Pass --login-client-id (or set FRODO_LOGIN_CLIENT_ID), pointing at a public client registered in your realm's own OAuth2 provider (classic doesn't ship one enabled by default — see BROWSER_LOGIN.md's classic section). Your client must also have a session-capture script configured; classic has no bearer-token fallback.`
+            `Browser login on classic requires an OAuth2 client id, and none is set. The client must be a public client registered in the realm's own OAuth2 provider (classic does not ship one enabled by default), and it must have a session-capture script configured; classic has no bearer-token fallback.`,
+            null,
+            'BROWSER_LOGIN_CLASSIC_CLIENT_ID_REQUIRED'
           );
         }
         // Classic has no IDM-domain scope concept at all — an identity-only

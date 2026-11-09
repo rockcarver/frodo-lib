@@ -115,6 +115,7 @@ describe("getTokens()'s browser-login (authMode: 'interactive') branch", () => {
     );
 
     expect(error.message).toMatch(/could not determine the deployment type/);
+    expect(error.code).toBe('BROWSER_LOGIN_DEPLOYMENT_TYPE_UNKNOWN');
   });
 
   test('3: An authMode set to interactive before getTokens() is called (e.g. a CLI --browser flag) skips connection-profile lookup entirely, even for a brand-new host with no saved profile', async () => {
@@ -137,5 +138,6 @@ describe("getTokens()'s browser-login (authMode: 'interactive') branch", () => {
     expect(loadConnectionProfile).not.toHaveBeenCalled();
     expect(getConnectionProfile).not.toHaveBeenCalled();
     expect(error.message).toMatch(/could not determine the deployment type/);
+    expect(error.code).toBe('BROWSER_LOGIN_DEPLOYMENT_TYPE_UNKNOWN');
   });
 });
