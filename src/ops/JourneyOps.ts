@@ -1044,9 +1044,25 @@ async function getSaml2NodeDependencies(
 }
 
 /**
+ * Waits for the reads of the nodes of a journey and returns the nodes that were read. A node that the tenant does not
+ * have (a plain 404) is left out; any other failure ends the wait with that failure, as waiting for all of them would.
+ * @param {Promise<T>[]} reads the node reads
+ * @returns {Promise<T[]>} the nodes that were read
+ */
+async function settleWithoutMissingNodes<T>(reads: Promise<T>[]): Promise<T[]> {
+  const nodes: T[] = [];
+  for (const result of await Promise.allSettled(reads)) {
+    if (result.status === 'fulfilled') nodes.push(result.value);
+    else if (!isNotFoundError(result.reason)) throw result.reason;
+  }
+  return nodes;
+}
+
+/**
  * Create export data for a tree/journey with all its nodes and dependencies. The export data can be written to a file as is.
  * @param {string} journeyId journey id/name
  * @param {TreeExportOptions} options export options
+ * @param {boolean} tolerateMissingNodes true to leave out a node that the tenant does not have (a plain 404) instead of failing the export; only the validation of journeys sets it, because it reports such a node as a finding and an export written to a file must be complete. Default: false
  * @returns {Promise<SingleTreeExportInterface>} a promise that resolves to an object containing the tree and all its nodes and dependencies
  */
 async function exportSingleJourney({
@@ -1056,10 +1072,12 @@ async function exportSingleJourney({
     deps: true,
     coords: true,
   },
+  tolerateMissingNodes = false,
   state,
 }: {
   journeyId: string;
   options?: TreeExportOptions;
+  tolerateMissingNodes?: boolean;
   state: State;
 }): Promise<SingleTreeExportInterface> {
   debugMessage({
@@ -1143,7 +1161,9 @@ async function exportSingleJourney({
     }
     if (verbose && nodePromises.length > 0)
       printMessage({ message: '\n  - Nodes:', newline: false, state });
-    const nodeObjects = await Promise.all(nodePromises);
+    const nodeObjects = tolerateMissingNodes
+      ? await settleWithoutMissingNodes(nodePromises)
+      : await Promise.all(nodePromises);
 
     // iterate over every node in tree
     for (const nodeObject of nodeObjects) {
@@ -1405,7 +1425,10 @@ async function exportSingleJourney({
               }
             }
           }
-        } else if (settledPromise.status === 'rejected') {
+        } else if (
+          settledPromise.status === 'rejected' &&
+          !(tolerateMissingNodes && isNotFoundError(settledPromise.reason))
+        ) {
           errors.push(new FrodoError(settledPromise.reason));
         }
       }
@@ -1686,6 +1709,7 @@ async function exportSingleJourney({
 
 /**
  * Validate journeys from an export or from the active tenant. Every requested journey is processed: a journey that is missing, blank or unreadable does not stop the others.
+ * A node that the tree names and the tenant does not have (a plain 404 when it is read) is a finding of the journey (MISSING_NODE_DEFINITION for a node of the tree, MISSING_INNER_NODE for a node of a Page Node), not a reason to fail it; any other failure to read a node fails the journey.
  * @param {string[]} journeyIds journey names; omit or pass an empty array to validate all journeys
  * @param {MultiTreeExportInterface} journeysExport optional export; when supplied, validation is offline
  * @param {ResultCallback<JourneyValidationFinding[]>} resultCallback Optional callback to process individual results. When given, the outcome of every journey is passed to it as it happens (the findings of the journey, an empty array when there are none, or an error that names the journey) and a failed journey does not throw. Without it, the failed journeys are collected and thrown as one error after all journeys were processed. Failing to list the journeys of the realm, and invalid arguments, always throw.
@@ -1788,9 +1812,12 @@ export async function validateJourneys({
     let journeyFindings: JourneyValidationFinding[];
     let failure: FrodoError;
     try {
+      // a node that the tenant does not have is a finding of the validation
+      // (MISSING_NODE_DEFINITION, MISSING_INNER_NODE), not a reason to fail
       const journey = await exportSingleJourney({
         journeyId,
         options: { deps: false, useStringArrays: true, coords: false },
+        tolerateMissingNodes: true,
         state,
       });
       journeyFindings = validateJourneyReferences(journey);
