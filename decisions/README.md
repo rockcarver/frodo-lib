@@ -68,3 +68,4 @@ A decision that binds more than one repository is a core record: the same file i
 | 0014 | [A recording of a wait may be trimmed of its repeated polls](0014-a-recording-of-a-wait-may-be-trimmed-of-its-repeated-polls.md) | accepted |
 | 0015 | [Static configuration is what a promotion carries, and everything else is dynamic](0015-static-configuration-is-what-a-promotion-carries-and-everything-else-is-dynamic.md) | accepted |
 | 0016 | [Files shared by processes are written safely and reading never writes](0016-files-shared-by-processes-are-written-safely-and-reading-never-writes.md) | accepted |
+| 0017 | [Proxy support is guarded by a short named set of tests, not by running the suite through a proxy](0017-proxy-support-is-guarded-by-a-short-named-set-of-tests.md) | accepted |
