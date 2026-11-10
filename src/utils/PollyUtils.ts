@@ -1,5 +1,6 @@
 import { State } from '../shared/State';
 import { decode, encode, isBase64Encoded } from './Base64Utils';
+import { isSensitiveHeaderName, REDACTED } from './SensitiveDataUtils';
 
 export type Recording = {
   request: {
@@ -143,50 +144,62 @@ export function filterRecording(
 }
 
 function obfuscateHeader(header: { name: string; value: string }): void {
-  // OpenAM user-auth flow sends credentials via request headers during /authenticate.
-  if (header.name.toUpperCase() === 'X-OPENAM-USERNAME') {
-    header.value = '<username>';
-  }
-  if (header.name.toUpperCase() === 'X-OPENAM-PASSWORD') {
-    header.value = '<password>';
-  }
-  if (header.name.toUpperCase() === 'USER-AGENT') {
-    header.value = '<user agent>';
-  }
-  if (header.name.toUpperCase() === 'X-FORGEROCK-TRANSACTIONID') {
-    header.value = '<transaction id>';
-  }
-  if (header.name.toUpperCase() === 'DATE') {
-    header.value = '<date>';
-  }
-  if (header.name.toUpperCase() === 'ETAG') {
-    header.value = '<etag>';
-  }
-  if (header.name.toUpperCase() === 'ALT-SVC') {
-    header.value = '<alt-svc>';
-  }
-  if (header.name.toUpperCase() === 'VIA') {
-    header.value = '<via>';
-  }
-  if (header.name.toUpperCase() === 'AUTHORIZATION') {
-    if (isBase64Encoded(header.value)) {
-      header.value = encode('username:password');
-    } else {
-      header.value = header.value.replace(/Bearer .+/, 'Bearer <bearer token>');
-    }
-  }
-  if (header.name.toUpperCase() === 'X-API-KEY') {
-    header.value = '<api key>';
-  }
-  if (header.name.toUpperCase() === 'X-API-SECRET') {
-    header.value = '<api secret>';
-  }
-  if (header.name.toUpperCase() === 'COOKIE') {
-    header.value = header.value.replace(/=[^;]*/g, '=<cookie>');
-  }
-  if (header.name.toUpperCase() === 'SET-COOKIE') {
-    // The first attribute should always be the cookie in this header, so only replace that attribute
-    header.value = header.value.replace(/=[^;]*/, '=<cookie>');
+  switch (header.name.toUpperCase()) {
+    // OpenAM user-auth flow sends credentials via request headers during /authenticate.
+    case 'X-OPENAM-USERNAME':
+      header.value = '<username>';
+      break;
+    case 'X-OPENAM-PASSWORD':
+      header.value = '<password>';
+      break;
+    case 'USER-AGENT':
+      header.value = '<user agent>';
+      break;
+    case 'X-FORGEROCK-TRANSACTIONID':
+      header.value = '<transaction id>';
+      break;
+    case 'DATE':
+      header.value = '<date>';
+      break;
+    case 'ETAG':
+      header.value = '<etag>';
+      break;
+    case 'ALT-SVC':
+      header.value = '<alt-svc>';
+      break;
+    case 'VIA':
+      header.value = '<via>';
+      break;
+    case 'AUTHORIZATION':
+      if (isBase64Encoded(header.value)) {
+        header.value = encode('username:password');
+      } else {
+        header.value = header.value.replace(
+          /Bearer .+/,
+          'Bearer <bearer token>'
+        );
+      }
+      break;
+    case 'X-API-KEY':
+      header.value = '<api key>';
+      break;
+    case 'X-API-SECRET':
+      header.value = '<api secret>';
+      break;
+    case 'COOKIE':
+      header.value = header.value.replace(/=[^;]*/g, '=<cookie>');
+      break;
+    case 'SET-COOKIE':
+      // The first attribute should always be the cookie in this header, so only replace that attribute
+      header.value = header.value.replace(/=[^;]*/, '=<cookie>');
+      break;
+    default:
+      // any other credential header on the shared list of sensitive names (the
+      // library prints and records requests by the same list) never reaches a
+      // recording either
+      if (isSensitiveHeaderName(header.name)) {
+        header.value = REDACTED;
+      }
   }
 }
 

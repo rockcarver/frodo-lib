@@ -286,8 +286,40 @@ export type State = {
   getAutoRefreshTimer(): NodeJS.Timeout;
   setCurlirizeHandler(handler: (message: string) => void): void;
   getCurlirizeHandler(): (message: string) => void;
+  /**
+   * Print the curl command of every REST call the library makes (the handler
+   * set with `setCurlirizeHandler` receives it). Off by default.
+   *
+   * By default the command shows the name of every header that carries a
+   * credential and replaces its value with a placeholder
+   * (`-H "Authorization:Bearer <redacted>"`, `-H "Cookie:iPlanetDirectoryPro=<redacted>"`),
+   * and does the same for the password, token and secret fields of a request
+   * body. The header overrides (`setAuthenticationHeaderOverrides`,
+   * `setConfigurationHeaderOverrides`) are all masked. To see the real values,
+   * call `setCurlirizeSecrets(true)`.
+   * @param {boolean} curlirize true to print the curl commands
+   */
   setCurlirize(curlirize: boolean): void;
+  /**
+   * Whether the curl commands are printed.
+   * @returns {boolean} true if `setCurlirize(true)` was called
+   */
   getCurlirize(): boolean;
+  /**
+   * Show the real credentials in the curl commands (see `setCurlirize`), so that
+   * a command can be copied and run. Off by default and never persisted: the
+   * state does not read it from the environment, a connection profile or a
+   * file, so a caller has to ask for it every time. The first time a command
+   * with a credential is printed, the print handler also gets one warning (type
+   * `warn`) that the output contains valid credentials.
+   * @param {boolean} curlirizeSecrets true to print real credentials
+   */
+  setCurlirizeSecrets(curlirizeSecrets: boolean): void;
+  /**
+   * Whether the curl commands show the real credentials.
+   * @returns {boolean} true if `setCurlirizeSecrets(true)` was called
+   */
+  getCurlirizeSecrets(): boolean;
   setCreateProgressHandler(
     handler: (
       type: ProgressIndicatorType,
@@ -828,6 +860,12 @@ export default (initialState: StateInterface): State => {
     getCurlirize(): boolean {
       return state.curlirize;
     },
+    setCurlirizeSecrets(curlirizeSecrets: boolean) {
+      state.curlirizeSecrets = curlirizeSecrets;
+    },
+    getCurlirizeSecrets(): boolean {
+      return state.curlirizeSecrets === true;
+    },
 
     setCreateProgressHandler(
       handler: (
@@ -1062,6 +1100,7 @@ export interface StateInterface {
   colorTheme?: 'dark' | 'light';
   curlirizeHandler?: (message: string) => void;
   curlirize?: boolean;
+  curlirizeSecrets?: boolean;
   createProgressHandler?: (
     type: ProgressIndicatorType,
     total?: number,

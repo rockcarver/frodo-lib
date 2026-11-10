@@ -614,6 +614,7 @@ async function decryptExternalValue({
   external.state.setDebug(state.getDebug());
   external.state.setVerbose(state.getVerbose());
   external.state.setCurlirize(state.getCurlirize());
+  external.state.setCurlirizeSecrets(state.getCurlirizeSecrets());
   external.state.setAllowInsecureConnection(state.getAllowInsecureConnection());
   external.state.setUseTokenCache(false);
   try {
@@ -649,6 +650,7 @@ async function decryptExternalMap({
   external.state.setDebug(state.getDebug());
   external.state.setVerbose(state.getVerbose());
   external.state.setCurlirize(state.getCurlirize());
+  external.state.setCurlirizeSecrets(state.getCurlirizeSecrets());
   external.state.setAllowInsecureConnection(state.getAllowInsecureConnection());
   external.state.setUseTokenCache(false);
   await external.login.getTokens(false, false);
@@ -677,6 +679,7 @@ async function encryptExternalValue({
   external.state.setDebug(state.getDebug());
   external.state.setVerbose(state.getVerbose());
   external.state.setCurlirize(state.getCurlirize());
+  external.state.setCurlirizeSecrets(state.getCurlirizeSecrets());
   external.state.setAllowInsecureConnection(state.getAllowInsecureConnection());
   external.state.setUseTokenCache(false);
   try {
@@ -712,6 +715,7 @@ async function encryptExternalMap({
   external.state.setDebug(state.getDebug());
   external.state.setVerbose(state.getVerbose());
   external.state.setCurlirize(state.getCurlirize());
+  external.state.setCurlirizeSecrets(state.getCurlirizeSecrets());
   external.state.setAllowInsecureConnection(state.getAllowInsecureConnection());
   external.state.setUseTokenCache(false);
   await external.login.getTokens(false, false);

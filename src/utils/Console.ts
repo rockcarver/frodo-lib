@@ -91,31 +91,13 @@ export function debugMessage({
 }
 
 /**
- * Helper function to mask password header in curl command
- * @param curlCommand curl command to mask
- * @param {State} state library state
- * @returns masked curl command
- */
-function maskConfidentialHeaders(curlCommand: string, state: State): string {
-  const headers = ['X-OpenAM-Password', 'X-OpenIDM-Password'];
-  const headerOverrides = state.getAuthenticationHeaderOverrides();
-  if (headerOverrides) {
-    for (const key of Object.keys(headerOverrides)) {
-      headers.push(key);
-    }
-  }
-  for (const header of headers) {
-    const mask = '<suppressed>';
-    const regex = new RegExp('"' + header + '.+?"', 'g');
-    curlCommand = curlCommand.replace(regex, '"' + header + ':' + mask + '"');
-  }
-  return curlCommand;
-}
-
-/**
  * Handles curlirize output. The caller decides and implements how
  * the messages are handled, by implementing the handler function
  * on its side. Implementing and registering a `handler` is optional.
+ *
+ * The message is printed as it is: the command is built without the values of
+ * the credentials unless the state asks for them (`setCurlirizeSecrets`), see
+ * `api/BaseApi.ts`.
  *
  * @param {string} message The curlirize output message
  */
@@ -128,7 +110,7 @@ export function curlirizeMessage({
 }) {
   const handler = state.getCurlirizeHandler();
   if (handler) {
-    handler(maskConfidentialHeaders(message, state));
+    handler(message);
   }
 }
 

@@ -515,6 +515,28 @@ describe('State', () => {
   // setCurlirize,
   // getCurlirize,
 
+  describe('getCurlirizeSecrets()/setCurlirizeSecrets()', () => {
+    afterEach(() => {
+      state.setCurlirizeSecrets(false);
+    });
+
+    test('0: Method getCurlirizeSecrets is implemented', () => {
+      expect(state.getCurlirizeSecrets).toBeDefined();
+    });
+
+    test('1: Method setCurlirizeSecrets is implemented', () => {
+      expect(state.setCurlirizeSecrets).toBeDefined();
+    });
+
+    test('2: Should get/set curlirizeSecrets, off by default', () => {
+      expect(state.getCurlirizeSecrets()).toBe(false);
+      state.setCurlirizeSecrets(true);
+      expect(state.getCurlirizeSecrets()).toBe(true);
+      state.setCurlirizeSecrets(false);
+      expect(state.getCurlirizeSecrets()).toBe(false);
+    });
+  });
+
   // setCreateProgressHandler,
   // getCreateProgressHandler,
   // setUpdateProgressHandler,
