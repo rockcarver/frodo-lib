@@ -52,6 +52,7 @@ const { FrodoError } = await import('./FrodoError');
 function mockState() {
   return {
     getRealm: () => 'alpha',
+    getHost: () => 'https://agents.example.com',
     getDebugHandler: () => undefined,
     getDeploymentType: () => 'cloud',
     getAuthMode: () => 'noninteractive',

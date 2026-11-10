@@ -750,7 +750,7 @@ function isAlreadyExistsError(error: unknown): boolean {
   );
 }
 
-const AgentTypeItemCache: _AgentTypeItem[] = [];
+const AgentTypeItemCache = new Map<string, _AgentTypeItem[]>();
 const AgentTypeBlacklist: AgentType[] = ['OAuth2Client'];
 
 /**
@@ -766,24 +766,26 @@ export async function readAgentTypes({
 }): Promise<AgentType[]> {
   try {
     debugMessage({ message: `AgentOps.readAgentTypes: start`, state });
+    const cacheKey = JSON.stringify([
+      state.getHost(),
+      state.getRealm(),
+      state.getDeploymentType(),
+    ]);
+    const cachedTypes = AgentTypeItemCache.get(cacheKey);
     let agentTypeItems: _AgentTypeItem[] = [];
-    if (!refreshCache && AgentTypeItemCache.length > 0) {
+    if (!refreshCache && cachedTypes?.length > 0) {
       debugMessage({
         message: `AgentOps.readAgentTypes: using cached agent types`,
         state,
       });
-      agentTypeItems = cloneDeep(AgentTypeItemCache);
+      agentTypeItems = cloneDeep(cachedTypes);
     } else {
       const { result } = await _getAgentTypes({ state });
       agentTypeItems = result.filter(
         (item) => !AgentTypeBlacklist.includes(item._id)
       );
       // Update cache with new values.
-      AgentTypeItemCache.splice(
-        0,
-        AgentTypeItemCache.length,
-        ...agentTypeItems
-      );
+      AgentTypeItemCache.set(cacheKey, agentTypeItems);
     }
     debugMessage({ message: `AgentOps.readAgentTypes: end`, state });
     return agentTypeItems.map((item) => item._id);
@@ -815,6 +817,21 @@ export async function readAgents({
 }: {
   state: State;
   globalConfig: boolean;
+}): Promise<AgentSkeleton[]> {
+  return _readAgents({ state, globalConfig });
+}
+
+/**
+ * Read agents, allowing unrelated type failures only when the requested id is found.
+ */
+async function _readAgents({
+  state,
+  globalConfig,
+  agentId,
+}: {
+  state: State;
+  globalConfig: boolean;
+  agentId?: string;
 }): Promise<AgentSkeleton[]> {
   let hasAgentTypeErrors = false;
   try {
@@ -855,7 +872,11 @@ export async function readAgents({
           }
         }
       });
-      if (errors.length > 0) {
+      if (
+        errors.length > 0 &&
+        (agentId === undefined ||
+          !agents.some((agent) => agent._id === agentId))
+      ) {
         hasAgentTypeErrors = true;
         throw new FrodoError(
           `Error reading ${getCurrentRealmName(state) + ' realm'} agents of types: ${failedAgentTypes.join(', ')}`,
@@ -904,7 +925,7 @@ export async function readAgent({
   let agents: AgentSkeleton[];
   try {
     debugMessage({ message: `AgentOps.readAgent: start`, state });
-    agents = (await readAgents({ globalConfig, state })).filter(
+    agents = (await _readAgents({ globalConfig, state, agentId })).filter(
       (a) => a._id === agentId
     );
     if (agents.length === 1) {
