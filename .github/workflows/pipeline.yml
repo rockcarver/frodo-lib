@@ -335,16 +335,21 @@ jobs:
         run: |
           cat frodo-lib-jest-exceptions.log
 
+      # Not the suite a second time: the named set of proxy tests (the files
+      # listed in the test:proxy script of package.json), including a live probe
+      # that sends an unauthenticated serverinfo request to FRODO_HOST through the
+      # squid service container (FRODO_PROXY_LIVE switches it on). Decision 0017.
       - name: Proxy Tests
         id: proxy-tests
         env:
           FRODO_DEBUG: ${{ vars.FRODO_DEBUG }}
           HTTPS_PROXY: 'http://127.0.0.1:3128'
           FRODO_HOST: ${{ vars.FIDC_TENANT_URL }}
+          FRODO_PROXY_LIVE: '1'
           # FRODO_SA_ID: ${{ vars.FIDC_TENANT_SA_ID }}
           # FRODO_SA_JWK: ${{ secrets.FIDC_TENANT_SA_JWK }}
         run: |
-          npm run test
+          npm run test:proxy
 
       - name: Show jest exceptions log on failure
         if: steps.proxy-tests.outcome == 'failure'
@@ -354,6 +359,15 @@ jobs:
       - name: Security Audit
         run: |
           npm audit --omit=dev --audit-level high
+
+      # The direct run is allowed to fail ("continue-on-error") so that its log is
+      # shown and the proxy run still happens. This step makes it count: a failed
+      # direct run fails the job, whatever the proxy run or the steps after it did.
+      - name: Fail when the direct tests failed
+        if: ${{ always() && steps.direct-tests.outcome == 'failure' }}
+        run: |
+          echo "The direct test run failed. Its output is in the step 'Direct Tests'."
+          exit 1
 
   # Single stable-named gate over the versioned test matrix. Required status
   # checks on main point at THIS job, so changing the matrix's Node versions

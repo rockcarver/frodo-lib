@@ -108,6 +108,36 @@ describe('pipeline.yml', () => {
  * "main". It publishes nothing, and a dispatch from the Actions page must not
  * release by accident, so it is the default. PIPELINE.md, "Full CI by hand".
  */
+describe('the test job counts the direct run', () => {
+  // "Direct Tests" has continue-on-error so the log steps and the proxy run happen.
+  // Without a step that fails on its outcome, a failed direct run would not fail
+  // the job when the proxy run is cut down or removed.
+  const gateName = 'Fail when the direct tests failed';
+
+  test('a step after the direct run fails the job on its outcome, even when an earlier step failed', () => {
+    const text = job('test');
+    const direct = text.indexOf('- name: Direct Tests');
+    const gate = text.indexOf(`- name: ${gateName}`);
+    expect(direct).toBeGreaterThan(0);
+    expect(gate).toBeGreaterThan(direct);
+    const step = text.slice(gate);
+    expect(step).toContain(
+      "if: ${{ always() && steps.direct-tests.outcome == 'failure' }}"
+    );
+    expect(text).toMatch(
+      /id: direct-tests\n(?:.*\n)*?\s+continue-on-error: true/
+    );
+  });
+
+  bashTest('the shell of that step exits with a failure', () => {
+    const run = spawnSync('bash', ['-c', stepScript('test', gateName)], {
+      encoding: 'utf8',
+    });
+    expect(run.status).toBe(1);
+    expect(run.stdout).toContain('Direct Tests');
+  });
+});
+
 describe('pipeline.yml with the release type ci-only', () => {
   const input = WORKFLOW.slice(
     WORKFLOW.indexOf('      release-type:'),
@@ -708,4 +738,58 @@ describe('the "Security Audit" of the "build" job', () => {
     if (at < 0) throw new Error(`job "${id}" has no step "${stepName}"`);
     return lines[at + 1].replace(/^\s*run:\s*/, '').trim();
   }
+});
+
+/*
+ * The proxy run of the "test" job is the named set of proxy tests, not the
+ * whole suite a second time through the squid service container. Decision
+ * 0017 and PIPELINE.md, "Test". The set itself is pinned by the guard in
+ * src/api/BaseApi.proxy.test.ts.
+ */
+describe('the "Proxy Tests" step of the "test" job', () => {
+  /** The text of one step: from its name to the next step. */
+  function stepBlock(id: string, stepName: string): string {
+    const lines = job(id).split('\n');
+    const at = lines.findIndex((l) => l.trim() === `- name: ${stepName}`);
+    if (at < 0) throw new Error(`job "${id}" has no step "${stepName}"`);
+    const next = lines.findIndex((l, i) => i > at && /^ {6}(- |#)/.test(l));
+    return lines.slice(at, next < 0 ? lines.length : next).join('\n');
+  }
+  const envOf = (step: string, name: string) =>
+    step.match(new RegExp(`^\\s+${name}: (.*)$`, 'm'))?.[1].trim();
+
+  test('runs the named proxy set, not the whole suite', () => {
+    expect(stepScript('test', 'Proxy Tests').trim()).toBe('npm run test:proxy');
+  });
+
+  test('sends its requests through the squid service container', () => {
+    expect(envOf(stepBlock('test', 'Proxy Tests'), 'HTTPS_PROXY')).toBe(
+      "'http://127.0.0.1:3128'"
+    );
+    expect(job('test')).toContain('image: ubuntu/squid');
+    expect(job('test')).toContain('- 3128:3128');
+  });
+
+  test('switches the live probe on and names the tenant it asks', () => {
+    const step = stepBlock('test', 'Proxy Tests');
+    expect(envOf(step, 'FRODO_PROXY_LIVE')).toBe("'1'");
+    expect(envOf(step, 'FRODO_HOST')).toBe('${{ vars.FIDC_TENANT_URL }}');
+  });
+
+  test('keeps the direct run as the whole suite, with no proxy of its own', () => {
+    const direct = stepBlock('test', 'Direct Tests');
+    expect(stepScript('test', 'Direct Tests').trim()).toBe('npm run test');
+    expect(direct).not.toMatch(/PROXY/);
+  });
+
+  test('still runs on every supported Node version', () => {
+    expect(job('test')).toContain('node-version: [26, 24, 22]');
+  });
+
+  test('runs a script that package.json has', () => {
+    const scripts = JSON.parse(
+      fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')
+    ).scripts as Record<string, string>;
+    expect(scripts['test:proxy']).toBeDefined();
+  });
 });

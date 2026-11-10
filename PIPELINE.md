@@ -219,10 +219,33 @@ Build does the following:
 
 ### Test
 
-- **Test (22 / 24 / 26)**: the full jest suite (153 suites, 2,433 tests,
-  927 snapshots) on each supported Node version, with a squid proxy service
-  container: direct tests run normally, proxy tests run through the proxy,
-  and a proxy leg failure triggers the diagnostic retry steps.
+- **Test (22 / 24 / 26)**: on each supported Node version, with a squid proxy
+  service container, two steps run tests:
+  - `Direct Tests` runs the full jest suite (153 suites, 2,433 tests,
+    927 snapshots) with `npm run test`. A jest setup file,
+    `test/jest-no-ambient-proxy.setup.js`, hides the proxy variables of the
+    machine from every test file, so the suite does not depend on a proxy.
+    The step carries `continue-on-error` so that the proxy run and the log
+    steps still happen; the last step of the job, `Fail when the direct tests
+    failed`, makes a failed direct run fail the job.
+  - `Proxy Tests` runs `npm run test:proxy`, not the suite a second time: the
+    named set of proxy tests (the files listed in that script of
+    `package.json`) with `HTTPS_PROXY` pointing at the squid container. The
+    set holds the hermetic tests of the proxy support, which start a proxy of
+    their own in the test process, and a live probe,
+    `src/api/BaseApi.proxy.live.test.ts`, that `FRODO_PROXY_LIVE=1` switches
+    on. It first sends an unauthenticated `GET <FRODO_HOST>/json/serverinfo/*`
+    without the proxy. If the tenant answers 2xx, the same request through
+    squid must answer 2xx too. If it does not (no answer, a timeout, a 5xx, a
+    429, any other status), the probe warns in the log and as an annotation of
+    the run and does not send the request through squid, so a tenant outage
+    does not fail a pull request. A negative control with a dead proxy must
+    fail whatever the tenant does. The probe never logs in and never writes,
+    and it fails when `FRODO_HOST` or `HTTPS_PROXY` is not set. A test in
+    `BaseApi.proxy.test.ts` fails when the script no longer names the files of
+    the set
+    ([decision 0017](decisions/0017-proxy-support-is-guarded-by-a-short-named-set-of-tests.md)).
+  - A failure of either run shows the jest exceptions log.
 - **Cross-Platform Tests (Credential File Permissions)**: verifies the
   library creates credential files with restrictive permissions on Windows,
   macOS and Linux.
