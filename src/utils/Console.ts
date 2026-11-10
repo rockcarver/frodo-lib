@@ -171,7 +171,25 @@ export function createProgressIndicator({
 }
 
 /**
+ * Whether an id names a progress indicator that was created.
+ *
+ * An operation creates its progress indicator inside its try block, so one
+ * that fails before that point still stops it in its catch block, with the id
+ * it never got. Such a call has nothing to stop or update, and a handler can
+ * only report it as an unknown indicator on top of the real error.
+ *
+ * @param {string} id the id of the progress indicator
+ * @returns {boolean} false for an undefined, null or empty id
+ */
+function isProgressIndicatorId(id: string | null | undefined): boolean {
+  return id !== undefined && id !== null && id !== '';
+}
+
+/**
  * Updates the progress indicator with new data/updated status.
+ * An undefined, null or empty id is ignored: no progress indicator was
+ * created, so there is none to update. Any other id is passed to the handler.
+ * @param {string} id unique ID associated with the progress indicator
  * @param {string} message optional message to show with the indicator
  *
  */
@@ -184,6 +202,13 @@ export function updateProgressIndicator({
   message?: string;
   state: State;
 }) {
+  if (!isProgressIndicatorId(id)) {
+    debugMessage({
+      message: `updateProgressIndicator: no progress indicator id, nothing to update`,
+      state,
+    });
+    return;
+  }
   const handler = state.getUpdateProgressHandler();
   if (handler) {
     handler(id, message);
@@ -194,6 +219,9 @@ export type ProgressIndicatorStatusType = 'none' | 'success' | 'warn' | 'fail';
 
 /**
  * Stop and hide the progress indicator
+ * An undefined, null or empty id is ignored: no progress indicator was
+ * created, so there is none to stop. Any other id is passed to the handler.
+ * @param {string} id unique ID associated with the progress indicator
  * @param {string} message optional message to show with the indicator
  * @param {string} status one of 'none', 'success', 'warn', 'fail'
  */
@@ -208,6 +236,13 @@ export function stopProgressIndicator({
   status?: ProgressIndicatorStatusType;
   state: State;
 }) {
+  if (!isProgressIndicatorId(id)) {
+    debugMessage({
+      message: `stopProgressIndicator: no progress indicator id, nothing to stop`,
+      state,
+    });
+    return;
+  }
   const handler = state.getStopProgressHandler();
   if (handler) {
     handler(id, message, status);
