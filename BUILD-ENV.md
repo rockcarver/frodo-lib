@@ -153,6 +153,23 @@ node` (node10), which TypeScript 6 deprecates and 7 removes. Consumers
 - `@peculiar/x509` requires `reflect-metadata` imported first (tsyringe) —
   test suites that build certificates import it explicitly.
 - Full suite: 153 suites / 2,404 tests / 888 snapshots (~3 min) after the v5 deprecation-removal sweep — counts drift with API surface, so treat them as indicative.
+- Proxy support (2026-11, #982): every request goes through `proxy-agent`
+  (`getHttpAgent()` / `getHttpsAgent()` in `src/api/BaseApi.ts`), which reads
+  `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY` and `NO_PROXY` (lower case first)
+  when the request is sent. Recorded tests replay from disk and never open a
+  socket, so running the suite through a proxy tested almost nothing. It is
+  guarded instead by `npm run test:proxy`: the files named in that script,
+  among them `src/api/BaseApi.proxy.test.ts` (an in-process CONNECT and
+  forward proxy and loopback targets: CONNECT, `NO_PROXY`, proxy credentials,
+  an unreachable proxy, an HTTP target, tunnel reuse, variables read at request
+  time) and a live probe (`src/api/BaseApi.proxy.live.test.ts`, off unless
+  `FRODO_PROXY_LIVE=1`, needs `HTTPS_PROXY` and `FRODO_HOST`). A jest setup
+  file, `test/jest-no-ambient-proxy.setup.js` (`setupFiles` in
+  `jest.config.js`), removes the proxy variables before each test file and sets
+  `NO_PROXY=127.0.0.1,localhost,::1`, so `npm test` passes behind a corporate
+  proxy too; a test of the proxy support sets its own variables. The CI step
+  `Proxy Tests` runs `npm run test:proxy` with the squid container and
+  `FRODO_PROXY_LIVE=1`. Rules: `decisions/0017`.
 - NOTE (2026-10): the Polly stack is unmaintained (2023). A nock/MSW spike
   (2026-10-03) proved replay fidelity on the gnarliest recording (425/425
   exact via a ~60-line HAR converter) but found deep Polly coupling in the
@@ -300,4 +317,5 @@ update pull request that skipped it.
 | 2026-11-01 | The `push` trigger of `pipeline.yml` ignores the Issue Concierge's files (pin, `.github/issue-concierge/`, `.github/aw/`, `.github/scripts/*.mjs`, `.github/workflows/*.yml` and `*.md`): an update pull request was non-code and skipped the tests, but its merge started the whole pipeline (in frodo-cli that run also failed in the live tenant smoke test on a frodo-dev outage and turned `main` red); the patterns also cover the core records drift check, whose pull request still runs `Validate guidance`; `src/pipelineWorkflow.test.ts` pins the list against the classifier | — |
 | 2026-11-01 | `workflow_dispatch` of `pipeline.yml` gets the release type `ci-only`, the new default: the validation of a push to `main` (build, tests, cross-platform tests) without the version bump, the preflight or any release job, so a full CI run can be started by hand for a change the classifier skipped or for `main`, and a dispatch that names no type publishes nothing. Every dispatch-only job and step skips on `ci-only`; the release skill passes its type explicitly. | — |
 | 2026-11-01 | The `push` trigger of `pipeline.yml` ignores the rest of what the classifier calls non-code (the Markdown files of the root such as `AGENTS.md` and `CLAUDE.md`, `LICENSE`, `decisions/`, `.claude/skills/`, `.github/instructions/`, `.github/ISSUE_TEMPLATE/`, `CODEOWNERS`, `dependabot.yml`, `copilot-instructions.md`): a merge of a pull request that changed only these started the whole pipeline for files no test builds. Guidance files are in it too, as `PIPELINE.md` and `CONTRIBUTE.md` already were; their pull request ran `Validate guidance`. `src/pipelineWorkflow.test.ts` pins the list against the classifier | — |
+| 2026-11-10 | The `Proxy Tests` step of the `Test` job runs `npm run test:proxy` (the named proxy tests and a live probe through the squid container, `FRODO_PROXY_LIVE=1`) instead of the whole suite a second time; a jest setup file hides the proxy variables of the machine from every test file, which fixes 11 suites that failed behind a dead proxy; `src/pipelineWorkflow.test.ts` pins the step; decision `0017` | #982            |
 | planned    | Polly→nock — DEFERRED (deep record-harness coupling; revisit on Node 28 or real breakage)                                                                                                                                                                           | —               |
