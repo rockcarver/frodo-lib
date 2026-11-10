@@ -213,7 +213,7 @@ function checkTreeNodeDefinitions(
         finding(
           journey,
           'MISSING_NODE_DEFINITION',
-          `Tree node '${nodeId}' has no node definition`,
+          `Tree node '${nodeId}' has no node definition${nodeReference.nodeType ? ` (${nodeReference.nodeType})` : ''}`,
           { nodeId }
         )
       );
@@ -469,7 +469,7 @@ function checkInnerNodeReferences(
         finding(
           journey,
           'MISSING_INNER_NODE',
-          `Page Node '${pageNodeId}' references missing inner node '${innerNodeId}'`,
+          `Page Node '${pageNodeId}' references missing inner node '${innerNodeId}'${reference.nodeType ? ` (${reference.nodeType})` : ''}`,
           { nodeId: pageNodeId, targetNodeId: innerNodeId }
         )
       );
