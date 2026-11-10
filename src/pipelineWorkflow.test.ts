@@ -739,3 +739,57 @@ describe('the "Security Audit" of the "build" job', () => {
     return lines[at + 1].replace(/^\s*run:\s*/, '').trim();
   }
 });
+
+/*
+ * The proxy run of the "test" job is the named set of proxy tests, not the
+ * whole suite a second time through the squid service container. Decision
+ * 0017 and PIPELINE.md, "Test". The set itself is pinned by the guard in
+ * src/api/BaseApi.proxy.test.ts.
+ */
+describe('the "Proxy Tests" step of the "test" job', () => {
+  /** The text of one step: from its name to the next step. */
+  function stepBlock(id: string, stepName: string): string {
+    const lines = job(id).split('\n');
+    const at = lines.findIndex((l) => l.trim() === `- name: ${stepName}`);
+    if (at < 0) throw new Error(`job "${id}" has no step "${stepName}"`);
+    const next = lines.findIndex((l, i) => i > at && /^ {6}(- |#)/.test(l));
+    return lines.slice(at, next < 0 ? lines.length : next).join('\n');
+  }
+  const envOf = (step: string, name: string) =>
+    step.match(new RegExp(`^\\s+${name}: (.*)$`, 'm'))?.[1].trim();
+
+  test('runs the named proxy set, not the whole suite', () => {
+    expect(stepScript('test', 'Proxy Tests').trim()).toBe('npm run test:proxy');
+  });
+
+  test('sends its requests through the squid service container', () => {
+    expect(envOf(stepBlock('test', 'Proxy Tests'), 'HTTPS_PROXY')).toBe(
+      "'http://127.0.0.1:3128'"
+    );
+    expect(job('test')).toContain('image: ubuntu/squid');
+    expect(job('test')).toContain('- 3128:3128');
+  });
+
+  test('switches the live probe on and names the tenant it asks', () => {
+    const step = stepBlock('test', 'Proxy Tests');
+    expect(envOf(step, 'FRODO_PROXY_LIVE')).toBe("'1'");
+    expect(envOf(step, 'FRODO_HOST')).toBe('${{ vars.FIDC_TENANT_URL }}');
+  });
+
+  test('keeps the direct run as the whole suite, with no proxy of its own', () => {
+    const direct = stepBlock('test', 'Direct Tests');
+    expect(stepScript('test', 'Direct Tests').trim()).toBe('npm run test');
+    expect(direct).not.toMatch(/PROXY/);
+  });
+
+  test('still runs on every supported Node version', () => {
+    expect(job('test')).toContain('node-version: [26, 24, 22]');
+  });
+
+  test('runs a script that package.json has', () => {
+    const scripts = JSON.parse(
+      fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')
+    ).scripts as Record<string, string>;
+    expect(scripts['test:proxy']).toBeDefined();
+  });
+});
