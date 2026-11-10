@@ -355,6 +355,15 @@ jobs:
         run: |
           npm audit --omit=dev --audit-level high
 
+      # The direct run is allowed to fail ("continue-on-error") so that its log is
+      # shown and the proxy run still happens. This step makes it count: a failed
+      # direct run fails the job, whatever the proxy run or the steps after it did.
+      - name: Fail when the direct tests failed
+        if: ${{ always() && steps.direct-tests.outcome == 'failure' }}
+        run: |
+          echo "The direct test run failed. Its output is in the step 'Direct Tests'."
+          exit 1
+
   # Single stable-named gate over the versioned test matrix. Required status
   # checks on main point at THIS job, so changing the matrix's Node versions
   # never touches repo settings. It fails if any matrix leg fails or is

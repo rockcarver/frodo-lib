@@ -108,6 +108,36 @@ describe('pipeline.yml', () => {
  * "main". It publishes nothing, and a dispatch from the Actions page must not
  * release by accident, so it is the default. PIPELINE.md, "Full CI by hand".
  */
+describe('the test job counts the direct run', () => {
+  // "Direct Tests" has continue-on-error so the log steps and the proxy run happen.
+  // Without a step that fails on its outcome, a failed direct run would not fail
+  // the job when the proxy run is cut down or removed.
+  const gateName = 'Fail when the direct tests failed';
+
+  test('a step after the direct run fails the job on its outcome, even when an earlier step failed', () => {
+    const text = job('test');
+    const direct = text.indexOf('- name: Direct Tests');
+    const gate = text.indexOf(`- name: ${gateName}`);
+    expect(direct).toBeGreaterThan(0);
+    expect(gate).toBeGreaterThan(direct);
+    const step = text.slice(gate);
+    expect(step).toContain(
+      "if: ${{ always() && steps.direct-tests.outcome == 'failure' }}"
+    );
+    expect(text).toMatch(
+      /id: direct-tests\n(?:.*\n)*?\s+continue-on-error: true/
+    );
+  });
+
+  bashTest('the shell of that step exits with a failure', () => {
+    const run = spawnSync('bash', ['-c', stepScript('test', gateName)], {
+      encoding: 'utf8',
+    });
+    expect(run.status).toBe(1);
+    expect(run.stdout).toContain('Direct Tests');
+  });
+});
+
 describe('pipeline.yml with the release type ci-only', () => {
   const input = WORKFLOW.slice(
     WORKFLOW.indexOf('      release-type:'),

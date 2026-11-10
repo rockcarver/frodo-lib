@@ -222,7 +222,10 @@ Build does the following:
 - **Test (22 / 24 / 26)**: the full jest suite (153 suites, 2,433 tests,
   927 snapshots) on each supported Node version, with a squid proxy service
   container: direct tests run normally, proxy tests run through the proxy,
-  and a proxy leg failure triggers the diagnostic retry steps.
+  and a failure of either run shows the jest exceptions log. The direct run
+  carries `continue-on-error` so that the proxy run and the log steps still
+  happen; the last step, `Fail when the direct tests failed`, makes a failed
+  direct run fail the job.
 - **Cross-Platform Tests (Credential File Permissions)**: verifies the
   library creates credential files with restrictive permissions on Windows,
   macOS and Linux.
