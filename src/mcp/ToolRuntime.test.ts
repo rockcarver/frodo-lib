@@ -1826,13 +1826,23 @@ describe('MCP hybrid runtime', () => {
       }
     );
 
-    await expect(
-      runtime.executeTool({
+    const error: any = await runtime
+      .executeTool({
         toolName: 'frodo_dispatch_read_only',
         arguments: { skillId: descriptor.id },
         context: { auth: { mode: 'state-config', config: {} } },
       })
-    ).rejects.toThrow('requires a Log API key/secret');
+      .catch((rejection: unknown) => rejection);
+    expect(error.message).toContain('requires a Log API key/secret');
+    // the condition has a stable identity, so that the interface that runs
+    // the server can say how to configure it (an environment variable of
+    // the server is not for the library to name)
+    expect(error.code).toBe('LOG_API_CREDENTIAL_MISSING');
+    expect(error.message).not.toMatch(/FRODO_|--/);
+    // the profile fields and the tool that provisions a key are the
+    // vocabulary of the library's own MCP catalogue, and stay
+    expect(error.message).toContain('logApiKey/logApiSecret');
+    expect(error.message).toContain('cloud.log.createLogApiKey');
     expect(fetch).not.toHaveBeenCalled();
   });
 

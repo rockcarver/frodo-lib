@@ -14,14 +14,20 @@
  * - tells the reader to use "verbose" output or mode, or
  * - points to a document file (`*.md`), which the caller may not have.
  *
- * "Message" means the text of an error that is thrown, or of anything printed
+ * "Message" means the text of an error that is thrown, of anything printed
  * through `printMessage`, `verboseMessage`, `debugMessage` or the progress
- * indicators. When a caller needs to give advice, the error carries a stable
+ * indicators, and the `description` of a tool or capability (an MCP client
+ * reads it). When a caller needs to give advice, the error carries a stable
  * code (`FrodoError.code`) and the caller maps the code to its own words.
  *
- * Not scanned: tests; `src/mcp`, which is an interface of its own and words its
- * own advice; `src/ext`, which wraps a third-party helper; and the tooling
- * that records and replays traffic for the tests.
+ * `src/mcp` is scanned like the rest. The names of its tools
+ * (`cloud.log.createLogApiKey`) and the fields of the connection profile are
+ * the vocabulary of the library itself and may be named. How the process that
+ * hosts the server is configured (its options, its environment variables) is
+ * for that process to say.
+ *
+ * Not scanned: tests; `src/ext`, which wraps a third-party helper; and the
+ * tooling that records and replays traffic for the tests.
  */
 import fs from 'fs';
 import path from 'path';
@@ -34,7 +40,6 @@ const SRC = path.resolve(__dirname, '..');
 const NOT_SCANNED = [
   /\.test\.ts$/,
   /\.d\.ts$/,
-  /^mcp\//,
   /^ext\//,
   /^utils\/SetupPollyForFrodoLib\.ts$/,
 ];
@@ -100,7 +105,7 @@ export function interfaceTermsInMessages(source: string): MessageFinding[] {
       }
       if (
         ts.isPropertyAssignment(parent) &&
-        parent.name.getText(sourceFile) === 'message'
+        ['message', 'description'].includes(parent.name.getText(sourceFile))
       ) {
         return true;
       }
@@ -166,7 +171,7 @@ describe('The messages of the library name nothing of one interface', () => {
     expect(files.length).toBeGreaterThan(100);
     expect(files).toContain('ops/AuthenticateOps.ts');
     expect(files).toContain('ops/JourneyOps.ts');
-    expect(files).not.toContain('mcp/ToolRuntime.ts');
+    expect(files).toContain('mcp/ToolRuntime.ts');
   });
 });
 
@@ -211,6 +216,15 @@ describe('interfaceTermsInMessages', () => {
     expect(found("throw new FrodoError('See BROWSER_LOGIN.md.');")).toEqual([
       'a document file',
     ]);
+  });
+
+  test('6b: Finds an option in the description of a tool', () => {
+    expect(found("const tool = { description: 'Use --verbose.' };")).toEqual([
+      'a command line option',
+    ]);
+    expect(
+      found("const tool = { description: 'Returns the source identifiers.' };")
+    ).toEqual([]);
   });
 
   test('7: Reports the line', () => {
