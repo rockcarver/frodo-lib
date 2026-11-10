@@ -86,6 +86,7 @@ jest.unstable_mockModule('../api/ServerInfoApi', () => ({
 // "nothing set yet, load a profile" precondition never fires.
 jest.unstable_mockModule('./ConnectionProfileOps', () => ({
   findSavedConnectionTarget: () => undefined,
+  decryptSavedAuthenticationHeaderOverrides: async () => ({}),
   getConnectionProfile: jest.fn(async () => {
     throw new Error('getConnectionProfile mock not configured');
   }),

@@ -44,6 +44,7 @@ import {
   SERVICE_ACCOUNT_DEFAULT_SCOPES,
 } from './cloud/ServiceAccountOps';
 import {
+  decryptSavedAuthenticationHeaderOverrides,
   findSavedConnectionTarget,
   getConnectionProfile,
   loadConnectionProfile,
@@ -2460,7 +2461,7 @@ export async function getTokens({
       // under the full host URL and the type the saved profile gives, not
       // under an alias that no session was ever cached with. No saved
       // profile or an ambiguous alias is no reason to fail differently.
-      adoptSavedBrowserLoginTarget({ state });
+      await adoptSavedBrowserLoginTarget({ state });
       const reused = await tryReuseCachedBrowserSession({
         state,
         learnType: true,
@@ -3409,11 +3410,11 @@ function hasCachedBrowserSession({
  * @param {State} params.state library state
  * @returns {string | undefined} the deployment type the saved profile holds, if any
  */
-function adoptSavedBrowserLoginTarget({
+async function adoptSavedBrowserLoginTarget({
   state,
 }: {
   state: State;
-}): string | undefined {
+}): Promise<string | undefined> {
   const saved = findSavedConnectionTarget({ host: state.getHost(), state });
   if (!saved) return undefined;
   state.setHost(saved.tenant);
@@ -3423,15 +3424,15 @@ function adoptSavedBrowserLoginTarget({
   ) {
     state.setAllowInsecureConnection(saved.allowInsecureConnection);
   }
-  if (
-    saved.authenticationHeaderOverrides &&
-    Object.keys(saved.authenticationHeaderOverrides).length > 0
-  ) {
+  // The header values are secrets, stored encrypted: decrypted here, and only
+  // when the profile has any.
+  const overrides = await decryptSavedAuthenticationHeaderOverrides({
+    saved,
+    state,
+  });
+  if (Object.keys(overrides).length > 0) {
     state.setAuthenticationHeaderOverrides(
-      mergeDeep(
-        state.getAuthenticationHeaderOverrides(),
-        saved.authenticationHeaderOverrides
-      )
+      mergeDeep(state.getAuthenticationHeaderOverrides(), overrides)
     );
   }
   if (!state.getDeploymentType() && saved.deploymentType) {
@@ -3477,7 +3478,7 @@ async function resolveBrowserLoginTarget({
   state: State;
   deploymentType?: string;
 }): Promise<string> {
-  let savedType = adoptSavedBrowserLoginTarget({ state });
+  let savedType = await adoptSavedBrowserLoginTarget({ state });
   if (!isValidUrl(state.getHost())) {
     // an alias or a substring that matches no single profile: the lookup
     // below throws the precise reason

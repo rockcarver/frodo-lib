@@ -39,6 +39,7 @@ jest.unstable_mockModule('./JoseOps', () => ({
 // its own JoseOps dependency surface.
 jest.unstable_mockModule('./ConnectionProfileOps', () => ({
   findSavedConnectionTarget: () => undefined,
+  decryptSavedAuthenticationHeaderOverrides: async () => ({}),
   getConnectionProfile: jest.fn(async () => {
     throw new Error('getConnectionProfile mock not configured');
   }),

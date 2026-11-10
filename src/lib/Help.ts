@@ -1434,7 +1434,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "ConnectionProfile",
     methodName: "getConnectionProfileByHost",
     signature: "getConnectionProfileByHost(host: string): Promise<ConnectionProfileInterface>",
-    description: "Get connection profile by host",
+    description: "Get connection profile by host The secrets of the profile come back decrypted: the password, the log API secret, the service account key, the Amster private key and the values of the authentication and configuration header overrides. A profile that an older version saved with plain header overrides is read as well, and is not changed by reading it.",
     params: [
       { name: "host", type: "String", description: "host tenant, host url, unique substring, or alias", required: true },
     ],
@@ -1470,7 +1470,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "ConnectionProfile",
     methodName: "saveConnectionProfile",
     signature: "saveConnectionProfile(host: string): Promise<boolean>",
-    description: "Save connection profile",
+    description: "Save connection profile The password, the log API secret, the service account key, the Amster private key and the values of the authentication and configuration header overrides are stored encrypted with the master key. The names of the headers are encrypted with their values. Saving a profile that holds the plain header overrides an older version wrote replaces them with the encrypted ones.",
     params: [
       { name: "host", type: "string", description: "host url for new profiles, unique substring or alias for existing profiles", required: true },
     ],
