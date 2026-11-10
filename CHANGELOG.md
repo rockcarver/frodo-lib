@@ -10,6 +10,12 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-33] - 2026-11-10
+
+### Fixed
+- The error for an MCP capability that requires the Log API key and secret now states the missing credential as a fact with a stable code, `LOG_API_CREDENTIAL_MISSING`, instead of instructing users to set `FRODO_LOG_KEY` and `FRODO_LOG_SECRET`. This aligns with the updated error handling approach. (#977)
+- Journey validation now correctly reports nodes that the tenant does not have, addressing issues where journeys with non-existent nodes could not be validated. This ensures accurate validation findings without failing the entire export process. (#978)
+
 ## [v5.0.0-32] - 2026-11-09
 
 ### Added
@@ -2890,6 +2896,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-33]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-32...v5.0.0-33
 [v5.0.0-32]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-31...v5.0.0-32
 [v5.0.0-31]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-30...v5.0.0-31
 [v5.0.0-30]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-29...v5.0.0-30
