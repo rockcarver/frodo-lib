@@ -8,7 +8,11 @@ import axios, {
 } from 'axios';
 import axiosRetry from 'axios-retry';
 import { ProxyAgent, ProxyAgentOptions } from 'proxy-agent';
-import _curlirize from '../ext/axios-curlirize/curlirize';
+import {
+  curlirizeRequests as _curlirizeRequests,
+  curlirizeResponses as _curlirizeResponses,
+} from '../ext/axios-curlirize/curlirize';
+import type { CurlRedactor } from '../ext/axios-curlirize/lib/CurlHelper';
 import { FrodoError } from '../ops/FrodoError';
 import {
   assertHasRequiredScope,
@@ -21,6 +25,11 @@ import { curlirizeMessage, printMessage } from '../utils/Console';
 import { sleep } from '../utils/FrodoUtils';
 import { mergeDeep } from '../utils/JsonUtils';
 import { attachNameResolutionDiagnosis } from '../utils/NetworkDiagnosisUtils';
+import {
+  isSensitiveHeaderName,
+  redactBody,
+  redactHeaderValue,
+} from '../utils/SensitiveDataUtils';
 import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
 
 export type ResourceConfig = { apiVersion?: string };
@@ -138,6 +147,14 @@ function createAxiosInstance(
   requestConfig: AxiosRequestConfig
 ): AxiosInstance {
   const axiosInstance = axios.create(requestConfig);
+
+  // The request side of curlirize is registered before any other request
+  // interceptor of this instance. axios runs request interceptors in the reverse
+  // order of their registration, so the curl command is built last, when the
+  // request holds the credential that attachCredentialInterceptor puts on it.
+  if (state.getCurlirize()) {
+    curlirizeRequests(axiosInstance, state);
+  }
 
   const globalRetryConfig = state.getAxiosRetryConfig();
   const requestRetryConfig = requestConfig['axios-retry'];
@@ -642,14 +659,71 @@ function attachEscalationResponseInterceptor(
   );
 }
 
+let curlirizeSecretsWarned = false;
+
+/**
+ * Warns, once in the life of the process, that the curl commands show valid
+ * credentials.
+ */
+function warnCurlirizeSecrets(state: State) {
+  if (curlirizeSecretsWarned) return;
+  curlirizeSecretsWarned = true;
+  printMessage({
+    message:
+      'The curl output contains valid credentials. Do not share or keep it.',
+    type: 'warn',
+    state,
+  });
+}
+
+/**
+ * Decides, for every curl command, which values are printed. By default the
+ * value of every credential header and every credential field of a body is
+ * replaced by a placeholder, and the names stay. The header names to hide are
+ * the shared list of sensitive names plus the names in the authentication and
+ * configuration header overrides of the state, which are user-defined and read
+ * for every command. With `state.getCurlirizeSecrets()` the values are printed
+ * as they are and `revealed` records that the command holds a credential.
+ * @param {State} state State object
+ * @param {{ secrets: boolean }} revealed set to true when a real credential went into the command
+ * @returns {CurlRedactor} the redactor for the curl command builder
+ */
+function curlRedactor(
+  state: State,
+  revealed: { secrets: boolean }
+): CurlRedactor {
+  const overrideNames = () => [
+    ...Object.keys(state.getAuthenticationHeaderOverrides() ?? {}),
+    ...Object.keys(state.getConfigurationHeaderOverrides() ?? {}),
+  ];
+  return {
+    header: (name, value) => {
+      if (!isSensitiveHeaderName(name, overrideNames())) return value;
+      if (value === undefined || value === null || value === '') return value;
+      if (state.getCurlirizeSecrets()) {
+        revealed.secrets = true;
+        return value;
+      }
+      return redactHeaderValue(name, value);
+    },
+    body: (data) => {
+      const redacted = redactBody(data);
+      if (state.getCurlirizeSecrets()) {
+        if (redacted.found) revealed.secrets = true;
+        return data;
+      }
+      return redacted.data;
+    },
+  };
+}
+
 /**
  * Customize curlirize output
- * @param {object} params Params object
- * @param params.request axios request object
- * @param {State} params.state State object
+ * @param {State} state State object
+ * @param {{ secrets: boolean }} revealed set to true when a real credential went into the command
  */
-function curlirize(request, state: State) {
-  _curlirize(request, (result, err: Error | AxiosError) => {
+function curlirizeCallback(state: State, revealed: { secrets: boolean }) {
+  return (result, err: Error | AxiosError) => {
     if (err) {
       if (axios.isAxiosError(err)) {
         // Access to config, request, and response
@@ -684,6 +758,10 @@ function curlirize(request, state: State) {
         printMessage({ message: err, type: 'error', state });
       }
     } else if (result.command) {
+      if (revealed.secrets) {
+        revealed.secrets = false;
+        warnCurlirizeSecrets(state);
+      }
       curlirizeMessage({ message: result.command, state });
     } else if (result.response) {
       printMessage({
@@ -692,7 +770,35 @@ function curlirize(request, state: State) {
         state,
       });
     }
-  });
+  };
+}
+
+/**
+ * Prints the curl command of every request of an instance, after all its other
+ * request interceptors ran (see `createAxiosInstance`), so that the command
+ * shows the credential that was put on the request.
+ * @param {AxiosInstance} request the instance
+ * @param {State} state State object
+ */
+function curlirizeRequests(request: AxiosInstance, state: State) {
+  const revealed = { secrets: false };
+  _curlirizeRequests(
+    request,
+    curlirizeCallback(state, revealed),
+    curlRedactor(state, revealed)
+  );
+}
+
+/**
+ * Prints the status of every response, and of every error, of an instance. It
+ * is registered after the other response interceptors of the instance, so that
+ * a response that they replace (a request sent again with a renewed
+ * credential) is printed once, as what the caller gets.
+ * @param {AxiosInstance} request the instance
+ * @param {State} state State object
+ */
+function curlirizeResponses(request: AxiosInstance, state: State) {
+  _curlirizeResponses(request, curlirizeCallback(state, { secrets: false }));
 }
 
 /**
@@ -769,9 +875,10 @@ export function generateAmApi({
     attachEscalationResponseInterceptor(request, state);
   }
 
-  // enable curlirizer output in debug mode
+  // enable curlirizer output in debug mode: the request side was registered by
+  // createAxiosInstance, this is the response side
   if (state.getCurlirize()) {
-    curlirize(request, state);
+    curlirizeResponses(request, state);
   }
 
   return request;
@@ -847,9 +954,10 @@ export function generateAmAuthApi({
     );
   }
 
-  // enable curlirizer output in debug mode
+  // enable curlirizer output in debug mode: the request side was registered by
+  // createAxiosInstance, this is the response side
   if (state.getCurlirize()) {
-    curlirize(request, state);
+    curlirizeResponses(request, state);
   }
 
   return request;
@@ -916,9 +1024,10 @@ export function generateOauth2Api({
 
   const request = createAxiosInstance(state, requestConfig);
 
-  // enable curlirizer output in debug mode
+  // enable curlirizer output in debug mode: the request side was registered by
+  // createAxiosInstance, this is the response side
   if (state.getCurlirize()) {
-    curlirize(request, state);
+    curlirizeResponses(request, state);
   }
 
   return request;
@@ -977,9 +1086,10 @@ export function generateIdmApi({
   );
   attachEscalationResponseInterceptor(request, state);
 
-  // enable curlirizer output in debug mode
+  // enable curlirizer output in debug mode: the request side was registered by
+  // createAxiosInstance, this is the response side
   if (state.getCurlirize()) {
-    curlirize(request, state);
+    curlirizeResponses(request, state);
   }
 
   return request;
@@ -1039,9 +1149,10 @@ export function generateIdmSystemApi({
   );
   attachEscalationResponseInterceptor(request, state);
 
-  // enable curlirizer output in debug mode
+  // enable curlirizer output in debug mode: the request side was registered by
+  // createAxiosInstance, this is the response side
   if (state.getCurlirize()) {
-    curlirize(request, state);
+    curlirizeResponses(request, state);
   }
 
   return request;
@@ -1085,9 +1196,10 @@ export function generateLogKeysApi({
 
   const request = createAxiosInstance(state, requestConfig);
 
-  // enable curlirizer output in debug mode
+  // enable curlirizer output in debug mode: the request side was registered by
+  // createAxiosInstance, this is the response side
   if (state.getCurlirize()) {
-    curlirize(request, state);
+    curlirizeResponses(request, state);
   }
 
   return request;
@@ -1168,9 +1280,10 @@ export function generateLogApi({
       return Promise.reject(error);
     }
   );
-  // enable curlirizer output in debug mode
+  // enable curlirizer output in debug mode: the request side was registered by
+  // createAxiosInstance, this is the response side
   if (state.getCurlirize()) {
-    curlirize(request, state);
+    curlirizeResponses(request, state);
   }
 
   return request;
@@ -1233,9 +1346,10 @@ export function generateEnvApi({
   );
   attachEscalationResponseInterceptor(request, state);
 
-  // enable curlirizer output in debug mode
+  // enable curlirizer output in debug mode: the request side was registered by
+  // createAxiosInstance, this is the response side
   if (state.getCurlirize()) {
-    curlirize(request, state);
+    curlirizeResponses(request, state);
   }
 
   return request;
@@ -1298,9 +1412,10 @@ export function generateGovernanceApi({
   );
   attachEscalationResponseInterceptor(request, state);
 
-  // enable curlirizer output in debug mode
+  // enable curlirizer output in debug mode: the request side was registered by
+  // createAxiosInstance, this is the response side
   if (state.getCurlirize()) {
-    curlirize(request, state);
+    curlirizeResponses(request, state);
   }
 
   return request;
@@ -1360,9 +1475,10 @@ export function generateWSFedApi({
   );
   attachEscalationResponseInterceptor(request, state);
 
-  // enable curlirizer output in debug mode
+  // enable curlirizer output in debug mode: the request side was registered by
+  // createAxiosInstance, this is the response side
   if (state.getCurlirize()) {
-    curlirize(request, state);
+    curlirizeResponses(request, state);
   }
 
   return request;
@@ -1406,9 +1522,10 @@ export function generateReleaseApi({
 
   const request = createAxiosInstance(state, requestConfig);
 
-  // enable curlirizer output in debug mode
+  // enable curlirizer output in debug mode: the request side was registered by
+  // createAxiosInstance, this is the response side
   if (state.getCurlirize()) {
-    curlirize(request, state);
+    curlirizeResponses(request, state);
   }
 
   return request;

@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { CurlHelper } from './lib/CurlHelper';
+import { CurlHelper, CurlRedactor } from './lib/CurlHelper';
 
 /**
  * Fallback callback, used only if a caller invokes this module's default
@@ -20,11 +20,22 @@ function defaultLogCallback(curlResult, err = undefined) {
   }
 }
 
-export default (instance, callback = defaultLogCallback) => {
+/**
+ * Local change: the request side and the response side are two functions, so
+ * that a caller can register the request side before the other request
+ * interceptors of an instance. axios runs request interceptors in the reverse
+ * order of their registration, and the one that builds the command must run
+ * last, when the request holds everything that is going to be sent.
+ */
+export function curlirizeRequests(
+  instance,
+  callback = defaultLogCallback,
+  redactor: CurlRedactor = {}
+) {
   instance.interceptors.request.use(
     (req) => {
       try {
-        const curl = new CurlHelper(req);
+        const curl = new CurlHelper(req, redactor);
         req.curlObject = curl;
         req.curlCommand = curl.generateCommand();
         req.clearCurl = () => {
@@ -52,6 +63,9 @@ export default (instance, callback = defaultLogCallback) => {
       return Promise.reject(error);
     }
   );
+}
+
+export function curlirizeResponses(instance, callback = defaultLogCallback) {
   instance.interceptors.response.use(
     (response) => {
       // Any status code that lie within the range of 2xx cause this function to trigger
@@ -68,4 +82,13 @@ export default (instance, callback = defaultLogCallback) => {
       return Promise.reject(error);
     }
   );
+}
+
+export default (
+  instance,
+  callback = defaultLogCallback,
+  redactor: CurlRedactor = {}
+) => {
+  curlirizeRequests(instance, callback, redactor);
+  curlirizeResponses(instance, callback);
 };

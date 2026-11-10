@@ -1,7 +1,20 @@
+/**
+ * Local change to the vendored module (see README.md in the parent folder): the
+ * caller can pass a redactor, which sees every header value and the request body
+ * before they are written into the command. Without one the command holds the
+ * values as they are, as before.
+ */
+export type CurlRedactor = {
+  header?: (name: string, value: any) => any;
+  body?: (data: any) => any;
+};
+
 export class CurlHelper {
   request: any;
-  constructor(config) {
+  redactor: CurlRedactor;
+  constructor(config, redactor: CurlRedactor = {}) {
     this.request = config;
+    this.redactor = redactor;
   }
 
   getHeaders() {
@@ -26,7 +39,10 @@ export class CurlHelper {
     }
 
     for (const property in headers) {
-      const header = `${property}:${headers[property]}`;
+      const value = this.redactor.header
+        ? this.redactor.header(property, headers[property])
+        : headers[property];
+      const header = `${property}:${value}`;
       curlHeaders = `${curlHeaders} -H "${header}"`;
     }
 
@@ -44,11 +60,14 @@ export class CurlHelper {
       this.request.data !== null &&
       this.request.method.toUpperCase() !== 'GET'
     ) {
+      const body = this.redactor.body
+        ? this.redactor.body(this.request.data)
+        : this.request.data;
       const data =
-        typeof this.request.data === 'object' ||
-        Object.prototype.toString.call(this.request.data) === '[object Array]'
-          ? JSON.stringify(this.request.data)
-          : this.request.data;
+        typeof body === 'object' ||
+        Object.prototype.toString.call(body) === '[object Array]'
+          ? JSON.stringify(body)
+          : body;
       return `--data '${data}'`.trim();
     } else {
       return '';
