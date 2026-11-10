@@ -8,6 +8,9 @@ const getAgentsByType = jest.fn(async (_args?: any): Promise<any> => ({
 const getAgentTypes = jest.fn(async (_args?: any): Promise<any> => ({
   result: [],
 }));
+const getAgents = jest.fn(async (_args?: any): Promise<any> => ({
+  result: [],
+}));
 const putAgentByTypeAndId = jest.fn(async (_args?: any): Promise<any> => ({}));
 
 jest.unstable_mockModule('../api/AgentApi', () => ({
@@ -15,7 +18,7 @@ jest.unstable_mockModule('../api/AgentApi', () => ({
   findAgentByTypeAndId: jest.fn(),
   getAgentByTypeAndId,
   getAgentGroups: jest.fn(),
-  getAgents: jest.fn(),
+  getAgents,
   getAgentsByType,
   putAgentByTypeAndId,
   putAgentGroupByTypeAndId: jest.fn(),
@@ -39,13 +42,19 @@ jest.unstable_mockModule('./ManagedObjectSchemaOps', () => ({
   readManagedObjectSchema: jest.fn(async () => ({ properties: { _id: {} } })),
 }));
 
-const { createAIAgent, readAgents } = await import('./AgentOps');
+const { createAIAgent, readAgent, readAgents, readAgentTypes } =
+  await import('./AgentOps');
 
-function mockState() {
+function mockState({
+  realm = 'alpha',
+  host = 'https://agents.example.com',
+  deployment = 'cloud',
+} = {}) {
   return {
-    getRealm: () => 'alpha',
+    getRealm: () => realm,
+    getHost: () => host,
     getDebugHandler: () => undefined,
-    getDeploymentType: () => 'cloud',
+    getDeploymentType: () => deployment,
     getAuthMode: () => 'noninteractive',
     getUseBearerTokenForAmApis: () => false,
   } as any;
@@ -298,5 +307,177 @@ describe('readAgents', () => {
       ]),
     });
     expect(getAgentsByType).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('readAgent', () => {
+  beforeEach(async () => {
+    getAgentTypes.mockResolvedValue({
+      result: [{ _id: 'FirstAgent' }, { _id: 'SecondAgent' }],
+    });
+    await readAgentTypes({ refreshCache: true, state: mockState() });
+    getAgentsByType.mockReset();
+    getAgentsByType.mockResolvedValue({ result: [] });
+    getAgents.mockReset();
+  });
+
+  test.each(['FirstAgent', 'SecondAgent'])(
+    'returns a unique match in %s despite another type failing',
+    async (readableType) => {
+      const agent = { _id: 'wanted', _type: { _id: readableType } };
+      getAgentsByType.mockImplementation(async ({ agentType }: any) => {
+        if (agentType !== readableType) throw errorWithStatus(500);
+        return { result: [agent] };
+      });
+
+      await expect(
+        readAgent({ agentId: 'wanted', state: mockState() })
+      ).resolves.toEqual(agent);
+    }
+  );
+
+  test('retains the type failure when the requested agent was not found', async () => {
+    const failure = errorWithStatus(500);
+    getAgentsByType.mockImplementation(async ({ agentType }: any) => {
+      if (agentType === 'SecondAgent') throw failure;
+      return { result: [{ _id: 'unrelated' }] };
+    });
+
+    await expect(
+      readAgent({ agentId: 'wanted', state: mockState() })
+    ).rejects.toMatchObject({
+      message: 'Error reading alpha realm agent wanted',
+      originalErrors: [
+        expect.objectContaining({
+          message: expect.stringContaining('SecondAgent'),
+          originalErrors: [
+            expect.objectContaining({ originalErrors: [failure] }),
+          ],
+        }),
+      ],
+    });
+  });
+
+  test.each([
+    ['httpStatus', { httpStatus: 501 }],
+    ['response.status', { response: { status: 501 } }],
+  ])(
+    'reports not found when only an unsupported type fails (%s)',
+    async (_field, failure) => {
+      getAgentsByType.mockImplementation(async ({ agentType }: any) => {
+        if (agentType === 'SecondAgent') throw failure;
+        return { result: [] };
+      });
+
+      await expect(
+        readAgent({ agentId: 'wanted', state: mockState() })
+      ).rejects.toThrow("alpha realm agent 'wanted' not found");
+    }
+  );
+
+  test('reports not found when every type was read successfully', async () => {
+    await expect(
+      readAgent({ agentId: 'wanted', state: mockState() })
+    ).rejects.toThrow("alpha realm agent 'wanted' not found");
+  });
+
+  test('still rejects duplicate ids across types', async () => {
+    getAgentsByType.mockResolvedValue({ result: [{ _id: 'wanted' }] });
+
+    await expect(
+      readAgent({ agentId: 'wanted', state: mockState() })
+    ).rejects.toThrow("2 alpha realm agents 'wanted' found");
+  });
+
+  test('still reads global agents without discovering realm types', async () => {
+    const agent = { _id: 'wanted' };
+    getAgentTypes.mockClear();
+    getAgents.mockResolvedValue({ result: [agent] });
+
+    await expect(
+      readAgent({
+        agentId: 'wanted',
+        globalConfig: true,
+        state: mockState(),
+      })
+    ).resolves.toEqual(agent);
+    expect(getAgents).toHaveBeenCalledWith({
+      globalConfig: true,
+      state: expect.anything(),
+    });
+    expect(getAgentTypes).not.toHaveBeenCalled();
+    expect(getAgentsByType).not.toHaveBeenCalled();
+  });
+});
+
+describe('agent type cache', () => {
+  beforeEach(async () => {
+    getAgentTypes.mockReset();
+    getAgentTypes.mockResolvedValue({ result: [{ _id: 'FirstAgent' }] });
+    await readAgentTypes({ refreshCache: true, state: mockState() });
+    getAgentTypes.mockClear();
+    getAgentsByType.mockReset();
+    getAgentsByType.mockResolvedValue({ result: [] });
+  });
+
+  test('does not reuse another realm type list when root type discovery is denied', async () => {
+    const failure = errorWithStatus(403);
+    failure.response.data = {
+      message:
+        'This operation is not available in PingOne Advanced Identity Cloud.',
+    };
+    getAgentTypes.mockRejectedValue(failure);
+    let realm = 'alpha';
+    const state = { ...mockState(), getRealm: () => realm };
+
+    await expect(readAgents({ state })).resolves.toEqual([]);
+    expect(getAgentsByType).toHaveBeenCalledTimes(1);
+    getAgentsByType.mockClear();
+    realm = '/';
+
+    await expect(readAgents({ state })).resolves.toEqual([]);
+    expect(getAgentTypes).toHaveBeenCalledTimes(1);
+    expect(getAgentsByType).not.toHaveBeenCalled();
+
+    realm = 'alpha';
+    await expect(readAgents({ state })).resolves.toEqual([]);
+    expect(getAgentsByType).toHaveBeenCalledWith({
+      agentType: 'FirstAgent',
+      state,
+    });
+    expect(getAgentTypes).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    ['realm', { realm: 'bravo' }],
+    ['host', { host: 'https://other-agents.example.com' }],
+    ['deployment', { deployment: 'classic' }],
+  ])(
+    'discovers types separately for a different %s',
+    async (_field, options) => {
+      getAgentTypes.mockResolvedValue({ result: [{ _id: 'SecondAgent' }] });
+      const state = mockState(options);
+
+      await readAgents({ state });
+      expect(getAgentTypes).toHaveBeenCalledTimes(1);
+      expect(getAgentsByType).toHaveBeenCalledWith({
+        agentType: 'SecondAgent',
+        state,
+      });
+      expect(getAgentsByType).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  test('reuses and explicitly refreshes types in the same context', async () => {
+    const state = mockState();
+    await expect(readAgentTypes({ state })).resolves.toEqual(['FirstAgent']);
+    expect(getAgentTypes).not.toHaveBeenCalled();
+
+    getAgentTypes.mockResolvedValue({ result: [{ _id: 'SecondAgent' }] });
+    await expect(
+      readAgentTypes({ refreshCache: true, state })
+    ).resolves.toEqual(['SecondAgent']);
+    await expect(readAgentTypes({ state })).resolves.toEqual(['SecondAgent']);
+    expect(getAgentTypes).toHaveBeenCalledTimes(1);
   });
 });
