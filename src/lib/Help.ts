@@ -6852,21 +6852,21 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "IdmFeature",
     methodName: "validateIdmFeature",
     signature: "validateIdmFeature(featureId: string): Promise<IdmFeatureActionResult>",
-    description: "Validate whether an IDM tenant-configuration feature is installable, without installing it.",
+    description: "Validate whether an IDM tenant-configuration feature is installable, without installing it. The result always has four fields: `status` (from the response body), `success` (true when the feature can be installed), `message` (the response message, unchanged, for example \"Validate complete. 24 failure(s).\") and `failures` (one entry per reason the feature cannot be installed, for example \"config/managed: /objects/-: value already present at /objects/14\"; an empty array when there are none). `success` is what the response says; when the response has no `success` field, it is true exactly when `failures` is empty. A validation that finds failures is a result with `success: false`, not an error; a request that fails (HTTP error, network error) throws a FrodoError.",
     params: [
       { name: "featureId", type: "string", description: "feature id, e.g. 'aiagent'", required: true },
     ],
-    returns: "{Promise<IdmFeatureActionResult>} a promise that resolves to the validation result",
+    returns: "{Promise<IdmFeatureActionResult>} a promise that resolves to the validation result: status, success, message and failures",
   },
   {
     typeName: "IdmFeature",
     methodName: "installIdmFeature",
     signature: "installIdmFeature(featureId: string): Promise<IdmFeatureActionResult>",
-    description: "Install an IDM tenant-configuration feature. Irreversible -- see the module-level remarks.",
+    description: "Install an IDM tenant-configuration feature. Irreversible -- see the module-level remarks. The result always has four fields: `status` (from the response body), `success`, `message` (the response message, unchanged, for example \"Install complete.\") and `failures` (empty unless the response lists failures). `success` is true when the request succeeded and the response does not say `success: false` and lists no failures; the install response documented by Ping has no `success` field, so a successful install is `success: true` without one. `success: false` means the endpoint reported a failure, with its `failures` and `message` kept. A request that fails (HTTP error, network error) throws a FrodoError. This makes no second request: a caller that wants confirmation reads the feature again (`readIdmFeature` or `hasIdmFeature`) and checks `installedVersion`.",
     params: [
       { name: "featureId", type: "string", description: "feature id, e.g. 'aiagent'", required: true },
     ],
-    returns: "{Promise<IdmFeatureActionResult>} a promise that resolves to the install result",
+    returns: "{Promise<IdmFeatureActionResult>} a promise that resolves to the install result: status, success, message and failures",
   },
   {
     typeName: "LogTailStream",
