@@ -48,6 +48,7 @@ import {
 } from '@peculiar/x509';
 import { FrodoError } from '../ops/FrodoError';
 import StateImpl from '../shared/State';
+import { proxyProbeVerdict, runProxyProbe } from '../test/utils/ProxyProbe';
 import { getPrivateKey, getPublicKey } from '../test/utils/TestUtils';
 import { generateAmApi } from './BaseApi';
 import { getServerInfo } from './ServerInfoApi';
@@ -978,6 +979,141 @@ describe('BaseApi reads the proxy variables when it sends a request', () => {
 });
 
 /*
+ * The live probe (BaseApi.proxy.live.test.ts) must not fail a pull request
+ * because the tenant is down, and must not pass when the proxy is broken. It
+ * sends the request without the proxy first, and sends it through the proxy
+ * only if the tenant answered 2xx. The decision and the order are pinned here
+ * with answers made up in the test, because the probe itself needs a tenant.
+ */
+describe('the live probe decides from the direct answer whether it can say anything about the proxy', () => {
+  /** An error as axios rejects a non-2xx answer: with the answer attached. */
+  const answered = (status: number) => ({
+    error: Object.assign(
+      new Error(`Request failed with status code ${status}`),
+      {
+        response: { status },
+      }
+    ),
+  });
+  /** An error of a request that got no answer. */
+  const unanswered = (code: string, message: string) => ({
+    error: Object.assign(new Error(message), { code }),
+  });
+
+  test.each([200, 201, 204, 299])('a %i answer runs the probe', (status) => {
+    expect(proxyProbeVerdict({ status })).toEqual({ run: true });
+  });
+
+  test.each([500, 502, 503, 504, 429, 408, 404, 403, 401, 400, 301])(
+    'a %i answer skips the probe, and the reason names the status',
+    (status) => {
+      expect(proxyProbeVerdict(answered(status))).toEqual({
+        run: false,
+        reason: `status ${status}`,
+      });
+      expect(proxyProbeVerdict({ status })).toEqual({
+        run: false,
+        reason: `status ${status}`,
+      });
+    }
+  );
+
+  test.each([
+    ['ECONNABORTED', 'timeout of 30000ms exceeded'],
+    ['ETIMEDOUT', 'connect ETIMEDOUT 203.0.113.7:443'],
+    ['ECONNREFUSED', 'connect ECONNREFUSED 203.0.113.7:443'],
+    ['ECONNRESET', 'socket hang up'],
+    ['ENOTFOUND', 'getaddrinfo ENOTFOUND tenant.example'],
+    ['EAI_AGAIN', 'getaddrinfo EAI_AGAIN tenant.example'],
+  ])(
+    'no answer (%s) skips the probe, and the reason names the error',
+    (code, message) => {
+      expect(proxyProbeVerdict(unanswered(code, message))).toEqual({
+        run: false,
+        reason: `no answer, ${code}`,
+      });
+    }
+  );
+
+  test('an error without a code or an answer skips the probe and is named by its message', () => {
+    expect(proxyProbeVerdict({ error: new Error('boom') })).toEqual({
+      run: false,
+      reason: 'no answer, boom',
+    });
+    expect(proxyProbeVerdict({ error: undefined })).toMatchObject({
+      run: false,
+    });
+  });
+
+  /** Runs the probe with answers made up, and tells what it did. */
+  async function probe(
+    direct: 'ok' | { error: unknown },
+    proxied: 'ok' | Error
+  ) {
+    const calls: string[] = [];
+    const announced: string[] = [];
+    const result = await runProxyProbe({
+      askDirect: async () => {
+        calls.push('direct');
+        if (direct !== 'ok') throw direct.error;
+      },
+      askThroughProxy: async () => {
+        calls.push('proxy');
+        if (proxied !== 'ok') throw proxied;
+      },
+      announce: (message) => announced.push(message),
+    }).then(
+      (outcome) => ({ outcome }),
+      (error) => ({ error })
+    );
+    return { calls, announced, ...result };
+  }
+
+  test('a tenant that answers directly: the request through the proxy is sent after it, and nothing is announced', async () => {
+    const run = await probe('ok', 'ok');
+    expect(run).toEqual({
+      outcome: 'ran',
+      calls: ['direct', 'proxy'],
+      announced: [],
+    });
+  });
+
+  test('a tenant that answers directly and a proxy that fails: the probe fails with the error of the request through the proxy', async () => {
+    const failure = new Error('the proxy is broken');
+    const run = await probe('ok', failure);
+    expect(run.error).toBe(failure);
+    expect(run.calls).toEqual(['direct', 'proxy']);
+    expect(run.announced).toEqual([]);
+  });
+
+  test.each([
+    ['a 502', answered(502).error, 'status 502'],
+    ['a 503', answered(503).error, 'status 503'],
+    ['a 429', answered(429).error, 'status 429'],
+    ['a timeout', unanswered('ECONNABORTED', 'timeout').error, 'ECONNABORTED'],
+    [
+      'a refused connection',
+      unanswered('ECONNREFUSED', 'no').error,
+      'ECONNREFUSED',
+    ],
+    ['a DNS error', unanswered('ENOTFOUND', 'no').error, 'ENOTFOUND'],
+  ])(
+    'a tenant that answers %s directly: the probe does not send the request through the proxy, does not fail, and says so',
+    async (_name, error, reason) => {
+      // a proxy that would fail the request shows that it was not asked
+      const run = await probe({ error }, new Error('must not be asked'));
+      expect(run.error).toBeUndefined();
+      expect(run.outcome).toBe('skipped');
+      expect(run.calls).toEqual(['direct']);
+      expect(run.announced).toHaveLength(1);
+      expect(run.announced[0]).toContain(reason);
+      expect(run.announced[0]).toContain('proxy probe');
+      expect(run.announced[0]).toContain('not run');
+    }
+  );
+});
+
+/*
  * The jest setup file is the reason the other suites with real sockets pass
  * behind a proxy. Run it in a process of its own, with the variables a
  * corporate machine has, instead of trusting that the tests of this run saw
@@ -1089,5 +1225,44 @@ describe('the test:proxy script of package.json', () => {
     expect(scripts['test:proxy'].startsWith(`${scripts['test:only']} `)).toBe(
       true
     );
+  });
+});
+
+/*
+ * The live probe is skipped without a tenant, so nothing runs its flow here.
+ * Pin the three things that make it worth running: the direct request comes
+ * first and has no proxy variable, the decision is the function tested above,
+ * and the negative control does not depend on that decision.
+ */
+describe('the live probe file', () => {
+  const live = fs.readFileSync(
+    path.join(ROOT, 'src/api/BaseApi.proxy.live.test.ts'),
+    'utf8'
+  );
+
+  test('runs its request through runProxyProbe, with a direct request that has no proxy variable', () => {
+    expect(live).toContain(
+      "import { runProxyProbe } from '../test/utils/ProxyProbe';"
+    );
+    expect(live).toMatch(
+      /await runProxyProbe\(\{\s+askDirect: async \(\) => \{[\s\S]*?delete process\.env\[name\][\s\S]*?\},\s+askThroughProxy: async \(\) => \{[\s\S]*?\},\s+announce,\s+\}\);/
+    );
+  });
+
+  test('tells that it did not run in a way `jest --silent` does not hide', () => {
+    expect(live).toContain('console.warn(message)');
+    expect(live).toContain('process.stderr.write(`::warning');
+  });
+
+  test('keeps the negative control outside the decision, with the dead proxy in both case forms', () => {
+    const control = live.slice(live.indexOf("test('negative control"));
+    expect(control.length).toBeGreaterThan(0);
+    expect(control).toContain('process.env.HTTPS_PROXY = DEAD_PROXY;');
+    expect(control).toContain('process.env.https_proxy = DEAD_PROXY;');
+    expect(control).not.toContain('runProxyProbe');
+  });
+
+  test('still fails, not skips, when the tenant or the proxy is not configured', () => {
+    expect(live).toMatch(/if \(missing\.length\) \{\s+throw new Error\(/);
   });
 });

@@ -234,10 +234,16 @@ Build does the following:
     set holds the hermetic tests of the proxy support, which start a proxy of
     their own in the test process, and a live probe,
     `src/api/BaseApi.proxy.live.test.ts`, that `FRODO_PROXY_LIVE=1` switches
-    on: it sends an unauthenticated `GET <FRODO_HOST>/json/serverinfo/*`
-    through squid, and a negative control with a dead proxy must fail. It
-    never logs in and never writes. A test in `BaseApi.proxy.test.ts` fails
-    when the script no longer names the files of the set
+    on. It first sends an unauthenticated `GET <FRODO_HOST>/json/serverinfo/*`
+    without the proxy. If the tenant answers 2xx, the same request through
+    squid must answer 2xx too. If it does not (no answer, a timeout, a 5xx, a
+    429, any other status), the probe warns in the log and as an annotation of
+    the run and does not send the request through squid, so a tenant outage
+    does not fail a pull request. A negative control with a dead proxy must
+    fail whatever the tenant does. The probe never logs in and never writes,
+    and it fails when `FRODO_HOST` or `HTTPS_PROXY` is not set. A test in
+    `BaseApi.proxy.test.ts` fails when the script no longer names the files of
+    the set
     ([decision 0017](decisions/0017-proxy-support-is-guarded-by-a-short-named-set-of-tests.md)).
   - A failure of either run shows the jest exceptions log.
 - **Cross-Platform Tests (Credential File Permissions)**: verifies the
