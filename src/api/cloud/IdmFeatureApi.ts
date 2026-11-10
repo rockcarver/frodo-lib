@@ -22,10 +22,48 @@ export interface IdmFeatureInterface extends IdObjectSkeletonInterface {
   availableVersions: string[];
 }
 
-export interface IdmFeatureActionResult {
+/**
+ * The body of a response to `POST /openidm/feature/{id}?_action=validate` or
+ * `?_action=install`, as the endpoint sends it. Which fields are present
+ * depends on the action: validate sends `success` and `failures`, install
+ * sends only `status` and `message` (per Ping's REST documentation), so
+ * `success` and `failures` are optional here. The ops layer turns this into
+ * an `IdmFeatureActionResult`; callers use that, not this.
+ */
+export interface IdmFeatureActionResponse {
+  /** The `status` field of the body (200 in every response seen). */
   status: number;
-  success: boolean;
+  /** Sent by validate (true when the feature can be installed), not by install. */
+  success?: boolean;
+  /** Human-readable outcome, for example `Validate complete.` or `Install complete.` */
   message: string;
+  /** Sent by validate: one entry per reason the feature cannot be installed. */
+  failures?: string[];
+}
+
+/**
+ * The outcome of validating or installing an IDM tenant-configuration
+ * feature, as `frodo.cloud.idmFeature.validateIdmFeature` and
+ * `installIdmFeature` return it. Unlike the body the endpoint sends, which
+ * has different fields for validate and install, every field is always
+ * present, so a caller does not need to know the response shapes.
+ */
+export interface IdmFeatureActionResult {
+  /** The `status` field of the response body (200 in every response seen). */
+  status: number;
+  /**
+   * The outcome. For validate: true when the feature can be installed. For
+   * install: true when the request succeeded and the response reports no
+   * failure.
+   */
+  success: boolean;
+  /** The message of the response, unchanged (for example `Validate complete. 24 failure(s).`). */
+  message: string;
+  /**
+   * The reasons the feature cannot be installed (validate), or the reasons the
+   * install failed (install). Empty when there are none; never undefined.
+   */
+  failures: string[];
 }
 
 /**
@@ -83,7 +121,7 @@ export async function getIdmFeature({
  * Validate whether an IDM tenant-configuration feature is installable,
  * without installing it.
  * @param {string} featureId feature id, e.g. 'aiagent'
- * @returns {Promise<IdmFeatureActionResult>} a promise that resolves to the validation result
+ * @returns {Promise<IdmFeatureActionResponse>} a promise that resolves to the raw validation response
  */
 export async function validateIdmFeature({
   featureId,
@@ -91,7 +129,7 @@ export async function validateIdmFeature({
 }: {
   featureId: string;
   state: State;
-}): Promise<IdmFeatureActionResult> {
+}): Promise<IdmFeatureActionResponse> {
   const urlString = util.format(
     idmFeatureActionURLTemplate,
     getIdmBaseUrl(state),
@@ -112,7 +150,7 @@ export async function validateIdmFeature({
  * contacting Ping support and rolling back the tenant -- there is no
  * self-service undo.
  * @param {string} featureId feature id, e.g. 'aiagent'
- * @returns {Promise<IdmFeatureActionResult>} a promise that resolves to the install result
+ * @returns {Promise<IdmFeatureActionResponse>} a promise that resolves to the raw install response
  */
 export async function installIdmFeature({
   featureId,
@@ -120,7 +158,7 @@ export async function installIdmFeature({
 }: {
   featureId: string;
   state: State;
-}): Promise<IdmFeatureActionResult> {
+}): Promise<IdmFeatureActionResponse> {
   const urlString = util.format(
     idmFeatureActionURLTemplate,
     getIdmBaseUrl(state),

@@ -2892,14 +2892,14 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     mutating: false,
     riskClass: 'low',
     notes:
-      'A dry run only -- POST /openidm/feature/{id}?_action=validate reports whether installIdmFeature would succeed without installing anything.',
+      'A dry run only -- POST /openidm/feature/{id}?_action=validate reports whether installIdmFeature would succeed without installing anything. The result states the outcome: success is true when the feature can be installed, and failures lists the reasons it cannot (an empty array when there are none). A feature that cannot be installed is a result with success false, not an error.',
   },
   'cloud.idmFeature.installIdmFeature': {
     mutating: true,
     riskClass: 'critical',
     irreversible: true,
     notes:
-      "Installs an IDM tenant-configuration feature (e.g. groups, aiagent, am/2fa/profiles) -- a one-way operation. Per Ping's own documentation, uninstalling or disabling a feature once installed requires contacting Ping support and rolling back the tenant; there is no self-service undo. Distinct from cloud.env.enableAIAgentFeature -- see that entry's notes.",
+      "Installs an IDM tenant-configuration feature (e.g. groups, aiagent, am/2fa/profiles) -- a one-way operation. Per Ping's own documentation, uninstalling or disabling a feature once installed requires contacting Ping support and rolling back the tenant; there is no self-service undo. The result states the outcome: success is false when the response reports a failure (success false or a non-empty failures list, which is kept); a request that fails throws. The install makes no second request: read the feature again to confirm its installedVersion. Distinct from cloud.env.enableAIAgentFeature -- see that entry's notes.",
   },
   'cloud.env.enforceFederationFor': {
     mutating: true,

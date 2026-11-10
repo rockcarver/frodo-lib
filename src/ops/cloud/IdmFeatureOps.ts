@@ -3,6 +3,7 @@ import {
   getIdmFeatures as _getIdmFeatures,
   installIdmFeature as _installIdmFeature,
   validateIdmFeature as _validateIdmFeature,
+  IdmFeatureActionResponse,
   IdmFeatureActionResult,
   IdmFeatureInterface,
 } from '../../api/cloud/IdmFeatureApi';
@@ -50,16 +51,35 @@ export type IdmFeature = {
   hasIdmFeature(featureId: string): Promise<boolean>;
   /**
    * Validate whether an IDM tenant-configuration feature is installable,
-   * without installing it.
+   * without installing it. The result always has four fields: `status` (from
+   * the response body), `success` (true when the feature can be installed),
+   * `message` (the response message, unchanged, for example "Validate complete.
+   * 24 failure(s).") and `failures` (one entry per reason the feature cannot be
+   * installed, for example "config/managed: /objects/-: value already present
+   * at /objects/14"; an empty array when there are none). `success` is what the
+   * response says; when the response has no `success` field, it is true
+   * exactly when `failures` is empty. A validation that finds failures is a
+   * result with `success: false`, not an error; a request that fails (HTTP
+   * error, network error) throws a FrodoError.
    * @param {string} featureId feature id, e.g. 'aiagent'
-   * @returns {Promise<IdmFeatureActionResult>} a promise that resolves to the validation result
+   * @returns {Promise<IdmFeatureActionResult>} a promise that resolves to the validation result: status, success, message and failures
    */
   validateIdmFeature(featureId: string): Promise<IdmFeatureActionResult>;
   /**
    * Install an IDM tenant-configuration feature. Irreversible -- see the
-   * module-level remarks.
+   * module-level remarks. The result always has four fields: `status` (from
+   * the response body), `success`, `message` (the response message, unchanged,
+   * for example "Install complete.") and `failures` (empty unless the response
+   * lists failures). `success` is true when the request succeeded and the
+   * response does not say `success: false` and lists no failures; the install
+   * response documented by Ping has no `success` field, so a successful
+   * install is `success: true` without one. `success: false` means the
+   * endpoint reported a failure, with its `failures` and `message` kept. A
+   * request that fails (HTTP error, network error) throws a FrodoError. This
+   * makes no second request: a caller that wants confirmation reads the feature
+   * again (`readIdmFeature` or `hasIdmFeature`) and checks `installedVersion`.
    * @param {string} featureId feature id, e.g. 'aiagent'
-   * @returns {Promise<IdmFeatureActionResult>} a promise that resolves to the install result
+   * @returns {Promise<IdmFeatureActionResult>} a promise that resolves to the install result: status, success, message and failures
    */
   installIdmFeature(featureId: string): Promise<IdmFeatureActionResult>;
 };
@@ -136,6 +156,13 @@ export async function hasIdmFeature({
   }
 }
 
+/**
+ * The failures a response lists; an empty array when it lists none.
+ */
+function failuresOf(response: IdmFeatureActionResponse): string[] {
+  return Array.isArray(response.failures) ? response.failures : [];
+}
+
 export async function validateIdmFeature({
   featureId,
   state,
@@ -144,7 +171,19 @@ export async function validateIdmFeature({
   state: State;
 }): Promise<IdmFeatureActionResult> {
   try {
-    return await _validateIdmFeature({ featureId, state });
+    const response = await _validateIdmFeature({ featureId, state });
+    const failures = failuresOf(response);
+    return {
+      status: response.status,
+      // The response states the outcome; without a `success` field it is
+      // installable exactly when it lists no failures.
+      success:
+        typeof response.success === 'boolean'
+          ? response.success
+          : failures.length === 0,
+      message: response.message,
+      failures,
+    };
   } catch (error) {
     throw new FrodoError(`Error validating IDM feature ${featureId}`, error);
   }
@@ -158,7 +197,17 @@ export async function installIdmFeature({
   state: State;
 }): Promise<IdmFeatureActionResult> {
   try {
-    return await _installIdmFeature({ featureId, state });
+    const response = await _installIdmFeature({ featureId, state });
+    const failures = failuresOf(response);
+    return {
+      status: response.status,
+      // The documented install response has no `success` field: the request
+      // succeeded (a failed request throws), so only an explicit
+      // `success: false` or listed failures make it a failure.
+      success: response.success !== false && failures.length === 0,
+      message: response.message,
+      failures,
+    };
   } catch (error) {
     throw new FrodoError(`Error installing IDM feature ${featureId}`, error);
   }
