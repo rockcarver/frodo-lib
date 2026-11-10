@@ -1573,7 +1573,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Connector",
     methodName: "readConnectors",
     signature: "readConnectors(): Promise<ConnectorSkeleton[]>",
-    description: "Get all connectors",
+    description: "Get all connectors with ids starting with `provisioner.openicf/`, excluding non-connector configurations such as the connector info provider.",
     params: [],
     returns: "{Promise<ConnectorSkeleton[]>} a promise that resolves to an array of connector objects",
   },
