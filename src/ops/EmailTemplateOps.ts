@@ -18,7 +18,7 @@ import {
   AIC_PROTECTED_ENTITIES,
   readConfigEntitiesByType,
 } from './IdmConfigOps';
-import { ExportMetaData } from './OpsTypes';
+import { ExportMetaData, ResultCallback } from './OpsTypes';
 
 export type EmailTemplate = {
   /**
@@ -73,12 +73,15 @@ export type EmailTemplate = {
     templateData: EmailTemplateSkeleton
   ): Promise<EmailTemplateSkeleton>;
   /**
-   * Import all email templates
+   * Import all email templates. Every email template is tried: a template that cannot be imported does not stop the others.
    * @param {EmailTemplateExportInterface} importData import data
+   * @param {ResultCallback<EmailTemplateSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every email template is passed to it as it happens (a failed template as an error that names the template and carries the cause) and a failed template does not throw: the templates that were imported are returned. Without it, the failures are collected and thrown as one error after every template was tried.
    * @returns {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of email template objects
+   * @throws {FrodoError} If one or more email templates cannot be imported and there is no result callback. The error carries one nested error per failed template.
    */
   importEmailTemplates(
-    importData: EmailTemplateExportInterface
+    importData: EmailTemplateExportInterface,
+    resultCallback?: ResultCallback<EmailTemplateSkeleton>
   ): Promise<EmailTemplateSkeleton[]>;
   /**
    * Delete all email templates
@@ -123,9 +126,10 @@ export default (state: State): EmailTemplate => {
       return updateEmailTemplate({ templateId, templateData, state });
     },
     importEmailTemplates(
-      importData: EmailTemplateExportInterface
+      importData: EmailTemplateExportInterface,
+      resultCallback: ResultCallback<EmailTemplateSkeleton> = undefined
     ): Promise<EmailTemplateSkeleton[]> {
-      return importEmailTemplates({ importData, state });
+      return importEmailTemplates({ importData, resultCallback, state });
     },
     async deleteEmailTemplates(): Promise<EmailTemplateSkeleton[]> {
       return deleteEmailTemplates({ state });
@@ -346,15 +350,19 @@ export async function updateEmailTemplate({
 }
 
 /**
- * Import email templates.
+ * Import all email templates. Every email template is tried: a template that cannot be imported does not stop the others.
  * @param {EmailTemplateExportInterface} importData email template import data.
+ * @param {ResultCallback<EmailTemplateSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every email template is passed to it as it happens (a failed template as an error that names the template and carries the cause) and a failed template does not throw: the templates that were imported are returned. Without it, the failures are collected and thrown as one error after every template was tried.
  * @returns {Promise<SocialIdpSkeleton[]>} a promise resolving to an array of email template objects
+ * @throws {FrodoError} If one or more email templates cannot be imported and there is no result callback. The error carries one nested error per failed template.
  */
 export async function importEmailTemplates({
   importData,
+  resultCallback = undefined,
   state,
 }: {
   importData: EmailTemplateExportInterface;
+  resultCallback?: ResultCallback<EmailTemplateSkeleton>;
   state: State;
 }): Promise<EmailTemplateSkeleton[]> {
   debugMessage({
@@ -364,31 +372,49 @@ export async function importEmailTemplates({
   const response = [];
   const errors = [];
   for (const templateId of Object.keys(importData.emailTemplate)) {
+    let imported: EmailTemplateSkeleton;
+    let failed = false;
+    let failure: any;
     try {
       debugMessage({
         message: `EmailTemplateOps.importEmailTemplates: ${templateId}`,
         state,
       });
-      response.push(
-        await updateEmailTemplate({
-          templateId,
-          templateData: importData.emailTemplate[templateId],
-          state,
-        })
-      );
+      imported = await updateEmailTemplate({
+        templateId,
+        templateData: importData.emailTemplate[templateId],
+        state,
+      });
     } catch (e) {
-      if (
-        // protected entities (e.g. root realm email templates)
-        !(
-          state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY &&
-          AIC_PROTECTED_ENTITIES.includes(
-            `${EMAIL_TEMPLATE_TYPE}/${templateId}`
-          ) &&
-          e.httpStatus === 403 &&
-          e.httpCode === 'ERR_BAD_REQUEST'
-        )
-      ) {
-        errors.push(e);
+      failed = true;
+      failure = e;
+    }
+    // the callback is called outside the try: an exception of the callback must
+    // not be taken for a failed import and reported a second time
+    if (!failed) {
+      response.push(imported);
+      if (resultCallback) resultCallback(undefined, imported);
+    } else if (
+      // protected entities (e.g. root realm email templates)
+      !(
+        state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY &&
+        AIC_PROTECTED_ENTITIES.includes(
+          `${EMAIL_TEMPLATE_TYPE}/${templateId}`
+        ) &&
+        failure.httpStatus === 403 &&
+        failure.httpCode === 'ERR_BAD_REQUEST'
+      )
+    ) {
+      if (resultCallback) {
+        resultCallback(
+          new FrodoError(
+            `Error importing email template ${templateId}`,
+            failure
+          ),
+          undefined
+        );
+      } else {
+        errors.push(failure);
       }
     }
   }

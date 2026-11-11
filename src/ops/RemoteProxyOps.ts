@@ -20,7 +20,7 @@ import { getMetadata } from '../utils/ExportImportUtils';
 import { getHostOnlyUrl } from '../utils/ForgeRockUtils';
 import { FrodoError, isNotFoundError } from './FrodoError';
 import { readConfigEntitiesByType } from './IdmConfigOps';
-import { ExportMetaData } from './OpsTypes';
+import { ExportMetaData, ResultCallback } from './OpsTypes';
 
 export type RemoteProxy = {
   /**
@@ -173,12 +173,15 @@ export type RemoteProxy = {
     proxyData: RemoteProxySkeleton
   ): Promise<RemoteProxySkeleton>;
   /**
-   * Import remote proxies
+   * Import remote proxies. The name and the configuration of every remote proxy are checked before it is written, and a refused remote proxy is never sent to the tenant. Without a result callback every remote proxy is checked before the first one is written: if any of them is refused, nothing is imported.
    * @param {RemoteProxyExportInterface} importData import data
+   * @param {ResultCallback<RemoteProxySkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every remote proxy is passed to it as it happens (a refused or failed remote proxy as an error that names it) and a refused or failed remote proxy does not stop the others and does not throw: the remote proxies that were imported are returned. The refused remote proxies are reported first, then the outcome of each write. Import data without a remoteProxy object always throws.
    * @returns {Promise<RemoteProxySkeleton[]>} a promise that resolves to an array of remote proxy objects
+   * @throws {FrodoError} If the import data has no remoteProxy object (always), or, without a result callback, if any remote proxy is refused (nothing is imported) or cannot be written (after every remote proxy was tried). The error carries one nested error per remote proxy.
    */
   importRemoteProxies(
-    importData: RemoteProxyExportInterface
+    importData: RemoteProxyExportInterface,
+    resultCallback?: ResultCallback<RemoteProxySkeleton>
   ): Promise<RemoteProxySkeleton[]>;
   /**
    * Delete all remote proxies
@@ -250,9 +253,10 @@ export default (state: State): RemoteProxy => {
       return updateRemoteProxy({ proxyId, proxyData, state });
     },
     async importRemoteProxies(
-      importData: RemoteProxyExportInterface
+      importData: RemoteProxyExportInterface,
+      resultCallback: ResultCallback<RemoteProxySkeleton> = undefined
     ): Promise<RemoteProxySkeleton[]> {
-      return importRemoteProxies({ importData, state });
+      return importRemoteProxies({ importData, resultCallback, state });
     },
     async deleteRemoteProxies(): Promise<RemoteProxySkeleton[]> {
       return deleteRemoteProxies({ state });
@@ -289,6 +293,18 @@ export function isValidRemoteProxyName(proxyId: unknown): proxyId is string {
 }
 
 /**
+ * A name as it is shown in a message about a refused name: quoted, and cut after
+ * 40 characters.
+ * @param {unknown} proxyId the name
+ * @returns {string} the text to show
+ */
+function showRemoteProxyName(proxyId: unknown): string {
+  return typeof proxyId === 'string' && proxyId.length > 40
+    ? `${JSON.stringify(proxyId.slice(0, 40))}...`
+    : JSON.stringify(proxyId);
+}
+
+/**
  * Refuse a remote proxy name that is not allowed, before any request is made.
  * The error names the reason and the offending characters.
  * @param {string} proxyId name of the remote proxy without the type prefix
@@ -315,12 +331,8 @@ export function validateRemoteProxyName(
         ? `it contains ${offending.map((c) => JSON.stringify(c)).join(', ')}`
         : 'it does not start with a letter or a digit';
   }
-  const shown =
-    typeof proxyId === 'string' && proxyId.length > 40
-      ? `${JSON.stringify(proxyId.slice(0, 40))}...`
-      : JSON.stringify(proxyId);
   throw new FrodoError(
-    `Remote proxy name ${shown} is not allowed: ${reason}. A name has 1 to 100 characters, starts with a letter or a digit and contains only letters, digits, '.', '_' and '-'.`
+    `Remote proxy name ${showRemoteProxyName(proxyId)} is not allowed: ${reason}. A name has 1 to 100 characters, starts with a letter or a digit and contains only letters, digits, '.', '_' and '-'.`
   );
 }
 
@@ -985,16 +997,19 @@ export async function updateRemoteProxy({
 }
 
 /**
- * Import remote proxies. Every name and every proxy is checked before the
- * first one is written: if any of them is refused, nothing is imported.
+ * Import remote proxies. The name and the configuration of every remote proxy are checked before it is written, and a refused remote proxy is never sent to the tenant. Without a result callback every remote proxy is checked before the first one is written: if any of them is refused, nothing is imported.
  * @param {RemoteProxyExportInterface} importData import data
+ * @param {ResultCallback<RemoteProxySkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every remote proxy is passed to it as it happens (a refused or failed remote proxy as an error that names it) and a refused or failed remote proxy does not stop the others and does not throw: the remote proxies that were imported are returned. The refused remote proxies are reported first, then the outcome of each write. Import data without a remoteProxy object always throws.
  * @returns {Promise<RemoteProxySkeleton[]>} a promise that resolves to an array of remote proxy objects
+ * @throws {FrodoError} If the import data has no remoteProxy object (always), or, without a result callback, if any remote proxy is refused (nothing is imported) or cannot be written (after every remote proxy was tried). The error carries one nested error per remote proxy.
  */
 export async function importRemoteProxies({
   importData,
+  resultCallback = undefined,
   state,
 }: {
   importData: RemoteProxyExportInterface;
+  resultCallback?: ResultCallback<RemoteProxySkeleton>;
   state: State;
 }): Promise<RemoteProxySkeleton[]> {
   debugMessage({
@@ -1008,12 +1023,29 @@ export async function importRemoteProxies({
     );
   }
   const refused: Error[] = [];
+  const accepted: string[] = [];
   for (const proxyId of Object.keys(proxies)) {
     try {
       validateRemoteProxyName(proxyId);
       validateRemoteProxy(proxyId, proxies[proxyId]);
+      accepted.push(proxyId);
     } catch (error) {
-      refused.push(error);
+      if (resultCallback) {
+        // a refused remote proxy is reported and left out, the others go on
+        resultCallback(
+          new FrodoError(
+            `Error importing remote proxy ${
+              isValidRemoteProxyName(proxyId)
+                ? proxyId
+                : showRemoteProxyName(proxyId)
+            }`,
+            error
+          ),
+          undefined
+        );
+      } else {
+        refused.push(error);
+      }
     }
   }
   if (refused.length > 0) {
@@ -1024,21 +1056,39 @@ export async function importRemoteProxies({
   }
   const response: RemoteProxySkeleton[] = [];
   const errors = [];
-  for (const proxyId of Object.keys(proxies)) {
+  for (const proxyId of accepted) {
+    let imported: RemoteProxySkeleton;
+    let failed = false;
+    let failure: unknown;
     try {
       debugMessage({
         message: `RemoteProxyOps.importRemoteProxies: ${proxyId}`,
         state,
       });
-      response.push(
-        await updateRemoteProxy({
-          proxyId,
-          proxyData: proxies[proxyId],
-          state,
-        })
-      );
+      imported = await updateRemoteProxy({
+        proxyId,
+        proxyData: proxies[proxyId],
+        state,
+      });
     } catch (error) {
-      errors.push(error);
+      failed = true;
+      failure = error;
+    }
+    // the callback is called outside the try: an exception of the callback must
+    // not be taken for a failed import and reported a second time
+    if (!failed) {
+      response.push(imported);
+      if (resultCallback) resultCallback(undefined, imported);
+    } else if (resultCallback) {
+      resultCallback(
+        new FrodoError(
+          `Error importing remote proxy ${proxyId}`,
+          failure as Error
+        ),
+        undefined
+      );
+    } else {
+      errors.push(failure);
     }
   }
   if (errors.length > 0) {

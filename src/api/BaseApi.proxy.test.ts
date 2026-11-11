@@ -146,6 +146,8 @@ type Target = {
   /** The `host` of a state that points at this target. */
   host: string;
   requests: Seen[];
+  /** The body of every request, in the order the requests arrived. */
+  bodies: string[];
   connections: number;
 };
 
@@ -157,6 +159,8 @@ type Proxy = {
   connects: Seen[];
   /** Every plain request received (the request target is an absolute URI). */
   forwards: Seen[];
+  /** Plain requests whose request target is a path, not an absolute URI: a proxy cannot tell where to send them, and answers 400. */
+  relative: Seen[];
   /** TCP connections from the client, one per tunnel or per kept-alive connection. */
   connections: number;
   /** Bytes the clients sent into the tunnels. */
@@ -212,15 +216,25 @@ async function startTarget(
   scheme: 'http' | 'https',
   tls?: { key: string; cert: string }
 ): Promise<Target> {
-  const target = { scheme, requests: [], connections: 0 } as unknown as Target;
+  const target = {
+    scheme,
+    requests: [],
+    bodies: [],
+    connections: 0,
+  } as unknown as Target;
   const handler: http.RequestListener = (req, res) => {
     target.requests.push({
       method: req.method ?? '',
       url: req.url ?? '',
       headers: req.headers,
     });
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ cookieName: COOKIE_NAME }));
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk) => chunks.push(chunk));
+    req.on('end', () => {
+      target.bodies.push(Buffer.concat(chunks).toString());
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ cookieName: COOKIE_NAME }));
+    });
   };
   const server: http.Server | https.Server =
     scheme === 'https'
@@ -245,6 +259,7 @@ async function startProxy(options: ProxyOptions = {}): Promise<Proxy> {
   const proxy = {
     connects: [],
     forwards: [],
+    relative: [],
     connections: 0,
     tunnelBytes: 0,
     bytesAfterRefusal: 0,
@@ -311,6 +326,11 @@ async function startProxy(options: ProxyOptions = {}): Promise<Proxy> {
   // HTTP targets: a forward proxy. The request target is an absolute URI.
   server.on('request', (req, res) => {
     if (!/^http:\/\//i.test(req.url ?? '')) {
+      proxy.relative.push({
+        method: req.method ?? '',
+        url: req.url ?? '',
+        headers: req.headers,
+      });
       res.writeHead(400).end();
       return;
     }
@@ -344,7 +364,14 @@ async function startProxy(options: ProxyOptions = {}): Promise<Proxy> {
         agent: false,
       },
       (answer) => {
-        res.writeHead(answer.statusCode ?? 502, answer.headers);
+        // Connection and Keep-Alive describe the hop between the proxy and the
+        // target (the proxy asks it to close, with `agent: false`), not the one
+        // between the client and the proxy: a proxy does not pass them on.
+        // Passing `Connection: close` on would end every kept-alive connection.
+        const answerHeaders = { ...answer.headers };
+        delete answerHeaders.connection;
+        delete answerHeaders['keep-alive'];
+        res.writeHead(answer.statusCode ?? 502, answerHeaders);
         answer.pipe(res);
       }
     );
@@ -383,6 +410,25 @@ async function failureOf(call: Promise<unknown>): Promise<any> {
     return error;
   }
   throw new Error('the call was expected to fail, and it succeeded');
+}
+
+/**
+ * What a call came to, without throwing: the answer, or a short description of
+ * the failure. A test that reads the wire first and the outcomes after shows
+ * what the proxy was sent, not only that a call failed.
+ */
+async function outcome(
+  call: Promise<unknown>
+): Promise<{ data: unknown } | { failed: string }> {
+  try {
+    return { data: await call };
+  } catch (error: any) {
+    return {
+      failed: error?.response?.status
+        ? `status ${error.response.status}`
+        : String(error?.code ?? error?.message),
+    };
+  }
 }
 
 /** Imports the library afresh, so that BaseApi.ts reads FRODO_NO_KEEPALIVE again. */
@@ -854,16 +900,37 @@ describe('BaseApi reuses a tunnel through the shared agents', () => {
     expect(target.connections).toBe(2);
   });
 
-  // Found while writing these tests: on a kept-alive connection to a forward
-  // proxy, the second request of an HTTP target goes out with a relative
-  // request line (`GET /am/json/serverinfo/*`) and without its
-  // Proxy-Authorization, so a proxy answers 400 or 407. The agent rewrites the
-  // request line when it opens a connection, and not when it reuses one. HTTPS
-  // targets are not affected: the proxy only carries bytes after CONNECT.
-  // FRODO_NO_KEEPALIVE=1 is the way around it, and the test below pins that.
-  test.todo(
-    'two sequential HTTP requests through a forward proxy reuse one connection and both carry an absolute-URI request line and the proxy credentials'
-  );
+  // lib#985: on a kept-alive connection to a forward proxy, the second request
+  // of an HTTP target used to go out with a relative request line
+  // (`GET /am/json/serverinfo/*`) and without its Proxy-Authorization, so a
+  // proxy answered 400 or 407. The describe block 'BaseApi sends every request
+  // to an HTTP target through a forward proxy...' below covers it in depth.
+  test('two sequential HTTP requests through a forward proxy both carry an absolute-URI request line and the proxy credentials', async () => {
+    const target = await startTarget('http');
+    const proxy = await startProxy({ credentials: 'alice:s3cret' });
+    process.env.HTTP_PROXY = `http://alice:s3cret@127.0.0.1:${proxy.port}`;
+
+    const answers = [
+      await outcome(ask(target.host)),
+      await outcome(ask(target.host)),
+    ];
+
+    expect(proxy.relative).toEqual([]);
+    expect(proxy.forwards.map((r) => r.url)).toEqual([
+      `http://${target.hostPort}${SERVER_INFO_PATH}`,
+      `http://${target.hostPort}${SERVER_INFO_PATH}`,
+    ]);
+    for (const forward of proxy.forwards) {
+      expect(forward.headers['proxy-authorization']).toBe(
+        `Basic ${Buffer.from('alice:s3cret').toString('base64')}`
+      );
+    }
+    expect(answers).toEqual([
+      { data: { cookieName: COOKIE_NAME } },
+      { data: { cookieName: COOKIE_NAME } },
+    ]);
+    expect(target.requests).toHaveLength(2);
+  });
 
   test('with FRODO_NO_KEEPALIVE=1 two sequential HTTP requests each open a connection to the forward proxy and carry an absolute-URI request line and the proxy credentials', async () => {
     const target = await startTarget('http');
@@ -886,6 +953,497 @@ describe('BaseApi reuses a tunnel through the shared agents', () => {
       );
     }
     expect(target.requests).toHaveLength(2);
+  });
+});
+
+/*
+ * lib#985. A request for an HTTP target that goes through a forward proxy must
+ * carry the whole URL in its request line and the proxy credentials in
+ * Proxy-Authorization, on every request. http-proxy-agent writes both when it
+ * opens a connection to the proxy, and not when a request reuses a kept-alive
+ * one, so a request for an http: target that goes through a proxy opens its
+ * own connection (getHttpAgent() in BaseApi.ts). Everything else keeps its
+ * connections: a request that goes straight to its target (no proxy variable,
+ * or a host named in NO_PROXY) and an https: target (a CONNECT tunnel).
+ *
+ * The proxy of these tests answers 400 to a request whose request line is not
+ * an absolute URI, and 407 to one without the credentials it wants, as a real
+ * proxy does, and keeps what it was sent in `forwards` and `relative`. Every
+ * test reads that first and the outcome of the calls after it, so a failure
+ * shows what the proxy was sent.
+ */
+describe('BaseApi sends every request to an HTTP target through a forward proxy with an absolute-URI request line and the proxy credentials (lib#985)', () => {
+  const CREDENTIALS = 'user:made-up-pass';
+  const basic = (credentials: string) =>
+    `Basic ${Buffer.from(credentials).toString('base64')}`;
+  const OK = { data: { cookieName: COOKIE_NAME } };
+  const absolute = (target: Target, path = SERVER_INFO_PATH) =>
+    `http://${target.hostPort}${path}`;
+
+  /** The proxy URL of a proxy that wants CREDENTIALS. */
+  const withCredentials = (proxy: Proxy, credentials = CREDENTIALS) =>
+    `http://${credentials}@127.0.0.1:${proxy.port}`;
+
+  /** What the proxy was sent, request by request: the request target and Proxy-Authorization. */
+  const sentToProxy = (proxy: Proxy) =>
+    proxy.forwards.map((r) => ({
+      target: `${r.method} ${r.url}`,
+      authorization: r.headers['proxy-authorization'],
+    }));
+
+  /** Requests whose request line was a path: what the bug sent. */
+  const relativeRequests = (proxy: Proxy) =>
+    proxy.relative.map((r) => `${r.method} ${r.url}`);
+
+  /** `count` calls one after the other, each one answered before the next is sent. */
+  async function askSequentially(host: string, count: number) {
+    const outcomes = [];
+    for (let i = 0; i < count; i++) outcomes.push(await outcome(ask(host)));
+    return outcomes;
+  }
+
+  /** `waves` times `width` calls at once, a wave after the sockets of the one before were freed. */
+  async function askInWaves(host: string, width: number, waves: number) {
+    const outcomes = [];
+    for (let wave = 0; wave < waves; wave++) {
+      outcomes.push(
+        ...(await Promise.all(
+          Array.from({ length: width }, () => outcome(ask(host)))
+        ))
+      );
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    return outcomes;
+  }
+
+  /** The proxy was sent `count` requests for the server info of the target, all with the credentials (or all without). */
+  function expectEveryRequestCarried(
+    proxy: Proxy,
+    target: Target,
+    count: number,
+    credentials?: string
+  ) {
+    expect(relativeRequests(proxy)).toEqual([]);
+    expect(sentToProxy(proxy)).toEqual(
+      Array.from({ length: count }, () => ({
+        target: `GET ${absolute(target)}`,
+        authorization:
+          credentials === undefined ? undefined : basic(credentials),
+      }))
+    );
+    expectNotSentOnToTarget(target, credentials);
+  }
+
+  /** The credentials belong to the proxy: no header the target saw holds them, in any form. */
+  function expectNotSentOnToTarget(target: Target, credentials?: string) {
+    if (credentials === undefined) return;
+    const headersSeen = JSON.stringify(target.requests.map((r) => r.headers));
+    expect(headersSeen).not.toContain(
+      Buffer.from(credentials).toString('base64')
+    );
+    expect(headersSeen).not.toContain(
+      credentials.slice(credentials.indexOf(':') + 1)
+    );
+  }
+
+  test.each([2, 3, 10])(
+    '%i sequential requests: the proxy is sent an absolute-URI request line and the same Proxy-Authorization with each',
+    async (count) => {
+      const target = await startTarget('http');
+      const proxy = await startProxy({ credentials: CREDENTIALS });
+      process.env.HTTP_PROXY = withCredentials(proxy);
+
+      const outcomes = await askSequentially(target.host, count);
+
+      expectEveryRequestCarried(proxy, target, count, CREDENTIALS);
+      expect(outcomes).toEqual(Array.from({ length: count }, () => OK));
+      expect(target.requests).toHaveLength(count);
+      // the credentials belong to the proxy: they are not sent on to the target
+      for (const request of target.requests) {
+        expect(request.headers['proxy-authorization']).toBeUndefined();
+      }
+    }
+  );
+
+  test('without credentials in the proxy URL no request carries a Proxy-Authorization header', async () => {
+    const target = await startTarget('http');
+    const proxy = await startProxy();
+    process.env.HTTP_PROXY = proxy.url;
+
+    const outcomes = await askSequentially(target.host, 5);
+
+    expectEveryRequestCarried(proxy, target, 5);
+    expect(outcomes).toEqual(Array.from({ length: 5 }, () => OK));
+  });
+
+  test('percent-encoded credentials are decoded on every request, not only on the first', async () => {
+    const target = await startTarget('http');
+    const proxy = await startProxy({ credentials: 'al@ice:p:ss/w rd' });
+    process.env.HTTP_PROXY = `http://al%40ice:p%3Ass%2Fw%20rd@127.0.0.1:${proxy.port}`;
+
+    const outcomes = await askSequentially(target.host, 4);
+
+    expectEveryRequestCarried(proxy, target, 4, 'al@ice:p:ss/w rd');
+    expect(outcomes).toEqual(Array.from({ length: 4 }, () => OK));
+  });
+
+  test('requests made at the same time, in two waves, all carry the credentials', async () => {
+    const target = await startTarget('http');
+    const proxy = await startProxy({ credentials: CREDENTIALS });
+    process.env.HTTP_PROXY = withCredentials(proxy);
+
+    const outcomes = await askInWaves(target.host, 4, 2);
+
+    expectEveryRequestCarried(proxy, target, 8, CREDENTIALS);
+    expect(outcomes).toEqual(Array.from({ length: 8 }, () => OK));
+  });
+
+  test('requests with a body carry the credentials, and the body arrives intact', async () => {
+    const target = await startTarget('http');
+    const proxy = await startProxy({ credentials: CREDENTIALS });
+    process.env.HTTP_PROXY = withCredentials(proxy);
+    const api = generateAmApi({
+      resource: {},
+      requiredScopes: [],
+      anonymous: true,
+      state: stateFor(target.host),
+    });
+    const send = (call: Promise<unknown>) =>
+      outcome(call.then((r: any) => r.data));
+
+    const outcomes = [
+      await send(api.get(`${target.host}/json/serverinfo/*`)),
+      await send(
+        api.post(`${target.host}/json/first?_action=login&realm=%2Falpha`, {
+          n: 1,
+          text: 'a',
+        })
+      ),
+      await send(api.post(`${target.host}/json/second`, { n: 2, text: 'b' })),
+      await send(
+        api.get(`${target.host}/json/serverinfo/*?_fields=a,b&q=x%20y`)
+      ),
+      await send(api.post(`${target.host}/json/third`, { n: 3, text: 'c' })),
+    ];
+
+    // what the library asked for, and so what the proxy has to be sent (the
+    // whole URL, query included) and has to pass on (the path and the query)
+    const lines = [
+      'GET /am/json/serverinfo/*',
+      'POST /am/json/first?_action=login&realm=%2Falpha',
+      'POST /am/json/second',
+      'GET /am/json/serverinfo/*?_fields=a,b&q=x%20y',
+      'POST /am/json/third',
+    ];
+    expect(relativeRequests(proxy)).toEqual([]);
+    expect(sentToProxy(proxy)).toEqual(
+      lines.map((line) => {
+        const [method, path] = line.split(' ');
+        return {
+          target: `${method} ${absolute(target, path)}`,
+          authorization: basic(CREDENTIALS),
+        };
+      })
+    );
+    expect(target.requests.map((r) => `${r.method} ${r.url}`)).toEqual(lines);
+    expect(outcomes).toEqual(Array.from({ length: 5 }, () => OK));
+    expect(target.bodies).toEqual([
+      '',
+      JSON.stringify({ n: 1, text: 'a' }),
+      JSON.stringify({ n: 2, text: 'b' }),
+      '',
+      JSON.stringify({ n: 3, text: 'c' }),
+    ]);
+  });
+
+  test('a Host header without a port, set by the caller, still gets the port of the target into the request line', async () => {
+    const target = await startTarget('http');
+    const proxy = await startProxy({
+      credentials: CREDENTIALS,
+      hosts: { [PROXY_ONLY_NAME]: '127.0.0.1' },
+    });
+    process.env.HTTP_PROXY = withCredentials(proxy);
+    const api = generateAmApi({
+      resource: {},
+      requiredScopes: [],
+      anonymous: true,
+      state: stateFor(target.host),
+      requestOverride: { headers: { Host: PROXY_ONLY_NAME } },
+    });
+
+    const outcomes = [
+      await outcome(api.get(`${target.host}/json/serverinfo/*`)),
+      await outcome(api.get(`${target.host}/json/serverinfo/*`)),
+    ];
+
+    expect(relativeRequests(proxy)).toEqual([]);
+    expect(sentToProxy(proxy)).toEqual(
+      Array.from({ length: 2 }, () => ({
+        target: `GET http://${PROXY_ONLY_NAME}:${target.port}${SERVER_INFO_PATH}`,
+        authorization: basic(CREDENTIALS),
+      }))
+    );
+    expect(outcomes).toHaveLength(2);
+    expect(outcomes.map((o) => 'data' in o)).toEqual([true, true]);
+  });
+
+  test('each request of an HTTP target through a proxy opens its own connection to the proxy', async () => {
+    // This is the rule that fixes lib#985 and its price: the connections of the
+    // agents made for the proxies are not kept alive. Not a promise about HTTP
+    // targets that go straight to the target, nor about HTTPS targets: see below.
+    const target = await startTarget('http');
+    const proxy = await startProxy({ credentials: CREDENTIALS });
+    process.env.HTTP_PROXY = withCredentials(proxy);
+
+    await askSequentially(target.host, 6);
+
+    expect(proxy.connections).toBe(6);
+    expect(proxy.forwards).toHaveLength(6);
+  });
+
+  test('a proxy switched between requests gets its own credentials on each request', async () => {
+    const target = await startTarget('http');
+    const proxyA = await startProxy({ credentials: 'userA:made-up-pass-a' });
+    const proxyB = await startProxy({ credentials: 'userB:made-up-pass-b' });
+    const outcomes = [];
+
+    for (const proxy of [proxyA, proxyA, proxyB, proxyB, proxyA, proxyA]) {
+      process.env.HTTP_PROXY = withCredentials(
+        proxy,
+        proxy === proxyA ? 'userA:made-up-pass-a' : 'userB:made-up-pass-b'
+      );
+      outcomes.push(await outcome(ask(target.host)));
+    }
+
+    expectEveryRequestCarried(proxyA, target, 4, 'userA:made-up-pass-a');
+    expectEveryRequestCarried(proxyB, target, 2, 'userB:made-up-pass-b');
+    expect(outcomes).toEqual(Array.from({ length: 6 }, () => OK));
+  });
+
+  test('the proxy variables are read for each request: through the proxy, straight to the target, through the proxy again', async () => {
+    const target = await startTarget('http');
+    const proxy = await startProxy({ credentials: CREDENTIALS });
+    const outcomes = [];
+
+    for (const viaProxy of [true, true, false, false, true, true]) {
+      if (viaProxy) process.env.HTTP_PROXY = withCredentials(proxy);
+      else delete process.env.HTTP_PROXY;
+      outcomes.push(await outcome(ask(target.host)));
+    }
+
+    expectEveryRequestCarried(proxy, target, 4, CREDENTIALS);
+    expect(outcomes).toEqual(Array.from({ length: 6 }, () => OK));
+    // the target saw all six, two of them straight from the library
+    expect(target.requests).toHaveLength(6);
+  });
+
+  test('a proxy that wants credentials and is given none answers 407 to every request, and nothing more is sent', async () => {
+    const target = await startTarget('http');
+    const proxy = await startProxy({ credentials: CREDENTIALS });
+    process.env.HTTP_PROXY = proxy.url;
+
+    const outcomes = await askSequentially(target.host, 3);
+
+    expect(relativeRequests(proxy)).toEqual([]);
+    expect(sentToProxy(proxy)).toEqual(
+      Array.from({ length: 3 }, () => ({
+        target: `GET ${absolute(target)}`,
+        authorization: undefined,
+      }))
+    );
+    expect(outcomes).toEqual(
+      Array.from({ length: 3 }, () => ({ failed: 'status 407' }))
+    );
+    expect(target.requests).toEqual([]);
+  });
+
+  describe('what does not go through the proxy, or does not need it, keeps its connection', () => {
+    test('a target named in NO_PROXY is reached straight, and over one connection', async () => {
+      const target = await startTarget('http');
+      const proxy = await startProxy({ credentials: CREDENTIALS });
+      process.env.HTTP_PROXY = withCredentials(proxy);
+      process.env.NO_PROXY = target.hostPort;
+
+      const outcomes = await askSequentially(target.host, 6);
+
+      expectDirect(proxy, target, 6);
+      expect(proxy.connections).toBe(0);
+      expect(target.connections).toBe(1);
+      expect(target.requests.map((r) => r.url)).toEqual(
+        Array.from({ length: 6 }, () => SERVER_INFO_PATH)
+      );
+      expect(outcomes).toEqual(Array.from({ length: 6 }, () => OK));
+    });
+
+    test('without any proxy variable the target is reached over one connection', async () => {
+      const target = await startTarget('http');
+      const proxy = await startProxy();
+
+      const outcomes = await askSequentially(target.host, 6);
+
+      expectDirect(proxy, target, 6);
+      expect(target.connections).toBe(1);
+      expect(outcomes).toEqual(Array.from({ length: 6 }, () => OK));
+    });
+
+    test('two targets, one named in NO_PROXY, in turn: the one is straight and kept alive, the other carries the credentials each time', async () => {
+      const straight = await startTarget('http');
+      const proxied = await startTarget('http');
+      const proxy = await startProxy({ credentials: CREDENTIALS });
+      process.env.HTTP_PROXY = withCredentials(proxy);
+      process.env.NO_PROXY = straight.hostPort;
+      const outcomes = [];
+
+      for (let i = 0; i < 4; i++) {
+        outcomes.push(await outcome(ask(straight.host)));
+        outcomes.push(await outcome(ask(proxied.host)));
+      }
+
+      expectEveryRequestCarried(proxy, proxied, 4, CREDENTIALS);
+      expect(straight.requests).toHaveLength(4);
+      expect(straight.connections).toBe(1);
+      expect(outcomes).toEqual(Array.from({ length: 8 }, () => OK));
+    });
+
+    test('with FRODO_NO_KEEPALIVE=1 a target reached straight gets a connection per request, as before', async () => {
+      const target = await startTarget('http');
+      process.env.FRODO_NO_KEEPALIVE = '1';
+      const askAfresh = await importLibraryAfresh();
+
+      for (let i = 0; i < 4; i++) await askAfresh(target.host);
+
+      expect(target.requests).toHaveLength(4);
+      expect(target.connections).toBe(4);
+    });
+
+    test('with FRODO_NO_KEEPALIVE=1 five requests through a proxy all carry the credentials, as before', async () => {
+      const target = await startTarget('http');
+      const proxy = await startProxy({ credentials: CREDENTIALS });
+      process.env.HTTP_PROXY = withCredentials(proxy);
+      process.env.FRODO_NO_KEEPALIVE = '1';
+      const askAfresh = await importLibraryAfresh();
+      const outcomes = [];
+
+      for (let i = 0; i < 5; i++) {
+        outcomes.push(await outcome(askAfresh(target.host)));
+      }
+
+      expectEveryRequestCarried(proxy, target, 5, CREDENTIALS);
+      expect(proxy.connections).toBe(5);
+      expect(outcomes).toEqual(Array.from({ length: 5 }, () => OK));
+    });
+
+    test.each([2, 6])(
+      '%i sequential requests to an HTTPS target through the proxy use one CONNECT tunnel',
+      async (count) => {
+        const target = await startTarget('https', tls);
+        const proxy = await startProxy({ credentials: CREDENTIALS });
+        process.env.HTTPS_PROXY = withCredentials(proxy);
+
+        const outcomes = await askSequentially(target.host, count);
+
+        expect(outcomes).toEqual(Array.from({ length: count }, () => OK));
+        expect(proxy.connects.map((c) => c.url)).toEqual([target.hostPort]);
+        expect(proxy.connects[0].headers['proxy-authorization']).toBe(
+          basic(CREDENTIALS)
+        );
+        expect(proxy.connections).toBe(1);
+        expect(target.requests).toHaveLength(count);
+        expect(target.connections).toBe(1);
+        expect(proxy.forwards).toEqual([]);
+        expect(proxy.relative).toEqual([]);
+      }
+    );
+
+    test('requests to an HTTPS target made at the same time reuse the tunnels of the waves before', async () => {
+      const target = await startTarget('https', tls);
+      const proxy = await startProxy();
+      process.env.HTTPS_PROXY = proxy.url;
+
+      // two waves open the tunnels they need (a wave may find some of the
+      // sockets of the one before still busy), the next two need no new one
+      const warmUp = await askInWaves(target.host, 4, 2);
+      const tunnels = proxy.connects.length;
+      const later = await askInWaves(target.host, 4, 2);
+
+      expect([...warmUp, ...later]).toEqual(
+        Array.from({ length: 16 }, () => OK)
+      );
+      expect(target.requests).toHaveLength(16);
+      expect(tunnels).toBeGreaterThanOrEqual(4);
+      expect(tunnels).toBeLessThanOrEqual(8);
+      expect(proxy.connects).toHaveLength(tunnels);
+      expect(proxy.connections).toBe(tunnels);
+      expect(target.connections).toBe(tunnels);
+    });
+
+    test('an HTTP target and an HTTPS target through the same proxy, in turn: the HTTP target carries the credentials each time, the HTTPS target keeps its tunnel', async () => {
+      const plain = await startTarget('http');
+      const secure = await startTarget('https', tls);
+      const proxy = await startProxy({ credentials: CREDENTIALS });
+      process.env.HTTP_PROXY = withCredentials(proxy);
+      process.env.HTTPS_PROXY = withCredentials(proxy);
+      const outcomes = [];
+
+      for (let i = 0; i < 4; i++) {
+        outcomes.push(await outcome(ask(plain.host)));
+        outcomes.push(await outcome(ask(secure.host)));
+      }
+
+      expectEveryRequestCarried(proxy, plain, 4, CREDENTIALS);
+      expect(proxy.connects.map((c) => c.url)).toEqual([secure.hostPort]);
+      expect(secure.requests).toHaveLength(4);
+      expect(secure.connections).toBe(1);
+      expect(outcomes).toEqual(Array.from({ length: 8 }, () => OK));
+    });
+  });
+
+  test('the proxy password is not logged or put in an error message, by the library or by the failed requests', async () => {
+    const target = await startTarget('http');
+    const proxy = await startProxy({ credentials: CREDENTIALS });
+    process.env.HTTP_PROXY = `http://user:made-up-wrong-pass@127.0.0.1:${proxy.port}`;
+    const written: string[] = [];
+    const spies = (['log', 'info', 'warn', 'error', 'debug'] as const).map(
+      (name) =>
+        jest.spyOn(console, name).mockImplementation((...args: unknown[]) => {
+          written.push(args.map(String).join(' '));
+        })
+    );
+    const stdout = jest
+      .spyOn(process.stdout, 'write')
+      .mockImplementation((chunk: any) => {
+        written.push(String(chunk));
+        return true;
+      });
+    const stderr = jest
+      .spyOn(process.stderr, 'write')
+      .mockImplementation((chunk: any) => {
+        written.push(String(chunk));
+        return true;
+      });
+    let messages: string[];
+    try {
+      const errors = [
+        await failureOf(ask(target.host)),
+        await failureOf(ask(target.host)),
+      ];
+      messages = errors.flatMap((error) => [
+        error.message,
+        new FrodoError('Error getting server info', error).getCombinedMessage(),
+      ]);
+    } finally {
+      [...spies, stdout, stderr].forEach((spy) => spy.mockRestore());
+    }
+
+    expect(messages).toHaveLength(4);
+    for (const text of [...messages, ...written]) {
+      expect(text).not.toContain('made-up-wrong-pass');
+      expect(text).not.toContain(
+        Buffer.from('user:made-up-wrong-pass').toString('base64')
+      );
+    }
+    expect(proxy.forwards).toHaveLength(2);
+    expect(messages[1]).toContain('Status: 407');
   });
 });
 

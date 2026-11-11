@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { Agent as HttpAgent } from 'http';
 import axios, {
   AxiosError,
   AxiosInstance,
@@ -55,6 +56,9 @@ const timeout = 30000;
 // versions (verified on v24), free keep-alive sockets do NOT keep a short-lived
 // process (e.g. one-shot CLI commands) alive — the event loop drains and the
 // process exits promptly.
+//
+// One case never reuses a connection, whatever FRODO_NO_KEEPALIVE says: a
+// request for an http: target that goes through a proxy (see getHttpAgent()).
 const noKeepAlive = ['1', 'true', 'yes'].includes(
   (process.env.FRODO_NO_KEEPALIVE || '').toLowerCase()
 );
@@ -68,15 +72,39 @@ const userAgent = getUserAgent();
 const transactionId = `frodo-${randomUUID()}`;
 let httpAgent, httpsAgent, httpsInsecureAgent;
 
+/**
+ * Helper method to create the shared agent for requests to http: targets
+ *
+ * A request that goes through a forward proxy must carry the whole URL in its
+ * request line and the proxy credentials in `Proxy-Authorization`.
+ * http-proxy-agent (under proxy-agent) rewrites both when it opens a connection
+ * to the proxy, and not when a request reuses a kept-alive one: the second and
+ * every later request on a connection goes out with a path only and without
+ * credentials, and the proxy answers 400 or 407 (lib#985). So a request for an
+ * http: target that goes through a proxy opens its own connection, as it did
+ * before keep-alive was enabled. The options of a ProxyAgent are also the
+ * options of the agents it makes for the proxies, hence `keepAlive: false`
+ * here; a request that goes straight to its target (no proxy variable, or a
+ * host named in NO_PROXY) uses `httpAgent`, which keeps its sockets alive like
+ * any other agent of this module. https: targets are not affected: the proxy
+ * only carries the bytes of a CONNECT tunnel, and getHttpsAgent() reuses the
+ * tunnel.
+ * @returns {ProxyAgent} the agent for http: targets
+ */
 function getHttpAgent(): ProxyAgent {
   if (httpAgent) return httpAgent;
-  httpAgent = new ProxyAgent({
+  const agentOptions = {
     maxSockets,
     maxFreeSockets,
     timeout,
     keepAlive,
     keepAliveMsecs,
     scheduling,
+  };
+  httpAgent = new ProxyAgent({
+    ...agentOptions,
+    keepAlive: false,
+    httpAgent: new HttpAgent(agentOptions),
   });
   return httpAgent;
 }
