@@ -180,6 +180,24 @@ releases missed):
   now; `isNotFoundError` accepts both. The nested errors of a failed
   `deleteOAuth2TrustedJwtIssuers` are `FrodoError`s that name the issuer in the
   same way.
+- `frodo.config.importFullConfiguration` writes a trusted JWT issuer once. An
+  issuer that an export holds under both `realm.<realm>.agent` and
+  `realm.<realm>.trustedJwtIssuer` (every export of a full configuration since
+  4.0.0) used to be written twice, the second write winning, and a failure was
+  reported twice. It is now written once from the `trustedJwtIssuer` copy, and
+  an issuer that only the `agent` section holds is written through the issuer
+  module. Nothing is lost: an export of any earlier layout (issuers under
+  `agent`, under `trustedJwtIssuer`, or under both) still imports completely.
+  If the two copies differ, the `trustedJwtIssuer` copy is the one that is
+  imported, as it was in effect before; an edit made only to the `agent` copy
+  is ignored. The Agents step of the import is skipped when the `agent` section
+  held nothing but issuers.
+- `frodo.oauth2oidc.issuer.importOAuth2TrustedJwtIssuer`,
+  `importFirstOAuth2TrustedJwtIssuer` and `importOAuth2TrustedJwtIssuers` also
+  read the trusted JWT issuers of the `agent` section of the import data, so an
+  `agent export` file of the 4.x line that holds issuers imports through the
+  module (the copy in the `trustedJwtIssuer` section wins if both have the same
+  id). Their `importData` type is now `OAuth2TrustedJwtIssuerImportData`.
 
 **Deprecation**:
 

@@ -4072,11 +4072,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "OAuth2TrustedJwtIssuer",
     methodName: "importOAuth2TrustedJwtIssuer",
-    signature: "importOAuth2TrustedJwtIssuer( issuerId: string, importData: OAuth2TrustedJwtIssuerExportInterface, options?: OAuth2TrustedJwtIssuerImportOptions ): Promise<OAuth2TrustedJwtIssuerSkeleton>",
+    signature: "importOAuth2TrustedJwtIssuer( issuerId: string, importData: OAuth2TrustedJwtIssuerImportData, options?: OAuth2TrustedJwtIssuerImportOptions ): Promise<OAuth2TrustedJwtIssuerSkeleton>",
     description: "Import OAuth2 trusted jwt issuer by ID. The import data is not modified.",
     params: [
       { name: "issuerId", type: "string", description: "trusted jwt issuer id", required: true },
-      { name: "importData", type: "OAuth2TrustedJwtIssuerExportInterface", description: "import data", required: true },
+      { name: "importData", type: "OAuth2TrustedJwtIssuerImportData", description: "import data: an export of trusted jwt issuers, or an agent export (4.x) that holds trusted jwt issuers in its agent section", required: true },
       { name: "options", type: "OAuth2TrustedJwtIssuerImportOptions", description: "deprecated, has no effect: a trusted jwt issuer has no scripts", required: false },
     ],
     returns: "{Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to the imported trusted jwt issuer",
@@ -4084,10 +4084,10 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "OAuth2TrustedJwtIssuer",
     methodName: "importFirstOAuth2TrustedJwtIssuer",
-    signature: "importFirstOAuth2TrustedJwtIssuer( importData: OAuth2TrustedJwtIssuerExportInterface, options?: OAuth2TrustedJwtIssuerImportOptions ): Promise<OAuth2TrustedJwtIssuerSkeleton>",
+    signature: "importFirstOAuth2TrustedJwtIssuer( importData: OAuth2TrustedJwtIssuerImportData, options?: OAuth2TrustedJwtIssuerImportOptions ): Promise<OAuth2TrustedJwtIssuerSkeleton>",
     description: "Import first OAuth2 trusted jwt issuer. The import data is not modified.",
     params: [
-      { name: "importData", type: "OAuth2TrustedJwtIssuerExportInterface", description: "import data", required: true },
+      { name: "importData", type: "OAuth2TrustedJwtIssuerImportData", description: "import data: an export of trusted jwt issuers, or an agent export (4.x) that holds trusted jwt issuers in its agent section", required: true },
       { name: "options", type: "OAuth2TrustedJwtIssuerImportOptions", description: "deprecated, has no effect: a trusted jwt issuer has no scripts", required: false },
     ],
     returns: "{Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to the imported trusted jwt issuer",
@@ -4095,10 +4095,10 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "OAuth2TrustedJwtIssuer",
     methodName: "importOAuth2TrustedJwtIssuers",
-    signature: "importOAuth2TrustedJwtIssuers( importData: OAuth2TrustedJwtIssuerExportInterface, options?: OAuth2TrustedJwtIssuerImportOptions, resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton> ): Promise<OAuth2TrustedJwtIssuerSkeleton[]>",
+    signature: "importOAuth2TrustedJwtIssuers( importData: OAuth2TrustedJwtIssuerImportData, options?: OAuth2TrustedJwtIssuerImportOptions, resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton> ): Promise<OAuth2TrustedJwtIssuerSkeleton[]>",
     description: "Import OAuth2 trusted jwt issuers. The import data is not modified. Every issuer is tried: an issuer that cannot be imported does not stop the others. Import data without issuers is an empty import.",
     params: [
-      { name: "importData", type: "OAuth2TrustedJwtIssuerExportInterface", description: "import data", required: true },
+      { name: "importData", type: "OAuth2TrustedJwtIssuerImportData", description: "import data: an export of trusted jwt issuers, or an agent export (4.x) that holds trusted jwt issuers in its agent section", required: true },
       { name: "options", type: "OAuth2TrustedJwtIssuerImportOptions", description: "deprecated, has no effect: a trusted jwt issuer has no scripts", required: false },
       { name: "resultCallback", type: "ResultCallback<OAuth2TrustedJwtIssuerSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every issuer is passed to it as it happens (a failed issuer as an error that names it) and a failed issuer does not throw. Without it, the failures are collected and thrown as one error after every issuer was tried.", required: false },
     ],
