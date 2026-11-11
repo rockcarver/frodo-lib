@@ -171,6 +171,15 @@ releases missed):
   capability that takes it as its last parameter is rejected as an unknown
   argument. A host that calls the runtime in process and puts a function at the
   position of the callback keeps it.
+- `frodo.oauth2oidc.issuer.deleteOAuth2TrustedJwtIssuer`
+  (`src/ops/OAuth2TrustedJwtIssuerOps.ts`) now rejects with a `FrodoError`
+  that names the realm and the issuer and carries the original error. Before,
+  a failed delete rejected with the raw request error, because the call was not
+  awaited inside its `try`. A caller that reads `error.response` of the
+  rejection reads `error.httpStatus` (or `error.originalErrors[0].response`)
+  now; `isNotFoundError` accepts both. The nested errors of a failed
+  `deleteOAuth2TrustedJwtIssuers` are `FrodoError`s that name the issuer in the
+  same way.
 
 **Deprecation**:
 
