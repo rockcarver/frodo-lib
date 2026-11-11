@@ -557,7 +557,7 @@ export async function exportWorkflow({
 }): Promise<WorkflowExportInterface> {
   try {
     debugMessage({ message: `IgaWorkflowOps.exportWorkflow: start`, state });
-    const exportData = getWorkflowExport({
+    const exportData = await getWorkflowExport({
       workflowId,
       options,
       state,

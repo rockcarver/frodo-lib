@@ -398,7 +398,7 @@ export async function readUserGroups({
     });
     const { result } = await getUserGroups({ state });
     // getUserGroups doesn't return groups with the privileges attribute, so request each group individually
-    const groups = Promise.all(
+    const groups = await Promise.all(
       result.map((g) => readUserGroup({ groupId: g._id, state }))
     );
     debugMessage({ message: `UserOps.readUserGroups: end`, state });

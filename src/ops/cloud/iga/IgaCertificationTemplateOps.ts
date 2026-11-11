@@ -463,7 +463,7 @@ export async function exportCertificationTemplate({
       templateId,
       state,
     });
-    const exportData = prepareCertificationTemplateForExport({
+    const exportData = await prepareCertificationTemplateForExport({
       templateData,
       options,
       state,
@@ -505,7 +505,7 @@ export async function exportCertificationTemplateByName({
       templateName,
       state,
     });
-    const exportData = prepareCertificationTemplateForExport({
+    const exportData = await prepareCertificationTemplateForExport({
       templateData,
       options,
       state,

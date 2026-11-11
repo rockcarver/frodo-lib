@@ -680,7 +680,7 @@ export async function deleteFullService({
     );
 
     debugMessage({ message: `ServiceOps.deleteFullService: end`, state });
-    return deleteService({ serviceId, globalConfig, state });
+    return await deleteService({ serviceId, globalConfig, state });
   } catch (error) {
     throw new FrodoError(
       `Error deleting ${

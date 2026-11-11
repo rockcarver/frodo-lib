@@ -79,7 +79,7 @@ export async function encrypt({
     const globals = {
       value,
     };
-    const response = evaluateScript({ script, globals, state });
+    const response = await evaluateScript({ script, globals, state });
     return response;
   } catch (error) {
     throw new FrodoError(`Error encrypting value`, error);
@@ -102,7 +102,7 @@ export async function encryptMap({
     const globals = {
       map,
     };
-    const response = evaluateScript({ script, globals, state });
+    const response = await evaluateScript({ script, globals, state });
     return response;
   } catch (error) {
     throw new FrodoError(`Error encrypting map`, error);
@@ -144,7 +144,7 @@ export async function decryptMap({
     const globals = {
       map,
     };
-    const response = evaluateScript({ script, globals, state });
+    const response = await evaluateScript({ script, globals, state });
     return response;
   } catch (error) {
     throw new FrodoError(`Error decrypting map`, error);

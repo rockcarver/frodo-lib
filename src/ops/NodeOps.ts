@@ -922,7 +922,7 @@ export async function createNode({
       }
       throw new FrodoError(`Node ${nodeId} already exists!`);
     }
-    return _createNode({ nodeType, nodeTypeVersion, nodeData, state });
+    return await _createNode({ nodeType, nodeTypeVersion, nodeData, state });
   } catch (error) {
     throw new FrodoError(`Error creating ${nodeType} node ${nodeId}`, error);
   }

@@ -395,7 +395,7 @@ export async function exportRequestForm({
       formId,
       state,
     });
-    const exportData = prepareFormForExport({
+    const exportData = await prepareFormForExport({
       form,
       options,
       state,
@@ -434,7 +434,7 @@ export async function exportRequestFormByName({
       formName,
       state,
     });
-    const exportData = prepareFormForExport({
+    const exportData = await prepareFormForExport({
       form,
       options,
       state,

@@ -1046,7 +1046,7 @@ export async function importSubConfigEntity({
       ).push(updatedSubConfigEntity);
     }
 
-    return importConfigEntities({
+    return await importConfigEntities({
       entityId,
       importData: entityExport,
       options,
@@ -1107,7 +1107,7 @@ export async function removeSubConfigEntity({
       entityExport.idm[entityId][subEntityKey] as NoIdObjectSkeletonInterface[]
     ).splice(existingSubEntityIndex, 1);
 
-    return importConfigEntities({
+    return await importConfigEntities({
       entityId,
       importData: entityExport,
       options,

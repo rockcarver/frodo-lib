@@ -383,7 +383,7 @@ export async function exportEvent({
       eventId,
       state,
     });
-    const exportData = prepareEventForExport({
+    const exportData = await prepareEventForExport({
       eventData,
       options,
       state,
@@ -421,7 +421,7 @@ export async function exportEventByName({
       eventName,
       state,
     });
-    const exportData = prepareEventForExport({
+    const exportData = await prepareEventForExport({
       eventData,
       options,
       state,

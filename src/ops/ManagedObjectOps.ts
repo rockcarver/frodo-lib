@@ -450,8 +450,14 @@ export async function createManagedObject({
 }): Promise<IdObjectSkeletonInterface> {
   try {
     if (id)
-      return _putManagedObject({ type, id, moData, failIfExists: true, state });
-    return _createManagedObject({ type, moData, state });
+      return await _putManagedObject({
+        type,
+        id,
+        moData,
+        failIfExists: true,
+        state,
+      });
+    return await _createManagedObject({ type, moData, state });
   } catch (error) {
     throw new FrodoError(
       `Error creating managed ${type} object${id ? ' (' + id + ')' : ''}`,

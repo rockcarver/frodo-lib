@@ -10,6 +10,7 @@ describe('package root wildcard export lint rule', () => {
         },
         rules: {
           '@typescript-eslint/no-deprecated': 'off',
+          '@typescript-eslint/return-await': 'off',
         },
       },
     ],

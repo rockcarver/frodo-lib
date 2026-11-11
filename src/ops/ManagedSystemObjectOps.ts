@@ -377,14 +377,14 @@ export async function createManagedSystemObject({
 }): Promise<IdObjectSkeletonInterface> {
   try {
     if (id)
-      return _putManagedSystemObject({
+      return await _putManagedSystemObject({
         type,
         id,
         moData,
         failIfExists: true,
         state,
       });
-    return _createManagedSystemObject({ type, moData, state });
+    return await _createManagedSystemObject({ type, moData, state });
   } catch (error) {
     throw new FrodoError(
       `Error creating managed ${type} object${id ? ' (' + id + ')' : ''}`,

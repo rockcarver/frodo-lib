@@ -34,6 +34,12 @@ const rules = {
     },
   ],
   'no-multi-str': 'off',
+  // A promise that is returned inside try/catch must be awaited, or the catch
+  // never runs and the caller gets the raw error instead of a FrodoError.
+  '@typescript-eslint/return-await': [
+    'error',
+    'error-handling-correctness-only',
+  ],
   'import-x/first': 'error',
   'import-x/newline-after-import': 'error',
   'import-x/no-duplicates': 'error',

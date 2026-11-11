@@ -212,7 +212,7 @@ export async function accessTokenRfc7523AuthZGrant({
       scope: scope.join(' '),
       client_id: clientId,
     }).toString();
-    return accessToken({
+    return await accessToken({
       amBaseUrl: state.getHost(),
       config,
       data,
