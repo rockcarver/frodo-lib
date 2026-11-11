@@ -8,7 +8,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from 'axios';
 import axiosRetry from 'axios-retry';
-import { ProxyAgent, ProxyAgentOptions } from 'proxy-agent';
+import { ProxyAgentOptions } from 'proxy-agent';
 import {
   curlirizeRequests as _curlirizeRequests,
   curlirizeResponses as _curlirizeResponses,
@@ -26,6 +26,7 @@ import { curlirizeMessage, printMessage } from '../utils/Console';
 import { sleep } from '../utils/FrodoUtils';
 import { mergeDeep } from '../utils/JsonUtils';
 import { attachNameResolutionDiagnosis } from '../utils/NetworkDiagnosisUtils';
+import { ProxyAgent } from '../utils/ProxyAgentUtils';
 import {
   isSensitiveHeaderName,
   redactBody,
