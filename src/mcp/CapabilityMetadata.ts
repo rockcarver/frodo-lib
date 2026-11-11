@@ -1770,6 +1770,20 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     supportsRealm: true,
     notes: 'Update a mapping with namedArgs { mappingId, mappingData }.',
   },
+  // A result callback is a JS function reference, which an MCP JSON payload
+  // can never carry.
+  'idm.mapping.importMappings': {
+    excludeParameters: ['resultCallback'],
+  },
+  'idm.mapping.deleteMappings': {
+    excludeParameters: ['resultCallback'],
+  },
+  'idm.remoteProxy.importRemoteProxies': {
+    excludeParameters: ['resultCallback'],
+  },
+  'email.template.importEmailTemplates': {
+    excludeParameters: ['resultCallback'],
+  },
   'idm.system.readSystemObject': {
     argumentMode: 'named',
     parameterOverrides: {
