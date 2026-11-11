@@ -46,6 +46,17 @@ const BULK_CALLBACK_CAPABILITIES: [string, string[], string][] = [
     'exportOAuth2Clients',
   ],
   ['service.importServices', ['service'], 'importServices'],
+  ['service.exportServices', ['service'], 'exportServices'],
+  ['service.getFullServices', ['service'], 'getFullServices'],
+  ['agent.deleteAgents', ['agent'], 'deleteAgents'],
+  [
+    'agent.deleteIdentityGatewayAgents',
+    ['agent'],
+    'deleteIdentityGatewayAgents',
+  ],
+  ['agent.deleteJavaAgents', ['agent'], 'deleteJavaAgents'],
+  ['agent.deleteWebAgents', ['agent'], 'deleteWebAgents'],
+  ['agent.deleteAIAgents', ['agent'], 'deleteAIAgents'],
   ['app.exportApplications', ['app'], 'exportApplications'],
 ];
 
@@ -69,7 +80,7 @@ describe('the result callback of the bulk imports and exports', () => {
       );
       expect(documented).toBe(true);
       // and the capability does not offer it
-      expect(capability.parameters.map((p) => p.name)).not.toContain(
+      expect((capability.parameters ?? []).map((p) => p.name)).not.toContain(
         'resultCallback'
       );
     }

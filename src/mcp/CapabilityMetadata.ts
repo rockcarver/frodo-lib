@@ -3418,6 +3418,13 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     excludeParameters: ['resultCallback'],
   },
   'service.importServices': { excludeParameters: ['resultCallback'] },
+  'agent.deleteAgents': { excludeParameters: ['resultCallback'] },
+  'agent.deleteIdentityGatewayAgents': {
+    excludeParameters: ['resultCallback'],
+  },
+  'agent.deleteJavaAgents': { excludeParameters: ['resultCallback'] },
+  'agent.deleteWebAgents': { excludeParameters: ['resultCallback'] },
+  'agent.deleteAIAgents': { excludeParameters: ['resultCallback'] },
   'app.exportApplications': { excludeParameters: ['resultCallback'] },
 
   'script.getLibraryScriptNames': {
@@ -3685,6 +3692,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       'AM has no true "names only" list endpoint, so this uses _action=nextdescendents on the services collection and returns each service\'s full top-level attributes — potentially including secret fields (e.g. the SMTP/EmailService transport password). Previously low.',
   },
   'service.getFullServices': {
+    excludeParameters: ['resultCallback'],
     mutating: false,
     riskClass: 'critical',
     notes:
@@ -3697,6 +3705,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       'Wraps the same full-service-config content as service.getFullServices. Previously medium.',
   },
   'service.exportServices': {
+    excludeParameters: ['resultCallback'],
     mutating: false,
     riskClass: 'critical',
     notes:
