@@ -1,0 +1,39 @@
+{
+  "_id": "example-mcp-clients",
+  "_rev": "430106886",
+  "coreOAuth2ClientConfig": {
+    "clientName": {
+      "inherited": false,
+      "value": [
+        "Sparse test profile"
+      ]
+    },
+    "status": {
+      "inherited": false,
+      "value": "Active"
+    }
+  },
+  "cimdConfig": {
+    "cimdSsrfProtectionEnabled": {
+      "inherited": false,
+      "value": true
+    },
+    "cimdMetadataDenyList": {
+      "inherited": false,
+      "value": [
+        "scope"
+      ]
+    },
+    "cimdClientIdUrlPatterns": {
+      "inherited": false,
+      "value": [
+        "https://agents.example.com/*"
+      ]
+    }
+  },
+  "_type": {
+    "_id": "CIMDProfile",
+    "name": "CIMD Profile",
+    "collection": true
+  }
+}

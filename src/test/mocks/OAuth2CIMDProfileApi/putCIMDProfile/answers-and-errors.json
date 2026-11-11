@@ -1,0 +1,240 @@
+{
+  "create_empty_body_400": {
+    "status": 400,
+    "request": "PUT /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/example-mcp-clients",
+    "body": {
+      "code": 400,
+      "reason": "Bad Request",
+      "message": "Unable to create agent: amIdRepo"
+    }
+  },
+  "post_create_400": {
+    "status": 400,
+    "request": "POST /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile?_action=create",
+    "body": {
+      "code": 400,
+      "reason": "Bad Request",
+      "message": "Create via POST not supported"
+    }
+  },
+  "schema_on_object_501": {
+    "status": 501,
+    "request": "POST /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/example-mcp-clients?_action=schema",
+    "body": {
+      "code": 501,
+      "reason": "Not Implemented",
+      "message": "schema not supported"
+    }
+  },
+  "template_on_object_501": {
+    "status": 501,
+    "request": "POST /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/example-mcp-clients?_action=template",
+    "body": {
+      "code": 501,
+      "reason": "Not Implemented",
+      "message": "template not supported"
+    }
+  },
+  "get_if_match_412": {
+    "status": 412,
+    "request": "GET /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/example-mcp-clients",
+    "body": {
+      "code": 412,
+      "reason": "Precondition Failed",
+      "message": "If-Match not supported for GET requests"
+    }
+  },
+  "query_bad_filter_400": {
+    "status": 400,
+    "request": "GET /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile?_queryFilter=this%20is%20not%20a%20filter",
+    "body": {
+      "code": 400,
+      "reason": "Bad Request",
+      "message": "A value could not be parsed as a valid query filter"
+    }
+  },
+  "query_no_filter_400": {
+    "status": 400,
+    "request": "GET /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile",
+    "body": {
+      "code": 400,
+      "reason": "Bad Request",
+      "message": "The resource collection cannot be read"
+    }
+  },
+  "query_countOnly_400": {
+    "status": 400,
+    "request": "GET /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile?_queryFilter=true&_countOnly=true",
+    "body": {
+      "code": 400,
+      "reason": "Bad Request",
+      "message": "countOnly is only supported with protocolVersion 2.2 or higher"
+    }
+  },
+  "put_with_rev_400_invalid_attribute": {
+    "status": 400,
+    "request": "PUT /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/example-mcp-clients",
+    "body": {
+      "code": 400,
+      "reason": "Bad Request",
+      "message": "Invalid attribute specified.",
+      "detail": {
+        "validAttributes": "[105 attribute names, see CIMDProfile.valid-attributes.REAL.json]"
+      }
+    }
+  },
+  "put_if_none_match_existing_412": {
+    "status": 412,
+    "request": "PUT /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/example-mcp-clients",
+    "body": {
+      "code": 412,
+      "reason": "Precondition Failed",
+      "message": "Unable to access SMS config: Identity example-mcp-clients of type CIMDProfile already exists."
+    }
+  },
+  "patch_400": {
+    "status": 400,
+    "request": "PATCH /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/example-mcp-clients",
+    "body": {
+      "code": 400,
+      "reason": "Bad Request",
+      "message": "Patch not supported"
+    }
+  },
+  "get_missing_404": {
+    "status": 404,
+    "request": "GET /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/example-mcp-clients",
+    "body": {
+      "code": 404,
+      "reason": "Not Found",
+      "message": "Not Found"
+    }
+  },
+  "delete_missing_404": {
+    "status": 404,
+    "request": "DELETE /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/example-mcp-clients",
+    "body": {
+      "code": 404,
+      "reason": "Not Found",
+      "message": "Not Found"
+    }
+  },
+  "put_if_match_on_missing_404": {
+    "status": 404,
+    "request": "PUT /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/example-mcp-clients",
+    "body": {
+      "code": 404,
+      "reason": "Not Found",
+      "message": "Not Found"
+    }
+  },
+  "root_realm_403": {
+    "status": 403,
+    "request": "POST /json/realms/root/realm-config/agents?_action=getAllTypes",
+    "body": {
+      "code": 403,
+      "reason": "Forbidden",
+      "message": "This operation is not available in PingOne Advanced Identity Cloud."
+    }
+  },
+  "global_config_403": {
+    "status": 403,
+    "request": "POST /json/global-config/agents?_action=getAllTypes",
+    "body": {
+      "code": 403,
+      "reason": "Forbidden",
+      "message": "This operation is not available in PingOne Advanced Identity Cloud."
+    }
+  },
+  "pattern_required_400": {
+    "status": 400,
+    "request": "PUT /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/example-mcp-clients",
+    "body": {
+      "code": 400,
+      "reason": "Bad Request",
+      "message": "Values for CIMD Client ID URL Patterns is required."
+    }
+  },
+  "pattern_absent_400": {
+    "status": 400,
+    "request": "PUT /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/example-mcp-clients",
+    "body": {
+      "code": 400,
+      "reason": "Bad Request",
+      "message": "Unable to create agent: amIdRepo"
+    }
+  },
+  "pattern_invalid_400": {
+    "status": 400,
+    "request": "PUT /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/example-mcp-clients",
+    "body": {
+      "code": 400,
+      "reason": "Bad Request",
+      "message": "Data validation failed for the attribute, CIMD Client ID URL Patterns"
+    }
+  },
+  "deny_list_invalid_400": {
+    "status": 400,
+    "request": "PUT /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/example-mcp-clients",
+    "body": {
+      "code": 400,
+      "reason": "Bad Request",
+      "message": "Data validation failed for the attribute, CIMD Metadata Override Deny List"
+    }
+  },
+  "ssrf_string_400": {
+    "status": 400,
+    "request": "PUT /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/example-mcp-clients",
+    "body": {
+      "code": 400,
+      "reason": "Bad Request",
+      "message": "Invalid attribute value syntax: 'yes' Attribute name: cimdSsrfProtectionEnabled"
+    }
+  },
+  "lifetime_string_400": {
+    "status": 400,
+    "request": "PUT /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/example-mcp-clients",
+    "body": {
+      "code": 400,
+      "reason": "Bad Request",
+      "message": "Invalid attribute value syntax: 'abc' Attribute name: com.forgerock.openam.oauth2provider.accessTokenLifeTime"
+    }
+  },
+  "duplicate_412": {
+    "status": 412,
+    "request": "PUT /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/example-mcp-clients",
+    "body": {
+      "code": 412,
+      "reason": "Precondition Failed",
+      "message": "Unable to access SMS config: Identity example-mcp-clients of type CIMDProfile already exists."
+    }
+  },
+  "id_trailing_space_500": {
+    "status": 500,
+    "request": "PUT /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/x ",
+    "contentType": "application/json;charset=UTF-8",
+    "body": {
+      "code": 500,
+      "reason": "Internal Server Error",
+      "message": "Unable to access SMS config: Identity names may not have a space character at the beginning or end."
+    }
+  },
+  "id_plus_500_empty_body": {
+    "status": 500,
+    "request": "PUT /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/a+b",
+    "contentType": null,
+    "body": ""
+  },
+  "id_exclamation_400_empty_body": {
+    "status": 400,
+    "request": "PUT /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/a!b",
+    "contentType": null,
+    "body": ""
+  },
+  "id_backslash_400_html": {
+    "status": 400,
+    "request": "PUT /json/realms/root/realms/bravo/realm-config/agents/CIMDProfile/a\\b",
+    "contentType": "text/html;charset=UTF-8",
+    "body": "(HTML error page, 400)"
+  }
+}
