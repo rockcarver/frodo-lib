@@ -3378,6 +3378,34 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'low',
   },
 
+  // The per-item result callback of these bulk imports and exports is a JS
+  // function reference that an MCP JSON payload can never carry: it is not
+  // offered to MCP callers (as for authn.journey.exportJourneys).
+  'agent.importAgents': { excludeParameters: ['resultCallback'] },
+  'agent.importIdentityGatewayAgents': {
+    excludeParameters: ['resultCallback'],
+  },
+  'agent.importJavaAgents': { excludeParameters: ['resultCallback'] },
+  'agent.importWebAgents': { excludeParameters: ['resultCallback'] },
+  'agent.importAIAgents': { excludeParameters: ['resultCallback'] },
+  'saml2.entityProvider.exportSaml2Providers': {
+    excludeParameters: ['resultCallback'],
+  },
+  'saml2.entityProvider.importSaml2Providers': {
+    excludeParameters: ['resultCallback'],
+  },
+  'saml2.circlesOfTrust.importCirclesOfTrust': {
+    excludeParameters: ['resultCallback'],
+  },
+  'oauth2oidc.external.exportSocialIdentityProviders': {
+    excludeParameters: ['resultCallback'],
+  },
+  'oauth2oidc.client.exportOAuth2Clients': {
+    excludeParameters: ['resultCallback'],
+  },
+  'service.importServices': { excludeParameters: ['resultCallback'] },
+  'app.exportApplications': { excludeParameters: ['resultCallback'] },
+
   'script.getLibraryScriptNames': {
     // Takes a full ScriptSkeleton as input (parses require() calls out of its
     // body) — internal plumbing for library-dependency resolution, not a
