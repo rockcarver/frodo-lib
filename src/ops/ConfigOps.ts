@@ -152,7 +152,7 @@ export type Config = {
   /**
    * Export full configuration
    * @param {FullExportOptions} options export options
-   * @param {ResultCallback} resultCallback Optional callback to process individual results
+   * @param {ResultCallback} resultCallback Optional callback to process individual results. A section that cannot be exported, also for lack of a scope of the credential, is reported to it as an error that names the section (code INSUFFICIENT_SCOPE for a missing scope) and the other sections are still exported; without a callback the error is thrown. A section that the deployment does not offer (PingOne Advanced Identity Cloud answers that the operation is not available) is skipped silently.
    * @returns {Promise<FullExportInterface>} a promise resolving to a full export object
    */
   exportFullConfiguration(
@@ -163,7 +163,7 @@ export type Config = {
    * Import full configuration
    * @param {FullExportInterface} importData import data
    * @param {FullImportOptions} options import options
-   * @param {ResultCallback} resultCallback Optional callback to process individual results
+   * @param {ResultCallback} resultCallback Optional callback to process individual results. A section that cannot be imported, also for lack of a scope of the credential, is reported to it as an error that names the section (code INSUFFICIENT_SCOPE for a missing scope) and the other sections are still imported; without a callback the error is thrown.
    */
   importFullConfiguration(
     importData: FullExportInterface,
@@ -1660,7 +1660,9 @@ export async function importFullConfiguration({
               reUuid: reUuidJourneys,
               validate: validateJourneys,
             },
-            resultCallback: errorCallback,
+            // only a callback of the caller makes the journeys items of their own: the error callback of a caller
+            // without one throws, which would turn the journeys into a batch that fails at its first invalid journey
+            resultCallback: resultCallback ? errorCallback : undefined,
             state,
           },
           indicatorId,
