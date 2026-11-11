@@ -35,7 +35,8 @@
  *   the request through the proxy.
  *
  * The negative control needs no tenant: a dead proxy must fail the request
- * with an error that names the dead proxy, whatever the tenant does, so it
+ * with an error that names the dead proxy and says that the proxy refused the
+ * connection (`proxyFailure`, frodo-lib#986), whatever the tenant does, so it
  * always runs.
  *
  * Each call imports the library afresh, so that no agent of an earlier call is
@@ -157,5 +158,11 @@ liveDescribe('BaseApi through the proxy of the environment (live)', () => {
     // excludes the tenant), and the probe above proves nothing.
     expect(error).toBeDefined();
     expect(String(error.message)).toContain('127.0.0.1:9');
+    // and the error says the proxy was the one that refused
+    expect(error.proxyFailure).toMatchObject({
+      code: 'PROXY_CONNECTION_REFUSED',
+      proxy: { host: '127.0.0.1', port: 9 },
+      target: 'https',
+    });
   }, 60000);
 });

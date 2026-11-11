@@ -1,4 +1,5 @@
 import { AxiosError } from 'axios';
+import { PROXY_FAILURE_CODES } from '../utils/ProxyFailureUtils';
 
 /**
  * The error conditions that carry a stable identity (see `FrodoError.code`).
@@ -30,6 +31,12 @@ export const FRODO_ERROR_CODES = [
   /** A capability needs the Log API key and secret, and the connection has none. */
   'LOG_API_CREDENTIAL_MISSING',
   /**
+   * A request through a proxy failed because of the proxy: it refused the
+   * tunnel or the credentials, could not be reached, refused the connection or
+   * closed it. The codes and what each one means are in ProxyFailureUtils.
+   */
+  ...PROXY_FAILURE_CODES,
+  /**
    * The credential of the connection does not carry a scope that a request needs.
    * It is on the error that is raised before the request is sent, and on the error of an item of a bulk
    * operation that failed for this reason; in a nested error it is found through `originalErrors`.
@@ -50,8 +57,10 @@ export class FrodoError extends Error {
   /**
    * The stable identity of the condition this error reports, if it has one.
    * It is stable across releases, unlike the message. An error that wraps
-   * another one does not copy its code: look through `originalErrors` for the
-   * condition underneath.
+   * another `FrodoError` does not copy its code: look through `originalErrors`
+   * for the condition underneath. The one exception is a request that failed
+   * because of its proxy: the error of the request carries `proxyFailure`, and
+   * the `FrodoError` that wraps it is given that failure's code.
    */
   code?: FrodoErrorCode;
   originalErrors: Error[] = [];
@@ -123,6 +132,16 @@ export class FrodoError extends Error {
         : null;
     }
 
+    // a request that failed because of its proxy: the condition is the one the
+    // request reports (only the error of a request carries `proxyFailure`, so a
+    // FrodoError that wraps a FrodoError copies nothing), see ProxyFailureUtils
+    if (!this.code) {
+      const failure = this.originalErrors
+        .map((original) => original?.['proxyFailure'])
+        .find((found) => FRODO_ERROR_CODES.includes(found?.code));
+      if (failure) this.code = failure.code;
+    }
+
     // message = `${message}${this.originalErrors.length ? ` [${this.originalErrors.length} nested error(s)]` : ''}`;
 
     // super.message = message;
@@ -187,6 +206,10 @@ export class FrodoError extends Error {
           combinedMessage += `\n${indent}` + originalError.message;
           break;
       }
+      // a request that failed because of its proxy carries which proxy and what it did, see ProxyFailureUtils
+      const proxyFailure = originalError['proxyFailure'];
+      if (proxyFailure?.message)
+        combinedMessage += `\n${indent}${proxyFailure.message}`;
       // a failed host name lookup carries what is wrong, see NetworkDiagnosisUtils
       const diagnosis = originalError['nameResolutionDiagnosis'];
       if (diagnosis?.message)

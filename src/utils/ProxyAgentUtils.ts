@@ -4,6 +4,7 @@ import {
   proxies,
   ProxyAgentOptions,
 } from 'proxy-agent';
+import { noteProxyDecision } from './ProxyFailureUtils';
 
 /**
  * The proxy agent of the library's HTTP layer.
@@ -26,6 +27,10 @@ import {
  *   the URL only (proxy-agent prints the whole URL). A proxy URL that cannot be
  *   parsed is refused without the URL, which the `TypeError` of `new URL()`
  *   would keep as a property.
+ * - The decision of the agent for each request is recorded for the error of
+ *   the request, so that the error can say that a proxy was used and which
+ *   (see ProxyFailureUtils). Only the proxy URL without its user info is passed
+ *   on.
  */
 
 /** What an agent is named when it is serialised or inspected. */
@@ -73,8 +78,15 @@ export class ProxyAgent extends BaseProxyAgent {
   constructor(options?: ProxyAgentOptions) {
     super(options);
     const decide = this.getProxyForUrl;
-    this.getProxyForUrl = async (url, req) =>
-      assertSupportedProxy(await decide.call(this, url, req));
+    this.getProxyForUrl = async (url, req) => {
+      const proxy = assertSupportedProxy(await decide.call(this, url, req));
+      noteProxyDecision(
+        req,
+        url,
+        proxy ? proxyUrlWithoutUserinfo(new URL(proxy)) : undefined
+      );
+      return proxy;
+    };
   }
 
   toJSON(): string {

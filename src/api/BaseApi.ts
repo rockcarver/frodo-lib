@@ -27,6 +27,7 @@ import { sleep } from '../utils/FrodoUtils';
 import { mergeDeep } from '../utils/JsonUtils';
 import { attachNameResolutionDiagnosis } from '../utils/NetworkDiagnosisUtils';
 import { ProxyAgent } from '../utils/ProxyAgentUtils';
+import { attachProxyFailure } from '../utils/ProxyFailureUtils';
 import {
   isSensitiveHeaderName,
   redactBody,
@@ -192,11 +193,15 @@ function createAxiosInstance(
   }
 
   // A host name that cannot be resolved says only ENOTFOUND, whether the name is
-  // mistyped, DNS is down or the process may not use the network at all. Added
-  // after axios-retry's handler, so it runs once the retries are over.
+  // mistyped, DNS is down or the process may not use the network at all. A
+  // proxy that refuses the tunnel or cannot be reached is not named by its
+  // error either. Both are added to the error here, after axios-retry's
+  // handler, so it runs once the retries are over.
   axiosInstance.interceptors.response.use(
     (response) => response,
     async (error) => {
+      // the proxy the agent chose for this very request, see ProxyFailureUtils
+      attachProxyFailure(error);
       await attachNameResolutionDiagnosis(error);
       return Promise.reject(error);
     }
