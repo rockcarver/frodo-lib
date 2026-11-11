@@ -13,7 +13,7 @@
  * Every answer of the API carries the headers `X-RateLimit-Limit`,
  * `X-RateLimit-Remaining` and `X-RateLimit-Reset` (seconds since 1970-01-01
  * UTC at which the window resets). An answer that rejects a request with 429
- * carries them too.
+ * carries them too, and may carry `Retry-After`, which Ping does not document.
  */
 
 /** The state of the rate limit of the Log API as of one answer of the API. */
@@ -39,6 +39,8 @@ export type LogApiRateLimit = {
 
 /** How far the clock of this machine may be off the one of the server before the difference is taken out. */
 const CLOCK_TOLERANCE_MS = 2000;
+/** Added to every wait for the end of a window: the reset is given in whole seconds. */
+const WAIT_MARGIN_MS = 1000;
 
 /**
  * Reads one header, whether `headers` is an `AxiosHeaders` instance or a plain object.
@@ -115,4 +117,27 @@ export function parseLogApiRateLimit(
     return undefined;
   }
   return { limit, remaining, resetAt };
+}
+
+/**
+ * How long to wait before a request that was rejected with 429 is sent again.
+ * `Retry-After` (seconds) wins where an answer carries it, otherwise the end of the window that
+ * `X-RateLimit-Reset` names is awaited.
+ * @param {unknown} headers the headers of the 429 response
+ * @param {number} now current time, in milliseconds since 1970-01-01 UTC; only the tests pass it
+ * @returns {number | undefined} milliseconds to wait, or undefined if the answer says nothing the caller can wait for
+ */
+export function getRateLimitWaitMs(
+  headers: unknown,
+  now: number = Date.now()
+): number | undefined {
+  const retryAfter = readNumber(headers, 'retry-after');
+  if (retryAfter !== undefined) {
+    return retryAfter * 1000 + WAIT_MARGIN_MS;
+  }
+  const resetAt = readResetAt(headers, now);
+  if (resetAt !== undefined) {
+    return Math.max(0, resetAt - now) + WAIT_MARGIN_MS;
+  }
+  return undefined;
 }

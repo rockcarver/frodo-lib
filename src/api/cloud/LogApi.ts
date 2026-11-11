@@ -229,7 +229,12 @@ export async function tail({
   if (cookie) {
     urlString += `&_pagedResultsCookie=${encodeURIComponent(cookie)}`;
   }
-  const { data, headers } = await generateLogApi({ state }).get(urlString);
+  // the caller owns the waiting for the end of a rate limit window (a polling loop shows a message and stops on
+  // Ctrl-C), so a 429 is returned to it at once
+  const { data, headers } = await generateLogApi({
+    state,
+    waitOnRateLimit: false,
+  }).get(urlString);
   return withRateLimit(data, headers);
 }
 

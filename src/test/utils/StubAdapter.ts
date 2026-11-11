@@ -49,3 +49,24 @@ export function stubAdapter(answers: StubAnswer[]): {
   };
   return { adapter, requests };
 }
+
+/**
+ * Follows a promise without waiting for it, so that a test with fake timers fails when the promise does not settle
+ * where it should, instead of hanging on it.
+ * @param {Promise<unknown>} promise the promise to follow
+ * @returns {{ done: boolean; value?: unknown; error?: unknown }} an object that fills in as the promise settles
+ */
+export function settled(promise: Promise<unknown>): {
+  done: boolean;
+  value?: unknown;
+  error?: unknown;
+} {
+  const outcome: { done: boolean; value?: unknown; error?: unknown } = {
+    done: false,
+  };
+  promise.then(
+    (value) => Object.assign(outcome, { value, done: true }),
+    (error) => Object.assign(outcome, { error, done: true })
+  );
+  return outcome;
+}

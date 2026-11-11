@@ -11,7 +11,10 @@
  * Unit test: no network, no recordings.
  */
 import { AxiosHeaders } from 'axios';
-import { parseLogApiRateLimit } from './LogApiRateLimitUtils';
+import {
+  getRateLimitWaitMs,
+  parseLogApiRateLimit,
+} from './LogApiRateLimitUtils';
 
 // 2026-01-01T00:00:00Z
 const NOW = Date.UTC(2026, 0, 1);
@@ -163,5 +166,61 @@ describe('parseLogApiRateLimit', () => {
           ?.resetAt
       ).toBe(NOW + 30_000);
     });
+  });
+});
+
+describe('getRateLimitWaitMs', () => {
+  test('is the Retry-After in seconds, plus a margin', () => {
+    expect(getRateLimitWaitMs({ 'retry-after': '5' }, NOW)).toBe(6000);
+    expect(getRateLimitWaitMs({ 'Retry-After': '0' }, NOW)).toBe(1000);
+  });
+
+  test('is the time to the reset, plus a margin, when there is no Retry-After', () => {
+    expect(getRateLimitWaitMs(headers(28, 0, 7), NOW)).toBe(8000);
+    expect(getRateLimitWaitMs(headers(60, 0, 41), NOW)).toBe(42_000);
+  });
+
+  test('prefers the Retry-After to the reset', () => {
+    expect(
+      getRateLimitWaitMs({ ...headers(60, 0, 41), 'retry-after': '3' }, NOW)
+    ).toBe(4000);
+  });
+
+  test('needs no other rate limit header than the reset', () => {
+    expect(
+      getRateLimitWaitMs({ 'x-ratelimit-reset': String(NOW / 1000 + 30) }, NOW)
+    ).toBe(31_000);
+  });
+
+  test('waits only the margin for a reset that has passed', () => {
+    expect(getRateLimitWaitMs(headers(60, 0, -90), NOW)).toBe(1000);
+  });
+
+  test('goes by the clock of the server where the clock of the machine is off', () => {
+    // this machine is five minutes behind the server, which resets the window in 12 seconds
+    expect(
+      getRateLimitWaitMs(
+        {
+          ...headers(60, 0, 5 * 60 + 12),
+          date: new Date(NOW + 5 * 60 * 1000).toUTCString(),
+        },
+        NOW
+      )
+    ).toBe(13_000);
+  });
+
+  test.each([
+    ['no headers', undefined],
+    ['empty headers', {}],
+    [
+      'a Retry-After that is a date',
+      { 'retry-after': 'Thu, 01 Jan 2026 00:00:10 GMT' },
+    ],
+    ['a negative Retry-After', { 'retry-after': '-1' }],
+    ['a reset that is not a number', { 'x-ratelimit-reset': 'soon' }],
+    ['a reset beyond the range of a date', { 'x-ratelimit-reset': '1e30' }],
+  ])('is undefined, and does not throw, for %s', (_name, input) => {
+    expect(() => getRateLimitWaitMs(input, NOW)).not.toThrow();
+    expect(getRateLimitWaitMs(input, NOW)).toBeUndefined();
   });
 });

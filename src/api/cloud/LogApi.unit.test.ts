@@ -10,9 +10,14 @@
  * requests of the real `generateLogApi` instance, so the headers arrive the way
  * axios hands them out. Hosts and credentials are made up.
  */
+import { jest } from '@jest/globals';
 import axios from 'axios';
 import StateImpl from '../../shared/State';
-import { stubAdapter, type StubAnswer } from '../../test/utils/StubAdapter';
+import {
+  settled,
+  stubAdapter,
+  type StubAnswer,
+} from '../../test/utils/StubAdapter';
 import { fetch, tail } from './LogApi';
 
 // 2026-01-01T00:00:00Z
@@ -114,5 +119,54 @@ describe.each(Object.entries(calls))('%s', (_name, call) => {
   test('does not fail on an answer without a body', async () => {
     answer({ data: '', headers: rateLimitHeaders(60, 59, 41) });
     await expect(call()).resolves.toBe('');
+  });
+});
+
+describe('a request that the API rejected with 429', () => {
+  const limited = (headers: Record<string, string>): StubAnswer => ({
+    status: 429,
+    headers,
+    data: { code: 429, message: 'rate limit exceeded' },
+  });
+  const withReset = {
+    ...rateLimitHeaders(28, 0, 7),
+    'retry-after': '7',
+  };
+
+  beforeEach(() => {
+    jest.useFakeTimers({
+      now: NOW,
+      doNotFake: ['nextTick', 'queueMicrotask'],
+    });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test('tail does not wait for the end of the window: the caller owns the waiting', async () => {
+    const requests = answer(limited(withReset), { data: page });
+
+    const outcome = settled(calls.tail());
+    await jest.advanceTimersByTimeAsync(0);
+
+    expect(outcome.done).toBe(true);
+    expect(outcome.error).toMatchObject({ response: { status: 429 } });
+    expect(requests).toHaveLength(1);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  test('fetch waits for the end of the window and asks again', async () => {
+    const requests = answer(limited(withReset), { data: page });
+
+    const outcome = settled(calls.fetch());
+    await jest.advanceTimersByTimeAsync(7999);
+    expect(requests).toHaveLength(1);
+    expect(outcome.done).toBe(false);
+    await jest.advanceTimersByTimeAsync(1);
+
+    expect(requests).toHaveLength(2);
+    expect(outcome.done).toBe(true);
+    expect(outcome.value).toEqual(page);
   });
 });

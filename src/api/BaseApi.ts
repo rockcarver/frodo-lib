@@ -25,6 +25,7 @@ import { getUserAgent } from '../shared/Version';
 import { curlirizeMessage, printMessage } from '../utils/Console';
 import { sleep } from '../utils/FrodoUtils';
 import { mergeDeep } from '../utils/JsonUtils';
+import { getRateLimitWaitMs } from '../utils/LogApiRateLimitUtils';
 import { attachNameResolutionDiagnosis } from '../utils/NetworkDiagnosisUtils';
 import { ProxyAgent } from '../utils/ProxyAgentUtils';
 import { attachProxyFailure } from '../utils/ProxyFailureUtils';
@@ -1244,18 +1245,27 @@ export function generateLogKeysApi({
 
 /**
  * Generates a Log API Axios instance
+ *
+ * A request that the API rejects with 429 is sent once more after the wait that the answer asks for (`Retry-After`,
+ * or else the end of the window that `X-RateLimit-Reset` names), unless `waitOnRateLimit` is false. An answer that
+ * names no wait is rejected as it is.
  * @param {object} params Params object
  * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either add
  * on extra information or override default properties https://github.com/axios/axios#request-config
+ * @param {boolean} params.waitOnRateLimit Whether to wait for the end of the rate limit window and send a request once
+ * more that was rejected with 429. Defaults to true. A caller that owns the waiting itself (a polling loop that shows
+ * a message and stops on Ctrl-C) sets it to false and gets the 429 at once.
  * @param {State} params.state State object
  *
  * @returns {AxiosInstance} Returns a reaady to use Axios instance
  */
 export function generateLogApi({
   requestOverride = {},
+  waitOnRateLimit = true,
   state,
 }: {
   requestOverride?: AxiosRequestConfig;
+  waitOnRateLimit?: boolean;
   state: State;
 }): AxiosInstance {
   const headers = {
@@ -1290,29 +1300,22 @@ export function generateLogApi({
       const originalRequest = error.config;
       const status = error.response ? error.response.status : null;
 
-      // Check if the error is a 429 Too Many Requests
-      // and if the Retry-After header is present
-      if (
-        status === 429 &&
-        error.response.headers['retry-after'] &&
-        !originalRequest._retry
-      ) {
-        originalRequest._retry = true; // Mark the request as retried to prevent infinite loops
+      // A 429 that says how long to wait (Retry-After, or the reset of the window in X-RateLimit-Reset)
+      // is sent once more after that wait
+      if (waitOnRateLimit && status === 429 && !originalRequest._retry) {
+        const delayMs = getRateLimitWaitMs(error.response.headers);
+        if (delayMs !== undefined) {
+          originalRequest._retry = true; // Mark the request as retried to prevent infinite loops
 
-        const retryAfterSeconds = parseInt(
-          error.response.headers['retry-after'],
-          10
-        );
-        const delayMs = (retryAfterSeconds + 1) * 1000;
+          // Wait for the specified duration
+          await sleep(delayMs);
 
-        // Wait for the specified duration
-        await sleep(delayMs);
-
-        // Retry the original request
-        return request(originalRequest);
+          // Retry the original request
+          return request(originalRequest);
+        }
       }
 
-      // For other errors, or if no Retry-After header is found,
+      // For other errors, or if the answer says nothing to wait for, or if the caller waits itself,
       // or if the request has already been retried, reject the promise
       return Promise.reject(error);
     }
