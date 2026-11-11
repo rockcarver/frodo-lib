@@ -1,12 +1,10 @@
 import {
-  AgentTypeItem as _AgentTypeItem,
   deleteAgentByTypeAndId as _deleteAgentByTypeAndId,
   findAgentByTypeAndId as _findAgentByTypeAndId,
   getAgentByTypeAndId as _getAgentByTypeAndId,
   getAgentGroups as _getAgentGroups,
   getAgents as _getAgents,
   getAgentsByType as _getAgentsByType,
-  getAgentTypes as _getAgentTypes,
   putAgentByTypeAndId as _putAgentByTypeAndId,
   putAgentGroupByTypeAndId as _putAgentGroupByTypeAndId,
   type AgentGroupSkeleton,
@@ -26,6 +24,7 @@ import { getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
 import { FrodoError, isNotFoundError } from './FrodoError';
+import { readAgentTypeItems } from './internal/AgentTypeHelpers';
 import {
   addRelationship,
   createManagedObject,
@@ -40,10 +39,11 @@ import { type ExportMetaData, type ResultCallback } from './OpsTypes';
 
 export type Agent = {
   /**
-   * Read all agent types.
+   * Read all agent types. Agent types with their own module (for example OAuth2 clients) are not part of the answer.
+   * @param {boolean} refreshCache true to ask the server again and replace the cached list of the realm. Default: false.
    * @returns {Promise<AgentType[]>} a promise that resolves to an array of agent type strings
    */
-  readAgentTypes(): Promise<AgentType[]>;
+  readAgentTypes(refreshCache?: boolean): Promise<AgentType[]>;
   /**
    * Read agent by type and id
    * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
@@ -488,8 +488,8 @@ export default (state: State): Agent => {
   }
   return {
     // General
-    async readAgentTypes() {
-      return readAgentTypes({ state });
+    async readAgentTypes(refreshCache = false) {
+      return readAgentTypes({ refreshCache, state });
     },
     async readAgentByTypeAndId(agentType, agentId) {
       return readAgentByTypeAndId({ agentType, agentId, state });
@@ -775,12 +775,14 @@ function isAlreadyExistsError(error: unknown): boolean {
   );
 }
 
-const AgentTypeItemCache = new Map<string, _AgentTypeItem[]>();
 const AgentTypeBlacklist: AgentType[] = ['OAuth2Client'];
 
 /**
- * Read all available agent types.
- * @returns {Promise<AgentType[]>} a promise that resolves to an array of agent type items
+ * Read all available agent types. Types on the blacklist (types that have their own module) are not returned.
+ * @param {object} params structured and named parameters
+ * @param {boolean} params.refreshCache true to ask the server again and replace the cached list. Default: false.
+ * @param {State} params.state the state object
+ * @returns {Promise<AgentType[]>} a promise that resolves to an array of agent type ids
  */
 export async function readAgentTypes({
   refreshCache = false,
@@ -789,46 +791,12 @@ export async function readAgentTypes({
   refreshCache?: boolean;
   state: State;
 }): Promise<AgentType[]> {
-  try {
-    debugMessage({ message: `AgentOps.readAgentTypes: start`, state });
-    const cacheKey = JSON.stringify([
-      state.getHost(),
-      state.getRealm(),
-      state.getDeploymentType(),
-    ]);
-    const cachedTypes = AgentTypeItemCache.get(cacheKey);
-    let agentTypeItems: _AgentTypeItem[] = [];
-    if (!refreshCache && cachedTypes?.length > 0) {
-      debugMessage({
-        message: `AgentOps.readAgentTypes: using cached agent types`,
-        state,
-      });
-      agentTypeItems = cloneDeep(cachedTypes);
-    } else {
-      const { result } = await _getAgentTypes({ state });
-      agentTypeItems = result.filter(
-        (item) => !AgentTypeBlacklist.includes(item._id)
-      );
-      // Update cache with new values.
-      AgentTypeItemCache.set(cacheKey, agentTypeItems);
-    }
-    debugMessage({ message: `AgentOps.readAgentTypes: end`, state });
-    return agentTypeItems.map((item) => item._id);
-  } catch (error) {
-    if (
-      (error.response?.status === 403 &&
-        error.response?.data?.message ===
-          'This operation is not available in PingOne Advanced Identity Cloud.') ||
-      error.response?.status === 404
-    ) {
-      return [];
-    } else {
-      throw new FrodoError(
-        `Error reading ${getCurrentRealmName(state) + ' realm'} agent types`,
-        error
-      );
-    }
-  }
+  debugMessage({ message: `AgentOps.readAgentTypes: start`, state });
+  const agentTypeItems = await readAgentTypeItems({ refreshCache, state });
+  debugMessage({ message: `AgentOps.readAgentTypes: end`, state });
+  return agentTypeItems
+    .filter((item) => !AgentTypeBlacklist.includes(item._id))
+    .map((item) => item._id);
 }
 
 /**
