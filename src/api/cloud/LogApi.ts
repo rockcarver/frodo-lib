@@ -2,6 +2,10 @@ import util from 'util';
 import { State } from '../../shared/State';
 import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import {
+  parseLogApiRateLimit,
+  type LogApiRateLimit,
+} from '../../utils/LogApiRateLimitUtils';
+import {
   type NoIdObjectSkeletonInterface,
   type PagedResult,
 } from '../ApiTypes';
@@ -40,6 +44,34 @@ export type LogEventSkeleton = NoIdObjectSkeletonInterface & {
   type: string;
   source: string;
 };
+
+/**
+ * A page of log events as `tail` and `fetch` return it: the paged result of the API plus the rate limit state that
+ * the same answer reported.
+ */
+export type LogEventsPage = PagedResult<LogEventSkeleton> & {
+  /**
+   * The rate limit of the Log API as the answer to this request reported it. Absent if the answer did not carry
+   * the `X-RateLimit-*` headers.
+   */
+  rateLimit?: LogApiRateLimit;
+};
+
+export type { LogApiRateLimit };
+
+/**
+ * Adds the rate limit state of an answer to its data.
+ * @param {unknown} data the body of the response
+ * @param {unknown} headers the headers of the response
+ * @returns {LogEventsPage} the body, with `rateLimit` when the headers carry it
+ */
+function withRateLimit(data: unknown, headers: unknown): LogEventsPage {
+  const rateLimit = parseLogApiRateLimit(headers);
+  if (!rateLimit || !data || typeof data !== 'object') {
+    return data as LogEventsPage;
+  }
+  return { ...(data as PagedResult<LogEventSkeleton>), rateLimit };
+}
 
 /**
  * Get log API key
@@ -178,7 +210,7 @@ export async function deleteLogApiKey({
  * Tail logs
  * @param {string} source log source(s) to tail
  * @param {string} cookie paged results cookie
- * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+ * @returns {Promise<LogEventsPage>} promise resolving to paged log event result, with the rate limit state of the answer
  */
 export async function tail({
   source,
@@ -188,7 +220,7 @@ export async function tail({
   source: string;
   cookie: string;
   state: State;
-}): Promise<PagedResult<LogEventSkeleton>> {
+}): Promise<LogEventsPage> {
   let urlString = util.format(
     logsTailURLTemplate,
     getHostOnlyUrl(state.getHost()),
@@ -197,8 +229,8 @@ export async function tail({
   if (cookie) {
     urlString += `&_pagedResultsCookie=${encodeURIComponent(cookie)}`;
   }
-  const { data } = await generateLogApi({ state }).get(urlString);
-  return data as PagedResult<LogEventSkeleton>;
+  const { data, headers } = await generateLogApi({ state }).get(urlString);
+  return withRateLimit(data, headers);
 }
 
 /**
@@ -209,7 +241,7 @@ export async function tail({
  * @param {string} cookie paged results cookie
  * @param {string} transactionId transaction id
  * @param {string} queryFilter query filter
- * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+ * @returns {Promise<LogEventsPage>} promise resolving to paged log event result, with the rate limit state of the answer
  */
 export async function fetch({
   source,
@@ -227,7 +259,7 @@ export async function fetch({
   txid: string;
   filter: string;
   state: State;
-}): Promise<PagedResult<LogEventSkeleton>> {
+}): Promise<LogEventsPage> {
   let urlString = util.format(
     logsFetchURLTemplate,
     getHostOnlyUrl(state.getHost()),
@@ -246,9 +278,9 @@ export async function fetch({
   if (cookie) {
     urlString += `&_pagedResultsCookie=${encodeURIComponent(cookie)}`;
   }
-  const { data } = await generateLogApi({
+  const { data, headers } = await generateLogApi({
     state,
     requestOverride: { timeout: 60000 },
   }).get(urlString);
-  return data as PagedResult<LogEventSkeleton>;
+  return withRateLimit(data, headers);
 }

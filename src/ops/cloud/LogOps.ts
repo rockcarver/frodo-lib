@@ -1,4 +1,3 @@
-import { type PagedResult } from '../../api/ApiTypes';
 import {
   createLogApiKey as _createLogApiKey,
   deleteLogApiKey as _deleteLogApiKey,
@@ -9,8 +8,10 @@ import {
   isLogApiKeyValid as _isLogApiKeyValid,
   tail as _tail,
   type LogApiKey,
+  type LogApiRateLimit,
   type LogEventPayloadSkeleton,
   type LogEventSkeleton,
+  type LogEventsPage,
 } from '../../api/cloud/LogApi';
 import { State } from '../../shared/State';
 import { sleep } from '../../utils/FrodoUtils';
@@ -24,6 +25,13 @@ export type LogTailStream = {
    * twice, even across repeated calls -- see `createLogTailStream()`.
    */
   poll(): Promise<LogEventSkeleton[]>;
+  /**
+   * The rate limit of the Log API as the answer to the latest `poll()` reported it: the limit of requests per
+   * window, how many are left, and when the window resets. It is shared by every reader of the logs of the
+   * environment, so `remaining` falls when other readers poll too. `undefined` before the first poll finished and
+   * when the latest answer did not carry the `X-RateLimit-*` headers.
+   */
+  readonly rateLimit: LogApiRateLimit | undefined;
 };
 
 export type Log = {
@@ -88,9 +96,9 @@ export type Log = {
    * Tail logs
    * @param {string} source log source(s) to tail
    * @param {string} cookie paged results cookie
-   * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+   * @returns {Promise<LogEventsPage>} promise resolving to paged log event result; `rateLimit` holds the rate limit state that the answer reported (limit, remaining requests, reset time), if it carried the headers
    */
-  tail(source: string, cookie: string): Promise<PagedResult<LogEventSkeleton>>;
+  tail(source: string, cookie: string): Promise<LogEventsPage>;
   /**
    * Creates a stateful, deduped consumer of `tail()` -- everything a caller
    * doing a live polling loop (e.g. an interactive follow-style view) needs
@@ -107,7 +115,7 @@ export type Log = {
    * not just across a cookie boundary -- so this dedupes broadly by event
    * content, not merely by skipping one known boundary event.
    * @param {string} source log source(s) to tail
-   * @returns {LogTailStream} a stream object with a `poll()` method
+   * @returns {LogTailStream} a stream object with a `poll()` method and the `rateLimit` of the latest answer
    */
   createLogTailStream(source: string): LogTailStream;
   /**
@@ -118,7 +126,7 @@ export type Log = {
    * @param {string} cookie paged results cookie
    * @param {string} txid transaction id
    * @param {string} filter query filter
-   * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+   * @returns {Promise<LogEventsPage>} promise resolving to paged log event result; `rateLimit` holds the rate limit state that the answer reported (limit, remaining requests, reset time), if it carried the headers
    */
   fetch(
     source: string,
@@ -127,7 +135,7 @@ export type Log = {
     cookie: string,
     txid: string,
     filter: string
-  ): Promise<PagedResult<LogEventSkeleton>>;
+  ): Promise<LogEventsPage>;
   /**
    * Search audit events by event name(s) and/or principal, across the full time
    * range (auto-paginating), with client-side dedup by transaction id.
@@ -183,10 +191,7 @@ export default (state: State): Log => {
     async deleteLogApiKeys(): Promise<LogApiKey[]> {
       return deleteLogApiKeys({ state });
     },
-    tail(
-      source: string,
-      cookie: string
-    ): Promise<PagedResult<LogEventSkeleton>> {
+    tail(source: string, cookie: string): Promise<LogEventsPage> {
       return tail({ source, cookie, state });
     },
     createLogTailStream(source: string): LogTailStream {
@@ -199,7 +204,7 @@ export default (state: State): Log => {
       cookie: string,
       txid: string,
       filter: string
-    ): Promise<PagedResult<LogEventSkeleton>> {
+    ): Promise<LogEventsPage> {
       return fetch({ source, startTs, endTs, cookie, txid, filter, state });
     },
     async searchEvents(
@@ -632,7 +637,7 @@ export async function deleteLogApiKeys({
  * Tail logs
  * @param {string} source log source(s) to tail
  * @param {string} cookie paged results cookie
- * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+ * @returns {Promise<LogEventsPage>} promise resolving to paged log event result, with the rate limit state of the answer
  */
 export async function tail({
   source,
@@ -642,7 +647,7 @@ export async function tail({
   source: string;
   cookie: string;
   state: State;
-}): Promise<PagedResult<LogEventSkeleton>> {
+}): Promise<LogEventsPage> {
   try {
     return await _tail({ source, cookie, state });
   } catch (error) {
@@ -672,7 +677,7 @@ function tailDedupeKey(event: LogEventSkeleton): string | undefined {
  * of leaving every caller to dedupe `tail()` for itself.
  * @param {string} source log source(s) to tail
  * @param {State} state library state
- * @returns {LogTailStream} a stream object with a `poll()` method
+ * @returns {LogTailStream} a stream object with a `poll()` method and the `rateLimit` of the latest answer
  */
 export function createLogTailStream({
   source,
@@ -682,13 +687,18 @@ export function createLogTailStream({
   state: State;
 }): LogTailStream {
   let cookie: string | undefined;
+  let rateLimit: LogApiRateLimit | undefined;
   const seen = new Set<string>();
   const seenOrder: string[] = [];
 
   return {
+    get rateLimit(): LogApiRateLimit | undefined {
+      return rateLimit;
+    },
     async poll(): Promise<LogEventSkeleton[]> {
       const page = await tail({ source, cookie, state });
       cookie = page.pagedResultsCookie;
+      rateLimit = page.rateLimit;
       const events = Array.isArray(page.result) ? page.result : [];
       const fresh: LogEventSkeleton[] = [];
       for (const event of events) {
@@ -717,7 +727,7 @@ export function createLogTailStream({
  * @param {string} cookie paged results cookie
  * @param {string} txid transaction id
  * @param {string} filter query filter
- * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+ * @returns {Promise<LogEventsPage>} promise resolving to paged log event result, with the rate limit state of the answer
  */
 export async function fetch({
   source,
@@ -735,7 +745,7 @@ export async function fetch({
   txid: string;
   filter: string;
   state: State;
-}): Promise<PagedResult<LogEventSkeleton>> {
+}): Promise<LogEventsPage> {
   try {
     return await _fetch({
       source,

@@ -5,9 +5,13 @@ import { FrodoError } from '../../ops/FrodoError';
 /**
  * A failed request the way the API layer lets it escape: an `AxiosError` with a response.
  * @param {number} status HTTP status of the response
+ * @param {Record<string, string>} headers headers of the response
  * @returns {AxiosError} the error an API function rejects with
  */
-export function failedRequest(status = 500): AxiosError {
+export function failedRequest(
+  status = 500,
+  headers: Record<string, string> = {}
+): AxiosError {
   const config = { headers: new AxiosHeaders() };
   return new AxiosError(
     `Request failed with status code ${status}`,
@@ -17,7 +21,7 @@ export function failedRequest(status = 500): AxiosError {
     {
       status,
       statusText: 'sample status',
-      headers: {},
+      headers,
       config,
       data: { message: 'sample failure' },
     }

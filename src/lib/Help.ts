@@ -7142,13 +7142,13 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Log",
     methodName: "tail",
-    signature: "tail(source: string, cookie: string): Promise<PagedResult<LogEventSkeleton>>",
+    signature: "tail(source: string, cookie: string): Promise<LogEventsPage>",
     description: "Tail logs",
     params: [
       { name: "source", type: "string", description: "log source(s) to tail", required: true },
       { name: "cookie", type: "string", description: "paged results cookie", required: true },
     ],
-    returns: "{Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result",
+    returns: "{Promise<LogEventsPage>} promise resolving to paged log event result; `rateLimit` holds the rate limit state that the answer reported (limit, remaining requests, reset time), if it carried the headers",
   },
   {
     typeName: "Log",
@@ -7158,12 +7158,12 @@ export const helpMetadata: MethodHelpDoc[] = [
     params: [
       { name: "source", type: "string", description: "log source(s) to tail", required: true },
     ],
-    returns: "{LogTailStream} a stream object with a `poll()` method",
+    returns: "{LogTailStream} a stream object with a `poll()` method and the `rateLimit` of the latest answer",
   },
   {
     typeName: "Log",
     methodName: "fetch",
-    signature: "fetch( source: string, startTs: string, endTs: string, cookie: string, txid: string, filter: string ): Promise<PagedResult<LogEventSkeleton>>",
+    signature: "fetch( source: string, startTs: string, endTs: string, cookie: string, txid: string, filter: string ): Promise<LogEventsPage>",
     description: "Fetch logs",
     params: [
       { name: "source", type: "string", description: "log source(s) to tail", required: true },
@@ -7173,7 +7173,7 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "txid", type: "string", description: "transaction id", required: true },
       { name: "filter", type: "string", description: "query filter", required: true },
     ],
-    returns: "{Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result",
+    returns: "{Promise<LogEventsPage>} promise resolving to paged log event result; `rateLimit` holds the rate limit state that the answer reported (limit, remaining requests, reset time), if it carried the headers",
   },
   {
     typeName: "Log",
