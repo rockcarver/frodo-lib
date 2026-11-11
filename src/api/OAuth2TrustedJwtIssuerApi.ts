@@ -2,7 +2,7 @@ import util from 'util';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
-import { deleteDeepByKey } from '../utils/JsonUtils';
+import { cloneDeep, deleteDeepByKey } from '../utils/JsonUtils';
 import {
   type IdObjectSkeletonInterface,
   type NoIdObjectSkeletonInterface,
@@ -34,8 +34,10 @@ export type OAuth2TrustedJwtIssuerSkeleton = IdObjectSkeletonInterface & {
   jwksUri?: Readable<string> | Writable<string>;
   _type: {
     _id: 'TrustedJwtIssuer';
-    name: 'OAuth2 Trusted JWT Issuer';
-    collection: true;
+    // the name is whatever the server says: the object's own name differs from
+    // the name in the agent type list
+    name: string;
+    collection: boolean;
   };
 };
 
@@ -92,7 +94,7 @@ export async function getOAuth2TrustedJwtIssuer({
 }
 
 /**
- * Put OAuth2 Trusted JWT Issuer
+ * Put OAuth2 Trusted JWT Issuer. The object that is passed in is not modified: the request body is a copy without the attributes the server does not accept (`_rev`, `_provider` and the encrypted attributes).
  * @param {string} id issuer id
  * @param {OAuth2TrustedJwtIssuerSkeleton} issuerData TrustedJwtIssuer object
  * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to an oauth2TrustedJwtIssuer object
@@ -108,7 +110,7 @@ export async function putOAuth2TrustedJwtIssuer({
 }): Promise<OAuth2TrustedJwtIssuerSkeleton> {
   // until we figure out a way to use transport keys in Frodo,
   // we'll have to drop those encrypted attributes.
-  const issuer = deleteDeepByKey(issuerData, '-encrypted');
+  const issuer = deleteDeepByKey(cloneDeep(issuerData), '-encrypted');
   delete issuer._provider;
   delete issuer._rev;
   const urlString = util.format(

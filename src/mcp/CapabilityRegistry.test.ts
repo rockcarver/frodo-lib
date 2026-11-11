@@ -453,6 +453,98 @@ describe('MCP capability foundation', () => {
     );
   });
 
+  test('pins the reviewed and inferred risk classes of the trusted JWT issuer module', () => {
+    const capabilities = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['oauth2oidc'],
+      includeUtils: false,
+    });
+    const issuer = capabilities.filter((capability) =>
+      capability.id.startsWith('oauth2oidc.issuer.')
+    );
+    const byId = new Map(
+      issuer.map((capability) => [capability.id, capability])
+    );
+    const summary = (name: string) => {
+      const capability = byId.get(`oauth2oidc.issuer.${name}`);
+      return capability
+        ? {
+            operationType: capability.operationType,
+            mutating: capability.mutating,
+            destructive: capability.destructive,
+            riskClass: capability.riskClass,
+          }
+        : undefined;
+    };
+
+    // The module has 12 facade methods; the local export template scaffold is
+    // excluded from the inventory.
+    expect(issuer).toHaveLength(11);
+    expect(
+      byId.has('oauth2oidc.issuer.createOAuth2TrustedJwtIssuerExportTemplate')
+    ).toBe(false);
+
+    // Reviewed entries (CAPABILITY_META): named arguments, high risk.
+    for (const name of [
+      'createOAuth2TrustedJwtIssuer',
+      'updateOAuth2TrustedJwtIssuer',
+    ]) {
+      const capability = byId.get(`oauth2oidc.issuer.${name}`);
+      expect(capability?.argumentMode).toBe('named');
+      expect(capability?.parameters?.map((p) => p.name)).toEqual([
+        'issuerId',
+        'issuerData',
+      ]);
+      expect(summary(name)).toMatchObject({
+        mutating: true,
+        riskClass: 'high',
+      });
+    }
+
+    // Inferred from the method names.
+    expect(summary('deleteOAuth2TrustedJwtIssuer')).toMatchObject({
+      operationType: 'delete',
+      mutating: true,
+      destructive: true,
+      riskClass: 'high',
+    });
+    expect(summary('deleteOAuth2TrustedJwtIssuers')).toMatchObject({
+      operationType: 'delete',
+      mutating: true,
+      destructive: true,
+      riskClass: 'high',
+    });
+    for (const name of [
+      'importOAuth2TrustedJwtIssuer',
+      'importFirstOAuth2TrustedJwtIssuer',
+      'importOAuth2TrustedJwtIssuers',
+    ]) {
+      expect(summary(name)).toMatchObject({
+        operationType: 'import',
+        mutating: true,
+        riskClass: 'high',
+      });
+    }
+    for (const name of [
+      'exportOAuth2TrustedJwtIssuer',
+      'exportOAuth2TrustedJwtIssuers',
+    ]) {
+      expect(summary(name)).toMatchObject({
+        operationType: 'export',
+        mutating: false,
+        riskClass: 'medium',
+      });
+    }
+    for (const name of [
+      'readOAuth2TrustedJwtIssuer',
+      'readOAuth2TrustedJwtIssuers',
+    ]) {
+      expect(summary(name)).toMatchObject({
+        mutating: false,
+        riskClass: 'low',
+      });
+    }
+  });
+
   test('exposes explicit authn read/create/update/delete contracts', () => {
     const capabilities = buildCapabilityInventory(frodo, {
       includeTopLevelDomains: ['authn'],

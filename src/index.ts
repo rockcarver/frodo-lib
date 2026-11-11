@@ -260,6 +260,12 @@ export type {
   OAuth2ClientImportOptions,
 } from './ops/OAuth2ClientOps';
 
+export type {
+  OAuth2TrustedJwtIssuerExportInterface,
+  OAuth2TrustedJwtIssuerExportOptions,
+  OAuth2TrustedJwtIssuerImportOptions,
+} from './ops/OAuth2TrustedJwtIssuerOps';
+
 export type { AccessTokenMetaType } from './ops/OAuth2OidcOps';
 
 export type { ExportMetaData } from './ops/OpsTypes';
