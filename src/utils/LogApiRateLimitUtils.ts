@@ -41,6 +41,8 @@ export type LogApiRateLimit = {
 const CLOCK_TOLERANCE_MS = 2000;
 /** Added to every wait for the end of a window: the reset is given in whole seconds. */
 const WAIT_MARGIN_MS = 1000;
+/** The spacing of the requests of a search when the answers carry no rate limit headers. */
+const UNKNOWN_SPACING_MS = 1000;
 
 /**
  * Reads one header, whether `headers` is an `AxiosHeaders` instance or a plain object.
@@ -140,4 +142,31 @@ export function getRateLimitWaitMs(
     return Math.max(0, resetAt - now) + WAIT_MARGIN_MS;
   }
   return undefined;
+}
+
+/**
+ * How long a search waits between two requests so that it uses at most `share` of the requests that the
+ * API allows in a window, and leaves the rest to other readers of the logs.
+ *
+ * The part of the budget that is left free is kept back whatever the other readers spend. What is above
+ * it is spread evenly over the time that is left in the window; when nothing is above it, the search
+ * waits for the window to reset.
+ * @param {LogApiRateLimit | undefined} rateLimit the state reported by the answer to the previous request
+ * @param {number} share the share of `rateLimit.limit` that the search may use, greater than 0 and at most 1
+ * @param {number} now current time, in milliseconds since 1970-01-01 UTC; only the tests pass it
+ * @returns {number} milliseconds to wait before the next request
+ */
+export function getSearchSpacingMs(
+  rateLimit: LogApiRateLimit | undefined,
+  share: number,
+  now: number = Date.now()
+): number {
+  if (!rateLimit) return UNKNOWN_SPACING_MS;
+  const untilReset = Math.max(0, rateLimit.resetAt - now);
+  // a tolerance for the float error of limit * share (28 * 0.5 is exact, 28 * 0.7 is not)
+  const allowed = Math.max(1, Math.floor(rateLimit.limit * share + 1e-9));
+  const reserve = Math.max(0, rateLimit.limit - allowed);
+  const spendable = rateLimit.remaining - reserve;
+  if (spendable <= 0) return untilReset + WAIT_MARGIN_MS;
+  return Math.ceil(untilReset / spendable);
 }

@@ -11,6 +11,7 @@
 import { jest } from '@jest/globals';
 import StateImpl from '../../shared/State';
 import { failedRequest } from '../../test/utils/ErrorWrapping';
+import { settled } from '../../test/utils/StubAdapter';
 import { FrodoError } from '../FrodoError';
 
 const actualLogApi = await import('../../api/cloud/LogApi');
@@ -337,6 +338,238 @@ describe('a request that the Log API rejected with 429', () => {
         3,
         expect.objectContaining({ cookie: 'cookie-1' })
       );
+    });
+  });
+});
+
+describe('searchEvents() paces its requests by the rate limit that the API reports', () => {
+  const searchArgs = {
+    source: 'am-authentication',
+    startTs: '2026-01-01T00:00:00.000Z',
+    endTs: '2026-01-01T12:00:00.000Z',
+    state,
+  };
+  const event = (id: string) => ({
+    payload: { transactionId: id },
+    timestamp: '2026-01-01T00:00:00Z',
+    type: 'application/json',
+    source: 'am-authentication',
+  });
+  /** A page with a cookie (more pages follow) or without; the window resets in `seconds`. */
+  const searchPage = (
+    id: string,
+    more: boolean,
+    limit?: number,
+    remaining?: number,
+    seconds?: number
+  ) =>
+    page(
+      {
+        result: [event(id)],
+        resultCount: 1,
+        ...(limit !== undefined && {
+          rateLimit: {
+            limit,
+            remaining,
+            resetAt: NOW + seconds * 1000,
+          },
+        }),
+      },
+      more ? 'cookie' : null
+    );
+
+  beforeEach(() => {
+    jest.useFakeTimers({
+      now: NOW,
+      doNotFake: ['nextTick', 'queueMicrotask'],
+    });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  /** Runs a search to its end and returns the times (ms after the start) at which the API was asked. */
+  async function requestTimes(
+    args: Parameters<typeof ops.searchEvents>[0],
+    until = 10 * 60 * 1000
+  ) {
+    const times: number[] = [];
+    jest.setSystemTime(NOW);
+    logApi.fetch.mockImplementation(async (...params: any[]) => {
+      times.push(Date.now() - NOW);
+      return pages.shift();
+    });
+    const outcome = settled(ops.searchEvents(args));
+    await jest.advanceTimersByTimeAsync(until);
+    return { times, outcome };
+  }
+  let pages: any[];
+
+  test.each([
+    // limit, remaining, seconds left, expected wait for the default share of one half
+    [60, 59, 59, 2035],
+    [28, 27, 40, 3077],
+    [28, 28, 28, 2000],
+  ])(
+    'waits as long as the state of the answer says: limit %d, remaining %d, reset in %d seconds',
+    async (limit, remaining, seconds, wait) => {
+      pages = [
+        searchPage('tx-1', true, limit, remaining, seconds),
+        searchPage('tx-2', false, limit, remaining - 1, seconds),
+      ];
+
+      const { times, outcome } = await requestTimes(searchArgs);
+
+      expect(times).toEqual([0, wait]);
+      expect(outcome.done).toBe(true);
+      expect(outcome.error).toBeUndefined();
+      expect(outcome.value).toHaveLength(2);
+    }
+  );
+
+  test('uses a share that the caller passes', async () => {
+    pages = [
+      searchPage('tx-1', true, 60, 59, 59),
+      searchPage('tx-2', false, 60, 58, 58),
+    ];
+
+    const { times } = await requestTimes({
+      ...searchArgs,
+      rateLimitShare: 1,
+    });
+
+    expect(times).toEqual([0, 1000]);
+  });
+
+  test('half of the limit is the default', async () => {
+    pages = [
+      searchPage('tx-1', true, 60, 59, 59),
+      searchPage('tx-2', false, 60, 58, 58),
+    ];
+    const defaulted = await requestTimes(searchArgs);
+
+    pages = [
+      searchPage('tx-1', true, 60, 59, 59),
+      searchPage('tx-2', false, 60, 58, 58),
+    ];
+    const explicit = await requestTimes({ ...searchArgs, rateLimitShare: 0.5 });
+
+    expect(defaulted.times).toEqual(explicit.times);
+  });
+
+  test('waits for the window to reset when the part that is kept free is all that is left', async () => {
+    pages = [
+      searchPage('tx-1', true, 60, 30, 12),
+      searchPage('tx-2', false, 60, 59, 60),
+    ];
+
+    const { times } = await requestTimes(searchArgs);
+
+    expect(times).toEqual([0, 13_000]);
+  });
+
+  test('uses the state of the latest answer for each wait', async () => {
+    pages = [
+      searchPage('tx-1', true, 28, 27, 40),
+      // the state moved on: another reader spent the budget in the meantime
+      searchPage('tx-2', true, 28, 14, 30),
+      searchPage('tx-3', false, 28, 27, 60),
+    ];
+
+    const { times } = await requestTimes(searchArgs);
+
+    // the state of the second answer: 14 left of 28, the window resets 30 seconds after the start
+    expect(times).toEqual([0, 3077, 31_000]);
+  });
+
+  test('waits one second where the answers carry no rate limit state', async () => {
+    pages = [
+      searchPage('tx-1', true),
+      searchPage('tx-2', true),
+      searchPage('tx-3', false),
+    ];
+
+    const { times } = await requestTimes(searchArgs);
+
+    expect(times).toEqual([0, 1000, 2000]);
+  });
+
+  test('keeps the pace across the chunks of a range that is wider than the API allows', async () => {
+    pages = [
+      searchPage('tx-1', false, 60, 59, 59),
+      searchPage('tx-2', false, 60, 58, 58),
+    ];
+
+    const { times } = await requestTimes({
+      ...searchArgs,
+      startTs: '2026-01-01T00:00:00.000Z',
+      endTs: '2026-01-02T06:00:00.000Z',
+    });
+
+    expect(times).toEqual([0, 2035]);
+  });
+
+  test('sends no request after the last page, so there is no wait either', async () => {
+    pages = [searchPage('tx-1', false, 60, 30, 59)];
+
+    const { times, outcome } = await requestTimes(searchArgs);
+
+    expect(times).toEqual([0]);
+    expect(outcome.done).toBe(true);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  test.each([0, -0.5, 1.01, 2, NaN, Infinity, null, '0.5'])(
+    'rejects a share of %p before it asks the API for anything',
+    async (share) => {
+      const error = await ops
+        .searchEvents({ ...searchArgs, rateLimitShare: share as any })
+        .then(
+          () => undefined,
+          (e: unknown) => e
+        );
+
+      expect(error).toBeInstanceOf(FrodoError);
+      expect((error as FrodoError).message).toBe(
+        'searchEvents: rateLimitShare must be a number greater than 0 and at most 1.'
+      );
+      expect(logApi.fetch).not.toHaveBeenCalled();
+    }
+  );
+
+  test('a share of exactly 1 is accepted', async () => {
+    pages = [searchPage('tx-1', false)];
+    const { outcome } = await requestTimes({
+      ...searchArgs,
+      rateLimitShare: 1,
+    });
+    expect(outcome.done).toBe(true);
+    expect(outcome.error).toBeUndefined();
+  });
+
+  test('a 429 in the middle of a search ends it with the code and the state of that answer', async () => {
+    logApi.fetch
+      .mockResolvedValueOnce(searchPage('tx-1', true, 60, 59, 59))
+      .mockRejectedValueOnce(
+        failedRequest(429, {
+          'x-ratelimit-limit': '60',
+          'x-ratelimit-remaining': '0',
+          'x-ratelimit-reset': String(NOW / 1000 + 20),
+        })
+      );
+
+    const outcome = settled(ops.searchEvents(searchArgs));
+    await jest.advanceTimersByTimeAsync(60_000);
+
+    expect(outcome.done).toBe(true);
+    const error = outcome.error as FrodoError;
+    expect(error.code).toBe('LOG_API_RATE_LIMITED');
+    expect(error.message).toContain('Error searching events');
+    expect(error.rateLimit).toEqual({
+      limit: 60,
+      remaining: 0,
+      resetAt: NOW + 20_000,
     });
   });
 });

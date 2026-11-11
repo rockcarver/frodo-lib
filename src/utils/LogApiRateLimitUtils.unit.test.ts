@@ -13,7 +13,9 @@
 import { AxiosHeaders } from 'axios';
 import {
   getRateLimitWaitMs,
+  getSearchSpacingMs,
   parseLogApiRateLimit,
+  type LogApiRateLimit,
 } from './LogApiRateLimitUtils';
 
 // 2026-01-01T00:00:00Z
@@ -223,4 +225,114 @@ describe('getRateLimitWaitMs', () => {
     expect(() => getRateLimitWaitMs(input, NOW)).not.toThrow();
     expect(getRateLimitWaitMs(input, NOW)).toBeUndefined();
   });
+});
+
+describe('getSearchSpacingMs', () => {
+  /** The state of an answer: `remaining` requests left, the window resets in `seconds`. */
+  const state = (
+    limit: number,
+    remaining: number,
+    seconds: number
+  ): LogApiRateLimit => ({ limit, remaining, resetAt: NOW + seconds * 1000 });
+
+  test.each([
+    // limit, remaining, seconds to the reset, share, expected spacing in ms
+    // half of 60: 30 stay free, the 29 requests above them are spread over the 59 seconds that are left
+    [60, 59, 59, 0.5, 2035],
+    // half of 28: 14 stay free, 13 requests are spread over 40 seconds
+    [28, 27, 40, 0.5, 3077],
+    // the limit is read from the answer: the same state with a limit of 28 and of 60 gives a different pace
+    [28, 28, 28, 0.5, 2000],
+    [60, 60, 60, 0.5, 2000],
+    // the whole limit
+    [60, 59, 59, 1, 1000],
+    [28, 20, 10, 1, 500],
+    // a share that does not divide the limit: 19 of 28 may be used, 9 stay free
+    [28, 28, 38, 0.7, 2000],
+    // 0.9 of 60 is 54 and not 53.99999: 6 stay free, not 7
+    [60, 60, 54, 0.9, 1000],
+    // a window that has run out: a limit of 1 leaves nothing to keep free
+    [1, 1, 30, 0.5, 30_000],
+    // the window is over already, there is no time left to spread the requests over
+    [60, 50, -5, 0.5, 0],
+  ])(
+    'limit %d, remaining %d, reset in %d seconds, share %d: %d ms',
+    (limit, remaining, seconds, share, expected) => {
+      expect(
+        getSearchSpacingMs(state(limit, remaining, seconds), share, NOW)
+      ).toBe(expected);
+    }
+  );
+
+  test.each([
+    // limit, remaining, seconds to the reset, share, expected wait in ms
+    // only the kept-back half is left: wait for the window to reset, plus a margin
+    [60, 30, 2, 0.5, 3000],
+    [28, 14, 25, 0.5, 26_000],
+    // below the kept-back part: other readers have spent the budget
+    [60, 10, 20, 0.5, 21_000],
+    [28, 0, 7, 0.5, 8000],
+    [60, 0, 7, 1, 8000],
+  ])(
+    'waits for the window to reset when the part that is kept free is all that is left: limit %d, remaining %d, reset in %d seconds, share %d: %d ms',
+    (limit, remaining, seconds, share, expected) => {
+      expect(
+        getSearchSpacingMs(state(limit, remaining, seconds), share, NOW)
+      ).toBe(expected);
+    }
+  );
+
+  test('waits one second when the answer carried no rate limit state', () => {
+    expect(getSearchSpacingMs(undefined, 0.5, NOW)).toBe(1000);
+    expect(getSearchSpacingMs(undefined, 1, NOW)).toBe(1000);
+  });
+
+  test('slows down when another reader spends the budget of the window', () => {
+    const alone = getSearchSpacingMs(state(60, 59, 50), 0.5, NOW);
+    const shared = getSearchSpacingMs(state(60, 40, 50), 0.5, NOW);
+    const crowded = getSearchSpacingMs(state(60, 32, 50), 0.5, NOW);
+    expect(alone).toBeLessThan(shared);
+    expect(shared).toBeLessThan(crowded);
+  });
+
+  test.each([
+    [60, 0.5],
+    [28, 0.5],
+    [60, 1],
+    [28, 0.3],
+  ])(
+    'a search on its own uses at most the share of every window and does not stall: limit %d, share %d',
+    (limit, share) => {
+      // the server: windows of one minute that start at 0, and a clock that the search follows
+      const windowMs = 60_000;
+      let clock = 0;
+      let windowEnd = windowMs;
+      let remaining = limit;
+      const perWindow: number[] = [];
+      let used = 0;
+      const request = () => {
+        if (clock >= windowEnd) {
+          perWindow.push(used);
+          used = 0;
+          windowEnd += windowMs;
+          remaining = limit;
+        }
+        remaining -= 1;
+        used += 1;
+        return { limit, remaining, resetAt: windowEnd };
+      };
+      const windows = 5;
+      let rateLimit = request();
+      while (perWindow.length < windows) {
+        clock += getSearchSpacingMs(rateLimit, share, clock);
+        rateLimit = request();
+      }
+      const allowed = Math.floor(limit * share + 1e-9);
+      for (const count of perWindow) {
+        expect(count).toBeLessThanOrEqual(allowed);
+        // it keeps going: a window is used up to the share, give or take the request at the border
+        expect(count).toBeGreaterThanOrEqual(allowed - 1);
+      }
+    }
+  );
 });

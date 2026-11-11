@@ -7178,7 +7178,7 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Log",
     methodName: "searchEvents",
-    signature: "searchEvents( source: string, startTs: string, endTs: string, eventNames?: string[], principal?: string, maxEvents?: number, dedupeByTransactionId?: boolean ): Promise<LogEventSkeleton[]>",
+    signature: "searchEvents( source: string, startTs: string, endTs: string, eventNames?: string[], principal?: string, maxEvents?: number, dedupeByTransactionId?: boolean, rateLimitShare?: number ): Promise<LogEventSkeleton[]>",
     description: "Search audit events by event name(s) and/or principal, across the full time range (auto-paginating), with client-side dedup by transaction id.",
     params: [
       { name: "source", type: "string", description: "log source(s) to search, e.g. am-authentication", required: true },
@@ -7188,6 +7188,7 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "principal", type: "string", description: "optional principal substring to match against payload.userId (co)", required: false },
       { name: "maxEvents", type: "number", description: "safety cap on total events fetched across pages", required: false },
       { name: "dedupeByTransactionId", type: "boolean", description: "collapse multiple events sharing a transaction id (e.g. a failed-then-successful retry) down to the last one seen; default true", required: false },
+      { name: "rateLimitShare", type: "number", description: "the share of the requests per window that the Log API allows (as the API reports it) that the search may use, greater than 0 and at most 1; default 0.5. The rest is left to other readers of the logs of the environment, such as a running tail.", required: false },
     ],
     returns: "{Promise<LogEventSkeleton[]>} promise resolving to the matched (and optionally deduped) events",
   },

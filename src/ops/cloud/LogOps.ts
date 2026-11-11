@@ -15,7 +15,10 @@ import {
 } from '../../api/cloud/LogApi';
 import { State } from '../../shared/State';
 import { sleep } from '../../utils/FrodoUtils';
-import { parseLogApiRateLimit } from '../../utils/LogApiRateLimitUtils';
+import {
+  getSearchSpacingMs,
+  parseLogApiRateLimit,
+} from '../../utils/LogApiRateLimitUtils';
 import { FrodoError, getFailedResponse } from '../FrodoError';
 
 /**
@@ -173,6 +176,7 @@ export type Log = {
    * @param {string} principal optional principal substring to match against payload.userId (co)
    * @param {number} maxEvents safety cap on total events fetched across pages
    * @param {boolean} dedupeByTransactionId collapse multiple events sharing a transaction id (e.g. a failed-then-successful retry) down to the last one seen; default true
+   * @param {number} rateLimitShare the share of the requests per window that the Log API allows (as the API reports it) that the search may use, greater than 0 and at most 1; default 0.5. The rest is left to other readers of the logs of the environment, such as a running tail.
    * @returns {Promise<LogEventSkeleton[]>} promise resolving to the matched (and optionally deduped) events
    */
   searchEvents(
@@ -182,7 +186,8 @@ export type Log = {
     eventNames?: string[],
     principal?: string,
     maxEvents?: number,
-    dedupeByTransactionId?: boolean
+    dedupeByTransactionId?: boolean,
+    rateLimitShare?: number
   ): Promise<LogEventSkeleton[]>;
 };
 
@@ -241,7 +246,8 @@ export default (state: State): Log => {
       eventNames?: string[],
       principal?: string,
       maxEvents?: number,
-      dedupeByTransactionId?: boolean
+      dedupeByTransactionId?: boolean,
+      rateLimitShare?: number
     ): Promise<LogEventSkeleton[]> {
       return searchEvents({
         source,
@@ -251,6 +257,7 @@ export default (state: State): Log => {
         principal,
         maxEvents,
         dedupeByTransactionId,
+        rateLimitShare,
         state,
       });
     },
@@ -861,12 +868,17 @@ function* splitIntoSafeWindows(
 }
 
 /**
+ * The share of the requests per window that a search may use, unless the caller says otherwise. A search takes up
+ * to half of what the Log API allows and leaves the rest to other readers of the logs, a running tail among them.
+ */
+const DEFAULT_RATE_LIMIT_SHARE = 0.5;
+
+/**
  * Search audit events by event name(s) and/or principal, across the full
  * time range (auto-paginating within each ~24h chunk the Log API allows,
  * and auto-chunking the requested range into consecutive windows that size
- * when it's wider than that — see {@link MAX_LOG_WINDOW_MS} — respecting the
- * ~1 request/second Log API rate limit between every fetch call, chunk
- * boundaries included), with client-side dedup by transaction id.
+ * when it's wider than that — see {@link MAX_LOG_WINDOW_MS}), with
+ * client-side dedup by transaction id.
  *
  * @remarks
  * Filtering happens server-side (see {@link buildEventFilter}) rather than
@@ -882,6 +894,19 @@ function* splitIntoSafeWindows(
  * in chronological order), "last seen" is the most recent event for that
  * transaction — the actual outcome, not an arbitrary one. CREST filters
  * can't express this dedup themselves, so it has to happen client-side.
+ *
+ * The Log API throttles the requests of an environment, and the limit is
+ * shared by everything that reads its logs (see `LogApiRateLimit`). The
+ * search spaces its requests by what the previous answer reported
+ * (`limit`, `remaining` and the reset of the window), so that it uses at
+ * most `rateLimitShare` of the requests per window and does not starve a
+ * tail that runs at the same time: it spreads the requests it may use over
+ * the time left in the window, and waits for the next window when it has
+ * used them up. If the answers carry no rate limit headers it waits a
+ * second between two requests. A request that the API rejects with 429
+ * anyway is sent once more after the wait the answer asks for. A 429 that
+ * asks for no wait, and a second 429, end the search with the code
+ * `LOG_API_RATE_LIMITED`.
  */
 export async function searchEvents({
   source,
@@ -891,6 +916,7 @@ export async function searchEvents({
   principal,
   maxEvents = 1000,
   dedupeByTransactionId = true,
+  rateLimitShare = DEFAULT_RATE_LIMIT_SHARE,
   state,
 }: {
   source: string;
@@ -900,17 +926,27 @@ export async function searchEvents({
   principal?: string;
   maxEvents?: number;
   dedupeByTransactionId?: boolean;
+  rateLimitShare?: number;
   state: State;
 }): Promise<LogEventSkeleton[]> {
   const filter = buildEventFilter({ eventNames, principal });
+  if (
+    typeof rateLimitShare !== 'number' ||
+    !(rateLimitShare > 0 && rateLimitShare <= 1)
+  ) {
+    throw new FrodoError(
+      'searchEvents: rateLimitShare must be a number greater than 0 and at most 1.'
+    );
+  }
   const events: LogEventSkeleton[] = [];
   let firstFetch = true;
+  let rateLimit: LogApiRateLimit | undefined;
   try {
     for (const window of splitIntoSafeWindows(startTs, endTs)) {
       let cookie: string | undefined;
       do {
         if (!firstFetch) {
-          await sleep(1000);
+          await sleep(getSearchSpacingMs(rateLimit, rateLimitShare));
         }
         firstFetch = false;
         const page = await _fetch({
@@ -924,6 +960,7 @@ export async function searchEvents({
         });
         events.push(...page.result);
         cookie = page.pagedResultsCookie;
+        rateLimit = page.rateLimit;
       } while (cookie && events.length < maxEvents);
       if (events.length >= maxEvents) {
         break;
