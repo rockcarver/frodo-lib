@@ -1785,10 +1785,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "EmailTemplate",
     methodName: "importEmailTemplates",
-    signature: "importEmailTemplates( importData: EmailTemplateExportInterface ): Promise<EmailTemplateSkeleton[]>",
-    description: "Import all email templates",
+    signature: "importEmailTemplates( importData: EmailTemplateExportInterface, resultCallback?: ResultCallback<EmailTemplateSkeleton> ): Promise<EmailTemplateSkeleton[]>",
+    description: "Import all email templates. Every email template is tried: a template that cannot be imported does not stop the others.",
     params: [
       { name: "importData", type: "EmailTemplateExportInterface", description: "import data", required: true },
+      { name: "resultCallback", type: "ResultCallback<EmailTemplateSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every email template is passed to it as it happens (a failed template as an error that names the template and carries the cause) and a failed template does not throw: the templates that were imported are returned. Without it, the failures are collected and thrown as one error after every template was tried.", required: false },
     ],
     returns: "{Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of email template objects",
   },
@@ -3500,11 +3501,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Mapping",
     methodName: "importMappings",
-    signature: "importMappings( importData: MappingExportInterface, options?: MappingImportOptions ): Promise<MappingSkeleton[]>",
-    description: "Import all mappings",
+    signature: "importMappings( importData: MappingExportInterface, options?: MappingImportOptions, resultCallback?: ResultCallback<MappingSkeleton> ): Promise<MappingSkeleton[]>",
+    description: "Import all mappings. Every mapping is tried: a mapping that cannot be imported does not stop the others.",
     params: [
       { name: "importData", type: "MappingExportInterface", description: "import data", required: true },
       { name: "options", type: "MappingImportOptions", description: "import options", required: false },
+      { name: "resultCallback", type: "ResultCallback<MappingSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every mapping is passed to it as it happens (a failed mapping as an error that names the mapping and carries the cause) and a failed mapping does not throw: the mappings that were imported are returned. Without it, the failures are collected and thrown as one error after every mapping was tried.", required: false },
     ],
     returns: "{Promise<MappingSkeleton[]>} a promise resolving to an array of MappingSkeleton objects",
   },
@@ -4658,10 +4660,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "RemoteProxy",
     methodName: "importRemoteProxies",
-    signature: "importRemoteProxies( importData: RemoteProxyExportInterface ): Promise<RemoteProxySkeleton[]>",
-    description: "Import remote proxies",
+    signature: "importRemoteProxies( importData: RemoteProxyExportInterface, resultCallback?: ResultCallback<RemoteProxySkeleton> ): Promise<RemoteProxySkeleton[]>",
+    description: "Import remote proxies. The name and the configuration of every remote proxy are checked before it is written, and a refused remote proxy is never sent to the tenant. Without a result callback every remote proxy is checked before the first one is written: if any of them is refused, nothing is imported.",
     params: [
       { name: "importData", type: "RemoteProxyExportInterface", description: "import data", required: true },
+      { name: "resultCallback", type: "ResultCallback<RemoteProxySkeleton>", description: "Optional callback to process individual results. When given, the outcome of every remote proxy is passed to it as it happens (a refused or failed remote proxy as an error that names it) and a refused or failed remote proxy does not stop the others and does not throw: the remote proxies that were imported are returned. The refused remote proxies are reported first, then the outcome of each write. Import data without a remoteProxy object always throws.", required: false },
     ],
     returns: "{Promise<RemoteProxySkeleton[]>} a promise that resolves to an array of remote proxy objects",
   },
