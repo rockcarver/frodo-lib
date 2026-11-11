@@ -39,6 +39,7 @@ describe('the lists', () => {
     'Api-Key',
     'Ocp-Apim-Subscription-Key',
     'X-Auth-Token',
+    'iPlanetDirectoryPro',
   ])('2: %s is a sensitive header, in any case', (name) => {
     expect(isSensitiveHeaderName(name)).toBe(true);
     expect(isSensitiveHeaderName(name.toLowerCase())).toBe(true);
@@ -81,6 +82,7 @@ describe('the lists', () => {
     'accessKey',
     'code_verifier',
     'valueBase64',
+    'csrf',
   ])('5: %s is a sensitive field', (name) => {
     expect(isSensitiveFieldName(name)).toBe(true);
   });

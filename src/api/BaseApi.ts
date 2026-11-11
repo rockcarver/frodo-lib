@@ -681,8 +681,8 @@ function warnCurlirizeSecrets(state: State) {
  * value of every credential header and every credential field of a body is
  * replaced by a placeholder, and the names stay. The header names to hide are
  * the shared list of sensitive names plus the names in the authentication and
- * configuration header overrides of the state, which are user-defined and read
- * for every command. With `state.getCurlirizeSecrets()` the values are printed
+ * configuration header overrides of the state and the name of the session
+ * cookie, which are user-defined and read for every command. With `state.getCurlirizeSecrets()` the values are printed
  * as they are and `revealed` records that the command holds a credential.
  * @param {State} state State object
  * @param {{ secrets: boolean }} revealed set to true when a real credential went into the command
@@ -692,10 +692,13 @@ function curlRedactor(
   state: State,
   revealed: { secrets: boolean }
 ): CurlRedactor {
-  const overrideNames = () => [
-    ...Object.keys(state.getAuthenticationHeaderOverrides() ?? {}),
-    ...Object.keys(state.getConfigurationHeaderOverrides() ?? {}),
-  ];
+  const overrideNames = () =>
+    [
+      ...Object.keys(state.getAuthenticationHeaderOverrides() ?? {}),
+      ...Object.keys(state.getConfigurationHeaderOverrides() ?? {}),
+      // AM takes the session token in a header named like the session cookie
+      state.getCookieName(),
+    ].filter((name): name is string => !!name);
   return {
     header: (name, value) => {
       if (!isSensitiveHeaderName(name, overrideNames())) return value;
