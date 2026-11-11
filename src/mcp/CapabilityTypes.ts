@@ -331,8 +331,10 @@ export type OperationCapabilityMeta = {
 
   /**
    * Names of auto-derived parameters to exclude from this capability's
-   * advertised parameter contract — e.g. a trailing `resultCallback` (a JS
-   * function reference an MCP JSON payload can never carry).
+   * advertised parameter contract. A trailing `resultCallback` (a JS function
+   * reference an MCP JSON payload can never carry) is excluded without an
+   * entry here: the registry drops it and the tool runtime passes a
+   * collecting callback in its place (see ResultCollector.ts).
    */
   excludeParameters?: string[];
 

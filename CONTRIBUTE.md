@@ -126,6 +126,8 @@ The package root exports only `frodo`, `state`, `FrodoError`, and types. Add new
 
 The MCP capability registry infers a method's operation type from its name prefix: `create`, `count`, `read` (a plural name reads all), `update`, `delete`, `query` or `search`, `list`, `export` and `import`. Any other name is a "special" capability and needs a reviewed entry in `src/mcp/CapabilityMetadata.ts`; the capability registry test fails until it has one (pure helpers are usually marked `excluded: true` with a reason). A conventionally named method only needs an entry when the inferred defaults are wrong.
 
+A bulk method may take a trailing `resultCallback` that reports each item (a failed item does not stop the others). An MCP caller cannot send a function, so the registry never offers that parameter and the tool runtime passes a collecting callback in its place: the tool result keeps its shape, and when at least one item failed it also carries `partial: true` and `itemResults` (the failed items, with their `INSUFFICIENT_SCOPE` or other code, and the number of items that succeeded). This needs no entry in `src/mcp/CapabilityMetadata.ts`: the callback is found in the signature of the method (`src/lib/Help.ts`), and `src/mcp/CapabilityRegistry.resultCollector.unit.test.ts` fails for a method that takes a result callback and would not get a collector. Name the parameter `resultCallback`.
+
 ##### Managing objects - CRUDQ
 
 Adopt CRUDQ naming for object manipulation:

@@ -196,6 +196,35 @@ function shouldIncludeMethod(path: string[]): boolean {
 }
 
 /**
+ * The name of the parameter through which a bulk function of the facade
+ * reports its items one by one.
+ */
+export const RESULT_CALLBACK_PARAMETER = 'resultCallback';
+
+/**
+ * Finds where a facade method takes its result callback.
+ *
+ * @remarks
+ * Derived from the parameter list of the generated Help.ts catalog, which is
+ * parsed from the signature of the facade method, so a new function with a
+ * result callback is found without an entry in `CAPABILITY_META`. The tool
+ * runtime passes its collecting callback at this position (see
+ * ResultCollector.ts).
+ *
+ * @param methodName Bare method name to look up.
+ * @returns The zero-based position of the `resultCallback` parameter, or
+ *   `undefined` when the method has none.
+ */
+export function findResultCallbackPosition(
+  methodName: string
+): number | undefined {
+  const position = deriveParametersFromHelp(methodName)?.findIndex(
+    (parameter) => parameter.name === RESULT_CALLBACK_PARAMETER
+  );
+  return position === undefined || position < 0 ? undefined : position;
+}
+
+/**
  * Applies a capability's `excludeParameters`/`parameterOverrides` metadata
  * on top of its auto-derived parameter list.
  *
@@ -224,6 +253,13 @@ function applyParameterOverlay(
     return undefined;
   }
   const excluded = new Set(meta?.excludeParameters ?? []);
+  // A trailing result callback is never offered, whatever the metadata says:
+  // an MCP JSON payload cannot carry a function, and the runtime passes its
+  // own collecting callback in its place (see ResultCollector.ts).
+  const last = baseline[baseline.length - 1];
+  if (last?.name === RESULT_CALLBACK_PARAMETER) {
+    excluded.add(last.name);
+  }
   const overrides = meta?.parameterOverrides;
   const overlaid = baseline
     .filter((parameter) => !excluded.has(parameter.name))

@@ -134,6 +134,29 @@ releases missed):
   that could be deleted by the time it rejects. The message of the error from
   `exportServers` for a failed server is now `Error exporting servers`; it was
   `Error reading servers`.
+- The MCP tool runtime (`createToolRuntime`, `frodo.mcp.createService`) passes a
+  collecting result callback to every function of the facade that takes a
+  `resultCallback`, and its capability descriptors no longer list that
+  parameter (it was listed for those that had no `excludeParameters` entry,
+  and as a required parameter for `config.exportFullConfiguration` and
+  `config.importFullConfiguration`). An MCP caller cannot send a function, so
+  since a missing scope is a failed item a bulk call with a scope-limited
+  credential used to end with the one error of the first failed item. The tool
+  result of a call in which no item failed is unchanged. When at least one
+  item failed, the result also has `partial: true` and `itemResults`
+  (`succeededCount`, `failedCount`, `failures` with `message`, `code` such as
+  `INSUFFICIENT_SCOPE` and `item`, `omittedFailureCount` and a `summary`; at most
+  50 failures of at most 1000 characters are listed, without stack and with
+  credentials replaced), and `data` holds what the function returned for the
+  other items. For a write (an import, a delete) this means that the items that
+  can be written are written and the ones that cannot are reported, where the
+  functions without a callback reject the batch or stop at the first failed
+  item (`importJourneys` validates the whole batch first, `importFullConfiguration`
+  stops at the first failed section). A call whose list read fails still
+  returns an error. A named-argument call that sends `resultCallback` to a
+  capability that takes it as its last parameter is rejected as an unknown
+  argument. A host that calls the runtime in process and puts a function at the
+  position of the callback keeps it.
 
 **Deprecation**:
 
