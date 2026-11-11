@@ -769,7 +769,7 @@ export async function deleteScript({
   state: State;
 }): Promise<ScriptSkeleton> {
   try {
-    return _deleteScript({ scriptId, state });
+    return await _deleteScript({ scriptId, state });
   } catch (error) {
     throw new FrodoError(
       `Error deleting ${getCurrentRealmName(state) + ' realm'} script ${scriptId}`,
@@ -791,7 +791,7 @@ export async function deleteScriptByName({
   state: State;
 }): Promise<ScriptSkeleton> {
   try {
-    return _deleteScriptByName({ scriptName, state });
+    return await _deleteScriptByName({ scriptName, state });
   } catch (error) {
     throw new FrodoError(
       `Error deleting ${getCurrentRealmName(state) + ' realm'} script ${scriptName}`,

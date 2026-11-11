@@ -264,9 +264,16 @@ describe('ServiceOps unit coverage for AM service management', () => {
     ).rejects.toMatchObject({
       name: 'FrodoError',
       message: expect.stringContaining('two'),
+      // deleteFullService wraps the failed request in a FrodoError of its own (frodo-lib#1033)
       originalErrors: [
         expect.objectContaining({
-          originalErrors: [failure],
+          message: expect.stringContaining('two'),
+          originalErrors: [
+            expect.objectContaining({
+              message: expect.stringContaining('full service config two'),
+              originalErrors: [failure],
+            }),
+          ],
         }),
       ],
     });

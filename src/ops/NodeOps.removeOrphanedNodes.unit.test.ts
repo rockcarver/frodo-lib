@@ -84,7 +84,11 @@ describe('removeOrphanedNodes', () => {
       ).toEqual(['a', 'b', 'c']);
       expect(errorHandler).toHaveBeenCalledTimes(1);
       const [error, message] = errorHandler.mock.calls[0] as [Error, string];
-      expect(error.message).toBe('delete of b refused');
+      // deleteNode wraps the failed request in a FrodoError (frodo-lib#1033)
+      expect(error.message).toBe('Error deleting ScriptedDecisionNode node b');
+      expect((error as any).originalErrors[0].message).toBe(
+        'delete of b refused'
+      );
       expect(message).toContain(
         'Failed to delete orphaned node b (ScriptedDecisionNode v1.0)'
       );
@@ -129,7 +133,13 @@ describe('removeOrphanedNodes', () => {
       expect(error.message).toBe(
         'Failed to delete orphaned node b (ScriptedDecisionNode v1.0)'
       );
-      expect(error.originalErrors[0].message).toBe('delete of b refused');
+      // deleteNode wraps the failed request in a FrodoError (frodo-lib#1033)
+      expect(error.originalErrors[0].message).toBe(
+        'Error deleting ScriptedDecisionNode node b'
+      );
+      expect(error.originalErrors[0].originalErrors[0].message).toBe(
+        'delete of b refused'
+      );
     });
 
     test('does not print the error of a failed node', async () => {

@@ -359,7 +359,7 @@ export async function getSaml2ProviderMetadata({
   state: State;
 }) {
   try {
-    return _getProviderMetadata({ entityId, state });
+    return await _getProviderMetadata({ entityId, state });
   } catch (error) {
     throw new FrodoError(
       `Error getting metadata for saml2 provider ${entityId}`,
@@ -605,7 +605,7 @@ export async function createSaml2Provider({
   state: State;
 }): Promise<Saml2ProviderSkeleton> {
   try {
-    return _createProvider({ location, providerData, metaData, state });
+    return await _createProvider({ location, providerData, metaData, state });
   } catch (error) {
     throw new FrodoError(
       `Error creating ${getCurrentRealmName(state) + ' realm'} saml2 provider`,
@@ -633,7 +633,7 @@ export async function updateSaml2Provider({
   state: State;
 }): Promise<Saml2ProviderSkeleton> {
   try {
-    return _updateProvider({ location, entityId, providerData, state });
+    return await _updateProvider({ location, entityId, providerData, state });
   } catch (error) {
     throw new FrodoError(
       `Error updating ${getCurrentRealmName(state) + ' realm'} saml2 provider`,

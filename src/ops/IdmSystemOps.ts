@@ -339,7 +339,7 @@ export async function readAvailableSystems({
   state: State;
 }): Promise<SystemStatusInterface[]> {
   try {
-    return _readAvailableSystems({ state });
+    return await _readAvailableSystems({ state });
   } catch (error) {
     throw new FrodoError(`Error reading available systems`, error);
   }
@@ -351,7 +351,7 @@ export async function readAvailableConnectors({
   state: State;
 }): Promise<SystemStatusInterface[]> {
   try {
-    return _readAvailableConnectors({ state });
+    return await _readAvailableConnectors({ state });
   } catch (error) {
     throw new FrodoError(`Error reading available connectors`, error);
   }
@@ -365,7 +365,7 @@ export async function readSystemStatus({
   state: State;
 }): Promise<SystemStatusInterface> {
   try {
-    return _readSystemStatus({ systemName, state });
+    return await _readSystemStatus({ systemName, state });
   } catch (error) {
     throw new FrodoError(`Error reading system status`, error);
   }
@@ -385,7 +385,7 @@ export async function authenticateSystemObject({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return _authenticateSystemObject({
+    return await _authenticateSystemObject({
       systemName,
       systemObjectType,
       username,
@@ -410,7 +410,7 @@ export async function runSystemScript({
   state: State;
 }) {
   try {
-    return _runSystemScript({ systemName, scriptName, state });
+    return await _runSystemScript({ systemName, scriptName, state });
   } catch (error) {
     throw new FrodoError(
       `Error running script ${scriptName} in system ${systemName}`,
@@ -433,7 +433,7 @@ export async function queryAllSystemObjectIds({
   state: State;
 }): Promise<PagedResult<IdObjectSkeletonInterface>> {
   try {
-    return _queryAllSystemObjectIds({
+    return await _queryAllSystemObjectIds({
       systemName,
       systemObjectType,
       pageSize,
@@ -466,7 +466,7 @@ export async function querySystemObjects({
   state: State;
 }): Promise<PagedResult<IdObjectSkeletonInterface>> {
   try {
-    return _querySystemObjects({
+    return await _querySystemObjects({
       systemName,
       systemObjectType,
       filter,
@@ -497,7 +497,7 @@ export async function readSystemObject({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return _getSystemObject({
+    return await _getSystemObject({
       systemName,
       systemObjectType,
       systemObjectId,
@@ -524,7 +524,7 @@ export async function createSystemObject({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return _createSystemObject({
+    return await _createSystemObject({
       systemName,
       systemObjectType,
       systemObjectData,
@@ -554,7 +554,7 @@ export async function updateSystemObject({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return _putSystemObject({
+    return await _putSystemObject({
       systemName,
       systemObjectType,
       systemObjectId,
@@ -584,7 +584,7 @@ export async function updateSystemObjectProperties({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return _patchSystemObject({
+    return await _patchSystemObject({
       systemName,
       systemObjectType,
       systemObjectId,
@@ -611,7 +611,7 @@ export async function deleteSystemObject({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return _deleteSystemObject({
+    return await _deleteSystemObject({
       systemName,
       systemObjectType,
       systemObjectId,

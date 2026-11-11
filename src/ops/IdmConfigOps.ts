@@ -929,7 +929,7 @@ export async function deleteConfigEntity({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return _deleteConfigEntity({ entityId, state });
+    return await _deleteConfigEntity({ entityId, state });
   } catch (error) {
     throw new FrodoError(`Error deleting config entity ${entityId}`, error);
   }

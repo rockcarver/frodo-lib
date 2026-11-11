@@ -94,7 +94,7 @@ export async function createOAuth2Provider({
   state: State;
 }): Promise<OAuth2ProviderSkeleton> {
   try {
-    return _createOAuth2Provider({ providerData, state });
+    return await _createOAuth2Provider({ providerData, state });
   } catch (error) {
     throw new FrodoError(`Error creating oauth2 provider`, error);
   }
@@ -113,7 +113,7 @@ export async function updateOAuth2Provider({
   state: State;
 }): Promise<OAuth2ProviderSkeleton> {
   try {
-    return _putOAuth2Provider({ providerData, state });
+    return await _putOAuth2Provider({ providerData, state });
   } catch (error) {
     throw new FrodoError(`Error updating oauth2 provider`, error);
   }
@@ -129,7 +129,7 @@ export async function deleteOAuth2Provider({
   state: State;
 }): Promise<OAuth2ProviderSkeleton> {
   try {
-    return _deleteOAuth2Provider({ state });
+    return await _deleteOAuth2Provider({ state });
   } catch (error) {
     throw new FrodoError(`Error deleting oauth2 provider`, error);
   }

@@ -496,7 +496,7 @@ export async function deleteOAuth2Client({
   state: State;
 }): Promise<OAuth2ClientSkeleton> {
   try {
-    return _deleteOAuth2Client({ id: clientId, state });
+    return await _deleteOAuth2Client({ id: clientId, state });
   } catch (error) {
     throw new FrodoError(
       `Error deleting ${getCurrentRealmName(state) + ' realm'} oauth2 client ${clientId}`,

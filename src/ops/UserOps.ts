@@ -211,7 +211,7 @@ export async function readUser({
   state: State;
 }): Promise<UserSkeleton> {
   try {
-    return getUser({ userId, state });
+    return await getUser({ userId, state });
   } catch (error) {
     throw new FrodoError(`Error reading user ${userId}`, error);
   }
@@ -376,7 +376,7 @@ export async function readUserGroup({
   state: State;
 }): Promise<UserGroupSkeleton> {
   try {
-    return getUserGroup({ groupId, state });
+    return await getUserGroup({ groupId, state });
   } catch (error) {
     throw new FrodoError(`Error reading user group ${groupId}`, error);
   }

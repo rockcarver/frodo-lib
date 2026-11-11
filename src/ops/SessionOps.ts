@@ -35,7 +35,7 @@ export async function getSessionInfo({
   state: State;
 }): Promise<SessionInfoType> {
   try {
-    return _getSessionInfo({ tokenId, state });
+    return await _getSessionInfo({ tokenId, state });
   } catch (error) {
     throw new FrodoError(`Error getting session info`, error);
   }

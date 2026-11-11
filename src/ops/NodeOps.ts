@@ -949,7 +949,13 @@ export async function updateNode({
   state: State;
 }): Promise<NodeSkeleton> {
   try {
-    return _putNode({ nodeId, nodeType, nodeTypeVersion, nodeData, state });
+    return await _putNode({
+      nodeId,
+      nodeType,
+      nodeTypeVersion,
+      nodeData,
+      state,
+    });
   } catch (error) {
     throw new FrodoError(`Error updating ${nodeType} node ${nodeId}`, error);
   }
@@ -974,7 +980,7 @@ export async function deleteNode({
   state: State;
 }): Promise<NodeSkeleton> {
   try {
-    return _deleteNode({ nodeId, nodeType, nodeTypeVersion, state });
+    return await _deleteNode({ nodeId, nodeType, nodeTypeVersion, state });
   } catch (error) {
     throw new FrodoError(`Error deleting ${nodeType} node ${nodeId}`, error);
   }

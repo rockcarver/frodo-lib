@@ -147,7 +147,7 @@ export async function readScriptType({
   state: State;
 }): Promise<ScriptTypeSkeleton> {
   try {
-    return getScriptType({ scriptTypeId, state });
+    return await getScriptType({ scriptTypeId, state });
   } catch (error) {
     throw new FrodoError(`Error reading scriptType ${scriptTypeId}`, error);
   }

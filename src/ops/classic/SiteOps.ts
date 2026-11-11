@@ -135,7 +135,7 @@ export async function readSite({
   state: State;
 }): Promise<SiteSkeleton> {
   try {
-    return getSite({ siteId, state });
+    return await getSite({ siteId, state });
   } catch (error) {
     throw new FrodoError(`Error reading site ${siteId}`, error);
   }
