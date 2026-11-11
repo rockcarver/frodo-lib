@@ -10,6 +10,11 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-35] - 2026-11-11
+
+### Changed
+- Connection profile header overrides are now stored encrypted. Previously, these values were stored in plain text within `Connections.json`. They are now encrypted using the master key, similar to other sensitive data such as passwords and API secrets. (#992)
+
 ## [v5.0.0-34] - 2026-11-11
 
 ### Added
@@ -2907,6 +2912,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-35]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-34...v5.0.0-35
 [v5.0.0-33]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-32...v5.0.0-33
 [v5.0.0-32]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-31...v5.0.0-32
 [v5.0.0-31]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-30...v5.0.0-31
