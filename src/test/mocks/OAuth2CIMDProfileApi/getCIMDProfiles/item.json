@@ -1,0 +1,146 @@
+{
+  "_id": "example-mcp-clients",
+  "_rev": "-1122334455",
+  "overrideOAuth2ClientConfig": {
+    "issueRefreshToken": true,
+    "validateScopePluginType": "PROVIDER",
+    "tokenEncryptionEnabled": false,
+    "enableApplicationContext": false,
+    "acceptAudienceParametersInTokenExchangeRequests": false,
+    "evaluateScopePluginType": "PROVIDER",
+    "oidcMayActScript": "[Empty]",
+    "oidcClaimsScript": "[Empty]",
+    "scopesPolicySet": "oauth2Scopes",
+    "tlsClientCertificateChainValidationEnabled": false,
+    "accessTokenModificationPluginType": "PROVIDER",
+    "authorizeEndpointDataProviderClass": "org.forgerock.oauth2.core.plugins.registry.DefaultEndpointDataProvider",
+    "useForceAuthnForMaxAge": false,
+    "oidcClaimsPluginType": "PROVIDER",
+    "providerOverridesEnabled": false,
+    "authorizeEndpointDataProviderScript": "[Empty]",
+    "statelessTokensEnabled": false,
+    "authorizeEndpointDataProviderPluginType": "PROVIDER",
+    "oidcClaimsClass": null,
+    "useTokenIntrospectionClaimForJWT": false,
+    "remoteConsentServiceId": null,
+    "restrictTokenExchangeScopesToSubjectTokenScopes": false,
+    "enableRemoteConsent": false,
+    "validateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeValidator",
+    "customLoginUrlTemplate": null,
+    "accessTokenModifierClass": null,
+    "usePolicyEngineForScope": false,
+    "evaluateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeEvaluator",
+    "overrideableOIDCClaims": [],
+    "accessTokenMayActScript": "[Empty]",
+    "evaluateScopeScript": "[Empty]",
+    "clientsCanSkipConsent": false,
+    "accessTokenModificationScript": "[Empty]",
+    "issueRefreshTokenOnRefreshedToken": true,
+    "validateScopeScript": "[Empty]"
+  },
+  "advancedOAuth2ClientConfig": {
+    "logoUri": [],
+    "subjectType": "public",
+    "clientUri": [],
+    "tokenExchangeAuthLevel": 0,
+    "responseTypes": [
+      "code"
+    ],
+    "mixUpMitigation": false,
+    "customProperties": [],
+    "tlsCaSecretLabelIdentifier": null,
+    "policyUri": [],
+    "tosURI": [],
+    "sectorIdentifierUri": null,
+    "tokenEndpointAuthMethod": "none",
+    "refreshTokenGracePeriod": 0,
+    "isConsentImplied": false,
+    "grantTypes": [
+      "authorization_code",
+      "refresh_token"
+    ],
+    "allowedResourceServerAudienceValues": [],
+    "require_pushed_authorization_requests": false,
+    "descriptions": [],
+    "requestUris": [],
+    "name": [],
+    "contacts": [],
+    "acceptedJwtIssuers": [],
+    "introspectionPolicySets": [],
+    "treeName": "[Empty]"
+  },
+  "signEncOAuth2ClientConfig": {
+    "tokenEndpointAuthSigningAlgorithm": "RS256",
+    "idTokenEncryptionEnabled": false,
+    "tokenIntrospectionEncryptedResponseEncryptionAlgorithm": "A128CBC-HS256",
+    "requestParameterSignedAlg": null,
+    "clientJwtPublicKey": null,
+    "idTokenPublicEncryptionKey": null,
+    "mTLSSubjectDN": null,
+    "jwkStoreCacheMissCacheTime": 60000,
+    "jwkSet": null,
+    "idTokenEncryptionMethod": "A128CBC-HS256",
+    "jwksUri": null,
+    "tokenIntrospectionEncryptedResponseAlg": "RSA-OAEP-256",
+    "userinfoResponseFormat": "JSON",
+    "mTLSCertificateBoundAccessTokens": false,
+    "publicKeyLocation": "jwks_uri",
+    "tokenIntrospectionResponseFormat": "JSON",
+    "requestParameterEncryptedEncryptionAlgorithm": "A128CBC-HS256",
+    "userinfoSignedResponseAlg": null,
+    "idTokenEncryptionAlgorithm": "RSA-OAEP-256",
+    "requestParameterEncryptedAlg": null,
+    "mTLSTrustedCert": null,
+    "jwksCacheTimeout": 3600000,
+    "userinfoEncryptedResponseAlg": null,
+    "idTokenSignedResponseAlg": "RS256",
+    "tokenIntrospectionSignedResponseAlg": "RS256",
+    "userinfoEncryptedResponseEncryptionAlgorithm": "A128CBC-HS256"
+  },
+  "coreOAuth2ClientConfig": {
+    "authorizationDetailTypes": [],
+    "status": "Active",
+    "clientName": [
+      "Example MCP clients"
+    ],
+    "loopbackInterfaceRedirection": false,
+    "defaultScopes": [
+      "openid"
+    ],
+    "refreshTokenLifetime": 0,
+    "scopes": [
+      "openid",
+      "profile"
+    ],
+    "accessTokenLifetime": 0,
+    "redirectionUris": [
+      "https://agents.example.com/callback"
+    ],
+    "authorizationCodeLifetime": 0
+  },
+  "coreOpenIDClientConfig": {
+    "claims": [],
+    "defaultAcrValues": [],
+    "jwtTokenLifetime": 0,
+    "defaultMaxAgeEnabled": false,
+    "clientSessionUri": null,
+    "defaultMaxAge": 600,
+    "postLogoutRedirectUri": []
+  },
+  "cimdConfig": {
+    "cimdSsrfProtectionEnabled": true,
+    "cimdMetadataDenyList": [
+      "scope",
+      "redirect_uris"
+    ],
+    "cimdClientIdUrlPatterns": [
+      "https://agents.example.com/*",
+      "https://agents.example.com:8443/agents/*"
+    ]
+  },
+  "_type": {
+    "_id": "CIMDProfile",
+    "name": "CIMD Profile",
+    "collection": true
+  }
+}

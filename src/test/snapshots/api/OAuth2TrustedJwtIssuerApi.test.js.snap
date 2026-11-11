@@ -1,0 +1,467 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`OAuth2TrustedJwtIssuerApi Cloud Tests Cloud root realm 1: Get all trusted JWT issuers of the root realm 1`] = `
+{
+  "data": {
+    "code": 403,
+    "message": "This operation is not available in PingOne Advanced Identity Cloud.",
+    "reason": "Forbidden",
+  },
+  "message": "Request failed with status code 403",
+  "name": "AxiosError",
+  "status": 403,
+}
+`;
+
+exports[`OAuth2TrustedJwtIssuerApi Cloud Tests Cloud root realm 2: Get a trusted JWT issuer of the root realm 1`] = `
+{
+  "data": {
+    "code": 403,
+    "message": "This operation is not available in PingOne Advanced Identity Cloud.",
+    "reason": "Forbidden",
+  },
+  "message": "Request failed with status code 403",
+  "name": "AxiosError",
+  "status": 403,
+}
+`;
+
+exports[`OAuth2TrustedJwtIssuerApi Cloud Tests Cloud root realm 3: Create a trusted JWT issuer in the root realm 1`] = `
+{
+  "data": {
+    "code": 403,
+    "message": "This operation is not available in PingOne Advanced Identity Cloud.",
+    "reason": "Forbidden",
+  },
+  "message": "Request failed with status code 403",
+  "name": "AxiosError",
+  "status": 403,
+}
+`;
+
+exports[`OAuth2TrustedJwtIssuerApi Cloud Tests Cloud root realm 4: Delete a trusted JWT issuer in the root realm 1`] = `
+{
+  "data": {
+    "code": 403,
+    "message": "This operation is not available in PingOne Advanced Identity Cloud.",
+    "reason": "Forbidden",
+  },
+  "message": "Request failed with status code 403",
+  "name": "AxiosError",
+  "status": 403,
+}
+`;
+
+exports[`OAuth2TrustedJwtIssuerApi Cloud Tests deleteOAuth2TrustedJwtIssuer() 1: Delete trusted JWT issuer 'FrodoTestIssuerDelete1' 1`] = `
+{
+  "_id": "FrodoTestIssuerDelete1",
+  "_rev": "-1647823576",
+  "_type": {
+    "_id": "TrustedJwtIssuer",
+    "collection": true,
+    "name": "OAuth2 Trusted JWT Issuer",
+  },
+  "allowedSubjects": {
+    "inherited": false,
+    "value": [
+      "alice11@matrix.example.com",
+    ],
+  },
+  "consentedScopesClaim": {
+    "inherited": false,
+    "value": "scope",
+  },
+  "issuer": {
+    "inherited": false,
+    "value": "https://issuer11.matrix.example.com",
+  },
+  "jwkSet": {
+    "inherited": false,
+    "value": "{"keys":[{"kty":"RSA","e":"AQAB","use":"sig","kid":"frodo-test-key-1","alg":"RS256","n":"3ly-15BVi20yWpfx0SamBc3sRZK3euh_Kx7ZWhK2p67YgzUn7s8hr8fHaJZiaaURIF992HSZWvPk_hEnzYTH4e2iWsWeGnGZDHqZY-psXEJ77cnQqb-pWKCx9casASauWGgEEDJgkol5kkuY-zIlllAtW2kJjc4t9_zingD9TQ8_RmU2Wmp6FlMEyYLps-GnIuFMoG9lIpS3a2u7en80aSeaZL5LCEjk0nR7DoOY751exGs0B1QPReEm3RXAHfr4fjG-uLsVavEworVRrqPYG0yitnxCpkyjwNflgdJD5xghO1lOD4G88sOdoRDxZqUwRiZAP6Mja6Qi8xMf24KvFQ"}]}",
+  },
+  "jwkStoreCacheMissCacheTime": {
+    "inherited": false,
+    "value": 60000,
+  },
+  "jwksCacheTimeout": {
+    "inherited": false,
+    "value": 3600000,
+  },
+  "jwksUri": {
+    "inherited": false,
+  },
+  "resourceOwnerIdentityClaim": {
+    "inherited": false,
+    "value": "sub",
+  },
+}
+`;
+
+exports[`OAuth2TrustedJwtIssuerApi Cloud Tests deleteOAuth2TrustedJwtIssuer() 2: Delete trusted JWT issuer 'FrodoTestIssuerDelete1' again 1`] = `
+{
+  "data": {
+    "code": 404,
+    "message": "Not Found",
+    "reason": "Not Found",
+  },
+  "message": "Request failed with status code 404",
+  "name": "AxiosError",
+  "status": 404,
+}
+`;
+
+exports[`OAuth2TrustedJwtIssuerApi Cloud Tests getOAuth2TrustedJwtIssuer() 1: Get trusted JWT issuer 'FrodoTestIssuer1' (wrapped shape) 1`] = `
+{
+  "_id": "FrodoTestIssuer1",
+  "_rev": "-443270862",
+  "_type": {
+    "_id": "TrustedJwtIssuer",
+    "collection": true,
+    "name": "OAuth2 Trusted JWT Issuer",
+  },
+  "allowedSubjects": {
+    "inherited": false,
+    "value": [
+      "alice1@matrix.example.com",
+    ],
+  },
+  "consentedScopesClaim": {
+    "inherited": false,
+    "value": "scope",
+  },
+  "issuer": {
+    "inherited": false,
+    "value": "https://issuer1.matrix.example.com",
+  },
+  "jwkSet": {
+    "inherited": false,
+    "value": "{"keys":[{"kty":"RSA","e":"AQAB","use":"sig","kid":"frodo-test-key-1","alg":"RS256","n":"3ly-15BVi20yWpfx0SamBc3sRZK3euh_Kx7ZWhK2p67YgzUn7s8hr8fHaJZiaaURIF992HSZWvPk_hEnzYTH4e2iWsWeGnGZDHqZY-psXEJ77cnQqb-pWKCx9casASauWGgEEDJgkol5kkuY-zIlllAtW2kJjc4t9_zingD9TQ8_RmU2Wmp6FlMEyYLps-GnIuFMoG9lIpS3a2u7en80aSeaZL5LCEjk0nR7DoOY751exGs0B1QPReEm3RXAHfr4fjG-uLsVavEworVRrqPYG0yitnxCpkyjwNflgdJD5xghO1lOD4G88sOdoRDxZqUwRiZAP6Mja6Qi8xMf24KvFQ"}]}",
+  },
+  "jwkStoreCacheMissCacheTime": {
+    "inherited": false,
+    "value": 60000,
+  },
+  "jwksCacheTimeout": {
+    "inherited": false,
+    "value": 3600000,
+  },
+  "jwksUri": {
+    "inherited": false,
+  },
+  "resourceOwnerIdentityClaim": {
+    "inherited": false,
+    "value": "sub",
+  },
+}
+`;
+
+exports[`OAuth2TrustedJwtIssuerApi Cloud Tests getOAuth2TrustedJwtIssuer() 2: Get a trusted JWT issuer that does not exist 1`] = `
+{
+  "data": {
+    "code": 404,
+    "message": "Not Found",
+    "reason": "Not Found",
+  },
+  "message": "Request failed with status code 404",
+  "name": "AxiosError",
+  "status": 404,
+}
+`;
+
+exports[`OAuth2TrustedJwtIssuerApi Cloud Tests getOAuth2TrustedJwtIssuers() 1: Get all trusted JWT issuers of a realm that has none 1`] = `
+{
+  "pagedResultsCookie": null,
+  "remainingPagedResults": -1,
+  "result": [],
+  "resultCount": 0,
+  "totalPagedResults": 0,
+  "totalPagedResultsPolicy": "EXACT",
+}
+`;
+
+exports[`OAuth2TrustedJwtIssuerApi Cloud Tests getOAuth2TrustedJwtIssuers() with issuers 1: Get all trusted JWT issuers of the realm (plain shape) 1`] = `
+[
+  {
+    "hasRevision": true,
+    "id": "FrodoTestIssuerNoIssuer",
+    "members": [
+      "agentgroup",
+      "allowedSubjects",
+      "consentedScopesClaim",
+      "issuer",
+      "jwkSet",
+      "jwkStoreCacheMissCacheTime",
+      "jwksCacheTimeout",
+      "jwksUri",
+      "resourceOwnerIdentityClaim",
+    ],
+    "nulls": [
+      "agentgroup",
+      "issuer",
+      "jwkSet",
+      "jwksUri",
+    ],
+    "type": {
+      "_id": "TrustedJwtIssuer",
+      "collection": true,
+      "name": "OAuth2 Trusted JWT Issuer",
+    },
+    "wrapped": [],
+  },
+  {
+    "hasRevision": true,
+    "id": "FrodoTestIssuer1",
+    "members": [
+      "agentgroup",
+      "allowedSubjects",
+      "consentedScopesClaim",
+      "issuer",
+      "jwkSet",
+      "jwkStoreCacheMissCacheTime",
+      "jwksCacheTimeout",
+      "jwksUri",
+      "resourceOwnerIdentityClaim",
+    ],
+    "nulls": [
+      "agentgroup",
+      "jwksUri",
+    ],
+    "type": {
+      "_id": "TrustedJwtIssuer",
+      "collection": true,
+      "name": "OAuth2 Trusted JWT Issuer",
+    },
+    "wrapped": [],
+  },
+  {
+    "hasRevision": true,
+    "id": "FrodoTestIssuer2",
+    "members": [
+      "agentgroup",
+      "allowedSubjects",
+      "consentedScopesClaim",
+      "issuer",
+      "jwkSet",
+      "jwkStoreCacheMissCacheTime",
+      "jwksCacheTimeout",
+      "jwksUri",
+      "resourceOwnerIdentityClaim",
+    ],
+    "nulls": [
+      "agentgroup",
+      "jwkSet",
+    ],
+    "type": {
+      "_id": "TrustedJwtIssuer",
+      "collection": true,
+      "name": "OAuth2 Trusted JWT Issuer",
+    },
+    "wrapped": [],
+  },
+  {
+    "hasRevision": true,
+    "id": "FrodoTestIssuer3",
+    "members": [
+      "agentgroup",
+      "allowedSubjects",
+      "consentedScopesClaim",
+      "issuer",
+      "jwkSet",
+      "jwkStoreCacheMissCacheTime",
+      "jwksCacheTimeout",
+      "jwksUri",
+      "resourceOwnerIdentityClaim",
+    ],
+    "nulls": [
+      "agentgroup",
+      "jwkSet",
+      "jwksUri",
+    ],
+    "type": {
+      "_id": "TrustedJwtIssuer",
+      "collection": true,
+      "name": "OAuth2 Trusted JWT Issuer",
+    },
+    "wrapped": [],
+  },
+]
+`;
+
+exports[`OAuth2TrustedJwtIssuerApi Cloud Tests putOAuth2TrustedJwtIssuer() 1: Create trusted JWT issuer 'FrodoTestIssuer1' (wrapped values, key set) 1`] = `
+{
+  "hasRevision": true,
+  "id": "FrodoTestIssuer1",
+  "members": [
+    "allowedSubjects",
+    "consentedScopesClaim",
+    "issuer",
+    "jwkSet",
+    "jwkStoreCacheMissCacheTime",
+    "jwksCacheTimeout",
+    "jwksUri",
+    "resourceOwnerIdentityClaim",
+  ],
+  "nulls": [],
+  "type": {
+    "_id": "TrustedJwtIssuer",
+    "collection": true,
+    "name": "OAuth2 Trusted JWT Issuer",
+  },
+  "wrapped": [
+    "allowedSubjects",
+    "consentedScopesClaim",
+    "issuer",
+    "jwkSet",
+    "jwkStoreCacheMissCacheTime",
+    "jwksCacheTimeout",
+    "jwksUri",
+    "resourceOwnerIdentityClaim",
+  ],
+}
+`;
+
+exports[`OAuth2TrustedJwtIssuerApi Cloud Tests putOAuth2TrustedJwtIssuer() 2: Create trusted JWT issuer 'FrodoTestIssuer2' (plain values, key set URI) 1`] = `
+{
+  "hasRevision": true,
+  "id": "FrodoTestIssuer2",
+  "members": [
+    "allowedSubjects",
+    "consentedScopesClaim",
+    "issuer",
+    "jwkSet",
+    "jwkStoreCacheMissCacheTime",
+    "jwksCacheTimeout",
+    "jwksUri",
+    "resourceOwnerIdentityClaim",
+  ],
+  "nulls": [],
+  "type": {
+    "_id": "TrustedJwtIssuer",
+    "collection": true,
+    "name": "OAuth2 Trusted JWT Issuer",
+  },
+  "wrapped": [
+    "allowedSubjects",
+    "consentedScopesClaim",
+    "issuer",
+    "jwkSet",
+    "jwkStoreCacheMissCacheTime",
+    "jwksCacheTimeout",
+    "jwksUri",
+    "resourceOwnerIdentityClaim",
+  ],
+}
+`;
+
+exports[`OAuth2TrustedJwtIssuerApi Cloud Tests putOAuth2TrustedJwtIssuer() 3: Create trusted JWT issuer 'FrodoTestIssuer3' (minimal body) 1`] = `
+{
+  "hasRevision": true,
+  "id": "FrodoTestIssuer3",
+  "members": [
+    "allowedSubjects",
+    "consentedScopesClaim",
+    "issuer",
+    "jwkSet",
+    "jwkStoreCacheMissCacheTime",
+    "jwksCacheTimeout",
+    "jwksUri",
+    "resourceOwnerIdentityClaim",
+  ],
+  "nulls": [],
+  "type": {
+    "_id": "TrustedJwtIssuer",
+    "collection": true,
+    "name": "OAuth2 Trusted JWT Issuer",
+  },
+  "wrapped": [
+    "allowedSubjects",
+    "consentedScopesClaim",
+    "issuer",
+    "jwkSet",
+    "jwkStoreCacheMissCacheTime",
+    "jwksCacheTimeout",
+    "jwksUri",
+    "resourceOwnerIdentityClaim",
+  ],
+}
+`;
+
+exports[`OAuth2TrustedJwtIssuerApi Cloud Tests putOAuth2TrustedJwtIssuer() 4: Create a trusted JWT issuer with an attribute the server does not know 1`] = `
+{
+  "data": {
+    "code": 400,
+    "detail": {
+      "validAttributes": [
+        "agentgroup",
+        "allowedSubjects",
+        "consentedScopesClaim",
+        "issuer",
+        "jwkSet",
+        "jwkStoreCacheMissCacheTime",
+        "jwksCacheTimeout",
+        "jwksUri",
+        "resourceOwnerIdentityClaim",
+      ],
+    },
+    "message": "Invalid attribute specified.",
+    "reason": "Bad Request",
+  },
+  "message": "Request failed with status code 400",
+  "name": "AxiosError",
+  "status": 400,
+}
+`;
+
+exports[`OAuth2TrustedJwtIssuerApi Cloud Tests putOAuth2TrustedJwtIssuer() 5: Create a trusted JWT issuer without an issuer (the server does not require it) 1`] = `
+{
+  "hasRevision": true,
+  "id": "FrodoTestIssuerNoIssuer",
+  "members": [
+    "allowedSubjects",
+    "consentedScopesClaim",
+    "issuer",
+    "jwkSet",
+    "jwkStoreCacheMissCacheTime",
+    "jwksCacheTimeout",
+    "jwksUri",
+    "resourceOwnerIdentityClaim",
+  ],
+  "nulls": [],
+  "type": {
+    "_id": "TrustedJwtIssuer",
+    "collection": true,
+    "name": "OAuth2 Trusted JWT Issuer",
+  },
+  "wrapped": [
+    "allowedSubjects",
+    "consentedScopesClaim",
+    "issuer",
+    "jwkSet",
+    "jwkStoreCacheMissCacheTime",
+    "jwksCacheTimeout",
+    "jwksUri",
+    "resourceOwnerIdentityClaim",
+  ],
+}
+`;
+
+exports[`OAuth2TrustedJwtIssuerApi Cloud Tests putOAuth2TrustedJwtIssuer() as an update 2: Update trusted JWT issuer 'FrodoTestIssuer2' with a sparse body 1`] = `
+{
+  "hasRevision": true,
+  "id": "FrodoTestIssuer2",
+  "members": [
+    "allowedSubjects",
+    "issuer",
+  ],
+  "nulls": [],
+  "type": {
+    "_id": "TrustedJwtIssuer",
+    "collection": true,
+    "name": "OAuth2 Trusted JWT Issuer",
+  },
+  "wrapped": [
+    "allowedSubjects",
+    "issuer",
+  ],
+}
+`;
