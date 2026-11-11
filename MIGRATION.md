@@ -198,8 +198,22 @@ releases missed):
   `agent export` file of the 4.x line that holds issuers imports through the
   module (the copy in the `trustedJwtIssuer` section wins if both have the same
   id). Their `importData` type is now `OAuth2TrustedJwtIssuerImportData`.
+- The functions of `frodo.oauth2oidc.issuer` no longer modify the objects they
+  are given. The imports used to delete `_provider` and `_rev` from the issuer
+  objects in the `importData` of the caller, `updateOAuth2TrustedJwtIssuer` and
+  `putOAuth2TrustedJwtIssuer` (api layer) from the object they wrote, and the
+  retry after "Invalid attribute specified." from its attributes; they work on
+  copies now. That retry also names every attribute it removes in a warning
+  (it used to say so only in verbose or debug mode), and it no longer takes the
+  elements of an array (`allowedSubjects`) for attributes.
 
 **Deprecation**:
+
+The `options` parameter of the export and import functions of
+`frodo.oauth2oidc.issuer` (`OAuth2TrustedJwtIssuerExportOptions` and
+`OAuth2TrustedJwtIssuerImportOptions`) is **deprecated** since 5.0.0: the options
+have no effect, a trusted JWT issuer has no scripts. The parameter is kept so
+that no caller breaks and will be removed in the next major version.
 
 The `@rockcarver/frodo-lib/types/<module>` deep-import subpath is
 **deprecated** since 4.12.0: it only resolves under the legacy
