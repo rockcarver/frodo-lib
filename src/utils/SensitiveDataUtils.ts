@@ -30,6 +30,10 @@ export const SENSITIVE_HEADER_NAMES: readonly string[] = [
   'api-key',
   'ocp-apim-subscription-key',
   'x-auth-token',
+  // AM accepts the session token in a header that is named like the session
+  // cookie (logout, session validation); the default name is listed, the name of
+  // a deployment is added at the call site with the other user-defined names
+  'iplanetdirectorypro',
 ];
 
 /**
@@ -52,6 +56,8 @@ export const SENSITIVE_FIELD_NAMES: readonly string[] = [
   'subject_token',
   'actor_token',
   'tokenid',
+  // the session token, sent as the csrf field of the authorization request
+  'csrf',
   'accesskey',
   'code_verifier',
   'valuebase64',

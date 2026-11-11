@@ -683,6 +683,64 @@ describe('curlirize: header overrides', () => {
   });
 });
 
+describe('curlirize: the session token in a header named like the session cookie', () => {
+  test('1: the default name is on the shared list, the name of a deployment is read from the state', async () => {
+    const defaults = newState();
+    await generateReleaseApi({
+      baseUrl: BASE_URL,
+      state: defaults.state,
+      requestOverride: {
+        adapter: adapter({}),
+        headers: { iPlanetDirectoryPro: 'made-up-session-token' },
+      },
+    }).post('/sessions?_action=logout');
+    expect(defaults.output.lines[0]).toContain(
+      '-H "iPlanetDirectoryPro:<redacted>"'
+    );
+    expect(defaults.output.lines[0]).not.toContain('made-up-session-token');
+
+    const named = newState();
+    named.state.setCookieName('a1b2c3d4e5');
+    await generateReleaseApi({
+      baseUrl: BASE_URL,
+      state: named.state,
+      requestOverride: {
+        adapter: adapter({}),
+        headers: { A1B2c3d4E5: 'made-up-session-token' },
+      },
+    }).post('/sessions?_action=logout');
+    expect(named.output.lines[0]).toContain('-H "A1B2c3d4E5:<redacted>"');
+    expect(named.output.lines[0]).not.toContain('made-up-session-token');
+
+    // without that cookie name the header is an ordinary one
+    const other = newState();
+    await generateReleaseApi({
+      baseUrl: BASE_URL,
+      state: other.state,
+      requestOverride: {
+        adapter: adapter({}),
+        headers: { 'X-Request-Id': 'abc' },
+      },
+    }).post('/a');
+    expect(other.output.lines[0]).toContain('-H "X-Request-Id:abc"');
+  });
+
+  test('2: with the opt-in it is printed, and counts as a credential', async () => {
+    const { state, output } = newState();
+    state.setCurlirizeSecrets(true);
+    state.setCookieName('a1b2c3d4e5');
+    await generateReleaseApi({
+      baseUrl: BASE_URL,
+      state,
+      requestOverride: {
+        adapter: adapter({}),
+        headers: { a1b2c3d4e5: 'made-up-session-token' },
+      },
+    }).post('/a');
+    expect(output.lines[0]).toContain('-H "a1b2c3d4e5:made-up-session-token"');
+  });
+});
+
 describe('curlirize: request bodies', () => {
   async function post(
     body: unknown,
@@ -753,6 +811,16 @@ describe('curlirize: request bodies', () => {
     expect(code.lines[0]).toContain('code=<redacted>&code_verifier=<redacted>');
     expect(code.lines[0]).toContain('redirect_uri=http://localhost');
     expect(code.lines[0]).not.toContain('made-up');
+  });
+
+  test('3b: the authorization request: the csrf field is the session token', async () => {
+    const output = await post(
+      'redirect_uri=http://localhost/cb&scope=openid&response_type=code&client_id=cli&csrf=made-up-session-token&decision=allow'
+    );
+    expect(output.lines[0]).toContain(
+      'client_id=cli&csrf=<redacted>&decision=allow'
+    );
+    expect(output.lines[0]).not.toContain('made-up-session-token');
   });
 
   test('4: a body that is a JSON string is masked too', async () => {
