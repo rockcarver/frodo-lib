@@ -1116,14 +1116,20 @@ function isCausedByInsufficientScope(error: unknown): boolean {
 /**
  * Check if an error is the answer of PingOne Advanced Identity Cloud that an
  * operation is not available in it (HTTP 403 with a fixed message).
+ * The answer is read in both shapes in which it reaches `getResult`: from the
+ * response of the raw `AxiosError` that a function of the api layer throws
+ * (`response.status`, `response.data.message`), and from the `httpStatus` and
+ * `httpMessage` that a `FrodoError` copies from its immediate original error.
  * @param {unknown} error the error to inspect
  * @returns {boolean} true if the error is that answer
  */
 function isNotAvailableInCloud(error: unknown): boolean {
-  const { httpStatus, httpMessage } = (error ?? {}) as FrodoError;
+  const httpError = (error ?? {}) as FrodoError & {
+    response?: { status?: number; data?: { message?: string } };
+  };
   return (
-    httpStatus === 403 &&
-    httpMessage ===
+    (httpError.response?.status ?? httpError.httpStatus) === 403 &&
+    (httpError.response?.data?.message ?? httpError.httpMessage) ===
       'This operation is not available in PingOne Advanced Identity Cloud.'
   );
 }
@@ -1152,7 +1158,7 @@ export function findFailedRequest(error: unknown): string | undefined {
  * Helper that calls a function expecting a result, and handles that result in the given result callback if it exists.
  * A result that is not null or undefined is passed to the callback as a success, including a falsy one (false, 0 or an empty string); an error is passed to it as a failure.
  * Two kinds of failure are treated on purpose:
- * - The answer of PingOne Advanced Identity Cloud that an operation is not available in it (HTTP 403) is neither a success nor a failure: it is not passed to the callback, nothing is thrown and null is returned, so that an export of everything skips what the deployment does not offer. A debug message names the skipped operation and the request.
+ * - The answer of PingOne Advanced Identity Cloud that an operation is not available in it (HTTP 403) is neither a success nor a failure: it is not passed to the callback, nothing is thrown and null is returned, so that an export of everything skips what the deployment does not offer. A debug message names the skipped operation and the request. The answer is recognised whether the function throws the raw `AxiosError` of the api layer or a `FrodoError` that wraps it.
  * - A credential that lacks a scope the operation needs (an `InsufficientScopeError` anywhere in the error chain) is a failure like any other: the item could not be processed. The error that is thrown or passed to the callback carries the code `INSUFFICIENT_SCOPE`.
  * @param {ResultCallback<R> | undefined} resultCallback The result callback
  * @param {string} errorMessage The error message to associate with the error if one occurs
