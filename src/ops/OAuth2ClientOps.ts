@@ -17,6 +17,7 @@ import {
 } from '../utils/Console';
 import {
   convertBase64TextToArray,
+  findFailedRequest,
   getMetadata,
 } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
@@ -568,8 +569,9 @@ async function exportOAuth2ClientDependencies(
             error
           );
         }
+        const request = findFailedRequest(error);
         debugMessage({
-          message: `OAuth2ClientOps.exportOAuth2ClientDependencies: skipped script ${scriptId} referenced by client ${clientData['_id']}, this operation is not available in PingOne Advanced Identity Cloud`,
+          message: `OAuth2ClientOps.exportOAuth2ClientDependencies: skipped script ${scriptId} referenced by client ${clientData['_id']}, this operation is not available in PingOne Advanced Identity Cloud${request ? ` [${request}]` : ''}`,
           state,
         });
       }

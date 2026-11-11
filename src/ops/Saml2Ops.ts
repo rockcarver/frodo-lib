@@ -25,6 +25,7 @@ import {
   convertBase64UrlTextToArray,
   convertTextArrayToBase64,
   convertTextArrayToBase64Url,
+  findFailedRequest,
   getMetadata,
 } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
@@ -853,8 +854,9 @@ export async function exportSaml2Providers({
           error.httpMessage ===
             'This operation is not available in PingOne Advanced Identity Cloud.'
         ) {
+          const request = findFailedRequest(error);
           debugMessage({
-            message: `Saml2Ops.exportSaml2Providers: skipped provider ${stub._id}, this operation is not available in PingOne Advanced Identity Cloud`,
+            message: `Saml2Ops.exportSaml2Providers: skipped provider ${stub._id}, this operation is not available in PingOne Advanced Identity Cloud${request ? ` [${request}]` : ''}`,
             state,
           });
         } else {

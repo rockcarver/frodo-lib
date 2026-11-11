@@ -17,7 +17,7 @@ import {
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../utils/Console';
-import { getMetadata } from '../utils/ExportImportUtils';
+import { findFailedRequest, getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
 import { FrodoError } from './FrodoError';
@@ -366,8 +366,14 @@ export async function getFullServices({
             service.status !== 'fulfilled' ||
             nextDescendents.status !== 'fulfilled'
           ) {
+            const unavailable = results.find(
+              (result) =>
+                result.status === 'rejected' &&
+                isUnavailableServiceError(result.reason)
+            ) as PromiseRejectedResult | undefined;
+            const request = findFailedRequest(unavailable?.reason);
             debugMessage({
-              message: `ServiceOps.getFullServices: skipped service ${listItem._id}, this operation is not available in PingOne Advanced Identity Cloud`,
+              message: `ServiceOps.getFullServices: skipped service ${listItem._id}, this operation is not available in PingOne Advanced Identity Cloud${request ? ` [${request}]` : ''}`,
               state,
             });
             return;

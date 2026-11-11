@@ -214,6 +214,10 @@ describe('exportOAuth2Clients', () => {
     notAvailable.httpStatus = 403;
     notAvailable.httpMessage =
       'This operation is not available in PingOne Advanced Identity Cloud.';
+    notAvailable.config = {
+      method: 'get',
+      url: 'https://am.example.com/json/alpha/scripts/s2',
+    };
     failScript('s2', notAvailable);
     const outcomes: any[] = [];
 
@@ -242,6 +246,10 @@ describe('exportOAuth2Clients', () => {
     );
     expect(lines[0]).toContain('s2');
     expect(lines[0]).toContain('c2');
+    // and the request that was answered so, as the other skip sites say it
+    expect(lines[0]).toContain(
+      '[GET https://am.example.com/json/alpha/scripts/s2]'
+    );
   });
 
   test('does not read the scripts when the dependencies are not asked for', async () => {

@@ -312,6 +312,10 @@ describe('exportSaml2Providers', () => {
     notAvailable.httpStatus = 403;
     notAvailable.httpMessage =
       'This operation is not available in PingOne Advanced Identity Cloud.';
+    notAvailable.config = {
+      method: 'get',
+      url: 'https://am.example.com/json/realms/root/realms/alpha/saml2/hosted',
+    };
     failProvider(SP2, notAvailable);
     const outcomes: any[] = [];
 
@@ -335,6 +339,10 @@ describe('exportSaml2Providers', () => {
     expect(lines).toHaveLength(2);
     expect(lines[0]).toContain('Saml2Ops.exportSaml2Providers');
     expect(lines[0]).toContain(idOf(SP2));
+    // and the request that was answered so, as the other skip sites say it
+    expect(lines[0]).toContain(
+      '[GET https://am.example.com/json/realms/root/realms/alpha/saml2/hosted]'
+    );
   });
 
   test('an exception of the callback is not reported to the callback as a failed provider', async () => {

@@ -38,6 +38,7 @@ const state = {
 
 const notAvailable = () =>
   Object.assign(new Error('HTTP 403'), {
+    config: { method: 'get', url: 'https://am.example.com/json/services/two' },
     response: {
       status: 403,
       data: {
@@ -89,6 +90,10 @@ describe('getFullServices: a service that is not available in the cloud', () => 
       expect(lines).toHaveLength(1);
       expect(lines[0]).toContain('ServiceOps.getFullServices');
       expect(lines[0]).toContain('two');
+      // and the request that was answered so, as the other skip sites say it
+      expect(lines[0]).toContain(
+        '[GET https://am.example.com/json/services/two]'
+      );
     }
   );
 });
