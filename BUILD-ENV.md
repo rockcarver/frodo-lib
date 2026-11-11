@@ -198,8 +198,10 @@ node` (node10), which TypeScript 6 deprecates and 7 removes. Consumers
   `FRODO_ERROR_CODES`). The `FrodoError` that wraps the request's error has the
   code, and `getCombinedMessage()` prints the facts. The decision that a proxy
   was used for the request is the one the proxy agent made for it
-  (`trackProxyDecisions()` in `src/utils/ProxyFailureUtils.ts` records it; the
-  variables and `NO_PROXY` are read by the agent and nowhere else). Only failures that
+  (the `ProxyAgent` of `src/utils/ProxyAgentUtils.ts` records it with
+  `noteProxyDecision()` of `src/utils/ProxyFailureUtils.ts`, handing over the
+  proxy URL without its user info; the variables and `NO_PROXY` are read by the
+  agent and nowhere else). Only failures that
   are certain to be the proxy's are named; anything after a `200` to CONNECT, on
   a reused tunnel, or on a target that is on `NO_PROXY` is not. The advice
   (check the proxy variables) is the caller's, core 0001.

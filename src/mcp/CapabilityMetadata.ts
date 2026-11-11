@@ -2771,6 +2771,9 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     // already in hand, not a standalone operation an agent could call.
     excluded: true,
   },
+  'authn.journey.importJourneys': {
+    excludeParameters: ['resultCallback'],
+  },
   'authn.journey.validateJourneys': {
     operationType: 'special',
     objectType: 'Journey',

@@ -8,7 +8,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from 'axios';
 import axiosRetry from 'axios-retry';
-import { ProxyAgent, ProxyAgentOptions } from 'proxy-agent';
+import { ProxyAgentOptions } from 'proxy-agent';
 import {
   curlirizeRequests as _curlirizeRequests,
   curlirizeResponses as _curlirizeResponses,
@@ -26,10 +26,8 @@ import { curlirizeMessage, printMessage } from '../utils/Console';
 import { sleep } from '../utils/FrodoUtils';
 import { mergeDeep } from '../utils/JsonUtils';
 import { attachNameResolutionDiagnosis } from '../utils/NetworkDiagnosisUtils';
-import {
-  attachProxyFailure,
-  trackProxyDecisions,
-} from '../utils/ProxyFailureUtils';
+import { ProxyAgent } from '../utils/ProxyAgentUtils';
+import { attachProxyFailure } from '../utils/ProxyFailureUtils';
 import {
   isSensitiveHeaderName,
   redactBody,
@@ -77,20 +75,6 @@ const transactionId = `frodo-${randomUUID()}`;
 let httpAgent, httpsAgent, httpsInsecureAgent;
 
 /**
- * Create an agent that sends a request through the proxy the environment names
- * for it (if any). It records which proxy it chose for each request, so that
- * the error of a request that failed because of its proxy can say so (see
- * ProxyFailureUtils).
- */
-function createProxyAgent(options: ProxyAgentOptions): ProxyAgent {
-  const agent = trackProxyDecisions(new ProxyAgent(options));
-  // The agent keeps the proxy URLs it has used, credentials included, and axios
-  // puts the agent of a request into the JSON of the error of that request.
-  Object.defineProperty(agent, 'toJSON', { value: () => '[ProxyAgent]' });
-  return agent;
-}
-
-/**
  * Helper method to create the shared agent for requests to http: targets
  *
  * A request that goes through a forward proxy must carry the whole URL in its
@@ -119,7 +103,7 @@ function getHttpAgent(): ProxyAgent {
     keepAliveMsecs,
     scheduling,
   };
-  httpAgent = createProxyAgent({
+  httpAgent = new ProxyAgent({
     ...agentOptions,
     keepAlive: false,
     httpAgent: new HttpAgent(agentOptions),
@@ -143,7 +127,7 @@ function getHttpsAgent(
   const options: ProxyAgentOptions = {
     rejectUnauthorized: !allowInsecureConnection,
   };
-  const agent = createProxyAgent({
+  const agent = new ProxyAgent({
     ...options,
     maxSockets,
     maxFreeSockets,

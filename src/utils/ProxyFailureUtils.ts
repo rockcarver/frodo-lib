@@ -15,8 +15,8 @@ import { STATUS_CODES } from 'http';
  *
  * "A proxy was used for this request" is not looked up again here. The proxy
  * agent decides it for every request, with the variables and `NO_PROXY` it
- * reads at that moment, and {@link trackProxyDecisions} records that decision
- * for the request it was made for. A failure is a proxy failure only when the
+ * reads at that moment, and the `ProxyAgent` of ProxyAgentUtils records that
+ * decision for the request it was made for ({@link noteProxyDecision}). A failure is a proxy failure only when the
  * proxy is certain to be the peer that failed:
  *
  * - The proxy answered the CONNECT request of an HTTPS target with a status
@@ -98,16 +98,16 @@ function oneLine(value: unknown): string | undefined {
 
 /**
  * Remember which proxy the agent chose for a request, and what it answered to
- * the CONNECT request of an HTTPS target. Called by the wrapper that
- * {@link trackProxyDecisions} puts around the decision of the agent, with the
- * answer of that decision.
+ * the CONNECT request of an HTTPS target. Called by the `ProxyAgent` of
+ * ProxyAgentUtils with the answer of its decision for the request.
  *
  * Only an HTTP or HTTPS proxy is recorded: the failures of a SOCKS proxy or a
- * PAC file are not told apart here. The credentials of the proxy URL are not
- * read.
+ * PAC file are not told apart here. The agent hands over the proxy URL
+ * without its user info (`proxyUrlWithoutUserinfo`), so the credentials of the
+ * proxy never get here; whatever else a URL carries is dropped again below.
  * @param {ClientRequest} req the request the decision was made for
  * @param {string} url the URL of the request, as the agent saw it
- * @param {string} proxy the proxy URL the agent chose, empty if the request goes direct
+ * @param {string} proxy the proxy URL the agent chose, without user info; empty if the request goes direct
  */
 export function noteProxyDecision(
   req: ClientRequest,
@@ -149,31 +149,6 @@ export function noteProxyDecision(
   } catch {
     // a proxy URL that cannot be read is the agent's to report
   }
-}
-
-type DecidingAgent = {
-  getProxyForUrl: (
-    url: string,
-    req: ClientRequest
-  ) => string | Promise<string | undefined> | undefined;
-};
-
-/**
- * Record the decision of a proxy agent for every request it takes. The agent
- * decides with the function it holds as `getProxyForUrl` (the variables and
- * `NO_PROXY`, read when the request is made); this wraps that function and
- * changes nothing about its answer.
- * @param {DecidingAgent} agent the proxy agent
- * @returns {DecidingAgent} the same agent
- */
-export function trackProxyDecisions<T extends DecidingAgent>(agent: T): T {
-  const decide = agent.getProxyForUrl;
-  agent.getProxyForUrl = async (url, req) => {
-    const proxy = await decide.call(agent, url, req);
-    noteProxyDecision(req, url, proxy || undefined);
-    return proxy;
-  };
-  return agent;
 }
 
 /** The socket-level errors of a connection that is being made to the proxy, by what they say about it. */

@@ -24,7 +24,7 @@
   "scripts": {
     "test": "npm run test:only",
     "test:only": "NODE_OPTIONS=--experimental-vm-modules npx jest --silent",
-    "test:proxy": "NODE_OPTIONS=--experimental-vm-modules npx jest --silent --runTestsByPath src/api/BaseApi.proxy.test.ts src/api/BaseApi.proxyFailure.test.ts src/api/BaseApi.expiredCert.test.ts src/api/BaseApi.agentConfig.unit.test.ts src/api/BaseApi.connectionReuse.test.ts src/api/BaseApi.proxy.live.test.ts",
+    "test:proxy": "NODE_OPTIONS=--experimental-vm-modules npx jest --silent --runTestsByPath src/api/BaseApi.proxy.test.ts src/api/BaseApi.proxyFailure.test.ts src/api/BaseApi.expiredCert.test.ts src/api/BaseApi.agentConfig.unit.test.ts src/api/BaseApi.connectionReuse.test.ts src/api/BaseApi.proxy.live.test.ts src/api/BaseApi.proxyErrors.serialization.test.ts",
     "test:debug": "NODE_OPTIONS=--experimental-vm-modules npx jest --silent=false",
     "test:record": "NODE_OPTIONS=--experimental-vm-modules FRODO_POLLY_MODE=record npx jest --silent=false --runInBand --updateSnapshot",
     "test:record_noauth": "NODE_OPTIONS=--experimental-vm-modules FRODO_POLLY_MODE=record_noauth npx jest --silent=false --updateSnapshot --testPathIgnorePatterns cjs",

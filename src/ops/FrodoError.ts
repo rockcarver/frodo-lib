@@ -36,6 +36,12 @@ export const FRODO_ERROR_CODES = [
    * closed it. The codes and what each one means are in ProxyFailureUtils.
    */
   ...PROXY_FAILURE_CODES,
+  /**
+   * The credential of the connection does not carry a scope that a request needs.
+   * It is on the error that is raised before the request is sent, and on the error of an item of a bulk
+   * operation that failed for this reason; in a nested error it is found through `originalErrors`.
+   */
+  'INSUFFICIENT_SCOPE',
 ] as const;
 
 /** The identity of an error condition, see {@link FRODO_ERROR_CODES}. */

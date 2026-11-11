@@ -14,12 +14,12 @@
 import { EventEmitter } from 'events';
 import type { ClientRequest } from 'http';
 import { FRODO_ERROR_CODES } from '../ops/FrodoError';
+import { ProxyAgent } from './ProxyAgentUtils';
 import {
   attachProxyFailure,
   describeProxyFailure,
   noteProxyDecision,
   PROXY_FAILURE_CODES,
-  trackProxyDecisions,
 } from './ProxyFailureUtils';
 
 /** A request as the agent sees it: an emitter, with a socket once it has one. */
@@ -144,57 +144,131 @@ describe('noteProxyDecision', () => {
   });
 });
 
-describe('trackProxyDecisions', () => {
-  test('8: the answer of the agent is returned as it is, and the decision is recorded', async () => {
-    const calls: unknown[][] = [];
-    const agent = {
-      id: 'agent',
-      async getProxyForUrl(this: { id: string }, url: string, req: unknown) {
-        calls.push([this.id, url, req]);
-        return PROXY;
-      },
-    };
-    const request = fakeRequest();
-
-    const tracked = trackProxyDecisions(agent);
-    const answer = await tracked.getProxyForUrl(HTTPS_URL, request);
-
-    expect(tracked).toBe(agent);
-    expect(answer).toBe(PROXY);
-    expect(calls).toEqual([['agent', HTTPS_URL, request]]);
-    expect(
-      describeProxyFailure(errorOf(request, { code: 'ECONNREFUSED' }))
-    ).toMatchObject({ code: 'PROXY_CONNECTION_REFUSED' });
+describe('the ProxyAgent records its decision for each request', () => {
+  const ENV_NAMES = [
+    'HTTP_PROXY',
+    'http_proxy',
+    'HTTPS_PROXY',
+    'https_proxy',
+    'ALL_PROXY',
+    'all_proxy',
+    'NO_PROXY',
+    'no_proxy',
+    'npm_config_proxy',
+    'npm_config_http_proxy',
+    'npm_config_https_proxy',
+    'npm_config_no_proxy',
+  ];
+  const saved = new Map<string, string | undefined>();
+  beforeEach(() => {
+    for (const name of ENV_NAMES) {
+      saved.set(name, process.env[name]);
+      delete process.env[name];
+    }
+  });
+  afterEach(() => {
+    for (const [name, value] of saved) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+    saved.clear();
   });
 
-  test('9: a synchronous answer is accepted, and an empty one means a direct request', async () => {
-    const answers = [PROXY, ''];
-    const agent = { getProxyForUrl: () => answers.shift() as string };
-    trackProxyDecisions(agent);
-    const through = fakeRequest();
-    const direct = fakeRequest();
+  /** What the agent decides for a request, and what the error of that request then says. */
+  async function decide(url: string, request = fakeRequest()) {
+    const agent = new ProxyAgent();
+    const answer = await agent.getProxyForUrl(url, request);
+    const failure = describeProxyFailure(
+      errorOf(request, { code: 'ECONNREFUSED' })
+    );
+    return { answer, failure };
+  }
 
-    expect(await agent.getProxyForUrl(HTTPS_URL, through)).toBe(PROXY);
-    expect(await agent.getProxyForUrl(HTTPS_URL, direct)).toBe('');
+  test('8: the answer of the agent is returned as it is, user info included, and the decision is recorded without it', async () => {
+    process.env.HTTPS_PROXY =
+      'http://alice:made-up-pass@proxy.example:3128/path?token=made-up-token';
+
+    const { answer, failure } = await decide(HTTPS_URL);
+
+    // the agent still needs the credentials to send them to the proxy
+    expect(answer).toBe(
+      'http://alice:made-up-pass@proxy.example:3128/path?token=made-up-token'
+    );
+    expect(failure).toMatchObject({
+      code: 'PROXY_CONNECTION_REFUSED',
+      proxy: { protocol: 'http', host: 'proxy.example', port: 3128 },
+      target: 'https',
+    });
+    expect(JSON.stringify(failure)).not.toMatch(/alice|made-up|path|token/);
+  });
+
+  test('9: a target on NO_PROXY is a direct request and is not recorded as a proxy request', async () => {
+    process.env.HTTPS_PROXY = PROXY;
+    process.env.NO_PROXY = 'tenant.example';
+
+    const { answer, failure } = await decide(HTTPS_URL);
+
+    expect(answer).toBe('');
+    expect(failure).toBeUndefined();
+  });
+
+  test('10: the decision is made for each request, with the variables of that moment', async () => {
+    const agent = new ProxyAgent();
+    const first = fakeRequest();
+    const second = fakeRequest();
+
+    process.env.HTTPS_PROXY = PROXY;
+    await agent.getProxyForUrl(HTTPS_URL, first);
+    delete process.env.HTTPS_PROXY;
+    await agent.getProxyForUrl(HTTPS_URL, second);
 
     expect(
-      describeProxyFailure(errorOf(through, { code: 'ECONNREFUSED' }))
+      describeProxyFailure(errorOf(first, { code: 'ECONNREFUSED' }))
     ).toBeDefined();
     expect(
-      describeProxyFailure(errorOf(direct, { code: 'ECONNREFUSED' }))
+      describeProxyFailure(errorOf(second, { code: 'ECONNREFUSED' }))
     ).toBeUndefined();
   });
 
-  test('10: a failure of the decision itself is the agent’s to report', async () => {
-    const agent = {
-      getProxyForUrl: async () => {
-        throw new Error('no decision');
-      },
-    };
-    trackProxyDecisions(agent);
+  test('11: a proxy URL the agent refuses is refused as before and records nothing', async () => {
+    process.env.HTTPS_PROXY = 'ftp://alice:made-up-pass@proxy.example:21';
+    const request = fakeRequest();
+
     await expect(
-      agent.getProxyForUrl(HTTPS_URL, fakeRequest())
-    ).rejects.toThrow('no decision');
+      new ProxyAgent().getProxyForUrl(HTTPS_URL, request)
+    ).rejects.toThrow(
+      'Unsupported protocol for proxy URL: ftp://proxy.example'
+    );
+
+    expect(
+      describeProxyFailure(errorOf(request, { code: 'ECONNREFUSED' }))
+    ).toBeUndefined();
+  });
+
+  test.each([
+    ['socks5://proxy.example:1080'],
+    ['pac+http://proxy.example/proxy.pac'],
+  ])(
+    '12: %s is decided by the agent as before and is not named',
+    async (proxy) => {
+      process.env.HTTPS_PROXY = proxy;
+
+      const { answer, failure } = await decide(HTTPS_URL);
+
+      expect(answer).toBe(proxy);
+      expect(failure).toBeUndefined();
+    }
+  );
+
+  test('13: an HTTPS proxy and the target of an HTTP request are recorded as they are', async () => {
+    process.env.HTTP_PROXY = 'https://proxy.example';
+
+    const { failure } = await decide(HTTP_URL);
+
+    expect(failure).toMatchObject({
+      proxy: { protocol: 'https', host: 'proxy.example', port: 443 },
+      target: 'http',
+    });
   });
 });
 

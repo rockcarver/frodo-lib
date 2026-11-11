@@ -825,10 +825,10 @@ describe('the credentials of the proxy URL are never shown', () => {
 
   /**
    * Everything that serialises the error, as a log or a caller would: its
-   * JSON, its text, its stack, what a wrapper prints. Not `util.inspect`, which
-   * walks into the sockets and the agent of the request and shows what they
-   * hold (the Proxy-Authorization header of the request line, the proxy URL in
-   * the cache of the agent): nothing of the library prints that.
+   * JSON, its text, its stack, what a wrapper prints, and the facts this
+   * module adds. That the shared agents on `error.config` and the output of
+   * `util.inspect` hold no credentials either is tested in
+   * BaseApi.proxyErrors.serialization.test.ts.
    */
   function serialisations(error: any): string[] {
     const wrapped = wrap(error);
