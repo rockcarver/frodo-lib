@@ -250,6 +250,11 @@ export type {
 } from './ops/NodeOps';
 
 export type {
+  CIMDProfileExportInterface,
+  CIMDProfileImportResult,
+} from './ops/OAuth2CIMDProfileOps';
+
+export type {
   OAuth2ClientExportInterface,
   OAuth2ClientExportOptions,
   OAuth2ClientImportOptions,

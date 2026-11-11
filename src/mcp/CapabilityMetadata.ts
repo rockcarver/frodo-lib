@@ -3513,6 +3513,15 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'oauth2oidc.client.exportOAuth2Clients': {
     excludeParameters: ['resultCallback'],
   },
+  'oauth2oidc.cimd.deleteCIMDProfiles': {
+    excludeParameters: ['resultCallback'],
+  },
+  'oauth2oidc.cimd.exportCIMDProfiles': {
+    excludeParameters: ['resultCallback'],
+  },
+  'oauth2oidc.cimd.importCIMDProfiles': {
+    excludeParameters: ['resultCallback'],
+  },
   'service.importServices': { excludeParameters: ['resultCallback'] },
   'agent.deleteAgents': { excludeParameters: ['resultCallback'] },
   'agent.deleteIdentityGatewayAgents': {
@@ -3745,6 +3754,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'oauth2oidc.issuer.createOAuth2TrustedJwtIssuerExportTemplate': {
     excluded: true,
   },
+  'oauth2oidc.cimd.createCIMDProfileExportTemplate': { excluded: true },
   'app.createApplicationExportTemplate': { excluded: true },
   'role.createInternalRoleExportTemplate': { excluded: true },
   'saml2.circlesOfTrust.createCirclesOfTrustExportTemplate': {

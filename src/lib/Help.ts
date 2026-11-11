@@ -3850,6 +3850,66 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<CIMDProfileSkeleton>} a promise that resolves to the deleted CIMD profile object (wrapped shape)",
   },
   {
+    typeName: "OAuth2CIMDProfile",
+    methodName: "deleteCIMDProfiles",
+    signature: "deleteCIMDProfiles( resultCallback?: ResultCallback<CIMDProfileSkeleton> ): Promise<CIMDProfileSkeleton[]>",
+    description: "Delete all CIMD profiles of the realm. Every profile is tried: a profile that cannot be deleted does not stop the others. If the realm does not offer CIMD profiles there is nothing to delete: the result is empty, no request for profiles is made and the callback is not called.",
+    params: [
+      { name: "resultCallback", type: "ResultCallback<CIMDProfileSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every profile is passed to it as it happens (a failed profile as an error that names the profile) and a failed profile does not throw. Without it, the failures are collected and thrown as one error after every profile was tried. Failing to read the profiles always throws.", required: false },
+    ],
+    returns: "{Promise<CIMDProfileSkeleton[]>} a promise that resolves to the CIMD profiles that were deleted",
+  },
+  {
+    typeName: "OAuth2CIMDProfile",
+    methodName: "exportCIMDProfiles",
+    signature: "exportCIMDProfiles( resultCallback?: ResultCallback<CIMDProfileSkeleton> ): Promise<CIMDProfileExportInterface>",
+    description: "Export all CIMD profiles of the realm. The response can be saved to file as is. The profiles are written as readCIMDProfiles returns them (plain shape, as stored, including _id, _rev and _type). If the realm does not offer CIMD profiles the export holds none, and no request for profiles is made.",
+    params: [
+      { name: "resultCallback", type: "ResultCallback<CIMDProfileSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every profile is passed to it as it happens (a failed profile as an error that names the profile) and a failed profile does not throw. Without it, the failures are collected and thrown as one error after every profile was tried. Failing to read the profiles always throws.", required: false },
+    ],
+    returns: "{Promise<CIMDProfileExportInterface>} a promise that resolves to the export data",
+  },
+  {
+    typeName: "OAuth2CIMDProfile",
+    methodName: "exportCIMDProfile",
+    signature: "exportCIMDProfile(profileId: string): Promise<CIMDProfileExportInterface>",
+    description: "Export a CIMD profile. The response can be saved to file as is. Fails with the error code CIMD_PROFILES_NOT_AVAILABLE if the realm does not offer CIMD profiles.",
+    params: [
+      { name: "profileId", type: "string", description: "CIMD profile id", required: true },
+    ],
+    returns: "{Promise<CIMDProfileExportInterface>} a promise that resolves to the export data",
+  },
+  {
+    typeName: "OAuth2CIMDProfile",
+    methodName: "importCIMDProfiles",
+    signature: "importCIMDProfiles( importData: CIMDProfileExportInterface, resultCallback?: ResultCallback<CIMDProfileImportResult> ): Promise<CIMDProfileImportResult[]>",
+    description: "Import CIMD profiles. The import data is usually read from a CIMD profile export file. Existing profiles are replaced by exactly what the file holds. A profile that the server completes with its defaults because it did not exist (an export of a profile that was stored with few attributes) is written a second time so that it equals the exported one. If the realm does not offer CIMD profiles nothing is imported, one warning is printed and the result is empty. The scripts and journeys that a profile names must exist before it is imported.",
+    params: [
+      { name: "importData", type: "CIMDProfileExportInterface", description: "CIMD profile import data.", required: true },
+      { name: "resultCallback", type: "ResultCallback<CIMDProfileImportResult>", description: "Optional callback to process individual results. When given, the outcome of every profile is passed to it as it happens (a failed profile as an error that names the profile) and a failed profile does not throw. Without it, the failures are collected and thrown as one error after every profile was tried.", required: false },
+    ],
+    returns: "{Promise<CIMDProfileImportResult[]>} a promise that resolves to the result of each profile that was imported: the stored profile, whether it was created and whether it was restored to the exported state by the second write",
+  },
+  {
+    typeName: "OAuth2CIMDProfile",
+    methodName: "importCIMDProfile",
+    signature: "importCIMDProfile( profileId: string, importData: CIMDProfileExportInterface ): Promise<CIMDProfileImportResult>",
+    description: "Import a CIMD profile from CIMD profile import data. Fails with the error code CIMD_PROFILES_NOT_AVAILABLE if the realm does not offer CIMD profiles.",
+    params: [
+      { name: "profileId", type: "string", description: "CIMD profile id", required: true },
+      { name: "importData", type: "CIMDProfileExportInterface", description: "CIMD profile import data.", required: true },
+    ],
+    returns: "{Promise<CIMDProfileImportResult>} a promise that resolves to the stored profile, whether it was created and whether it was restored to the exported state by the second write",
+  },
+  {
+    typeName: "OAuth2CIMDProfile",
+    methodName: "createCIMDProfileExportTemplate",
+    signature: "createCIMDProfileExportTemplate(): CIMDProfileExportInterface",
+    description: "Create an empty CIMD profile export template",
+    params: [],
+    returns: "{CIMDProfileExportInterface} an empty CIMD profile export template",
+  },
+  {
     typeName: "OAuth2Client",
     methodName: "createOAuth2ClientExportTemplate",
     signature: "createOAuth2ClientExportTemplate(): OAuth2ClientExportInterface",

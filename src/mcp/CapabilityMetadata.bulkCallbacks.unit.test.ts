@@ -45,6 +45,21 @@ const BULK_CALLBACK_CAPABILITIES: [string, string[], string][] = [
     ['oauth2oidc', 'client'],
     'exportOAuth2Clients',
   ],
+  [
+    'oauth2oidc.cimd.deleteCIMDProfiles',
+    ['oauth2oidc', 'cimd'],
+    'deleteCIMDProfiles',
+  ],
+  [
+    'oauth2oidc.cimd.exportCIMDProfiles',
+    ['oauth2oidc', 'cimd'],
+    'exportCIMDProfiles',
+  ],
+  [
+    'oauth2oidc.cimd.importCIMDProfiles',
+    ['oauth2oidc', 'cimd'],
+    'importCIMDProfiles',
+  ],
   ['service.importServices', ['service'], 'importServices'],
   ['service.exportServices', ['service'], 'exportServices'],
   ['service.getFullServices', ['service'], 'getFullServices'],

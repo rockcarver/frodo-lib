@@ -429,6 +429,28 @@ describe('MCP capability foundation', () => {
     expect(remove).toBeDefined();
     expect(remove?.riskClass).toBe('high');
     expect(remove?.mutating).toBe(true);
+
+    // bulk functions: import and delete are high, export medium
+    expect(byId.get('oauth2oidc.cimd.importCIMDProfiles')?.riskClass).toBe(
+      'high'
+    );
+    expect(byId.get('oauth2oidc.cimd.importCIMDProfile')?.riskClass).toBe(
+      'high'
+    );
+    expect(byId.get('oauth2oidc.cimd.deleteCIMDProfiles')?.riskClass).toBe(
+      'high'
+    );
+    expect(byId.get('oauth2oidc.cimd.exportCIMDProfiles')?.riskClass).toBe(
+      'medium'
+    );
+    expect(byId.get('oauth2oidc.cimd.exportCIMDProfile')?.riskClass).toBe(
+      'medium'
+    );
+
+    // a local scaffold, no value to an agent: not offered
+    expect(byId.has('oauth2oidc.cimd.createCIMDProfileExportTemplate')).toBe(
+      false
+    );
   });
 
   test('exposes explicit authn read/create/update/delete contracts', () => {

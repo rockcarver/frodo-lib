@@ -9,10 +9,18 @@ import {
   type CIMDProfileSkeleton,
 } from '../api/OAuth2CIMDProfileApi';
 import { State } from '../shared/State';
-import { debugMessage } from '../utils/Console';
+import {
+  createProgressIndicator,
+  debugMessage,
+  printMessage,
+  stopProgressIndicator,
+  updateProgressIndicator,
+} from '../utils/Console';
+import { getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
 import { isAgentTypeOffered } from './internal/AgentTypeHelpers';
+import { ExportMetaData, ResultCallback } from './OpsTypes';
 
 /**
  * Manage CIMD profiles (agent type `CIMDProfile`).
@@ -82,6 +90,53 @@ export type OAuth2CIMDProfile = {
    * @returns {Promise<CIMDProfileSkeleton>} a promise that resolves to the deleted CIMD profile object (wrapped shape)
    */
   deleteCIMDProfile(profileId: string): Promise<CIMDProfileSkeleton>;
+  /**
+   * Delete all CIMD profiles of the realm. Every profile is tried: a profile that cannot be deleted does not stop the others. If the realm does not offer CIMD profiles there is nothing to delete: the result is empty, no request for profiles is made and the callback is not called.
+   * @param {ResultCallback<CIMDProfileSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every profile is passed to it as it happens (a failed profile as an error that names the profile) and a failed profile does not throw. Without it, the failures are collected and thrown as one error after every profile was tried. Failing to read the profiles always throws.
+   * @returns {Promise<CIMDProfileSkeleton[]>} a promise that resolves to the CIMD profiles that were deleted
+   */
+  deleteCIMDProfiles(
+    resultCallback?: ResultCallback<CIMDProfileSkeleton>
+  ): Promise<CIMDProfileSkeleton[]>;
+  /**
+   * Export all CIMD profiles of the realm. The response can be saved to file as is. The profiles are written as readCIMDProfiles returns them (plain shape, as stored, including _id, _rev and _type). If the realm does not offer CIMD profiles the export holds none, and no request for profiles is made.
+   * @param {ResultCallback<CIMDProfileSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every profile is passed to it as it happens (a failed profile as an error that names the profile) and a failed profile does not throw. Without it, the failures are collected and thrown as one error after every profile was tried. Failing to read the profiles always throws.
+   * @returns {Promise<CIMDProfileExportInterface>} a promise that resolves to the export data
+   */
+  exportCIMDProfiles(
+    resultCallback?: ResultCallback<CIMDProfileSkeleton>
+  ): Promise<CIMDProfileExportInterface>;
+  /**
+   * Export a CIMD profile. The response can be saved to file as is. Fails with the error code CIMD_PROFILES_NOT_AVAILABLE if the realm does not offer CIMD profiles.
+   * @param {string} profileId CIMD profile id
+   * @returns {Promise<CIMDProfileExportInterface>} a promise that resolves to the export data
+   */
+  exportCIMDProfile(profileId: string): Promise<CIMDProfileExportInterface>;
+  /**
+   * Import CIMD profiles. The import data is usually read from a CIMD profile export file. Existing profiles are replaced by exactly what the file holds. A profile that the server completes with its defaults because it did not exist (an export of a profile that was stored with few attributes) is written a second time so that it equals the exported one. If the realm does not offer CIMD profiles nothing is imported, one warning is printed and the result is empty. The scripts and journeys that a profile names must exist before it is imported.
+   * @param {CIMDProfileExportInterface} importData CIMD profile import data.
+   * @param {ResultCallback<CIMDProfileImportResult>} resultCallback Optional callback to process individual results. When given, the outcome of every profile is passed to it as it happens (a failed profile as an error that names the profile) and a failed profile does not throw. Without it, the failures are collected and thrown as one error after every profile was tried.
+   * @returns {Promise<CIMDProfileImportResult[]>} a promise that resolves to the result of each profile that was imported: the stored profile, whether it was created and whether it was restored to the exported state by the second write
+   */
+  importCIMDProfiles(
+    importData: CIMDProfileExportInterface,
+    resultCallback?: ResultCallback<CIMDProfileImportResult>
+  ): Promise<CIMDProfileImportResult[]>;
+  /**
+   * Import a CIMD profile from CIMD profile import data. Fails with the error code CIMD_PROFILES_NOT_AVAILABLE if the realm does not offer CIMD profiles.
+   * @param {string} profileId CIMD profile id
+   * @param {CIMDProfileExportInterface} importData CIMD profile import data.
+   * @returns {Promise<CIMDProfileImportResult>} a promise that resolves to the stored profile, whether it was created and whether it was restored to the exported state by the second write
+   */
+  importCIMDProfile(
+    profileId: string,
+    importData: CIMDProfileExportInterface
+  ): Promise<CIMDProfileImportResult>;
+  /**
+   * Create an empty CIMD profile export template
+   * @returns {CIMDProfileExportInterface} an empty CIMD profile export template
+   */
+  createCIMDProfileExportTemplate(): CIMDProfileExportInterface;
 };
 
 export default (state: State): OAuth2CIMDProfile => {
@@ -116,8 +171,57 @@ export default (state: State): OAuth2CIMDProfile => {
     async deleteCIMDProfile(profileId: string) {
       return deleteCIMDProfile({ profileId, state });
     },
+    async deleteCIMDProfiles(
+      resultCallback?: ResultCallback<CIMDProfileSkeleton>
+    ) {
+      return deleteCIMDProfiles({ resultCallback, state });
+    },
+    async exportCIMDProfiles(
+      resultCallback?: ResultCallback<CIMDProfileSkeleton>
+    ) {
+      return exportCIMDProfiles({ resultCallback, state });
+    },
+    async exportCIMDProfile(profileId: string) {
+      return exportCIMDProfile({ profileId, state });
+    },
+    async importCIMDProfiles(
+      importData: CIMDProfileExportInterface,
+      resultCallback?: ResultCallback<CIMDProfileImportResult>
+    ) {
+      return importCIMDProfiles({ importData, resultCallback, state });
+    },
+    async importCIMDProfile(
+      profileId: string,
+      importData: CIMDProfileExportInterface
+    ) {
+      return importCIMDProfile({ profileId, importData, state });
+    },
+    createCIMDProfileExportTemplate() {
+      return createCIMDProfileExportTemplate({ state });
+    },
   };
 };
+
+/**
+ * The export file of CIMD profiles: the profiles keyed by `_id`, each as `readCIMDProfiles` returns it (plain shape,
+ * as stored).
+ */
+export interface CIMDProfileExportInterface {
+  meta?: ExportMetaData;
+  cimdProfile: Record<string, CIMDProfileSkeleton>;
+}
+
+/**
+ * The outcome of importing one CIMD profile.
+ */
+export interface CIMDProfileImportResult {
+  /** the profile as the server answered the last write (wrapped shape) */
+  profile: CIMDProfileSkeleton;
+  /** true if the profile did not exist and was created, false if an existing profile was replaced */
+  created: boolean;
+  /** true if the server completed a profile it created with its defaults and the profile was written a second time to equal the exported one */
+  repaired: boolean;
+}
 
 /**
  * The characters that a CIMD profile id must not contain. On Identity Cloud the edge refuses `! # % ' ( ) * / ? \`
@@ -556,4 +660,436 @@ export async function deleteCIMDProfile({
       error
     );
   }
+}
+
+/**
+ * Create an empty CIMD profile export template
+ * @param {object} params structured and named parameters
+ * @param {State} params.state the state object
+ * @returns {CIMDProfileExportInterface} an empty CIMD profile export template
+ */
+export function createCIMDProfileExportTemplate({
+  state,
+}: {
+  state: State;
+}): CIMDProfileExportInterface {
+  return {
+    meta: getMetadata({ state }),
+    cimdProfile: {},
+  };
+}
+
+/**
+ * Report the outcome of one profile: to the result callback if there is one, otherwise a failure is collected.
+ * @param {object} params structured and named parameters
+ * @param {R} params.result the result of the profile (undefined if it failed)
+ * @param {FrodoError} params.failure the error that names the profile (undefined if it succeeded)
+ * @param {FrodoError[]} params.errors where the failures are collected when there is no result callback
+ * @param {ResultCallback<R>} params.resultCallback Optional callback to process individual results
+ */
+function _reportOutcome<R>({
+  result,
+  failure,
+  errors,
+  resultCallback,
+}: {
+  result?: R;
+  failure?: FrodoError;
+  errors: FrodoError[];
+  resultCallback?: ResultCallback<R>;
+}) {
+  if (failure) {
+    if (resultCallback) {
+      resultCallback(failure, undefined);
+    } else {
+      errors.push(failure);
+    }
+  } else if (resultCallback) {
+    resultCallback(undefined, result);
+  }
+}
+
+/**
+ * Delete all CIMD profiles of the realm. Every profile is tried: a profile that cannot be deleted does not stop the others. A realm that does not offer CIMD profiles has none to delete: the result is empty, no request for profiles is made and the callback is not called.
+ * @param {object} params structured and named parameters
+ * @param {ResultCallback<CIMDProfileSkeleton>} params.resultCallback Optional callback to process individual results. When given, the outcome of every profile is passed to it as it happens (a failed profile as an error that names the profile) and a failed profile does not throw. Without it, the failures are collected and thrown as one error after every profile was tried. Failing to read the profiles always throws.
+ * @param {State} params.state the state object
+ * @returns {Promise<CIMDProfileSkeleton[]>} a promise that resolves to the CIMD profiles that were deleted
+ * @throws {FrodoError} If the profiles cannot be read (always), or if one or more profiles cannot be deleted and there is no result callback.
+ */
+export async function deleteCIMDProfiles({
+  resultCallback,
+  state,
+}: {
+  resultCallback?: ResultCallback<CIMDProfileSkeleton>;
+  state: State;
+}): Promise<CIMDProfileSkeleton[]> {
+  debugMessage({
+    message: `OAuth2CIMDProfileOps.deleteCIMDProfiles: start`,
+    state,
+  });
+  const realm = getCurrentRealmName(state) + ' realm';
+  const deleted: CIMDProfileSkeleton[] = [];
+  const errors: FrodoError[] = [];
+  let profiles: CIMDProfileSkeleton[];
+  try {
+    // a realm that does not offer the type has no profiles: readCIMDProfiles gives none and asks for none
+    profiles = await readCIMDProfiles({ state });
+  } catch (error) {
+    throw new FrodoError(`Error deleting ${realm} CIMD profiles`, error);
+  }
+  for (const profile of profiles) {
+    let failure: FrodoError | undefined;
+    try {
+      debugMessage({
+        message: `OAuth2CIMDProfileOps.deleteCIMDProfiles: '${profile._id}'`,
+        state,
+      });
+      await _deleteCIMDProfile({ profileId: profile._id, state });
+    } catch (error) {
+      failure = new FrodoError(
+        `Error deleting ${realm} CIMD profile ${profile._id}`,
+        error
+      );
+    }
+    if (!failure) deleted.push(profile);
+    _reportOutcome({ result: profile, failure, errors, resultCallback });
+  }
+  if (errors.length > 0) {
+    throw new FrodoError(`Error deleting ${realm} CIMD profiles`, errors);
+  }
+  debugMessage({
+    message: `OAuth2CIMDProfileOps.deleteCIMDProfiles: end`,
+    state,
+  });
+  return deleted;
+}
+
+/**
+ * Export all CIMD profiles of the realm. The response can be saved to file as is. The profiles are written as `readCIMDProfiles` returns them. A realm that does not offer CIMD profiles has none: the export holds none, no request for profiles is made and nothing is printed. A realm that offers the type but holds no profile prints nothing either.
+ * @param {object} params structured and named parameters
+ * @param {ResultCallback<CIMDProfileSkeleton>} params.resultCallback Optional callback to process individual results. When given, the outcome of every profile is passed to it as it happens (a failed profile as an error that names the profile) and a failed profile does not throw. Without it, the failures are collected and thrown as one error after every profile was tried. Failing to read the profiles always throws. There is no per-profile failure in this version (the list carries whole profiles), so the callback receives successes only; it is part of the contract so that bulk functions are alike.
+ * @param {State} params.state the state object
+ * @returns {Promise<CIMDProfileExportInterface>} a promise that resolves to the export data
+ */
+export async function exportCIMDProfiles({
+  resultCallback,
+  state,
+}: {
+  resultCallback?: ResultCallback<CIMDProfileSkeleton>;
+  state: State;
+}): Promise<CIMDProfileExportInterface> {
+  debugMessage({
+    message: `OAuth2CIMDProfileOps.exportCIMDProfiles: start`,
+    state,
+  });
+  const realm = getCurrentRealmName(state) + ' realm';
+  const exportData = createCIMDProfileExportTemplate({ state });
+  let indicatorId: string;
+  try {
+    // a realm that does not offer the type has no profiles: readCIMDProfiles gives none and asks for none
+    const profiles = await readCIMDProfiles({ state });
+    // a realm without profiles prints nothing, so that a full export stays quiet
+    if (profiles.length > 0) {
+      indicatorId = createProgressIndicator({
+        total: profiles.length,
+        message: `Exporting ${realm} CIMD profiles...`,
+        state,
+      });
+      for (const profile of profiles) {
+        updateProgressIndicator({
+          id: indicatorId,
+          message: `Exporting ${realm} CIMD profile ${profile._id}`,
+          state,
+        });
+        exportData.cimdProfile[profile._id] = profile;
+        if (resultCallback) resultCallback(undefined, profile);
+      }
+      stopProgressIndicator({
+        id: indicatorId,
+        message: `Exported ${profiles.length} ${realm} CIMD profiles.`,
+        state,
+      });
+    }
+  } catch (error) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting ${realm} CIMD profiles`,
+      status: 'fail',
+      state,
+    });
+    throw new FrodoError(`Error exporting ${realm} CIMD profiles`, error);
+  }
+  debugMessage({
+    message: `OAuth2CIMDProfileOps.exportCIMDProfiles: end`,
+    state,
+  });
+  return exportData;
+}
+
+/**
+ * Export a CIMD profile. The response can be saved to file as is.
+ * @param {object} params structured and named parameters
+ * @param {string} params.profileId CIMD profile id
+ * @param {State} params.state the state object
+ * @returns {Promise<CIMDProfileExportInterface>} a promise that resolves to the export data
+ * @throws {FrodoError} with the code `CIMD_PROFILES_NOT_AVAILABLE` if the realm does not offer CIMD profiles
+ */
+export async function exportCIMDProfile({
+  profileId,
+  state,
+}: {
+  profileId: string;
+  state: State;
+}): Promise<CIMDProfileExportInterface> {
+  debugMessage({
+    message: `OAuth2CIMDProfileOps.exportCIMDProfile: start [${profileId}]`,
+    state,
+  });
+  checkCIMDProfileId(profileId);
+  await assertCIMDProfileAvailable({ state });
+  try {
+    const exportData = createCIMDProfileExportTemplate({ state });
+    const profile = await readCIMDProfile({ profileId, state });
+    exportData.cimdProfile[profile._id] = profile;
+    debugMessage({
+      message: `OAuth2CIMDProfileOps.exportCIMDProfile: end [${profileId}]`,
+      state,
+    });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} CIMD profile ${profileId}`,
+      error
+    );
+  }
+}
+
+/**
+ * The names of the attributes of a profile, group by group, and of its members outside the groups: what the profile
+ * has, not what the attributes are set to (plain and wrapped values look alike).
+ */
+function _attributeNames(profile: CIMDProfileSkeleton): Set<string> {
+  const names = new Set<string>();
+  for (const [key, value] of Object.entries(profile ?? {})) {
+    if (['_id', '_rev', '_type'].includes(key)) continue;
+    if (
+      CIMD_PROFILE_GROUPS.includes(key) &&
+      value &&
+      typeof value === 'object'
+    ) {
+      for (const attribute of Object.keys(value)) {
+        names.add(`${key}.${attribute}`);
+      }
+    } else {
+      names.add(key);
+    }
+  }
+  return names;
+}
+
+/**
+ * The second write of an import failed after the profile was created: it exists with the server's defaults.
+ */
+class CIMDProfileNotRestoredError extends FrodoError {
+  constructor(message: string, cause: Error) {
+    super(message, cause);
+    // it is an ordinary FrodoError to every reader of the error
+    this.name = 'FrodoError';
+  }
+}
+
+/**
+ * Write a CIMD profile so that it is stored exactly as given, whether or not it exists.
+ *
+ * The server stores what a PUT to an existing id sends, but completes the body with its defaults when it creates the
+ * profile (HTTP 201), so a profile that was stored with few attributes would come back expanded. When the answer to a
+ * create holds attributes that the body lacked, the same body is written once more (now an update, which stores exactly
+ * what is sent). A complete profile needs one write. `_rev` is removed by the api layer; the object passed in is not
+ * changed.
+ * @param {object} params structured and named parameters
+ * @param {string} params.profileId CIMD profile id
+ * @param {CIMDProfileSkeleton} params.profileData CIMD profile object, plain or wrapped values
+ * @param {State} params.state the state object
+ * @returns {Promise<CIMDProfileImportResult>} a promise that resolves to the stored profile, whether it was created and whether the second write ran
+ * @throws {FrodoError} if a write fails; if the second write fails the profile exists with the server's defaults and the message says so
+ */
+export async function putCIMDProfileExact({
+  profileId,
+  profileData,
+  state,
+}: {
+  profileId: string;
+  profileData: CIMDProfileSkeleton | NoIdObjectSkeletonInterface;
+  state: State;
+}): Promise<CIMDProfileImportResult> {
+  const first = await _putCIMDProfile({
+    profileId,
+    profileData,
+    failIfExists: false,
+    state,
+  });
+  if (first.status !== 201) {
+    // the profile existed and is stored exactly as sent
+    return { profile: first.data, created: false, repaired: false };
+  }
+  const sent = _attributeNames(profileData);
+  const completed = [..._attributeNames(first.data)].filter(
+    (name) => !sent.has(name)
+  );
+  if (completed.length === 0) {
+    return { profile: first.data, created: true, repaired: false };
+  }
+  debugMessage({
+    message: `OAuth2CIMDProfileOps.putCIMDProfileExact: the server completed ${profileId} with its defaults (${completed.join(', ')}), writing it again`,
+    state,
+  });
+  try {
+    const second = await _putCIMDProfile({
+      profileId,
+      profileData,
+      failIfExists: false,
+      state,
+    });
+    return { profile: second.data, created: true, repaired: true };
+  } catch (error) {
+    throw new CIMDProfileNotRestoredError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} CIMD profile ${profileId}: created, but not restored to the exported state`,
+      error
+    );
+  }
+}
+
+/**
+ * Import one profile of the import data: id check, type guard, exact write. Its failure names the profile.
+ */
+async function _importOneCIMDProfile({
+  profileId,
+  profileData,
+  state,
+}: {
+  profileId: string;
+  profileData: CIMDProfileSkeleton;
+  state: State;
+}): Promise<CIMDProfileImportResult> {
+  try {
+    checkCIMDProfileId(profileId);
+    const typeId = profileData?._type?._id;
+    // a missing _type is accepted (hand-written files)
+    if (typeId !== undefined && typeId !== 'CIMDProfile') {
+      throw new FrodoError(
+        `Wrong agent type! Expected 'CIMDProfile' but got '${typeId}'.`
+      );
+    }
+    return await putCIMDProfileExact({ profileId, profileData, state });
+  } catch (error) {
+    if (error instanceof CIMDProfileNotRestoredError) throw error;
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} CIMD profile ${profileId}${describeInvalidAttributes(error, profileData)}`,
+      error
+    );
+  }
+}
+
+/**
+ * Import CIMD profiles. The import data is usually read from a CIMD profile export file. Every profile is tried: a profile that cannot be imported does not stop the others. A profile whose `_type` names another type fails; a missing `_type` is accepted. No attribute is removed to make a write succeed: an attribute that the server does not accept fails the profile, because a deny list or the SSRF switch must never be dropped silently. The import data is not changed. A realm that does not offer CIMD profiles cannot receive any: one warning names the number of profiles that were skipped, nothing fails and the callback is not called. The scripts and journeys that a profile names must exist before it is imported.
+ * @param {object} params structured and named parameters
+ * @param {CIMDProfileExportInterface} params.importData CIMD profile import data.
+ * @param {ResultCallback<CIMDProfileImportResult>} params.resultCallback Optional callback to process individual results. When given, the outcome of every profile is passed to it as it happens (a failed profile as an error that names the profile) and a failed profile does not throw. Without it, the failures are collected and thrown as one error after every profile was tried.
+ * @param {State} params.state the state object
+ * @returns {Promise<CIMDProfileImportResult[]>} a promise that resolves to the result of each profile that was imported
+ * @throws {FrodoError} if one or more profiles cannot be imported and there is no result callback.
+ */
+export async function importCIMDProfiles({
+  importData,
+  resultCallback,
+  state,
+}: {
+  importData: CIMDProfileExportInterface;
+  resultCallback?: ResultCallback<CIMDProfileImportResult>;
+  state: State;
+}): Promise<CIMDProfileImportResult[]> {
+  debugMessage({
+    message: `OAuth2CIMDProfileOps.importCIMDProfiles: start`,
+    state,
+  });
+  const realm = getCurrentRealmName(state) + ' realm';
+  const profileIds = Object.keys(importData?.cimdProfile ?? {});
+  // nothing to import: not even the type list is asked, so a full import without CIMD data is unchanged
+  if (profileIds.length === 0) return [];
+  if (!(await isCIMDProfileAvailable({ state }))) {
+    printMessage({
+      message: `Skipped ${profileIds.length} CIMD profile${profileIds.length === 1 ? '' : 's'}: the ${realm} of this deployment does not offer CIMD profiles.`,
+      type: 'warn',
+      state,
+    });
+    return [];
+  }
+  const results: CIMDProfileImportResult[] = [];
+  const errors: FrodoError[] = [];
+  for (const profileId of profileIds) {
+    let result: CIMDProfileImportResult | undefined;
+    let failure: FrodoError | undefined;
+    try {
+      debugMessage({
+        message: `OAuth2CIMDProfileOps.importCIMDProfiles: ${profileId}`,
+        state,
+      });
+      result = await _importOneCIMDProfile({
+        profileId,
+        profileData: importData.cimdProfile[profileId],
+        state,
+      });
+    } catch (error) {
+      failure = error;
+    }
+    if (!failure) results.push(result);
+    _reportOutcome({ result, failure, errors, resultCallback });
+  }
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing ${realm} CIMD profiles`, errors);
+  }
+  debugMessage({
+    message: `OAuth2CIMDProfileOps.importCIMDProfiles: end`,
+    state,
+  });
+  return results;
+}
+
+/**
+ * Import a CIMD profile from CIMD profile import data. The import data is not changed.
+ * @param {object} params structured and named parameters
+ * @param {string} params.profileId CIMD profile id
+ * @param {CIMDProfileExportInterface} params.importData CIMD profile import data.
+ * @param {State} params.state the state object
+ * @returns {Promise<CIMDProfileImportResult>} a promise that resolves to the stored profile, whether it was created and whether the second write ran
+ * @throws {FrodoError} with the code `CIMD_PROFILES_NOT_AVAILABLE` if the realm does not offer CIMD profiles
+ */
+export async function importCIMDProfile({
+  profileId,
+  importData,
+  state,
+}: {
+  profileId: string;
+  importData: CIMDProfileExportInterface;
+  state: State;
+}): Promise<CIMDProfileImportResult> {
+  debugMessage({
+    message: `OAuth2CIMDProfileOps.importCIMDProfile: start [${profileId}]`,
+    state,
+  });
+  checkCIMDProfileId(profileId);
+  await assertCIMDProfileAvailable({ state });
+  const profileData = importData?.cimdProfile?.[profileId];
+  if (!profileData) {
+    throw new FrodoError(
+      `${getCurrentRealmName(state) + ' realm'} CIMD profile ${profileId} not found in import data!`
+    );
+  }
+  const result = await _importOneCIMDProfile({ profileId, profileData, state });
+  debugMessage({
+    message: `OAuth2CIMDProfileOps.importCIMDProfile: end [${profileId}]`,
+    state,
+  });
+  return result;
 }
