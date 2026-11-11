@@ -36,7 +36,8 @@ export type Connector = {
    */
   createConnectorExportTemplate(): ConnectorExportInterface;
   /**
-   * Get all connectors
+   * Get all connectors with ids starting with `provisioner.openicf/`,
+   * excluding non-connector configurations such as the connector info provider.
    * @returns {Promise<ConnectorSkeleton[]>} a promise that resolves to an array of connector objects
    */
   readConnectors(): Promise<ConnectorSkeleton[]>;
@@ -407,7 +408,8 @@ export function createConnectorExportTemplate({
 }
 
 /**
- * Get all connectors
+ * Get all connectors with ids starting with `provisioner.openicf/`,
+ * excluding non-connector configurations such as the connector info provider.
  * @returns {Promise<ConnectorSkeleton[]>} a promise that resolves to an array of connector objects
  */
 export async function readConnectors({
@@ -420,7 +422,11 @@ export async function readConnectors({
       type: CONNECTOR_TYPE,
       state,
     });
-    return connectors as ConnectorSkeleton[];
+    return connectors.filter(
+      (connector) =>
+        typeof connector._id === 'string' &&
+        connector._id.startsWith(`${CONNECTOR_TYPE}/`)
+    ) as ConnectorSkeleton[];
   } catch (error) {
     throw new FrodoError(`Error reading connectors`, error);
   }

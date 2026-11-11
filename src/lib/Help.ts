@@ -1342,7 +1342,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "CirclesOfTrust",
     methodName: "exportCirclesOfTrust",
     signature: "exportCirclesOfTrust( entityProviders?: string[] ): Promise<CirclesOfTrustExportInterface>",
-    description: "Export all circles of trust",
+    description: "Export all circles of trust. A deployment that does not offer them (PingOne Advanced Identity Cloud answers that the operation is not available) exports none and nothing is thrown; every other failure, including a credential without the scope it needs, throws.",
     params: [
       { name: "entityProviders", type: "string[]", description: "filter by entity providers", required: false },
     ],
@@ -1387,7 +1387,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     description: "Export full configuration",
     params: [
       { name: "options", type: "FullExportOptions", description: "export options", required: true },
-      { name: "resultCallback", type: "ResultCallback", description: "Optional callback to process individual results", required: true },
+      { name: "resultCallback", type: "ResultCallback", description: "Optional callback to process individual results. A section that cannot be exported, also for lack of a scope of the credential, is reported to it as an error that names the section (code INSUFFICIENT_SCOPE for a missing scope) and the other sections are still exported; without a callback the error is thrown. A section that the deployment does not offer (PingOne Advanced Identity Cloud answers that the operation is not available) is skipped silently.", required: true },
     ],
     returns: "{Promise<FullExportInterface>} a promise resolving to a full export object",
   },
@@ -1399,7 +1399,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     params: [
       { name: "importData", type: "FullExportInterface", description: "import data", required: true },
       { name: "options", type: "FullImportOptions", description: "import options", required: true },
-      { name: "resultCallback", type: "ResultCallback", description: "Optional callback to process individual results", required: true },
+      { name: "resultCallback", type: "ResultCallback", description: "Optional callback to process individual results. A section that cannot be imported, also for lack of a scope of the credential, is reported to it as an error that names the section (code INSUFFICIENT_SCOPE for a missing scope) and the other sections are still imported; without a callback the error is thrown.", required: true },
     ],
     returns: "",
   },
@@ -1573,7 +1573,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Connector",
     methodName: "readConnectors",
     signature: "readConnectors(): Promise<ConnectorSkeleton[]>",
-    description: "Get all connectors",
+    description: "Get all connectors with ids starting with `provisioner.openicf/`, excluding non-connector configurations such as the connector info provider.",
     params: [],
     returns: "{Promise<ConnectorSkeleton[]>} a promise that resolves to an array of connector objects",
   },
@@ -2687,9 +2687,9 @@ export const helpMetadata: MethodHelpDoc[] = [
     params: [
       { name: "importData", type: "MultiTreeExportInterface", description: "map of trees object", required: true },
       { name: "options", type: "TreeImportOptions", description: "import options", required: true },
-      { name: "resultCallback", type: "ResultCallback", description: "Optional callback to process individual results", required: false },
+      { name: "resultCallback", type: "ResultCallback", description: "Optional callback to process individual results. When given, the outcome of every journey is passed to it as it happens (the journey, or an error that names the journey) and a failed journey does not throw. Without it, a validation error or a missing dependency rejects the batch before anything is written, and a journey that cannot be written throws. Failing to list the installed journeys always throws.", required: false },
     ],
-    returns: "",
+    returns: "{Promise<TreeSkeleton[]>} a promise that resolves to the journeys that were imported",
   },
   {
     typeName: "Journey",
