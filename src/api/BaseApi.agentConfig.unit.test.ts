@@ -54,13 +54,29 @@ describe('BaseApi agent keep-alive configuration (unit)', () => {
   test('shared http and https agents are configured for connection reuse', async () => {
     delete process.env.FRODO_NO_KEEPALIVE;
     const { httpAgent, httpsAgent } = await generateAgentPair();
-    for (const agent of [httpAgent, httpsAgent]) {
+    // Where the sockets of an http: target are pooled when the request goes
+    // straight to it is the agent the ProxyAgent holds for that (lib#985), the
+    // pool of an https: target is the ProxyAgent itself
+    for (const agent of [httpAgent.httpAgent, httpsAgent]) {
       expect(agent.keepAlive).toBe(true);
       expect(agent.keepAliveMsecs).toBe(1000);
       expect(agent.maxFreeSockets).toBe(16);
       expect(agent.scheduling).toBe('lifo');
       expect(agent.maxSockets).toBe(500);
     }
+  });
+
+  test('an http: target that goes through a proxy never reuses a connection, an https: target does (lib#985)', async () => {
+    delete process.env.FRODO_NO_KEEPALIVE;
+    const { httpAgent, httpsAgent } = await generateAgentPair();
+    // connectOpts are the options of the agents that proxy-agent makes for the
+    // proxies: for an http: target (http-proxy-agent) a kept-alive connection
+    // loses the absolute request line and the proxy credentials, for an https:
+    // target (https-proxy-agent) the CONNECT tunnel is reused as a whole
+    expect(httpAgent.connectOpts.keepAlive).toBe(false);
+    expect(httpAgent.connectOpts.maxSockets).toBe(500);
+    expect(httpAgent.connectOpts.timeout).toBe(30000);
+    expect(httpsAgent.connectOpts.keepAlive).toBe(true);
   });
 
   test('the insecure-connection https agent variant follows the same defaults', async () => {
@@ -76,7 +92,7 @@ describe('BaseApi agent keep-alive configuration (unit)', () => {
       state,
     });
     const insecureAgent = request.defaults.httpsAgent;
-    for (const agent of [httpAgent, insecureAgent]) {
+    for (const agent of [httpAgent.httpAgent, insecureAgent]) {
       expect(agent.keepAlive).toBe(true);
       expect(agent.keepAliveMsecs).toBe(1000);
       expect(agent.maxFreeSockets).toBe(16);
@@ -88,25 +104,29 @@ describe('BaseApi agent keep-alive configuration (unit)', () => {
     process.env.FRODO_NO_KEEPALIVE = '1';
     const { httpAgent, httpsAgent } = await generateAgentPair();
     expect(httpAgent.keepAlive).toBe(false);
+    expect(httpAgent.httpAgent.keepAlive).toBe(false);
+    expect(httpAgent.connectOpts.keepAlive).toBe(false);
     expect(httpsAgent.keepAlive).toBe(false);
+    expect(httpsAgent.connectOpts.keepAlive).toBe(false);
   });
 
   test("FRODO_NO_KEEPALIVE='yes' also restores the legacy configuration", async () => {
     process.env.FRODO_NO_KEEPALIVE = 'yes';
     const { httpAgent } = await generateAgentPair();
     expect(httpAgent.keepAlive).toBe(false);
+    expect(httpAgent.httpAgent.keepAlive).toBe(false);
   });
 
   test("FRODO_NO_KEEPALIVE='' (empty) keeps keep-alive enabled", async () => {
     process.env.FRODO_NO_KEEPALIVE = '';
     const { httpAgent } = await generateAgentPair();
-    expect(httpAgent.keepAlive).toBe(true);
+    expect(httpAgent.httpAgent.keepAlive).toBe(true);
   });
 
   test('FRODO_NO_KEEPALIVE set to any other value keeps keep-alive enabled', async () => {
     process.env.FRODO_NO_KEEPALIVE = '0';
     const { httpAgent } = await generateAgentPair();
-    expect(httpAgent.keepAlive).toBe(true);
+    expect(httpAgent.httpAgent.keepAlive).toBe(true);
   });
 });
 
