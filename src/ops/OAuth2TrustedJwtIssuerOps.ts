@@ -10,6 +10,7 @@ import { State } from '../shared/State';
 import { debugMessage, printMessage } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
+import { cloneDeep } from '../utils/JsonUtils';
 import { FrodoError, isNotFoundError } from './FrodoError';
 import { ExportMetaData } from './OpsTypes';
 
@@ -67,8 +68,8 @@ export type OAuth2TrustedJwtIssuer = {
   ): Promise<OAuth2TrustedJwtIssuerSkeleton>;
   /**
    * Export all OAuth2 trusted jwt issuers
-   * @param {OAuth2TrustedJwtIssuerExportOptions} options export options
-   * @returns {OAuth2TrustedJwtIssuerExportInterface} export data
+   * @param {OAuth2TrustedJwtIssuerExportOptions} options deprecated, has no effect: a trusted jwt issuer has no scripts
+   * @returns {Promise<OAuth2TrustedJwtIssuerExportInterface>} a promise that resolves to the export data
    */
   exportOAuth2TrustedJwtIssuers(
     options?: OAuth2TrustedJwtIssuerExportOptions
@@ -76,19 +77,19 @@ export type OAuth2TrustedJwtIssuer = {
   /**
    * Export OAuth2 trusted jwt issuer by ID
    * @param {string} issuerId oauth2 trusted jwt issuer id
-   * @param {OAuth2TrustedJwtIssuerExportOptions} options export options
-   * @returns {OAuth2TrustedJwtIssuerExportInterface} export data
+   * @param {OAuth2TrustedJwtIssuerExportOptions} options deprecated, has no effect: a trusted jwt issuer has no scripts
+   * @returns {Promise<OAuth2TrustedJwtIssuerExportInterface>} a promise that resolves to the export data
    */
   exportOAuth2TrustedJwtIssuer(
     issuerId: string,
     options?: OAuth2TrustedJwtIssuerExportOptions
   ): Promise<OAuth2TrustedJwtIssuerExportInterface>;
   /**
-   * Import OAuth2 Client by ID
+   * Import OAuth2 trusted jwt issuer by ID. The import data is not modified.
    * @param {string} issuerId trusted jwt issuer id
    * @param {OAuth2TrustedJwtIssuerExportInterface} importData import data
-   * @param {OAuth2TrustedJwtIssuerImportOptions} options import options
-   * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise resolving to an oauth2 trusted jwt issuer
+   * @param {OAuth2TrustedJwtIssuerImportOptions} options deprecated, has no effect: a trusted jwt issuer has no scripts
+   * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to the imported trusted jwt issuer
    */
   importOAuth2TrustedJwtIssuer(
     issuerId: string,
@@ -96,20 +97,20 @@ export type OAuth2TrustedJwtIssuer = {
     options?: OAuth2TrustedJwtIssuerImportOptions
   ): Promise<OAuth2TrustedJwtIssuerSkeleton>;
   /**
-   * Import first OAuth2 Client
+   * Import first OAuth2 trusted jwt issuer. The import data is not modified.
    * @param {OAuth2TrustedJwtIssuerExportInterface} importData import data
-   * @param {OAuth2TrustedJwtIssuerImportOptions} options import options
-   * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise resolving to an oauth2 trusted jwt issuer
+   * @param {OAuth2TrustedJwtIssuerImportOptions} options deprecated, has no effect: a trusted jwt issuer has no scripts
+   * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to the imported trusted jwt issuer
    */
   importFirstOAuth2TrustedJwtIssuer(
     importData: OAuth2TrustedJwtIssuerExportInterface,
     options?: OAuth2TrustedJwtIssuerImportOptions
   ): Promise<OAuth2TrustedJwtIssuerSkeleton>;
   /**
-   * Import OAuth2 Clients
+   * Import OAuth2 trusted jwt issuers. The import data is not modified.
    * @param {OAuth2TrustedJwtIssuerExportInterface} importData import data
-   * @param {OAuth2TrustedJwtIssuerImportOptions} options import options
-   * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise resolving to an array of oauth2 trusted jwt issuers
+   * @param {OAuth2TrustedJwtIssuerImportOptions} options deprecated, has no effect: a trusted jwt issuer has no scripts
+   * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise that resolves to an array of the imported trusted jwt issuers
    */
   importOAuth2TrustedJwtIssuers(
     importData: OAuth2TrustedJwtIssuerExportInterface,
@@ -155,10 +156,7 @@ export default (state: State): OAuth2TrustedJwtIssuer => {
       return deleteOAuth2TrustedJwtIssuer({ issuerId, state });
     },
     async exportOAuth2TrustedJwtIssuers(
-      options: OAuth2TrustedJwtIssuerExportOptions = {
-        useStringArrays: true,
-        deps: true,
-      }
+      options?: OAuth2TrustedJwtIssuerExportOptions
     ): Promise<OAuth2TrustedJwtIssuerExportInterface> {
       return exportOAuth2TrustedJwtIssuers({ options, state });
     },
@@ -192,26 +190,28 @@ export default (state: State): OAuth2TrustedJwtIssuer => {
 
 /**
  * OAuth2 trusted jwt issuer export options
+ * @deprecated The options have no effect: a trusted jwt issuer has no scripts. The parameter is kept so that no caller breaks; it will be removed in the next major version.
  */
 export interface OAuth2TrustedJwtIssuerExportOptions {
   /**
-   * Use string arrays to store multi-line text in scripts.
+   * @deprecated Has no effect.
    */
-  useStringArrays: boolean;
+  useStringArrays?: boolean;
   /**
-   * Include any dependencies (scripts).
+   * @deprecated Has no effect.
    */
-  deps: boolean;
+  deps?: boolean;
 }
 
 /**
  * OAuth2 trusted jwt issuer import options
+ * @deprecated The options have no effect: a trusted jwt issuer has no scripts. The parameter is kept so that no caller breaks; it will be removed in the next major version.
  */
 export interface OAuth2TrustedJwtIssuerImportOptions {
   /**
-   * Include any dependencies (scripts).
+   * @deprecated Has no effect.
    */
-  deps: boolean;
+  deps?: boolean;
 }
 
 export interface OAuth2TrustedJwtIssuerExportInterface {
@@ -371,26 +371,33 @@ export async function updateOAuth2TrustedJwtIssuer({
       error.response?.data?.message === 'Invalid attribute specified.'
     ) {
       try {
-        const { validAttributes } = error.response.data.detail;
-        validAttributes.push('_id');
-        for (const key of Object.keys(issuerData)) {
-          if (typeof issuerData[key] === 'object') {
-            for (const attribute of Object.keys(issuerData[key])) {
+        // Work on a copy: the object of the caller keeps what the server
+        // rejected.
+        const retryData = cloneDeep(issuerData);
+        const validAttributes = [
+          ...error.response.data.detail.validAttributes,
+          '_id',
+        ];
+        for (const key of Object.keys(retryData)) {
+          const value = retryData[key];
+          // Only an object has attributes of its own: the elements of an array
+          // (allowedSubjects) are values, not attributes, and a null has none.
+          if (value && typeof value === 'object' && !Array.isArray(value)) {
+            for (const attribute of Object.keys(value)) {
               if (!validAttributes.includes(attribute)) {
-                if (state.getVerbose() || state.getDebug())
-                  printMessage({
-                    message: `\n- Removing invalid attribute: ${key}.${attribute}`,
-                    type: 'warn',
-                    state,
-                  });
-                delete issuerData[key][attribute];
+                printMessage({
+                  message: `\n- Removing invalid attribute from trusted issuer ${issuerId}: ${key}.${attribute}`,
+                  type: 'warn',
+                  state,
+                });
+                delete value[attribute];
               }
             }
           }
         }
         const response = await _putOAuth2TrustedJwtIssuer({
           id: issuerId,
-          issuerData,
+          issuerData: retryData,
           state,
         });
         debugMessage({
@@ -415,8 +422,7 @@ export async function updateOAuth2TrustedJwtIssuer({
 
 /**
  * Delete all OAuth2 trusted jwt issuers
- * @param {string} issuerId trusted jwt issuer id
- * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise that resolves to an trusted jwt issuer object
+ * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise that resolves to an array of the deleted trusted jwt issuers
  */
 export async function deleteOAuth2TrustedJwtIssuers({
   state,
@@ -494,7 +500,7 @@ export async function deleteOAuth2TrustedJwtIssuer({
 
 /**
  * Export all OAuth2 trusted jwt issuers
- * @returns {Promise<OAuth2TrustedJwtIssuerExportInterface>} export data
+ * @returns {Promise<OAuth2TrustedJwtIssuerExportInterface>} a promise that resolves to the export data
  */
 export async function exportOAuth2TrustedJwtIssuers({
   state,
@@ -543,8 +549,7 @@ export async function exportOAuth2TrustedJwtIssuers({
 /**
  * Export OAuth2 trusted jwt issuer by ID
  * @param {string} issuerId oauth2 trusted jwt issuer id
- * @param {OAuth2TrustedJwtIssuerExportOptions} options export options
- * @returns {Promise<OAuth2TrustedJwtIssuerExportInterface>} export data
+ * @returns {Promise<OAuth2TrustedJwtIssuerExportInterface>} a promise that resolves to the export data
  */
 export async function exportOAuth2TrustedJwtIssuer({
   issuerId,
@@ -575,11 +580,10 @@ export async function exportOAuth2TrustedJwtIssuer({
 }
 
 /**
- * Import OAuth2 Client by ID
+ * Import OAuth2 trusted jwt issuer by ID. The import data is not modified.
  * @param {string} issuerId trusted jwt issuer id
  * @param {OAuth2TrustedJwtIssuerExportInterface} importData import data
- * @param {OAuth2TrustedJwtIssuerImportOptions} options import options
- * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise resolving to an oauth2 trusted jwt issuer
+ * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to the imported trusted jwt issuer
  */
 export async function importOAuth2TrustedJwtIssuer({
   issuerId,
@@ -596,7 +600,7 @@ export async function importOAuth2TrustedJwtIssuer({
   for (const id of Object.keys(importData.trustedJwtIssuer)) {
     if (id === issuerId) {
       try {
-        const issuerData = importData.trustedJwtIssuer[id];
+        const issuerData = cloneDeep(importData.trustedJwtIssuer[id]);
         delete issuerData._provider;
         delete issuerData._rev;
         response = await updateOAuth2TrustedJwtIssuer({
@@ -625,10 +629,9 @@ export async function importOAuth2TrustedJwtIssuer({
 }
 
 /**
- * Import first OAuth2 Client
+ * Import first OAuth2 trusted jwt issuer. The import data is not modified.
  * @param {OAuth2TrustedJwtIssuerExportInterface} importData import data
- * @param {OAuth2TrustedJwtIssuerImportOptions} options import options
- * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise resolving to an oauth2 trusted jwt issuer
+ * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to the imported trusted jwt issuer
  */
 export async function importFirstOAuth2TrustedJwtIssuer({
   importData,
@@ -642,7 +645,7 @@ export async function importFirstOAuth2TrustedJwtIssuer({
   const imported = [];
   for (const id of Object.keys(importData.trustedJwtIssuer)) {
     try {
-      const issuerData = importData.trustedJwtIssuer[id];
+      const issuerData = cloneDeep(importData.trustedJwtIssuer[id]);
       delete issuerData._provider;
       delete issuerData._rev;
       response = await updateOAuth2TrustedJwtIssuer({
@@ -669,10 +672,9 @@ export async function importFirstOAuth2TrustedJwtIssuer({
 }
 
 /**
- * Import OAuth2 Clients
+ * Import OAuth2 trusted jwt issuers. The import data is not modified.
  * @param {OAuth2TrustedJwtIssuerExportInterface} importData import data
- * @param {OAuth2TrustedJwtIssuerImportOptions} options import options
- * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise resolving to an array of oauth2 trusted jwt issuers
+ * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise that resolves to an array of the imported trusted jwt issuers
  */
 export async function importOAuth2TrustedJwtIssuers({
   importData,
@@ -685,7 +687,7 @@ export async function importOAuth2TrustedJwtIssuers({
   const errors = [];
   for (const id of Object.keys(importData.trustedJwtIssuer)) {
     try {
-      const issuerData = importData.trustedJwtIssuer[id];
+      const issuerData = cloneDeep(importData.trustedJwtIssuer[id]);
       delete issuerData._provider;
       delete issuerData._rev;
       response.push(
