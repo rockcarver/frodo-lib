@@ -51,6 +51,8 @@ const nonConnectors = [
   { _id: 'provisioner.openicf.connectorinfoprovider' },
   { _id: 'provisioner.openicf' },
   { _id: 'provisioner.other/ldap', enabled: true },
+  // contains the prefix but does not start with it
+  { _id: 'x.provisioner.openicf/ldap', enabled: true },
   {},
   { _id: 123 },
 ];
@@ -73,6 +75,12 @@ describe('readConnectors', () => {
       type: 'provisioner.openicf',
       state,
     });
+  });
+
+  test('leaves out an id that contains the prefix but does not start with it', async () => {
+    const ids = (await connectors.readConnectors()).map(({ _id }) => _id);
+    expect(ids).toEqual(connectorData.map(({ _id }) => _id));
+    expect(ids).not.toContain('x.provisioner.openicf/ldap');
   });
 
   test.each([{ entities: [] }, { entities: nonConnectors }])(
