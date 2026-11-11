@@ -27,6 +27,7 @@ import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import {
   createProgressIndicator,
+  debugMessage,
   stopProgressIndicator,
 } from '../utils/Console';
 import {
@@ -106,6 +107,7 @@ import {
   exportSocialIdentityProviders,
   importSocialIdentityProviders,
 } from './IdpOps';
+import { routeAgentSection } from './internal/AgentSectionRouting';
 import {
   exportInternalRoles,
   importInternalRoles,
@@ -1448,6 +1450,17 @@ export async function importFullConfiguration({
   try {
     for (const realm of Object.keys(importData.realm)) {
       state.setRealm(getRealmUsingExportFormat(realm));
+      // An object that a module owns (a trusted JWT issuer) is written once,
+      // by its module, whichever section of the file holds it. An export of
+      // 4.0.0 and later holds each issuer under `agent` and under
+      // `trustedJwtIssuer`; an `agent` export of the 4.x line only under `agent`.
+      const routing = routeAgentSection(importData.realm[realm]);
+      for (const { id, key } of routing.skipped) {
+        debugMessage({
+          message: `ConfigOps.importFullConfiguration: skipped the agent copy of ${id}: the ${key} section has it`,
+          state,
+        });
+      }
       indicatorId = createProgressIndicator({
         total: 17,
         message: `Importing everything for ${realm} realm...`,
@@ -1516,11 +1529,15 @@ export async function importFullConfiguration({
       response.push(
         await importWithErrorHandling(
           importAgents,
-          { importData: importData.realm[realm], globalConfig: false, state },
+          {
+            importData: { ...importData.realm[realm], agent: routing.agent },
+            globalConfig: false,
+            state,
+          },
           indicatorId,
           'Agents',
           resultCallback,
-          includeDynamic && !!importData.realm[realm].agent
+          includeDynamic && !!routing.agent
         )
       );
       response.push(
@@ -1597,7 +1614,9 @@ export async function importFullConfiguration({
         await importWithErrorHandling(
           importOAuth2TrustedJwtIssuers,
           {
-            importData: importData.realm[realm],
+            importData: {
+              trustedJwtIssuer: routing.routed.trustedJwtIssuer,
+            },
             // only a callback of the caller makes the issuers items of their own, as for the journeys
             resultCallback: resultCallback ? errorCallback : undefined,
             state,
@@ -1605,7 +1624,7 @@ export async function importFullConfiguration({
           indicatorId,
           'Trusted JWT Issuers',
           resultCallback,
-          includeDynamic && !!importData.realm[realm].trustedJwtIssuer
+          includeDynamic && !!routing.routed.trustedJwtIssuer
         )
       );
       response.push(

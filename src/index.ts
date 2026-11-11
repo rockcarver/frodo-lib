@@ -263,6 +263,7 @@ export type {
 export type {
   OAuth2TrustedJwtIssuerExportInterface,
   OAuth2TrustedJwtIssuerExportOptions,
+  OAuth2TrustedJwtIssuerImportData,
   OAuth2TrustedJwtIssuerImportOptions,
 } from './ops/OAuth2TrustedJwtIssuerOps';
 

@@ -11,7 +11,9 @@ import { debugMessage, printMessage } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
+import { type AgentExportInterface } from './AgentOps';
 import { FrodoError, isNotFoundError } from './FrodoError';
+import { routeAgentSection } from './internal/AgentSectionRouting';
 import { type ExportMetaData, type ResultCallback } from './OpsTypes';
 
 export type OAuth2TrustedJwtIssuer = {
@@ -92,34 +94,34 @@ export type OAuth2TrustedJwtIssuer = {
   /**
    * Import OAuth2 trusted jwt issuer by ID. The import data is not modified.
    * @param {string} issuerId trusted jwt issuer id
-   * @param {OAuth2TrustedJwtIssuerExportInterface} importData import data
+   * @param {OAuth2TrustedJwtIssuerImportData} importData import data: an export of trusted jwt issuers, or an agent export (4.x) that holds trusted jwt issuers in its agent section
    * @param {OAuth2TrustedJwtIssuerImportOptions} options deprecated, has no effect: a trusted jwt issuer has no scripts
    * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to the imported trusted jwt issuer
    */
   importOAuth2TrustedJwtIssuer(
     issuerId: string,
-    importData: OAuth2TrustedJwtIssuerExportInterface,
+    importData: OAuth2TrustedJwtIssuerImportData,
     options?: OAuth2TrustedJwtIssuerImportOptions
   ): Promise<OAuth2TrustedJwtIssuerSkeleton>;
   /**
    * Import first OAuth2 trusted jwt issuer. The import data is not modified.
-   * @param {OAuth2TrustedJwtIssuerExportInterface} importData import data
+   * @param {OAuth2TrustedJwtIssuerImportData} importData import data: an export of trusted jwt issuers, or an agent export (4.x) that holds trusted jwt issuers in its agent section
    * @param {OAuth2TrustedJwtIssuerImportOptions} options deprecated, has no effect: a trusted jwt issuer has no scripts
    * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to the imported trusted jwt issuer
    */
   importFirstOAuth2TrustedJwtIssuer(
-    importData: OAuth2TrustedJwtIssuerExportInterface,
+    importData: OAuth2TrustedJwtIssuerImportData,
     options?: OAuth2TrustedJwtIssuerImportOptions
   ): Promise<OAuth2TrustedJwtIssuerSkeleton>;
   /**
    * Import OAuth2 trusted jwt issuers. The import data is not modified. Every issuer is tried: an issuer that cannot be imported does not stop the others. Import data without issuers is an empty import.
-   * @param {OAuth2TrustedJwtIssuerExportInterface} importData import data
+   * @param {OAuth2TrustedJwtIssuerImportData} importData import data: an export of trusted jwt issuers, or an agent export (4.x) that holds trusted jwt issuers in its agent section
    * @param {OAuth2TrustedJwtIssuerImportOptions} options deprecated, has no effect: a trusted jwt issuer has no scripts
    * @param {ResultCallback<OAuth2TrustedJwtIssuerSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every issuer is passed to it as it happens (a failed issuer as an error that names it) and a failed issuer does not throw. Without it, the failures are collected and thrown as one error after every issuer was tried.
    * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise that resolves to an array of the imported trusted jwt issuers
    */
   importOAuth2TrustedJwtIssuers(
-    importData: OAuth2TrustedJwtIssuerExportInterface,
+    importData: OAuth2TrustedJwtIssuerImportData,
     options?: OAuth2TrustedJwtIssuerImportOptions,
     resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>
   ): Promise<OAuth2TrustedJwtIssuerSkeleton[]>;
@@ -175,7 +177,7 @@ export default (state: State): OAuth2TrustedJwtIssuer => {
     },
     async importOAuth2TrustedJwtIssuer(
       issuerId: string,
-      importData: OAuth2TrustedJwtIssuerExportInterface
+      importData: OAuth2TrustedJwtIssuerImportData
     ) {
       return importOAuth2TrustedJwtIssuer({
         issuerId,
@@ -184,12 +186,12 @@ export default (state: State): OAuth2TrustedJwtIssuer => {
       });
     },
     async importFirstOAuth2TrustedJwtIssuer(
-      importData: OAuth2TrustedJwtIssuerExportInterface
+      importData: OAuth2TrustedJwtIssuerImportData
     ) {
       return importFirstOAuth2TrustedJwtIssuer({ importData, state });
     },
     async importOAuth2TrustedJwtIssuers(
-      importData: OAuth2TrustedJwtIssuerExportInterface,
+      importData: OAuth2TrustedJwtIssuerImportData,
       _options?: OAuth2TrustedJwtIssuerImportOptions,
       resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>
     ): Promise<OAuth2TrustedJwtIssuerSkeleton[]> {
@@ -231,6 +233,28 @@ export interface OAuth2TrustedJwtIssuerImportOptions {
 export interface OAuth2TrustedJwtIssuerExportInterface {
   meta?: ExportMetaData;
   trustedJwtIssuer: Record<string, OAuth2TrustedJwtIssuerSkeleton>;
+}
+
+/**
+ * The data of a trusted jwt issuer import: an export of trusted jwt issuers, or
+ * an agent export (the `agent export` file of the 4.x line) that holds trusted
+ * jwt issuers in its `agent` section.
+ */
+export type OAuth2TrustedJwtIssuerImportData =
+  OAuth2TrustedJwtIssuerExportInterface | AgentExportInterface;
+
+/**
+ * The trusted jwt issuers an import reads: those of the `trustedJwtIssuer`
+ * section, extended with those of the `agent` section that the first section
+ * does not have (a copy in the `trustedJwtIssuer` section wins). The import data
+ * is not modified.
+ * @param {OAuth2TrustedJwtIssuerImportData} importData the import data
+ * @returns {Record<string, OAuth2TrustedJwtIssuerSkeleton>} the issuers by id
+ */
+function getIssuersToImport(
+  importData: OAuth2TrustedJwtIssuerImportData
+): Record<string, OAuth2TrustedJwtIssuerSkeleton> {
+  return routeAgentSection(importData).routed.trustedJwtIssuer ?? {};
 }
 
 /**
@@ -628,7 +652,7 @@ export async function exportOAuth2TrustedJwtIssuer({
 /**
  * Import OAuth2 trusted jwt issuer by ID. The import data is not modified.
  * @param {string} issuerId trusted jwt issuer id
- * @param {OAuth2TrustedJwtIssuerExportInterface} importData import data
+ * @param {OAuth2TrustedJwtIssuerImportData} importData import data: an export of trusted jwt issuers, or an agent export (4.x) that holds trusted jwt issuers in its agent section
  * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to the imported trusted jwt issuer
  */
 export async function importOAuth2TrustedJwtIssuer({
@@ -637,16 +661,17 @@ export async function importOAuth2TrustedJwtIssuer({
   state,
 }: {
   issuerId: string;
-  importData: OAuth2TrustedJwtIssuerExportInterface;
+  importData: OAuth2TrustedJwtIssuerImportData;
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerSkeleton> {
   let response = null;
   const errors = [];
   const imported = [];
-  for (const id of Object.keys(importData.trustedJwtIssuer)) {
+  const issuers = getIssuersToImport(importData);
+  for (const id of Object.keys(issuers)) {
     if (id === issuerId) {
       try {
-        const issuerData = cloneDeep(importData.trustedJwtIssuer[id]);
+        const issuerData = cloneDeep(issuers[id]);
         delete issuerData._provider;
         delete issuerData._rev;
         response = await updateOAuth2TrustedJwtIssuer({
@@ -676,22 +701,23 @@ export async function importOAuth2TrustedJwtIssuer({
 
 /**
  * Import first OAuth2 trusted jwt issuer. The import data is not modified.
- * @param {OAuth2TrustedJwtIssuerExportInterface} importData import data
+ * @param {OAuth2TrustedJwtIssuerImportData} importData import data: an export of trusted jwt issuers, or an agent export (4.x) that holds trusted jwt issuers in its agent section
  * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to the imported trusted jwt issuer
  */
 export async function importFirstOAuth2TrustedJwtIssuer({
   importData,
   state,
 }: {
-  importData: OAuth2TrustedJwtIssuerExportInterface;
+  importData: OAuth2TrustedJwtIssuerImportData;
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerSkeleton> {
   let response = null;
   const errors = [];
   const imported = [];
-  for (const id of Object.keys(importData.trustedJwtIssuer)) {
+  const issuers = getIssuersToImport(importData);
+  for (const id of Object.keys(issuers)) {
     try {
-      const issuerData = cloneDeep(importData.trustedJwtIssuer[id]);
+      const issuerData = cloneDeep(issuers[id]);
       delete issuerData._provider;
       delete issuerData._rev;
       response = await updateOAuth2TrustedJwtIssuer({
@@ -721,7 +747,7 @@ export async function importFirstOAuth2TrustedJwtIssuer({
  * Import OAuth2 trusted jwt issuers. The import data is not modified.
  * Every issuer is tried: an issuer that cannot be imported does not stop the others. Import data without issuers is an empty import.
  * @param {object} params structured and named parameters
- * @param {OAuth2TrustedJwtIssuerExportInterface} params.importData import data
+ * @param {OAuth2TrustedJwtIssuerImportData} params.importData import data: an export of trusted jwt issuers, or an agent export (4.x) that holds trusted jwt issuers in its agent section
  * @param {ResultCallback<OAuth2TrustedJwtIssuerSkeleton>} params.resultCallback Optional callback to process individual results. When given, the outcome of every issuer is passed to it as it happens (a failed issuer as an error that names it) and a failed issuer does not throw. Without it, the failures are collected and thrown as one error after every issuer was tried.
  * @param {State} params.state state object
  * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise that resolves to an array of the imported trusted jwt issuers
@@ -732,7 +758,7 @@ export async function importOAuth2TrustedJwtIssuers({
   resultCallback,
   state,
 }: {
-  importData: OAuth2TrustedJwtIssuerExportInterface;
+  importData: OAuth2TrustedJwtIssuerImportData;
   resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>;
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerSkeleton[]> {
@@ -742,11 +768,12 @@ export async function importOAuth2TrustedJwtIssuers({
     message: `OAuth2TrustedJwtIssuerOps.importOAuth2TrustedJwtIssuers: start`,
     state,
   });
-  for (const id of Object.keys(importData?.trustedJwtIssuer ?? {})) {
+  const issuers = getIssuersToImport(importData);
+  for (const id of Object.keys(issuers)) {
     let issuer: OAuth2TrustedJwtIssuerSkeleton | undefined;
     let failure: FrodoError | undefined;
     try {
-      const issuerData = cloneDeep(importData.trustedJwtIssuer[id]);
+      const issuerData = cloneDeep(issuers[id]);
       delete issuerData._provider;
       delete issuerData._rev;
       issuer = await updateOAuth2TrustedJwtIssuer({
