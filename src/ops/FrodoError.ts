@@ -42,6 +42,8 @@ export const FRODO_ERROR_CODES = [
    * operation that failed for this reason; in a nested error it is found through `originalErrors`.
    */
   'INSUFFICIENT_SCOPE',
+  /** CIMD profiles were asked for in a realm of a deployment that does not offer the agent type `CIMDProfile`. */
+  'CIMD_PROFILES_NOT_AVAILABLE',
 ] as const;
 
 /** The identity of an error condition, see {@link FRODO_ERROR_CODES}. */

@@ -94,6 +94,9 @@ import ManagedSystemObjectSchemaOps, {
 } from '../ops/ManagedSystemObjectSchemaOps';
 import MappingOps, { Mapping } from '../ops/MappingOps';
 import NodeOps, { Node } from '../ops/NodeOps';
+import OAuth2CIMDProfileOps, {
+  OAuth2CIMDProfile,
+} from '../ops/OAuth2CIMDProfileOps';
 import OAuth2ClientOps, { OAuth2Client } from '../ops/OAuth2ClientOps';
 import OAuth2OidcOps, { OAuth2Oidc } from '../ops/OAuth2OidcOps';
 import OAuth2ProviderOps, { OAuth2Provider } from '../ops/OAuth2ProviderOps';
@@ -237,6 +240,7 @@ export type Frodo = {
   mcp: Mcp;
 
   oauth2oidc: {
+    cimd: OAuth2CIMDProfile;
     client: OAuth2Client;
     endpoint: OAuth2Oidc;
     external: Idp;
@@ -579,6 +583,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     mcp: McpOps(() => instance),
 
     oauth2oidc: {
+      cimd: OAuth2CIMDProfileOps(state),
       client: OAuth2ClientOps(state),
       endpoint: OAuth2OidcOps(state),
       external: IdpOps(state),

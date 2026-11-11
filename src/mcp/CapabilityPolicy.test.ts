@@ -98,3 +98,62 @@ describe('special-kind capability policy gating', () => {
     );
   });
 });
+
+describe('trust-anchor writes under the policy presets', () => {
+  // Creating a trusted JWT issuer or a CIMD profile registers a trust anchor.
+  // Both are `high` (reviewed together), so the presets treat them like any
+  // other high-risk write: `agentic` and `standard` allow create and update and
+  // deny import and delete by operation type, `read-only` allows none, `admin`
+  // all. Moving them to `critical` would remove them from every preset except
+  // admin; this test pins the decision.
+  const inventory = buildCapabilityInventory(frodo, {
+    includeTopLevelDomains: ['oauth2oidc'],
+    includeUtils: false,
+  });
+  const ids = {
+    create: [
+      'oauth2oidc.issuer.createOAuth2TrustedJwtIssuer',
+      'oauth2oidc.cimd.createCIMDProfile',
+    ],
+    update: [
+      'oauth2oidc.issuer.updateOAuth2TrustedJwtIssuer',
+      'oauth2oidc.cimd.updateCIMDProfile',
+    ],
+    import: [
+      'oauth2oidc.issuer.importOAuth2TrustedJwtIssuer',
+      'oauth2oidc.issuer.importFirstOAuth2TrustedJwtIssuer',
+      'oauth2oidc.issuer.importOAuth2TrustedJwtIssuers',
+      'oauth2oidc.cimd.importCIMDProfile',
+      'oauth2oidc.cimd.importCIMDProfiles',
+    ],
+  };
+  const all = [...ids.create, ...ids.update, ...ids.import];
+  const surviving = (preset: keyof typeof MCP_POLICY_PRESETS) =>
+    applyCapabilityPolicy(
+      inventory.filter((c) => all.includes(c.id)),
+      MCP_POLICY_PRESETS[preset]
+    )
+      .map((c) => c.id)
+      .sort();
+
+  test('the fixture holds every trust-anchor write', () => {
+    expect(inventory.filter((c) => all.includes(c.id))).toHaveLength(
+      all.length
+    );
+  });
+
+  test.each(['agentic', 'standard'] as const)(
+    '%s allows create and update and denies import',
+    (preset) => {
+      expect(surviving(preset)).toEqual([...ids.create, ...ids.update].sort());
+    }
+  );
+
+  test('read-only allows none of them', () => {
+    expect(surviving('read-only')).toEqual([]);
+  });
+
+  test('admin allows all of them', () => {
+    expect(surviving('admin')).toEqual([...all].sort());
+  });
+});

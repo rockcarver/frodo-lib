@@ -113,6 +113,8 @@ export type {
   NodeSkeleton,
 } from './api/NodeApi';
 
+export type { CIMDProfileSkeleton } from './api/OAuth2CIMDProfileApi';
+
 export type { OAuth2ClientSkeleton } from './api/OAuth2ClientApi';
 
 export type { AccessTokenResponseType } from './api/OAuth2OIDCApi';
@@ -246,6 +248,11 @@ export type {
   CustomNodeExportOptions,
   CustomNodeImportOptions,
 } from './ops/NodeOps';
+
+export type {
+  CIMDProfileExportInterface,
+  CIMDProfileImportResult,
+} from './ops/OAuth2CIMDProfileOps';
 
 export type {
   OAuth2ClientExportInterface,

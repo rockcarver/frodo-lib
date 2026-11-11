@@ -385,6 +385,72 @@ describe('MCP capability foundation', () => {
     expect(
       updateIssuer?.parameters?.map((parameter) => parameter.name)
     ).toEqual(['issuerId', 'issuerData']);
+
+    for (const method of ['createCIMDProfile', 'updateCIMDProfile']) {
+      const cimd = byId.get(`oauth2oidc.cimd.${method}`);
+      expect(cimd).toBeDefined();
+      expect(cimd?.argumentMode).toBe('named');
+      expect(cimd?.parameters?.map((parameter) => parameter.name)).toEqual([
+        'profileId',
+        'profileData',
+      ]);
+      expect(cimd?.riskClass).toBe('high');
+      expect(cimd?.mutating).toBe(true);
+    }
+  });
+
+  test('exposes the CIMD profile module with reviewed risk', () => {
+    const capabilities = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['oauth2oidc'],
+      includeUtils: false,
+    });
+    const byId = new Map(capabilities.map((cap) => [cap.id, cap]));
+
+    // the question whether the realm offers the type is a read that changes nothing
+    const available = byId.get('oauth2oidc.cimd.isCIMDProfileAvailable');
+    expect(available).toBeDefined();
+    expect(available?.riskClass).toBe('low');
+    expect(available?.mutating).toBe(false);
+    expect(available?.operationType).toBe('read');
+
+    // the rest follows the CRUDQ naming: reads are low, a delete is high and destructive
+    for (const method of [
+      'readCIMDProfiles',
+      'readCIMDProfile',
+      'readCIMDProfileTemplate',
+      'readCIMDProfileSchema',
+    ]) {
+      const read = byId.get(`oauth2oidc.cimd.${method}`);
+      expect(read).toBeDefined();
+      expect(read?.riskClass).toBe('low');
+      expect(read?.mutating).toBe(false);
+    }
+    const remove = byId.get('oauth2oidc.cimd.deleteCIMDProfile');
+    expect(remove).toBeDefined();
+    expect(remove?.riskClass).toBe('high');
+    expect(remove?.mutating).toBe(true);
+
+    // bulk functions: import and delete are high, export medium
+    expect(byId.get('oauth2oidc.cimd.importCIMDProfiles')?.riskClass).toBe(
+      'high'
+    );
+    expect(byId.get('oauth2oidc.cimd.importCIMDProfile')?.riskClass).toBe(
+      'high'
+    );
+    expect(byId.get('oauth2oidc.cimd.deleteCIMDProfiles')?.riskClass).toBe(
+      'high'
+    );
+    expect(byId.get('oauth2oidc.cimd.exportCIMDProfiles')?.riskClass).toBe(
+      'medium'
+    );
+    expect(byId.get('oauth2oidc.cimd.exportCIMDProfile')?.riskClass).toBe(
+      'medium'
+    );
+
+    // a local scaffold, no value to an agent: not offered
+    expect(byId.has('oauth2oidc.cimd.createCIMDProfileExportTemplate')).toBe(
+      false
+    );
   });
 
   test('pins the reviewed and inferred risk classes of the trusted JWT issuer module', () => {
@@ -476,6 +542,59 @@ describe('MCP capability foundation', () => {
         mutating: false,
         riskClass: 'low',
       });
+    }
+  });
+
+  // Trust-anchor writes: trusted JWT issuers and CIMD profiles are reviewed
+  // together (decision: high, not critical). Each write says what it registers,
+  // and the generic agent capabilities that can reach the same objects say so.
+  test('trust-anchor writes carry the reviewed risk class and say what they write', () => {
+    const capabilities = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['oauth2oidc', 'agent'],
+      includeUtils: false,
+    });
+    const byId = new Map(capabilities.map((cap) => [cap.id, cap]));
+
+    const issuerWrites = [
+      'oauth2oidc.issuer.createOAuth2TrustedJwtIssuer',
+      'oauth2oidc.issuer.updateOAuth2TrustedJwtIssuer',
+      'oauth2oidc.issuer.importOAuth2TrustedJwtIssuer',
+      'oauth2oidc.issuer.importFirstOAuth2TrustedJwtIssuer',
+      'oauth2oidc.issuer.importOAuth2TrustedJwtIssuers',
+    ];
+    const cimdWrites = [
+      'oauth2oidc.cimd.createCIMDProfile',
+      'oauth2oidc.cimd.updateCIMDProfile',
+      'oauth2oidc.cimd.importCIMDProfile',
+      'oauth2oidc.cimd.importCIMDProfiles',
+    ];
+    for (const id of issuerWrites) {
+      const capability = byId.get(id);
+      expect(capability).toBeDefined();
+      expect(capability?.mutating).toBe(true);
+      expect(capability?.riskClass).toBe('high');
+      expect(capability?.notes).toMatch(/trust[- ]anchor/);
+    }
+    for (const id of cimdWrites) {
+      const capability = byId.get(id);
+      expect(capability).toBeDefined();
+      expect(capability?.mutating).toBe(true);
+      expect(capability?.riskClass).toBe('high');
+      expect(capability?.notes).toMatch(/without registration/);
+    }
+
+    // the generic agent capabilities that can write or delete the same objects
+    for (const id of [
+      'agent.importAgent',
+      'agent.importAgents',
+      'agent.deleteAgent',
+      'agent.deleteAgents',
+    ]) {
+      const capability = byId.get(id);
+      expect(capability).toBeDefined();
+      expect(capability?.riskClass).toBe('high');
+      expect(capability?.notes).toMatch(/oauth2oidc\.issuer/);
+      expect(capability?.notes).toMatch(/oauth2oidc\.cimd/);
     }
   });
 
