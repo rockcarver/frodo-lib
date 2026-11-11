@@ -97,11 +97,13 @@ export type Agent = {
    * Import agents. The import data is usually read from an agent export file.
    * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
    * @param {AgentExportInterface} importData agent import data.
+   * @param {ResultCallback<AgentSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every agent is passed to it as it happens (a failed agent as an error that names the agent and its type) and a failed agent does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
    * @returns {Promise<AgentSkeleton[]>} The agents that were imported.
    */
   importAgents(
     importData: AgentExportInterface,
-    globalConfig: boolean
+    globalConfig: boolean,
+    resultCallback?: ResultCallback<AgentSkeleton>
   ): Promise<AgentSkeleton[]>;
   /**
    * Import agent. The import data is usually read from an agent export file.
@@ -173,8 +175,12 @@ export type Agent = {
   /**
    * Import identity gateway agents. The import data is usually read from an agent export file.
    * @param {AgentExportInterface} importData agent import data.
+   * @param {ResultCallback<AgentSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every agent is passed to it as it happens (a failed agent as an error that names the agent and its type) and a failed agent does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
    */
-  importIdentityGatewayAgents(importData: AgentExportInterface): Promise<void>;
+  importIdentityGatewayAgents(
+    importData: AgentExportInterface,
+    resultCallback?: ResultCallback<AgentSkeleton>
+  ): Promise<void>;
   /**
    * Import identity gateway agent. The import data is usually read from an agent export file.
    * @param {string} agentId agent id/name
@@ -243,8 +249,12 @@ export type Agent = {
   /**
    * Import java agents. The import data is usually read from an agent export file.
    * @param {AgentExportInterface} importData agent import data.
+   * @param {ResultCallback<AgentSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every agent is passed to it as it happens (a failed agent as an error that names the agent and its type) and a failed agent does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
    */
-  importJavaAgents(importData: AgentExportInterface): Promise<void>;
+  importJavaAgents(
+    importData: AgentExportInterface,
+    resultCallback?: ResultCallback<AgentSkeleton>
+  ): Promise<void>;
   /**
    * Import java agent. The import data is usually read from an agent export file.
    * @param {string} agentId agent id/name
@@ -313,8 +323,12 @@ export type Agent = {
   /**
    * Import web agents. The import data is usually read from an agent export file.
    * @param {AgentExportInterface} importData agent import data.
+   * @param {ResultCallback<AgentSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every agent is passed to it as it happens (a failed agent as an error that names the agent and its type) and a failed agent does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
    */
-  importWebAgents(importData: AgentExportInterface): Promise<void>;
+  importWebAgents(
+    importData: AgentExportInterface,
+    resultCallback?: ResultCallback<AgentSkeleton>
+  ): Promise<void>;
   /**
    * Import web agent. The import data is usually read from an agent export file.
    * @param {string} agentId agent id/name
@@ -395,10 +409,12 @@ export type Agent = {
    * Import AI agents. The import data is usually read from an agent export file.
    * @param {AgentExportInterface} importData agent import data.
    * @param {boolean} includeAgentIdentity whether to import related AI agent identity objects
+   * @param {ResultCallback<AgentSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every agent is passed to it as it happens (a failed agent as an error that names the agent and its type) and a failed agent does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
    */
   importAIAgents(
     importData: AgentExportInterface,
-    includeAgentIdentity?: boolean
+    includeAgentIdentity?: boolean,
+    resultCallback?: ResultCallback<AgentSkeleton>
   ): Promise<void>;
   /**
    * Import AI agent. The import data is usually read from an agent export file.
@@ -496,8 +512,8 @@ export default (state: State): Agent => {
     async exportAgent(agentId, globalConfig = false) {
       return exportAgent({ agentId, globalConfig, state });
     },
-    async importAgents(importData, globalConfig = false) {
-      return importAgents({ importData, globalConfig, state });
+    async importAgents(importData, globalConfig = false, resultCallback) {
+      return importAgents({ importData, globalConfig, resultCallback, state });
     },
     async importAgent(agentId, importData, globalConfig = false) {
       return importAgent({ agentId, importData, globalConfig, state });
@@ -530,8 +546,8 @@ export default (state: State): Agent => {
     async exportIdentityGatewayAgent(agentId) {
       return exportIdentityGatewayAgent({ agentId, state });
     },
-    async importIdentityGatewayAgents(importData) {
-      return importIdentityGatewayAgents({ importData, state });
+    async importIdentityGatewayAgents(importData, resultCallback) {
+      return importIdentityGatewayAgents({ importData, resultCallback, state });
     },
     async importIdentityGatewayAgent(agentId, importData) {
       return importIdentityGatewayAgent({ agentId, importData, state });
@@ -562,8 +578,8 @@ export default (state: State): Agent => {
     async exportJavaAgent(agentId) {
       return exportJavaAgent({ agentId, state });
     },
-    async importJavaAgents(importData) {
-      return importJavaAgents({ importData, state });
+    async importJavaAgents(importData, resultCallback) {
+      return importJavaAgents({ importData, resultCallback, state });
     },
     async importJavaAgent(agentId, importData) {
       return importJavaAgent({ agentId, importData, state });
@@ -594,8 +610,8 @@ export default (state: State): Agent => {
     async exportWebAgent(agentId) {
       return exportWebAgent({ agentId, state });
     },
-    async importWebAgents(importData) {
-      return importWebAgents({ importData, state });
+    async importWebAgents(importData, resultCallback) {
+      return importWebAgents({ importData, resultCallback, state });
     },
     async importWebAgent(agentId, importData) {
       return importWebAgent({ agentId, importData, state });
@@ -626,8 +642,17 @@ export default (state: State): Agent => {
     async exportAIAgent(agentId, includeAgentIdentity = true) {
       return exportAIAgent({ agentId, includeAgentIdentity, state });
     },
-    async importAIAgents(importData, includeAgentIdentity = true) {
-      return importAIAgents({ importData, includeAgentIdentity, state });
+    async importAIAgents(
+      importData,
+      includeAgentIdentity = true,
+      resultCallback
+    ) {
+      return importAIAgents({
+        importData,
+        includeAgentIdentity,
+        resultCallback,
+        state,
+      });
     },
     async importAIAgent(agentId, importData, includeAgentIdentity = true) {
       return importAIAgent({
@@ -1001,6 +1026,36 @@ async function _deleteEachAgent({
 }
 
 /**
+ * Report the outcome of importing one agent: to the result callback if there is one, otherwise a failure is collected.
+ * @param {object} params structured and named parameters
+ * @param {AgentSkeleton} params.agent the agent that was imported (undefined if the import failed)
+ * @param {FrodoError} params.failure the error that names the agent (undefined if the import succeeded)
+ * @param {FrodoError[]} params.errors where the failures are collected when there is no result callback
+ * @param {ResultCallback<AgentSkeleton>} params.resultCallback Optional callback to process individual results
+ */
+function _reportAgentImport({
+  agent,
+  failure,
+  errors,
+  resultCallback,
+}: {
+  agent?: AgentSkeleton;
+  failure?: FrodoError;
+  errors: FrodoError[];
+  resultCallback?: ResultCallback<AgentSkeleton>;
+}) {
+  if (failure) {
+    if (resultCallback) {
+      resultCallback(failure, undefined);
+    } else {
+      errors.push(failure);
+    }
+  } else if (resultCallback) {
+    resultCallback(undefined, agent);
+  }
+}
+
+/**
  * Delete all agents
  * @param {object} params structured and named parameters
  * @param {ResultCallback<AgentSkeleton>} params.resultCallback Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
@@ -1169,25 +1224,31 @@ export async function exportAgent({
 
 /**
  * Import agents. The import data is usually read from an agent export file.
+ * Every agent is tried: an agent that cannot be imported does not stop the others. An agent type that answers HTTP 501 is a failed agent like any other.
  * @param {AgentExportInterface} importData agent import data.
  * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
+ * @param {ResultCallback<AgentSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every agent is passed to it as it happens (a failed agent as an error that names the agent and its type) and a failed agent does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
  * @returns {Promise<AgentSkeleton[]>} The agents that were imported.
  */
 export async function importAgents({
   importData,
   globalConfig = false,
+  resultCallback,
   state,
 }: {
   importData: AgentExportInterface;
   globalConfig: boolean;
+  resultCallback?: ResultCallback<AgentSkeleton>;
   state: State;
 }): Promise<AgentSkeleton[]> {
   const response: AgentSkeleton[] = [];
-  const errors: Error[] = [];
+  const errors: FrodoError[] = [];
   try {
     debugMessage({ message: `AgentOps.importAgents: start`, state });
     for (const agentId of Object.keys(importData.agent)) {
       let agentType: AgentType;
+      let agent: AgentSkeleton;
+      let failure: FrodoError;
       try {
         agentType = importData.agent[agentId]._type._id as AgentType;
         debugMessage({
@@ -1202,25 +1263,21 @@ export async function importAgents({
             `Can't import Soap STS agents for '${state.getDeploymentType()}' deployment type.`
           );
         }
-        response.push(
-          await _putAgentByTypeAndId({
-            agentType,
-            agentId,
-            agentData: importData.agent[agentId],
-            globalConfig,
-            state,
-          })
-        );
+        agent = await _putAgentByTypeAndId({
+          agentType,
+          agentId,
+          agentData: importData.agent[agentId],
+          globalConfig,
+          state,
+        });
       } catch (error) {
-        if (error.httpStatus !== 501 && error.response?.status !== 501) {
-          errors.push(
-            new FrodoError(
-              `Error importing ${getCurrentRealmName(state) + ' realm'} agent ${agentId} of type ${agentType}`,
-              error
-            )
-          );
-        }
+        failure = new FrodoError(
+          `Error importing ${getCurrentRealmName(state) + ' realm'} agent ${agentId} of type ${agentType}`,
+          error
+        );
       }
+      if (!failure) response.push(agent);
+      _reportAgentImport({ agent, failure, errors, resultCallback });
     }
     if (errors.length > 0) {
       throw new FrodoError(
@@ -1670,16 +1727,20 @@ export async function exportIdentityGatewayAgent({
 
 /**
  * Import identity gateway agents. The import data is usually read from an agent export file.
+ * Every agent is tried: an agent that cannot be imported does not stop the others.
  * @param {AgentExportInterface} importData agent import data.
+ * @param {ResultCallback<AgentSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every agent is passed to it as it happens (a failed agent as an error that names the agent and its type) and a failed agent does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
  */
 export async function importIdentityGatewayAgents({
   importData,
+  resultCallback,
   state,
 }: {
   importData: AgentExportInterface;
+  resultCallback?: ResultCallback<AgentSkeleton>;
   state: State;
 }): Promise<void> {
-  const errors: Error[] = [];
+  const errors: FrodoError[] = [];
   try {
     debugMessage({
       message: `AgentOps.importIdentityGatewayAgents: start`,
@@ -1687,13 +1748,15 @@ export async function importIdentityGatewayAgents({
     });
     for (const agentId of Object.keys(importData.agent)) {
       let agentType: AgentType;
+      let agent: AgentSkeleton;
+      let failure: FrodoError;
       try {
         agentType = importData.agent[agentId]._type._id as AgentType;
         if (agentType !== 'IdentityGatewayAgent')
           throw new FrodoError(
             `Wrong agent type! Expected 'IdentityGatewayAgent' but got '${agentType}'.`
           );
-        await _putAgentByTypeAndId({
+        agent = await _putAgentByTypeAndId({
           agentType,
           agentId,
           agentData: importData.agent[agentId],
@@ -1701,13 +1764,12 @@ export async function importIdentityGatewayAgents({
           state,
         });
       } catch (error) {
-        errors.push(
-          new FrodoError(
-            `Error importing ${getCurrentRealmName(state) + ' realm'} agent ${agentId} of type ${agentType}`,
-            error
-          )
+        failure = new FrodoError(
+          `Error importing ${getCurrentRealmName(state) + ' realm'} agent ${agentId} of type ${agentType}`,
+          error
         );
       }
+      _reportAgentImport({ agent, failure, errors, resultCallback });
     }
     if (errors.length > 0) {
       throw new FrodoError(
@@ -2085,27 +2147,36 @@ export async function exportJavaAgent({
 
 /**
  * Import java agents. The import data is usually read from an agent export file.
+ * Every agent is tried: an agent that cannot be imported does not stop the others.
  * @param {AgentExportInterface} importData agent import data.
+ * @param {ResultCallback<AgentSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every agent is passed to it as it happens (a failed agent as an error that names the agent and its type) and a failed agent does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
  */
 export async function importJavaAgents({
   importData,
+  resultCallback,
   state,
 }: {
   importData: AgentExportInterface;
+  resultCallback?: ResultCallback<AgentSkeleton>;
   state: State;
 }): Promise<void> {
-  const errors: Error[] = [];
+  const errors: FrodoError[] = [];
   try {
-    debugMessage({ message: `AgentOps.importJavaAgents: start`, state });
+    debugMessage({
+      message: `AgentOps.importJavaAgents: start`,
+      state,
+    });
     for (const agentId of Object.keys(importData.agent)) {
       let agentType: AgentType;
+      let agent: AgentSkeleton;
+      let failure: FrodoError;
       try {
         agentType = importData.agent[agentId]._type._id as AgentType;
         if (agentType !== 'J2EEAgent')
           throw new FrodoError(
             `Wrong agent type! Expected 'J2EEAgent' but got '${agentType}'.`
           );
-        await _putAgentByTypeAndId({
+        agent = await _putAgentByTypeAndId({
           agentType,
           agentId,
           agentData: importData.agent[agentId],
@@ -2113,13 +2184,12 @@ export async function importJavaAgents({
           state,
         });
       } catch (error) {
-        errors.push(
-          new FrodoError(
-            `Error importing ${getCurrentRealmName(state) + ' realm'} agent ${agentId} of type ${agentType}`,
-            error
-          )
+        failure = new FrodoError(
+          `Error importing ${getCurrentRealmName(state) + ' realm'} agent ${agentId} of type ${agentType}`,
+          error
         );
       }
+      _reportAgentImport({ agent, failure, errors, resultCallback });
     }
     if (errors.length > 0) {
       throw new FrodoError(
@@ -2127,7 +2197,10 @@ export async function importJavaAgents({
         errors
       );
     }
-    debugMessage({ message: `AgentOps.importJavaAgents: end`, state });
+    debugMessage({
+      message: `AgentOps.importJavaAgents: end`,
+      state,
+    });
   } catch (error) {
     // just re-throw previously caught errors
     if (errors.length > 0) {
@@ -2484,27 +2557,36 @@ export async function exportWebAgent({
 
 /**
  * Import web agents. The import data is usually read from an agent export file.
+ * Every agent is tried: an agent that cannot be imported does not stop the others.
  * @param {AgentExportInterface} importData agent import data.
+ * @param {ResultCallback<AgentSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every agent is passed to it as it happens (a failed agent as an error that names the agent and its type) and a failed agent does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
  */
 export async function importWebAgents({
   importData,
+  resultCallback,
   state,
 }: {
   importData: AgentExportInterface;
+  resultCallback?: ResultCallback<AgentSkeleton>;
   state: State;
 }): Promise<void> {
-  const errors: Error[] = [];
+  const errors: FrodoError[] = [];
   try {
-    debugMessage({ message: `AgentOps.importWebAgents: start`, state });
+    debugMessage({
+      message: `AgentOps.importWebAgents: start`,
+      state,
+    });
     for (const agentId of Object.keys(importData.agent)) {
       let agentType: AgentType;
+      let agent: AgentSkeleton;
+      let failure: FrodoError;
       try {
         agentType = importData.agent[agentId]._type._id as AgentType;
         if (agentType !== 'WebAgent')
           throw new FrodoError(
             `Wrong agent type! Expected 'WebAgent' but got '${agentType}'.`
           );
-        await _putAgentByTypeAndId({
+        agent = await _putAgentByTypeAndId({
           agentType,
           agentId,
           agentData: importData.agent[agentId],
@@ -2512,13 +2594,12 @@ export async function importWebAgents({
           state,
         });
       } catch (error) {
-        errors.push(
-          new FrodoError(
-            `Error importing ${getCurrentRealmName(state) + ' realm'} agent ${agentId} of type ${agentType}`,
-            error
-          )
+        failure = new FrodoError(
+          `Error importing ${getCurrentRealmName(state) + ' realm'} agent ${agentId} of type ${agentType}`,
+          error
         );
       }
+      _reportAgentImport({ agent, failure, errors, resultCallback });
     }
     if (errors.length > 0) {
       throw new FrodoError(
@@ -2526,7 +2607,10 @@ export async function importWebAgents({
         errors
       );
     }
-    debugMessage({ message: `AgentOps.importWebAgents: end`, state });
+    debugMessage({
+      message: `AgentOps.importWebAgents: end`,
+      state,
+    });
   } catch (error) {
     // just re-throw previously caught errors
     if (errors.length > 0) {
@@ -3338,21 +3422,25 @@ export async function exportAIAgent({
 
 /**
  * Import AI agents. The import data is usually read from an agent export file.
+ * Every agent is tried: an agent that cannot be imported does not stop the others.
  * @param {object} params structured and named parameters
  * @param {AgentExportInterface} params.importData agent import data.
  * @param {boolean} [params.includeAgentIdentity=true] whether to also import agent identity and privileges (only for cloud/ForgeOps)
+ * @param {ResultCallback<AgentSkeleton>} params.resultCallback Optional callback to process individual results. When given, the outcome of every agent is passed to it as it happens (a failed agent as an error that names the agent and its type) and a failed agent does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
  * @param {State} params.state state object
  */
 export async function importAIAgents({
   importData,
   includeAgentIdentity = true,
+  resultCallback,
   state,
 }: {
   importData: AgentExportInterface;
   includeAgentIdentity?: boolean;
+  resultCallback?: ResultCallback<AgentSkeleton>;
   state: State;
 }): Promise<void> {
-  const errors: Error[] = [];
+  const errors: FrodoError[] = [];
   try {
     debugMessage({
       message: `AgentOps.importAIAgents: start [includeAgentIdentity=${includeAgentIdentity}]`,
@@ -3360,6 +3448,8 @@ export async function importAIAgents({
     });
     for (const agentId of Object.keys(importData.agent)) {
       let agentType: AgentType;
+      let agent: AgentSkeleton;
+      let failure: FrodoError;
       try {
         agentType = importData.agent[agentId]._type._id as AgentType;
         if (agentType !== 'AIAgent')
@@ -3385,9 +3475,10 @@ export async function importAIAgents({
               provisioningErrors
             );
           }
+          agent = result;
         } else {
           const agentData = sanitizeAIAgentPayload(importData.agent[agentId]);
-          await _putAgentByTypeAndId({
+          agent = await _putAgentByTypeAndId({
             agentType,
             agentId,
             agentData,
@@ -3396,13 +3487,12 @@ export async function importAIAgents({
           });
         }
       } catch (error) {
-        errors.push(
-          new FrodoError(
-            `Error importing ${getCurrentRealmName(state) + ' realm'} agent ${agentId} of type ${agentType}`,
-            error
-          )
+        failure = new FrodoError(
+          `Error importing ${getCurrentRealmName(state) + ' realm'} agent ${agentId} of type ${agentType}`,
+          error
         );
       }
+      _reportAgentImport({ agent, failure, errors, resultCallback });
     }
     if (errors.length > 0) {
       throw new FrodoError(

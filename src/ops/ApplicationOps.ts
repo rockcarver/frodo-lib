@@ -246,10 +246,13 @@ export type Application = {
   ): Promise<ApplicationExportInterface>;
   /**
    * Export all applications. The response can be saved to file as is.
+   * @param {ApplicationExportOptions} options export options
+   * @param {ResultCallback<ApplicationGlossarySkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every application is passed to it as it happens (a failed application as an error that names it, with the reasons nested) and a failed application does not throw: the applications that could be exported are returned. The dependencies of a failed application that were read before it failed may still be in the export. Without it, the failures are collected and thrown as one error after every application was tried. Failing to read the applications always throws.
    * @returns {Promise<ApplicationExportInterface>} Promise resolving to an ApplicationExportInterface object.
    */
   exportApplications(
-    options?: ApplicationExportOptions
+    options?: ApplicationExportOptions,
+    resultCallback?: ResultCallback<ApplicationGlossarySkeleton>
   ): Promise<ApplicationExportInterface>;
   /**
    * Import application. The import data is usually read from an application export file. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.
@@ -539,9 +542,10 @@ export default (state: State): Application => {
       return exportApplicationByName({ applicationName, options, state });
     },
     async exportApplications(
-      options: ApplicationExportOptions = { deps: true, useStringArrays: true }
+      options: ApplicationExportOptions = { deps: true, useStringArrays: true },
+      resultCallback?: ResultCallback<ApplicationGlossarySkeleton>
     ): Promise<ApplicationExportInterface> {
-      return exportApplications({ options, state });
+      return exportApplications({ options, resultCallback, state });
     },
     async importApplication(
       applicationId: string,
@@ -2220,11 +2224,20 @@ export async function exportApplicationByName({
   }
 }
 
+/**
+ * Export all applications. The response can be saved to file as is.
+ * Every application is tried: an application that cannot be exported does not stop the others.
+ * @param {ApplicationExportOptions} options export options
+ * @param {ResultCallback<ApplicationGlossarySkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every application is passed to it as it happens (a failed application as an error that names it, with the reasons nested) and a failed application does not throw: the applications that could be exported are returned. The dependencies of a failed application that were read before it failed may still be in the export. Without it, the failures are collected and thrown as one error after every application was tried. Failing to read the applications always throws.
+ * @returns {Promise<ApplicationExportInterface>} Promise resolving to an ApplicationExportInterface object.
+ */
 export async function exportApplications({
   options,
+  resultCallback = void 0,
   state,
 }: {
   options: ApplicationExportOptions;
+  resultCallback?: ResultCallback<ApplicationGlossarySkeleton>;
   state: State;
 }): Promise<ApplicationExportInterface> {
   const errors: Error[] = [];
@@ -2246,6 +2259,8 @@ export async function exportApplications({
         message: `Exporting ${getCurrentRealmName(state) + ' realm'} application ${applicationData.name}`,
         state,
       });
+      // what went wrong with this application
+      const failures: Error[] = [];
       if (state.getIsIGA()) {
         try {
           applicationData.glossary = await readApplicationGlossary({
@@ -2253,10 +2268,9 @@ export async function exportApplications({
             state,
           });
         } catch (error) {
-          errors.push(error);
+          failures.push(error);
         }
       }
-      exportData.managedApplication[applicationData._id] = applicationData;
       if (options.deps) {
         try {
           await exportDependencies({
@@ -2266,8 +2280,22 @@ export async function exportApplications({
             state,
           });
         } catch (error) {
-          errors.push(error);
+          failures.push(error);
         }
+      }
+      if (failures.length === 0) {
+        exportData.managedApplication[applicationData._id] = applicationData;
+        if (resultCallback) resultCallback(undefined, applicationData);
+      } else if (resultCallback) {
+        resultCallback(
+          new FrodoError(
+            `Error exporting ${getCurrentRealmName(state) + ' realm'} application ${applicationData.name}`,
+            failures
+          ),
+          undefined
+        );
+      } else {
+        errors.push(...failures);
       }
     }
     if (errors.length > 0) {

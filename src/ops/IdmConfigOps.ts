@@ -21,6 +21,7 @@ import {
   updateProgressIndicator,
 } from '../utils/Console';
 import {
+  findFailedRequest,
   getErrorCallback,
   getMetadata,
   getResult,
@@ -508,6 +509,94 @@ const IDM_UNAVAILABLE_ENTITIES = [
   'fieldPolicy/teammember',
 ];
 
+/** The answer of an HTTP request that failed: the status and the fields of the body that identify it. */
+type HttpAnswer = {
+  status?: number;
+  message?: string;
+  reason?: string;
+};
+
+/**
+ * Check if an error, or any error nested in it, carries an HTTP answer that matches.
+ * `FrodoError` takes its http fields only from its immediate original error, so the error that wraps a failed read
+ * has none, however deep the answer is nested in it. The status, message and reason of one answer are read from the
+ * same error, from the http fields of a `FrodoError` or from the response of an `AxiosError`.
+ * @param {unknown} error the error to inspect
+ * @param {(answer: HttpAnswer) => boolean} matches decides if an answer is the one that is looked for
+ * @returns {boolean} true if an error in the chain carries an answer that matches
+ */
+function hasHttpAnswer(
+  error: unknown,
+  matches: (answer: HttpAnswer) => boolean
+): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const { httpStatus, httpMessage, httpErrorReason, response, originalErrors } =
+    error as FrodoError & {
+      response?: {
+        status?: number;
+        data?: { message?: string; reason?: string };
+      };
+    };
+  const answer: HttpAnswer = httpStatus
+    ? { status: httpStatus, message: httpMessage, reason: httpErrorReason }
+    : {
+        status: response?.status,
+        message: response?.data?.message,
+        reason: response?.data?.reason,
+      };
+  return (
+    matches(answer) ||
+    (Array.isArray(originalErrors) &&
+      originalErrors.some((original) => hasHttpAnswer(original, matches)))
+  );
+}
+
+/**
+ * Find out if the failure to read a config entity is an answer that the export skips without a word instead of
+ * reporting it as a failed item: the entity is one that the tenant cannot have, or the operation is not available in
+ * the tenant.
+ * @param {string} entityId config entity id
+ * @param {unknown} error the error of the failed read, however deep the answer is nested in it
+ * @returns {string | undefined} why the failure is skipped, or undefined if it is a failure to report
+ */
+function getSkipReason(entityId: string, error: unknown): string | undefined {
+  // operation is not available in PingOne Advanced Identity Cloud
+  if (
+    hasHttpAnswer(
+      error,
+      ({ status, message }) =>
+        status === 403 &&
+        message ===
+          'This operation is not available in PingOne Advanced Identity Cloud.'
+    )
+  ) {
+    return 'it is not available in PingOne Advanced Identity Cloud (403)';
+  }
+  // list of config entities, which do not exist by default or ever.
+  if (
+    IDM_UNAVAILABLE_ENTITIES.includes(entityId) &&
+    hasHttpAnswer(
+      error,
+      ({ status, reason }) => status === 404 && reason === 'Not Found'
+    )
+  ) {
+    return 'the tenant has no such config entity (404 Not Found)';
+  }
+  // https://bugster.forgerock.org/jira/browse/OPENIDM-18270
+  if (
+    hasHttpAnswer(
+      error,
+      ({ status, message }) =>
+        status === 404 &&
+        message ===
+          'No configuration exists for id org.apache.felix.fileinstall/openidm'
+    )
+  ) {
+    return 'the tenant has no configuration for it (404, OPENIDM-18270)';
+  }
+  return undefined;
+}
+
 /**
  * Export a single IDM config entity
  * @param {string} entityId config entity id
@@ -577,28 +666,18 @@ export async function exportConfigEntities({
     });
     entityPromises.push(
       getResult(
-        getErrorCallback(
-          resultCallback,
-          (error) =>
-            !(
-              // operation is not available in PingOne Advanced Identity Cloud
-              error.httpStatus === 403 &&
-              error.httpMessage ===
-                'This operation is not available in PingOne Advanced Identity Cloud.'
-            ) &&
-            // list of config entities, which do not exist by default or ever.
-            !(
-              IDM_UNAVAILABLE_ENTITIES.includes(configEntity._id) &&
-              error.httpStatus === 404 &&
-              error.httpErrorReason === 'Not Found'
-            ) &&
-            // https://bugster.forgerock.org/jira/browse/OPENIDM-18270
-            !(
-              error.httpStatus === 404 &&
-              error.httpMessage ===
-                'No configuration exists for id org.apache.felix.fileinstall/openidm'
-            )
-        ),
+        getErrorCallback(resultCallback, (error) => {
+          const reason = getSkipReason(configEntity._id, error);
+          if (reason) {
+            const request = findFailedRequest(error);
+            debugMessage({
+              message: `IdmConfigOps.exportConfigEntities: skipped config entity ${configEntity._id}, ${reason}${request ? ` [${request}]` : ''}`,
+              state,
+            });
+            return false;
+          }
+          return true;
+        }),
         `Error exporting idm config entity ${configEntity._id}`,
         readConfigEntity,
         { entityId: configEntity._id, state }

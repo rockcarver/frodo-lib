@@ -27,7 +27,7 @@ import {
 } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError, isNotFoundError } from './FrodoError';
-import { type ExportMetaData } from './OpsTypes';
+import { type ExportMetaData, type ResultCallback } from './OpsTypes';
 import { readPolicySet, updatePolicySet } from './PolicySetOps';
 import { updateResourceType } from './ResourceTypeOps';
 import { readScript, updateScript } from './ScriptOps';
@@ -92,18 +92,24 @@ export type Policy = {
   /**
    * Export policies
    * @param {PolicyExportOptions} options export options
+   * @param {ResultCallback<PolicySkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every policy is passed to it as it happens: a policy that was exported completely as the policy, a policy whose prerequisites or dependencies could not be exported as an error that names the policy and carries the causes. Such a policy is left out of the export and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every policy was tried. Failing to read the policies always throws.
    * @returns {Promise<PolicyExportInterface>} a promise that resolves to an PolicyExportInterface object
    */
-  exportPolicies(options?: PolicyExportOptions): Promise<PolicyExportInterface>;
+  exportPolicies(
+    options?: PolicyExportOptions,
+    resultCallback?: ResultCallback<PolicySkeleton>
+  ): Promise<PolicyExportInterface>;
   /**
    * Export policies by policy set
    * @param {string} policySetName policy set id/name
    * @param {PolicyExportOptions} options export options
+   * @param {ResultCallback<PolicySkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every policy is passed to it as it happens: a policy that was exported completely as the policy, a policy whose prerequisites or dependencies could not be exported as an error that names the policy and carries the causes. Such a policy is left out of the export and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every policy was tried. Failing to read the policies of the policy set always throws.
    * @returns {Promise<PolicyExportInterface>} a promise that resolves to an PolicyExportInterface object
    */
   exportPoliciesByPolicySet(
     policySetName: string,
-    options?: PolicyExportOptions
+    options?: PolicyExportOptions,
+    resultCallback?: ResultCallback<PolicySkeleton>
   ): Promise<PolicyExportInterface>;
   /**
    * Import policy by id
@@ -131,11 +137,13 @@ export type Policy = {
    * Import policies
    * @param {PolicyExportInterface} importData import data
    * @param {PolicyImportOptions} options import options
+   * @param {ResultCallback<PolicySkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every policy is passed to it once, as it happens: a policy that was imported completely as the policy (a policy that needed no update as it is in the import data), a policy that could not be imported, or whose prerequisites or dependencies could not be imported, as one error that names the policy and carries the causes. Such a policy is not part of the result and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every policy was tried.
    * @returns {Promise<PolicySkeleton[]>} array of imported policy objects
    */
   importPolicies(
     importData: PolicyExportInterface,
-    options?: PolicyImportOptions
+    options?: PolicyImportOptions,
+    resultCallback?: ResultCallback<PolicySkeleton>
   ): Promise<PolicySkeleton[]>;
 };
 
@@ -182,9 +190,10 @@ export default (state: State): Policy => {
         deps: true,
         prereqs: false,
         useStringArrays: true,
-      }
+      },
+      resultCallback: ResultCallback<PolicySkeleton> = void 0
     ): Promise<PolicyExportInterface> {
-      return exportPolicies({ options, state });
+      return exportPolicies({ options, resultCallback, state });
     },
     async exportPoliciesByPolicySet(
       policySetName: string,
@@ -192,11 +201,13 @@ export default (state: State): Policy => {
         deps: true,
         prereqs: false,
         useStringArrays: true,
-      }
+      },
+      resultCallback: ResultCallback<PolicySkeleton> = void 0
     ): Promise<PolicyExportInterface> {
       return exportPoliciesByPolicySet({
         policySetName,
         options,
+        resultCallback,
         state,
       });
     },
@@ -215,9 +226,10 @@ export default (state: State): Policy => {
     },
     async importPolicies(
       importData: PolicyExportInterface,
-      options: PolicyImportOptions = { deps: true, prereqs: false }
+      options: PolicyImportOptions = { deps: true, prereqs: false },
+      resultCallback: ResultCallback<PolicySkeleton> = void 0
     ): Promise<PolicySkeleton[]> {
-      return importPolicies({ importData, options, state });
+      return importPolicies({ importData, options, resultCallback, state });
     },
   };
 };
@@ -709,8 +721,85 @@ export async function exportPolicy({
 }
 
 /**
+ * Export one policy of a bulk export, with the prerequisites and dependencies the options ask for.
+ * Without a result callback everything is added to the export and the errors are added to `errors`, which the caller throws together.
+ * With one, the policy is added to the export only if all of it could be exported, and the outcome is passed to the callback.
+ * @param {PolicySkeleton} policyData the policy
+ * @param {PolicyExportOptions} options export options
+ * @param {PolicyExportInterface} exportData export data of the bulk export
+ * @param {Error[]} errors the errors of the bulk export (used without a result callback)
+ * @param {ResultCallback<PolicySkeleton>} resultCallback Optional callback to process the outcome
+ * @returns {Promise<boolean>} true if the policy was exported completely, false otherwise
+ */
+async function exportPolicyOfBulk({
+  policyData,
+  options,
+  exportData,
+  errors,
+  resultCallback,
+  state,
+}: {
+  policyData: PolicySkeleton;
+  options: PolicyExportOptions;
+  exportData: PolicyExportInterface;
+  errors: Error[];
+  resultCallback?: ResultCallback<PolicySkeleton>;
+  state: State;
+}): Promise<boolean> {
+  // with a callback a policy is exported on its own, so that a failed policy leaves nothing behind in the export
+  const policyExport = resultCallback
+    ? createPolicyExportTemplate({ state })
+    : exportData;
+  const policyErrors: Error[] = [];
+  policyExport.policy[policyData._id] = policyData;
+  if (options.prereqs) {
+    try {
+      await exportPolicyPrerequisites({
+        policyData,
+        exportData: policyExport,
+        state,
+      });
+    } catch (error) {
+      policyErrors.push(error);
+    }
+  }
+  if (options.deps) {
+    try {
+      await exportPolicyDependencies({
+        policyData,
+        options,
+        exportData: policyExport,
+        state,
+      });
+    } catch (error) {
+      policyErrors.push(error);
+    }
+  }
+  if (!resultCallback) {
+    errors.push(...policyErrors);
+    return policyErrors.length === 0;
+  }
+  if (policyErrors.length > 0) {
+    resultCallback(
+      new FrodoError(
+        `Error exporting ${getCurrentRealmName(state) + ' realm'} policy ${policyData._id}`,
+        policyErrors
+      )
+    );
+    return false;
+  }
+  Object.assign(exportData.script, policyExport.script);
+  Object.assign(exportData.resourcetype, policyExport.resourcetype);
+  Object.assign(exportData.policy, policyExport.policy);
+  Object.assign(exportData.policyset, policyExport.policyset);
+  resultCallback(undefined, policyData);
+  return true;
+}
+
+/**
  * Export policies
  * @param {PolicyExportOptions} options export options
+ * @param {ResultCallback<PolicySkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every policy is passed to it as it happens: a policy that was exported completely as the policy, a policy whose prerequisites or dependencies could not be exported as an error that names the policy and carries the causes. Such a policy is left out of the export and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every policy was tried. Failing to read the policies always throws.
  * @returns {Promise<PolicyExportInterface>} a promise that resolves to an PolicyExportInterface object
  */
 export async function exportPolicies({
@@ -719,14 +808,17 @@ export async function exportPolicies({
     prereqs: false,
     useStringArrays: true,
   },
+  resultCallback = void 0,
   state,
 }: {
   options?: PolicyExportOptions;
+  resultCallback?: ResultCallback<PolicySkeleton>;
   state: State;
 }): Promise<PolicyExportInterface> {
   debugMessage({ message: `PolicyOps.exportPolicies: start`, state });
   const exportData = createPolicyExportTemplate({ state });
   const errors = [];
+  let failed = 0;
   let indicatorId: string;
   try {
     const policies = await readPolicies({ state });
@@ -741,25 +833,17 @@ export async function exportPolicies({
         message: `Exporting ${getCurrentRealmName(state) + ' realm'} policy ${policyData._id}`,
         state,
       });
-      exportData.policy[policyData._id] = policyData;
-      if (options.prereqs) {
-        try {
-          await exportPolicyPrerequisites({ policyData, exportData, state });
-        } catch (error) {
-          errors.push(error);
-        }
-      }
-      if (options.deps) {
-        try {
-          await exportPolicyDependencies({
-            policyData,
-            options,
-            exportData,
-            state,
-          });
-        } catch (error) {
-          errors.push(error);
-        }
+      if (
+        !(await exportPolicyOfBulk({
+          policyData,
+          options,
+          exportData,
+          errors,
+          resultCallback,
+          state,
+        }))
+      ) {
+        failed++;
       }
     }
     if (errors.length > 0) {
@@ -770,7 +854,11 @@ export async function exportPolicies({
     }
     stopProgressIndicator({
       id: indicatorId,
-      message: `Exported ${policies.length} ${getCurrentRealmName(state) + ' realm'} policies.`,
+      message:
+        failed > 0
+          ? `Exported ${policies.length - failed} of ${policies.length} ${getCurrentRealmName(state) + ' realm'} policies.`
+          : `Exported ${policies.length} ${getCurrentRealmName(state) + ' realm'} policies.`,
+      status: failed > 0 ? 'fail' : 'none',
       state,
     });
     debugMessage({ message: `PolicyOps.exportPolicies: end`, state });
@@ -797,6 +885,7 @@ export async function exportPolicies({
  * Export policies by policy set
  * @param {string} policySetName policy set id/name
  * @param {PolicyExportOptions} options export options
+ * @param {ResultCallback<PolicySkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every policy is passed to it as it happens: a policy that was exported completely as the policy, a policy whose prerequisites or dependencies could not be exported as an error that names the policy and carries the causes. Such a policy is left out of the export and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every policy was tried. Failing to read the policies of the policy set always throws.
  * @returns {Promise<PolicyExportInterface>} a promise that resolves to an PolicyExportInterface object
  */
 export async function exportPoliciesByPolicySet({
@@ -806,10 +895,12 @@ export async function exportPoliciesByPolicySet({
     prereqs: false,
     useStringArrays: true,
   },
+  resultCallback = void 0,
   state,
 }: {
   policySetName: string;
   options?: PolicyExportOptions;
+  resultCallback?: ResultCallback<PolicySkeleton>;
   state: State;
 }): Promise<PolicyExportInterface> {
   debugMessage({ message: `PolicyOps.exportPolicies: start`, state });
@@ -821,26 +912,14 @@ export async function exportPoliciesByPolicySet({
       state,
     });
     for (const policyData of policies) {
-      exportData.policy[policyData._id] = policyData;
-      if (options.prereqs) {
-        try {
-          await exportPolicyPrerequisites({ policyData, exportData, state });
-        } catch (error) {
-          errors.push(error);
-        }
-      }
-      if (options.deps) {
-        try {
-          await exportPolicyDependencies({
-            policyData,
-            options,
-            exportData,
-            state,
-          });
-        } catch (error) {
-          errors.push(error);
-        }
-      }
+      await exportPolicyOfBulk({
+        policyData,
+        options,
+        exportData,
+        errors,
+        resultCallback,
+        state,
+      });
     }
     if (errors.length > 0) {
       throw new FrodoError(
@@ -1286,20 +1365,27 @@ export async function importFirstPolicy({
  * Import policies
  * @param {PolicyExportInterface} importData import data
  * @param {PolicyImportOptions} options import options
+ * @param {ResultCallback<PolicySkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every policy is passed to it once, as it happens: a policy that was imported completely as the policy (a policy that needed no update as it is in the import data), a policy that could not be imported, or whose prerequisites or dependencies could not be imported, as one error that names the policy and carries the causes. Such a policy is not part of the result and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every policy was tried.
  * @returns {Promise<PolicySkeleton[]>} array of imported policy objects
  */
 export async function importPolicies({
   importData,
   options = { deps: true, prereqs: false },
+  resultCallback = void 0,
   state,
 }: {
   importData: PolicyExportInterface;
   options?: PolicyImportOptions;
+  resultCallback?: ResultCallback<PolicySkeleton>;
   state: State;
 }): Promise<PolicySkeleton[]> {
   const response = [];
   const errors = [];
   for (const id of Object.keys(importData.policy)) {
+    // the errors of this policy: with a callback they are reported as one error that names the policy
+    const policyErrors: Error[] = [];
+    let written = false;
+    let updated: PolicySkeleton | null = null;
     try {
       const policyData = importData.policy[id];
       delete policyData._rev;
@@ -1328,11 +1414,14 @@ export async function importPolicies({
         });
       }
       try {
-        response.push(
-          await updatePolicy({ policyId: policyData._id, policyData, state })
-        );
+        updated = await updatePolicy({
+          policyId: policyData._id,
+          policyData,
+          state,
+        });
+        written = true;
       } catch (error) {
-        errors.push(error);
+        policyErrors.push(error);
       }
       if (options.deps) {
         try {
@@ -1342,11 +1431,25 @@ export async function importPolicies({
             state,
           });
         } catch (error) {
-          errors.push(error);
+          policyErrors.push(error);
         }
       }
     } catch (error) {
-      errors.push(error);
+      policyErrors.push(error);
+    }
+    if (!resultCallback) {
+      if (written) response.push(updated);
+      errors.push(...policyErrors);
+    } else if (policyErrors.length > 0) {
+      resultCallback(
+        new FrodoError(
+          `Error importing ${getCurrentRealmName(state) + ' realm'} policy ${id}`,
+          policyErrors
+        )
+      );
+    } else {
+      response.push(updated);
+      resultCallback(undefined, updated ?? importData.policy[id]);
     }
   }
   if (errors.length > 0) {

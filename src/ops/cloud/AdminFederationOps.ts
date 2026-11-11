@@ -10,7 +10,7 @@ import { State } from '../../shared/State';
 import { debugMessage } from '../../utils/Console';
 import { getMetadata } from '../../utils/ExportImportUtils';
 import { FrodoError } from '../FrodoError';
-import { ExportMetaData } from '../OpsTypes';
+import { ExportMetaData, ResultCallback } from '../OpsTypes';
 
 export type AdminFederation = {
   /**
@@ -69,9 +69,12 @@ export type AdminFederation = {
   ): Promise<AdminFederationExportInterface>;
   /**
    * Export all providers
+   * @param {ResultCallback<SocialIdpSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every provider is passed to it as it happens: a provider that was exported with its configuration as the provider, a provider that cannot be exported as an error that names the provider and carries the cause. Such a provider is left out of the export and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every provider was tried. Failing to read the providers always throws.
    * @returns {Promise<AdminFederationExportInterface>} a promise that resolves to a SocialProviderExportInterface object
    */
-  exportAdminFederationProviders(): Promise<AdminFederationExportInterface>;
+  exportAdminFederationProviders(
+    resultCallback?: ResultCallback<SocialIdpSkeleton>
+  ): Promise<AdminFederationExportInterface>;
   /**
    * Import admin federation provider by id/name
    * @param {string} providerId provider id/name
@@ -91,9 +94,11 @@ export type AdminFederation = {
   /**
    * Import all providers
    * @param {AdminFederationExportInterface} importData import data
+   * @param {ResultCallback<SocialIdpSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every provider is passed to it once, as it happens: a provider that was imported with its configuration as the provider, a provider that cannot be imported, or whose configuration cannot be imported, as one error that names the provider and carries the cause. Such a provider is not part of the result and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every provider was tried.
    */
   importAdminFederationProviders(
-    importData: AdminFederationExportInterface
+    importData: AdminFederationExportInterface,
+    resultCallback?: ResultCallback<SocialIdpSkeleton>
   ): Promise<SocialIdpSkeleton[]>;
 };
 
@@ -144,8 +149,10 @@ export default (state: State): AdminFederation => {
     ): Promise<AdminFederationExportInterface> {
       return exportAdminFederationProvider({ providerId, state });
     },
-    async exportAdminFederationProviders(): Promise<AdminFederationExportInterface> {
-      return exportAdminFederationProviders({ state });
+    async exportAdminFederationProviders(
+      resultCallback: ResultCallback<SocialIdpSkeleton> = void 0
+    ): Promise<AdminFederationExportInterface> {
+      return exportAdminFederationProviders({ resultCallback, state });
     },
     async importAdminFederationProvider(
       providerId: string,
@@ -166,9 +173,14 @@ export default (state: State): AdminFederation => {
       });
     },
     async importAdminFederationProviders(
-      importData: AdminFederationExportInterface
+      importData: AdminFederationExportInterface,
+      resultCallback: ResultCallback<SocialIdpSkeleton> = void 0
     ): Promise<SocialIdpSkeleton[]> {
-      return importAdminFederationProviders({ importData, state });
+      return importAdminFederationProviders({
+        importData,
+        resultCallback,
+        state,
+      });
     },
   };
 };
@@ -420,11 +432,14 @@ export async function exportAdminFederationProvider({
 
 /**
  * Export all providers
+ * @param {ResultCallback<SocialIdpSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every provider is passed to it as it happens: a provider that was exported with its configuration as the provider, a provider that cannot be exported as an error that names the provider and carries the cause. Such a provider is left out of the export and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every provider was tried. Failing to read the providers always throws.
  * @returns {Promise<AdminFederationExportInterface>} a promise that resolves to a SocialProviderExportInterface object
  */
 export async function exportAdminFederationProviders({
+  resultCallback = void 0,
   state,
 }: {
+  resultCallback?: ResultCallback<SocialIdpSkeleton>;
   state: State;
 }): Promise<AdminFederationExportInterface> {
   debugMessage({
@@ -436,15 +451,30 @@ export async function exportAdminFederationProviders({
   try {
     const allIdpsData = await readAdminFederationProviders({ state });
     for (const idpData of allIdpsData) {
+      let failure: Error;
       try {
-        exportData.idp[idpData._id] = idpData;
         const idpConfig = await getConfigEntity({
           entityId: `${ADMIN_FED_CONFIG_ID_PREFIX}${idpData._id}`,
           state,
         });
+        // a provider without its configuration is not a complete export of the provider
+        exportData.idp[idpData._id] = idpData;
         exportData.config[idpConfig._id] = idpConfig;
       } catch (error) {
-        errors.push(error);
+        failure = error;
+      }
+      if (!failure) {
+        if (resultCallback) resultCallback(undefined, idpData);
+      } else if (resultCallback) {
+        // the caller reports the failure: name the provider and keep the cause
+        resultCallback(
+          new FrodoError(
+            `Error exporting admin federation provider ${idpData._id}`,
+            failure
+          )
+        );
+      } else {
+        errors.push(failure);
       }
     }
   } catch (error) {
@@ -564,26 +594,29 @@ export async function importFirstAdminFederationProvider({
 /**
  * Import all providers
  * @param {AdminFederationExportInterface} importData import data
+ * @param {ResultCallback<SocialIdpSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every provider is passed to it once, as it happens: a provider that was imported with its configuration as the provider, a provider that cannot be imported, or whose configuration cannot be imported, as one error that names the provider and carries the cause. Such a provider is not part of the result and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every provider was tried.
  */
 export async function importAdminFederationProviders({
   importData,
+  resultCallback = void 0,
   state,
 }: {
   importData: AdminFederationExportInterface;
+  resultCallback?: ResultCallback<SocialIdpSkeleton>;
   state: State;
 }): Promise<SocialIdpSkeleton[]> {
   const response = [];
   const errors = [];
   for (const idpId of Object.keys(importData.idp)) {
+    let imported: SocialIdpSkeleton;
+    let failure: Error;
     try {
-      response.push(
-        await updateAdminFederationProvider({
-          providerType: importData.idp[idpId]._type._id,
-          providerId: idpId,
-          providerData: importData.idp[idpId],
-          state,
-        })
-      );
+      imported = await updateAdminFederationProvider({
+        providerType: importData.idp[idpId]._type._id,
+        providerId: idpId,
+        providerData: importData.idp[idpId],
+        state,
+      });
       const configId = `${ADMIN_FED_CONFIG_ID_PREFIX}${idpId}`;
       if (importData.config[configId]) {
         await putConfigEntity({
@@ -593,7 +626,24 @@ export async function importAdminFederationProviders({
         });
       }
     } catch (error) {
-      errors.push(error);
+      failure = error;
+    }
+    if (failure) {
+      if (!resultCallback) {
+        errors.push(failure);
+      } else {
+        // the caller reports the failure: name the provider and keep the cause
+        resultCallback(
+          new FrodoError(
+            `Error importing admin federation provider ${idpId}`,
+            failure
+          )
+        );
+      }
+    } else {
+      // the provider is part of the result only if its configuration was imported too
+      response.push(imported);
+      if (resultCallback) resultCallback(undefined, imported);
     }
   }
   if (errors.length) {

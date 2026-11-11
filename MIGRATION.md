@@ -44,6 +44,15 @@ releases missed):
   and thrown in one `FrodoError` naming the failed types after all types have
   been read; previously, they were silently treated as empty lists and the
   command returned the agents from the remaining readable types.
+- `frodo.agent.importAgents` (`src/ops/AgentOps.ts`) now treats an agent type
+  that answers HTTP 501 as a failed agent, like any other failure. It used to
+  skip such an agent without a word: it was neither imported nor reported. After
+  every agent was tried, the function now throws one `FrodoError` that carries
+  one nested error per failed agent, naming the agent and its type; with the new
+  optional `resultCallback` argument, each failed agent is passed to the
+  callback and nothing is thrown. A file with such an agent that imported
+  without an error before now ends with one: take the agent out of the file, or
+  pass a callback and decide what to do with that error.
 - `frodo.utils.saveTextToFile` and `frodo.utils.saveJsonToFile`
   (`src/utils/ExportImportUtils.ts`) now return `void` on success instead of
   `true`. Directory-creation and file-write failures throw a `FrodoError`

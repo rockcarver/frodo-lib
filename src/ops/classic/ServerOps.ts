@@ -18,7 +18,7 @@ import {
 } from '../../utils/Console';
 import { getMetadata } from '../../utils/ExportImportUtils';
 import { FrodoError } from '../FrodoError';
-import { ExportMetaData } from '../OpsTypes';
+import { ExportMetaData, ResultCallback } from '../OpsTypes';
 
 export type Server = {
   /**
@@ -66,10 +66,14 @@ export type Server = {
   /**
    * Export all servers. The response can be saved to file as is. Every server is tried: a server that cannot be read does not stop the others.
    * @param {ServerExportOptions} options Server export options
+   * @param {ResultCallback<ServerExportSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every server is passed to it as it happens: a server that was exported as the server, a server that cannot be exported as an error that names its url and id and carries the cause (also the default properties, when they were asked for and cannot be read, as an error that names them). Such a server is left out of the export and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every server was tried. Failing to list the servers always throws.
    * @returns {Promise<ServerExportInterface>} Promise resolving to a ServerExportInterface object.
-   * @throws {FrodoError} If the servers cannot be listed, or if any server cannot be exported. The error carries one nested error per failed server, naming its id and url, and nothing is returned.
+   * @throws {FrodoError} If the servers cannot be listed (always), or if any server cannot be exported and there is no result callback. The error carries one nested error per failed server, naming its id and url, and nothing is returned.
    */
-  exportServers(options: ServerExportOptions): Promise<ServerExportInterface>;
+  exportServers(
+    options: ServerExportOptions,
+    resultCallback?: ResultCallback<ServerExportSkeleton>
+  ): Promise<ServerExportInterface>;
   /**
    * Creates a server
    * @param {ServerSkeleton} serverData server object
@@ -91,13 +95,15 @@ export type Server = {
    * @param {ServerImportOptions} options server import options
    * @param {string} serverId Optional server id. If supplied, only the server (and its properties) of that id is imported. Takes priority over serverUrl if both are provided.
    * @param {string} serverUrl Optional server url. If supplied, only the server of that url is imported.
+   * @param {ResultCallback<ServerExportSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every server that is imported is passed to it once, as it happens: a server that was imported as the server with its properties, a server that cannot be imported as an error that names its url and id and carries the cause (also the default properties, when they were asked for and cannot be imported, as an error that names them). Such a server is not part of the result and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every server was tried.
    * @returns {Promise<ServerExportInterface>} a promise that resolves to a server export object
    */
   importServers(
     importData: ServerExportInterface,
     options: ServerImportOptions,
     serverId?: string,
-    serverUrl?: string
+    serverUrl?: string,
+    resultCallback?: ResultCallback<ServerExportSkeleton>
   ): Promise<ServerExportInterface>;
 };
 
@@ -128,9 +134,10 @@ export default (state: State): Server => {
       return exportServerByUrl({ options, serverUrl, state });
     },
     async exportServers(
-      options: ServerExportOptions = { includeDefault: false }
+      options: ServerExportOptions = { includeDefault: false },
+      resultCallback: ResultCallback<ServerExportSkeleton> = void 0
     ): Promise<ServerExportInterface> {
-      return exportServers({ options, state });
+      return exportServers({ options, resultCallback, state });
     },
     async createServer(serverData: ServerSkeleton): Promise<ServerSkeleton> {
       return createServer({
@@ -156,13 +163,15 @@ export default (state: State): Server => {
         includeDefault: false,
       },
       serverId?: string,
-      serverUrl?: string
+      serverUrl?: string,
+      resultCallback: ResultCallback<ServerExportSkeleton> = void 0
     ): Promise<ServerExportInterface> {
       return importServers({
         importData,
         options,
         serverId,
         serverUrl,
+        resultCallback,
         state,
       });
     },
@@ -361,19 +370,23 @@ export async function exportServerByUrl({
 /**
  * Export all servers. The response can be saved to file as is. Every server is tried: a server that cannot be read does not stop the others.
  * @param {ServerExportOptions} options Server export options
+ * @param {ResultCallback<ServerExportSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every server is passed to it as it happens: a server that was exported as the server, a server that cannot be exported as an error that names its url and id and carries the cause (also the default properties, when they were asked for and cannot be read, as an error that names them). Such a server is left out of the export and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every server was tried. Failing to list the servers always throws.
  * @returns {Promise<ServerExportInterface>} Promise resolving to a ServerExportInterface object.
- * @throws {FrodoError} If the servers cannot be listed, or if any server cannot be exported. The error carries one nested error per failed server, naming its id and url, and nothing is returned.
+ * @throws {FrodoError} If the servers cannot be listed (always), or if any server cannot be exported and there is no result callback. The error carries one nested error per failed server, naming its id and url, and nothing is returned.
  */
 export async function exportServers({
   options = {
     includeDefault: false,
   },
+  resultCallback = void 0,
   state,
 }: {
   options: ServerExportOptions;
+  resultCallback?: ResultCallback<ServerExportSkeleton>;
   state: State;
 }): Promise<ServerExportInterface> {
   const errors: Error[] = [];
+  let failed = 0;
   let indicatorId: string;
   try {
     debugMessage({ message: `ServerOps.exportServers: start`, state });
@@ -390,6 +403,7 @@ export async function exportServers({
         message: `Exporting server ${server.url}`,
         state,
       });
+      let failure: FrodoError;
       try {
         server.properties = await getServerProperties({
           serverId: server._id,
@@ -397,12 +411,19 @@ export async function exportServers({
         });
         exportData.server[server._id] = server as ServerExportSkeleton;
       } catch (error) {
-        errors.push(
-          new FrodoError(
-            `Error exporting server ${server.url} (${server._id})`,
-            error
-          )
+        failure = new FrodoError(
+          `Error exporting server ${server.url} (${server._id})`,
+          error
         );
+      }
+      if (!failure) {
+        if (resultCallback)
+          resultCallback(undefined, server as ServerExportSkeleton);
+      } else if (resultCallback) {
+        failed++;
+        resultCallback(failure);
+      } else {
+        errors.push(failure);
       }
     }
     if (options.includeDefault) {
@@ -411,9 +432,12 @@ export async function exportServers({
           state,
         });
       } catch (error) {
-        errors.push(
-          new FrodoError(`Error reading default server properties`, error)
+        const failure = new FrodoError(
+          `Error reading default server properties`,
+          error
         );
+        if (resultCallback) resultCallback(failure);
+        else errors.push(failure);
       }
     }
     if (errors.length > 0) {
@@ -421,7 +445,11 @@ export async function exportServers({
     }
     stopProgressIndicator({
       id: indicatorId,
-      message: `Exported ${servers.length} servers.`,
+      message:
+        failed > 0
+          ? `Exported ${servers.length - failed} of ${servers.length} servers.`
+          : `Exported ${servers.length} servers.`,
+      status: failed > 0 ? 'fail' : 'none',
       state,
     });
     debugMessage({ message: `ServerOps.exportServers: end`, state });
@@ -503,6 +531,7 @@ export async function importFirstServer({
  * @param {string} serverUrl Optional server url. If supplied, only the server of that url is imported.
  * @param {ServerExportInterface} importData server import data
  * @param {ServerImportOptions} options server import options
+ * @param {ResultCallback<ServerExportSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every server that is imported is passed to it once, as it happens: a server that was imported as the server with its properties, a server that cannot be imported as an error that names its url and id and carries the cause (also the default properties, when they were asked for and cannot be imported, as an error that names them). Such a server is not part of the result and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every server was tried.
  * @returns {Promise<ServerExportInterface>} a promise that resolves to a server export object
  */
 export async function importServers({
@@ -512,12 +541,14 @@ export async function importServers({
   options = {
     includeDefault: false,
   },
+  resultCallback = void 0,
   state,
 }: {
   serverId?: string;
   serverUrl?: string;
   importData: ServerExportInterface;
   options: ServerImportOptions;
+  resultCallback?: ResultCallback<ServerExportSkeleton>;
   state;
 }): Promise<ServerExportInterface> {
   const errors = [];
@@ -528,6 +559,7 @@ export async function importServers({
     for (const server of Object.values(importData.server)) {
       const serverProperties = server.properties;
       delete server.properties;
+      let imported: ServerExportSkeleton;
       try {
         if (
           (serverId && server._id !== serverId) ||
@@ -562,9 +594,22 @@ export async function importServers({
           state,
         });
         response.server[server._id] = serverResult;
+        imported = serverResult;
       } catch (error) {
-        errors.push(error);
+        if (!resultCallback) {
+          errors.push(error);
+        } else {
+          // the caller reports the failure: name the server and keep the cause
+          resultCallback(
+            new FrodoError(
+              `Error importing server ${server.url} (${server._id})`,
+              error
+            )
+          );
+        }
+        continue;
       }
+      if (resultCallback) resultCallback(undefined, imported);
     }
     // Import default server properties
     if (options.includeDefault) {
@@ -574,9 +619,12 @@ export async function importServers({
           state,
         });
       } catch (error) {
-        errors.push(
-          new FrodoError(`Error importing default server properties`, error)
+        const failure = new FrodoError(
+          `Error importing default server properties`,
+          error
         );
+        if (resultCallback) resultCallback(failure);
+        else errors.push(failure);
       }
     }
     if (errors.length > 0) {

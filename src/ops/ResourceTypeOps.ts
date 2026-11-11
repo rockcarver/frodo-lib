@@ -17,7 +17,7 @@ import {
 import { getMetadata, updateRemote } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
-import { ExportMetaData } from './OpsTypes';
+import { ExportMetaData, ResultCallback } from './OpsTypes';
 
 export type ResourceType = {
   /**
@@ -125,10 +125,12 @@ export type ResourceType = {
   /**
    * Import resource types
    * @param {ResourceTypeExportInterface} importData import data
+   * @param {ResultCallback<ResourceTypeSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every resource type is passed to it once, as it happens: a resource type that was imported as the resource type (a resource type that needed no update as it is in the import data), a resource type that could not be imported as an error that names the resource type and carries the cause. Such a resource type is not part of the result and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every resource type was tried.
    * @returns {Promise<ResourceTypeSkeleton[]>} a promise that resolves to the imported resource type objects
    */
   importResourceTypes(
-    importData: ResourceTypeExportInterface
+    importData: ResourceTypeExportInterface,
+    resultCallback?: ResultCallback<ResourceTypeSkeleton>
   ): Promise<ResourceTypeSkeleton[]>;
 };
 
@@ -208,9 +210,10 @@ export default (state: State): ResourceType => {
       return importFirstResourceType({ importData, state });
     },
     async importResourceTypes(
-      importData: ResourceTypeExportInterface
+      importData: ResourceTypeExportInterface,
+      resultCallback: ResultCallback<ResourceTypeSkeleton> = void 0
     ): Promise<ResourceTypeSkeleton[]> {
-      return importResourceTypes({ importData, state });
+      return importResourceTypes({ importData, resultCallback, state });
     },
   };
 };
@@ -682,41 +685,59 @@ export async function importFirstResourceType({
 /**
  * Import resource types
  * @param {ResourceTypeExportInterface} importData import data
+ * @param {ResultCallback<ResourceTypeSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every resource type is passed to it once, as it happens: a resource type that was imported as the resource type (a resource type that needed no update as it is in the import data), a resource type that could not be imported as an error that names the resource type and carries the cause. Such a resource type is not part of the result and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every resource type was tried.
  * @returns {Promise<ResourceTypeSkeleton[]>} a promise that resolves to the imported resource type objects
  */
 export async function importResourceTypes({
   importData,
+  resultCallback = void 0,
   state,
 }: {
   importData: ResourceTypeExportInterface;
+  resultCallback?: ResultCallback<ResourceTypeSkeleton>;
   state: State;
 }): Promise<ResourceTypeSkeleton[]> {
   const response = [];
   const errors = [];
   for (const id of Object.keys(importData.resourcetype)) {
+    let imported: ResourceTypeSkeleton | null;
     try {
       const resourceTypeData = importData.resourcetype[id];
       delete resourceTypeData._rev;
-      response.push(
-        await updateRemote({
-          data: resourceTypeData,
-          type: 'resource type',
-          readFn: async () =>
-            await readResourceType({ resourceTypeUuid: id, state }),
-          updateFn: async () =>
-            await _putResourceType({
-              resourceTypeUuid: id,
-              resourceTypeData,
-              state,
-            }),
-          createFn: async () =>
-            await _createResourceType({ resourceTypeData, state }),
-          state,
-        })
-      );
+      imported = await updateRemote({
+        data: resourceTypeData,
+        type: 'resource type',
+        readFn: async () =>
+          await readResourceType({ resourceTypeUuid: id, state }),
+        updateFn: async () =>
+          await _putResourceType({
+            resourceTypeUuid: id,
+            resourceTypeData,
+            state,
+          }),
+        createFn: async () =>
+          await _createResourceType({ resourceTypeData, state }),
+        state,
+      });
     } catch (error) {
-      errors.push(error);
+      if (!resultCallback) {
+        errors.push(error);
+      } else {
+        // the caller reports the failure: name the resource type and keep the cause
+        const name = importData.resourcetype[id]?.name;
+        resultCallback(
+          new FrodoError(
+            `Error importing ${getCurrentRealmName(state) + ' realm'} resource type ${name ? `${name} (${id})` : id}`,
+            error
+          )
+        );
+      }
+      continue;
     }
+    response.push(imported);
+    // a resource type that needed no update is reported as it is in the import data
+    if (resultCallback)
+      resultCallback(undefined, imported ?? importData.resourcetype[id]);
   }
   if (errors.length > 0) {
     throw new FrodoError(
