@@ -58,9 +58,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Agent",
     methodName: "readAgentTypes",
-    signature: "readAgentTypes(): Promise<AgentType[]>",
-    description: "Read all agent types.",
-    params: [],
+    signature: "readAgentTypes(refreshCache?: boolean): Promise<AgentType[]>",
+    description: "Read all agent types. Agent types with their own module (for example OAuth2 clients) are not part of the answer.",
+    params: [
+      { name: "refreshCache", type: "boolean", description: "true to ask the server again and replace the cached list of the realm. Default: false.", required: false },
+    ],
     returns: "{Promise<AgentType[]>} a promise that resolves to an array of agent type strings",
   },
   {

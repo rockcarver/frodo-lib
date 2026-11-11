@@ -55,6 +55,8 @@ export type SoapSTSAgentType = 'SoapSTSAgent';
 export type SoftwarePublisherType = 'SoftwarePublisher';
 export type WebAgentType = 'WebAgent';
 export type AIAgentType = 'AIAgent';
+export type CIMDProfileType = 'CIMDProfile';
+export type TrustedJwtIssuerType = 'TrustedJwtIssuer';
 
 export type AgentType =
   | PolicyAgentType
@@ -68,6 +70,8 @@ export type AgentType =
   | SoftwarePublisherType
   | WebAgentType
   | AIAgentType
+  | CIMDProfileType
+  | TrustedJwtIssuerType
   | EntityType;
 
 export type AgentTypeItem = {
