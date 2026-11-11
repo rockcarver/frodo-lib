@@ -2987,6 +2987,28 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     excluded: true,
   },
 
+  // --- bulk exports and imports that report each item to a result callback:
+  // the callback is for in-process library callers, MCP callers do not get it.
+  'authz.policy.exportPolicies': { excludeParameters: ['resultCallback'] },
+  'authz.policy.exportPoliciesByPolicySet': {
+    excludeParameters: ['resultCallback'],
+  },
+  'authz.policy.importPolicies': { excludeParameters: ['resultCallback'] },
+  'authz.policySet.exportPolicySets': { excludeParameters: ['resultCallback'] },
+  'authz.policySet.importPolicySets': { excludeParameters: ['resultCallback'] },
+  'authz.resourceType.importResourceTypes': {
+    excludeParameters: ['resultCallback'],
+  },
+  'cloud.adminFed.exportAdminFederationProviders': {
+    excludeParameters: ['resultCallback'],
+  },
+  'cloud.adminFed.importAdminFederationProviders': {
+    excludeParameters: ['resultCallback'],
+  },
+  'cloud.secret.importSecrets': { excludeParameters: ['resultCallback'] },
+  'cloud.variable.importVariables': { excludeParameters: ['resultCallback'] },
+  'server.importServers': { excludeParameters: ['resultCallback'] },
+
   'cloud.feature.hasFeature': { mutating: false, riskClass: 'low' },
 
   'cloud.iga.workflow.publishWorkflow': {
@@ -3632,6 +3654,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes: 'Same payload shape as server.exportServer.',
   },
   'server.exportServers': {
+    excludeParameters: ['resultCallback'],
     mutating: false,
     riskClass: 'high',
     notes: 'Same payload shape as server.exportServer, for every server.',

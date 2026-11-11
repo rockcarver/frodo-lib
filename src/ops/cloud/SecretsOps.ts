@@ -117,12 +117,14 @@ export type Secret = {
    * @param {SecretsExportInterface} importData import data
    * @param {boolean} includeActiveValues include active values of secrets (default: false)
    * @param {string} source Host URL of source environment where the secrets were exported from
+   * @param {ResultCallback<SecretSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every secret is passed to it once, as it happens: a secret that was imported as the secret (a secret that needed no update as it is in the import data, without its value), a secret that could not be imported as an error that names the secret and carries the cause. Such a secret is not part of the result and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every secret was tried. Failing to resolve the values of the secrets (for example a value that cannot be decrypted) always throws, before any secret is imported.
    * @returns {Promise<SecretSkeleton[]>} array of imported secret objects
    */
   importSecrets(
     importData: SecretsExportInterface,
     includeActiveValues?: boolean,
-    source?: string
+    source?: string,
+    resultCallback?: ResultCallback<SecretSkeleton>
   ): Promise<SecretSkeleton[]>;
   /**
    * Create secret
@@ -307,11 +309,13 @@ export default (state: State): Secret => {
     async importSecrets(
       importData: SecretsExportInterface,
       includeActiveValues: boolean = false,
-      source: string = null
+      source: string = null,
+      resultCallback: ResultCallback<SecretSkeleton> = void 0
     ): Promise<SecretSkeleton[]> {
       return importSecrets({
         importData,
         options: { includeActiveValues, source },
+        resultCallback,
         state,
       });
     },
@@ -1004,15 +1008,18 @@ export async function importSecret({
  * Import secrets
  * @param {SecretsExportInterface} importData import data
  * @param {SecretImportOptions} options import options
+ * @param {ResultCallback<SecretSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every secret is passed to it once, as it happens: a secret that was imported as the secret (a secret that needed no update as it is in the import data, without its value), a secret that could not be imported as an error that names the secret and carries the cause. Such a secret is not part of the result and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every secret was tried. Failing to resolve the values of the secrets (for example a value that cannot be decrypted) always throws, before any secret is imported.
  * @returns {Promise<SecretSkeleton[]>} array of imported secret objects
  */
 export async function importSecrets({
   importData,
   options = { includeActiveValues: true, source: '' },
+  resultCallback = void 0,
   state,
 }: {
   importData: SecretsExportInterface;
   options?: SecretImportOptions;
+  resultCallback?: ResultCallback<SecretSkeleton>;
   state: State;
 }): Promise<SecretSkeleton[]> {
   debugMessage({ message: `SecretsOps.importSecrets: start`, state });
@@ -1026,35 +1033,47 @@ export async function importSecrets({
     state,
   });
   for (const id of Object.keys(importData.secret)) {
+    let imported: SecretSkeleton | null;
     try {
       const secretData = importData.secret[id];
       delete secretData._rev;
-      response.push(
-        await updateRemote({
-          type: 'ESV secret',
-          updateFn: async () =>
-            await updateSecret({
-              secretId: secretData._id,
-              description: secretData.description,
-              value: includeActiveValues
-                ? resolvedSecretValues[secretData._id]
-                : undefined,
-              state,
-            }),
-          createFn: async () =>
-            await createSecret({
-              secretId: secretData._id,
-              value: resolvedSecretValues[secretData._id],
-              description: secretData.description,
-              encoding: secretData.encoding,
-              useInPlaceholders: secretData.useInPlaceholders,
-              state,
-            }),
-          state,
-        })
-      );
+      imported = await updateRemote({
+        type: 'ESV secret',
+        updateFn: async () =>
+          await updateSecret({
+            secretId: secretData._id,
+            description: secretData.description,
+            value: includeActiveValues
+              ? resolvedSecretValues[secretData._id]
+              : undefined,
+            state,
+          }),
+        createFn: async () =>
+          await createSecret({
+            secretId: secretData._id,
+            value: resolvedSecretValues[secretData._id],
+            description: secretData.description,
+            encoding: secretData.encoding,
+            useInPlaceholders: secretData.useInPlaceholders,
+            state,
+          }),
+        state,
+      });
     } catch (error) {
-      errors.push(error);
+      if (!resultCallback) {
+        errors.push(error);
+      } else {
+        // the caller reports the failure: name the secret and keep the cause
+        resultCallback(new FrodoError(`Error importing secret ${id}`, error));
+      }
+      continue;
+    }
+    response.push(imported);
+    if (resultCallback) {
+      // a secret that needed no update is reported as it is in the import data, never with its value
+      const unchanged = { ...importData.secret[id] };
+      delete unchanged.activeValue;
+      resultCallback(undefined, imported ?? unchanged);
     }
   }
   if (errors.length > 0) {
