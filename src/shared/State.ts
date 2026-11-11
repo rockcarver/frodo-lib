@@ -392,6 +392,26 @@ export type State = {
   getTenant(): string;
 };
 
+/**
+ * Merge the overrides that an environment variable gives into a copy of the
+ * map that a state holds. `mergeDeep` writes into its first argument, and the
+ * map of a state can be the default object that other states start from, or the
+ * object that a caller passed to the setter, so a getter never hands it the
+ * map itself. A state without a map (`undefined`) still answers without one.
+ * @param {Record<string, string>} map the map that the state holds
+ * @param {string} fromEnvironment the value of the environment variable, a JSON object, or undefined
+ * @returns {Record<string, string>} a new map with the values of the variable merged over the map
+ */
+function mergeEnvironmentOverrides(
+  map: Record<string, string>,
+  fromEnvironment: string | undefined
+): Record<string, string> {
+  return mergeDeep(
+    map && cloneDeep(map),
+    fromEnvironment ? JSON.parse(fromEnvironment) : {}
+  );
+}
+
 export default (initialState: StateInterface): State => {
   const state: StateInterface = { ...globalState, ...initialState };
   return {
@@ -534,11 +554,9 @@ export default (initialState: StateInterface): State => {
       state.authenticationHeaderOverrides = overrides;
     },
     getAuthenticationHeaderOverrides() {
-      return mergeDeep(
+      return mergeEnvironmentOverrides(
         state.authenticationHeaderOverrides,
         process.env.FRODO_AUTHENTICATION_HEADER_OVERRIDES
-          ? JSON.parse(process.env.FRODO_AUTHENTICATION_HEADER_OVERRIDES)
-          : {}
       );
     },
     setAuthenticationService(service: string) {
@@ -554,11 +572,9 @@ export default (initialState: StateInterface): State => {
       state.configurationHeaderOverrides = overrides;
     },
     getConfigurationHeaderOverrides() {
-      return mergeDeep(
+      return mergeEnvironmentOverrides(
         state.configurationHeaderOverrides,
         process.env.FRODO_CONFIGURATION_HEADER_OVERRIDES
-          ? JSON.parse(process.env.FRODO_CONFIGURATION_HEADER_OVERRIDES)
-          : {}
       );
     },
 
