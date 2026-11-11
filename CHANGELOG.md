@@ -10,6 +10,28 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-36] - 2026-11-11
+
+### Added
+- MCP runtime now returns partial results of bulk calls along with failed items. This enhancement allows for better error handling and reporting during bulk operations. (#1006)
+- AM configuration bulk imports and exports now report per item, providing detailed feedback on each operation. This feature supports better tracking and debugging of configuration changes. (#999)
+- Bulk exports and imports for policies, policy sets, resource types, secrets, variables, servers, and admin federation now report per item, enhancing transparency and error tracking. (#1000)
+- `importJourneys` now reports per journey with detailed logging of skipped "not available in Cloud" answers. This improvement aids in identifying issues during journey imports. (#998)
+- `importMappings`, `importRemoteProxies`, and `importEmailTemplates` now support per-item reporting via an optional `resultCallback`, improving error handling and process transparency. (#997)
+
+### Changed
+- Proxy errors now include the proxy name when a tunnel is refused or unreachable, clarifying error messages and aiding in troubleshooting. (#1001)
+
+### Fixed
+- `getResult` now correctly skips the "not available in Cloud" answer even when the function throws a raw API error, ensuring consistent behavior across different error handling scenarios. (#1011)
+- `Saml2Ops` now skips the "not available in Cloud" answer when reading raw API errors, aligning its behavior with other operations. (#1010)
+- `exportConfigEntities` now correctly skips entities a tenant cannot answer, addressing issues with nested error filtering. (#1005)
+- Header override getters now merge into a copy of the map, preventing unintended state modifications. (#1003)
+- Connections for HTTP targets through a proxy are no longer reused, ensuring correct proxy credentials are sent with each request. (#996)
+
+### Security
+- Errors from failed requests no longer include the proxy URL, enhancing security by not exposing unnecessary information. (#1002)
+
 ## [v5.0.0-35] - 2026-11-11
 
 ### Changed
@@ -2912,6 +2934,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-36]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-35...v5.0.0-36
 [v5.0.0-35]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-34...v5.0.0-35
 [v5.0.0-33]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-32...v5.0.0-33
 [v5.0.0-32]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-31...v5.0.0-32

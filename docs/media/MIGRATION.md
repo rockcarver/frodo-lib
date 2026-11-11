@@ -44,6 +44,15 @@ releases missed):
   and thrown in one `FrodoError` naming the failed types after all types have
   been read; previously, they were silently treated as empty lists and the
   command returned the agents from the remaining readable types.
+- `frodo.agent.importAgents` (`src/ops/AgentOps.ts`) now treats an agent type
+  that answers HTTP 501 as a failed agent, like any other failure. It used to
+  skip such an agent without a word: it was neither imported nor reported. After
+  every agent was tried, the function now throws one `FrodoError` that carries
+  one nested error per failed agent, naming the agent and its type; with the new
+  optional `resultCallback` argument, each failed agent is passed to the
+  callback and nothing is thrown. A file with such an agent that imported
+  without an error before now ends with one: take the agent out of the file, or
+  pass a callback and decide what to do with that error.
 - `frodo.utils.saveTextToFile` and `frodo.utils.saveJsonToFile`
   (`src/utils/ExportImportUtils.ts`) now return `void` on success instead of
   `true`. Directory-creation and file-write failures throw a `FrodoError`
@@ -74,6 +83,45 @@ releases missed):
   Exports are unaffected: they report findings as warnings and never block.
 - [`frodo.authn.journey.validateJourneys(journeyIds?, journeysExport?)`](https://rockcarver.github.io/frodo-lib/types/Reference.Journey.html#validatejourneys)
   validates journeys from the tenant or from a multi-journey export.
+- `frodo.authn.journey.importJourneys` (`src/ops/JourneyOps.ts`) with a result
+  callback no longer rejects the whole batch for an invalid journey or a
+  missing dependency. Every journey is an item: the callback gets an imported
+  journey as the journey and a failed one as an error that names it, as it
+  happens, and the function returns the journeys that were imported. A journey
+  that has validation errors, a journey that needs a journey that is neither
+  installed nor in the import data, and a journey that needs a journey of the
+  batch that failed are reported as failed and are not written; every other
+  journey is imported, in the order of its dependencies. Without a callback
+  nothing changes: the batch is validated and its dependencies are resolved
+  before any journey is written, and a validation error or a missing dependency
+  rejects the batch. `frodo.config.importFullConfiguration` imports its journeys
+  section this way when it is given a result callback (an invalid journey is
+  reported to the callback and no longer rejects the section), and as before
+  when it is not.
+- A credential that lacks a scope an operation needs (an `InsufficientScopeError`
+  anywhere in the error chain) is now a failed item, no longer skipped. The
+  shared result helper (`getResult` in `src/utils/ExportImportUtils.ts`) used to
+  treat it like the answer "This operation is not available in PingOne Advanced
+  Identity Cloud." (HTTP 403): the item was left out of the result without a
+  word, nothing was reported to a result callback and nothing was thrown. It now
+  fails like any other item. With a result callback, the callback gets an error
+  that names the item, with the `InsufficientScopeError` as its cause, and the
+  run goes on; without one, the function throws that error at the first such
+  item, as it does for every other failure. This reaches every function that
+  reports its items through the helper, among them
+  `frodo.config.exportFullConfiguration` and `importFullConfiguration`,
+  `frodo.am.config.exportAmConfigEntities` and `importAmConfigEntities`,
+  `frodo.idm.config.exportConfigEntities`, `frodo.authn.journey.exportJourneys`
+  and `importJourneys`, `frodo.script.exportScripts` and the bulk deletes and
+  imports of IGA objects. A full configuration export with a credential that
+  lacks the scope of one section therefore throws (or, with a callback, reports
+  that section as failed) where it used to return the other sections without
+  it. The error of the failed item carries the code `INSUFFICIENT_SCOPE`
+  (`FrodoError.code`), and so does the `InsufficientScopeError` nested in it, so
+  a caller can recognise the condition without parsing the message. The
+  answer "not available in PingOne Advanced Identity Cloud" is unchanged, it is
+  still skipped without being reported; a debug message now names the skipped
+  operation and the request.
 - `frodo.cloud.env.promotion`: `promoteConfiguration` now sends its request to
   the promotion endpoint (it used to post to the lock endpoint, so it never
   promoted anything). `lockEnvironment` and `unlockEnvironment` return a
@@ -95,6 +143,34 @@ releases missed):
   that could be deleted by the time it rejects. The message of the error from
   `exportServers` for a failed server is now `Error exporting servers`; it was
   `Error reading servers`.
+- `frodo.idm.connector.readConnectors`, `exportConnectors` and
+  `deleteConnectors` now leave out configurations whose id does not start with
+  `provisioner.openicf/`, such as `provisioner.openicf.connectorinfoprovider`.
+  Before, an export held that configuration under the key "undefined" and
+  `deleteConnectors` deleted it (#973).
+- The MCP tool runtime (`createToolRuntime`, `frodo.mcp.createService`) passes a
+  collecting result callback to every function of the facade that takes a
+  `resultCallback`, and its capability descriptors no longer list that
+  parameter (it was listed for those that had no `excludeParameters` entry,
+  and as a required parameter for `config.exportFullConfiguration` and
+  `config.importFullConfiguration`). An MCP caller cannot send a function, so
+  since a missing scope is a failed item a bulk call with a scope-limited
+  credential used to end with the one error of the first failed item. The tool
+  result of a call in which no item failed is unchanged. When at least one
+  item failed, the result also has `partial: true` and `itemResults`
+  (`succeededCount`, `failedCount`, `failures` with `message`, `code` such as
+  `INSUFFICIENT_SCOPE` and `item`, `omittedFailureCount` and a `summary`; at most
+  50 failures of at most 1000 characters are listed, without stack and with
+  credentials replaced), and `data` holds what the function returned for the
+  other items. For a write (an import, a delete) this means that the items that
+  can be written are written and the ones that cannot are reported, where the
+  functions without a callback reject the batch or stop at the first failed
+  item (`importJourneys` validates the whole batch first, `importFullConfiguration`
+  stops at the first failed section). A call whose list read fails still
+  returns an error. A named-argument call that sends `resultCallback` to a
+  capability that takes it as its last parameter is rejected as an unknown
+  argument. A host that calls the runtime in process and puts a function at the
+  position of the callback keeps it.
 
 **Deprecation**:
 
