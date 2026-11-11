@@ -15,7 +15,34 @@ import {
 } from '../../api/cloud/LogApi';
 import { State } from '../../shared/State';
 import { sleep } from '../../utils/FrodoUtils';
-import { FrodoError } from '../FrodoError';
+import { parseLogApiRateLimit } from '../../utils/LogApiRateLimitUtils';
+import { FrodoError, getFailedResponse } from '../FrodoError';
+
+/**
+ * The error of a failed request of the Log API. A request that the API rejected with 429 gets the code
+ * `LOG_API_RATE_LIMITED`, and `rateLimit` when the answer carried the `X-RateLimit-*` headers, so that a caller can
+ * tell "throttled" from "failed" and knows when the window resets. Any other failure is a plain `FrodoError`.
+ * @param {string} message what the operation was doing, `Error tailing logs`
+ * @param {Error} error the error of the api layer
+ * @returns {FrodoError} the error to throw
+ */
+function logApiFailure(message: string, error: Error): FrodoError {
+  const response = getFailedResponse(error);
+  if (response?.status !== 429) {
+    return new FrodoError(message, error);
+  }
+  const rateLimit = parseLogApiRateLimit(response.headers);
+  const resets = rateLimit
+    ? `, it resets at ${new Date(rateLimit.resetAt).toISOString()}`
+    : '';
+  const failure = new FrodoError(
+    `${message}: the rate limit of the Log API is exceeded${resets}`,
+    error,
+    'LOG_API_RATE_LIMITED'
+  );
+  if (rateLimit) failure.rateLimit = rateLimit;
+  return failure;
+}
 
 export type LogTailStream = {
   /**
@@ -502,7 +529,7 @@ export async function getLogSources({ state }: { state: State }) {
     const { result } = await _getSources({ state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error getting log sources`, error);
+    throw logApiFailure(`Error getting log sources`, error);
   }
 }
 
@@ -651,7 +678,7 @@ export async function tail({
   try {
     return await _tail({ source, cookie, state });
   } catch (error) {
-    throw new FrodoError(`Error tailing logs`, error);
+    throw logApiFailure(`Error tailing logs`, error);
   }
 }
 
@@ -696,7 +723,16 @@ export function createLogTailStream({
       return rateLimit;
     },
     async poll(): Promise<LogEventSkeleton[]> {
-      const page = await tail({ source, cookie, state });
+      let page: LogEventsPage;
+      try {
+        page = await tail({ source, cookie, state });
+      } catch (error) {
+        // a poll that the API rejected for the rate limit reports the state too: the latest word of the API
+        if (error instanceof FrodoError && error.rateLimit) {
+          rateLimit = error.rateLimit;
+        }
+        throw error;
+      }
       cookie = page.pagedResultsCookie;
       rateLimit = page.rateLimit;
       const events = Array.isArray(page.result) ? page.result : [];
@@ -757,7 +793,7 @@ export async function fetch({
       state,
     });
   } catch (error) {
-    throw new FrodoError(`Error fetching logs`, error);
+    throw logApiFailure(`Error fetching logs`, error);
   }
 }
 
@@ -894,7 +930,7 @@ export async function searchEvents({
       }
     }
   } catch (error) {
-    throw new FrodoError(`Error searching events`, error);
+    throw logApiFailure(`Error searching events`, error);
   }
 
   if (!dedupeByTransactionId) {

@@ -10,10 +10,13 @@
  */
 import { jest } from '@jest/globals';
 import StateImpl from '../../shared/State';
+import { failedRequest } from '../../test/utils/ErrorWrapping';
+import { FrodoError } from '../FrodoError';
 
 const actualLogApi = await import('../../api/cloud/LogApi');
 const logApi = {
   fetch: jest.fn<(...args: any[]) => Promise<any>>(),
+  getSources: jest.fn<(...args: any[]) => Promise<any>>(),
   tail: jest.fn<(...args: any[]) => Promise<any>>(),
 };
 jest.unstable_mockModule('../../api/cloud/LogApi', () => ({
@@ -43,6 +46,7 @@ function page(extra: Record<string, unknown> = {}, cookie = 'cookie') {
 
 beforeEach(() => {
   logApi.fetch.mockReset();
+  logApi.getSources.mockReset();
   logApi.tail.mockReset();
 });
 
@@ -113,5 +117,226 @@ describe('createLogTailStream().rateLimit', () => {
     expect(() => {
       (stream as { rateLimit: unknown }).rateLimit = { limit: 1 };
     }).toThrow(TypeError);
+  });
+});
+
+describe('a request that the Log API rejected with 429', () => {
+  const calls = [
+    {
+      name: 'tail',
+      message: 'Error tailing logs',
+      api: logApi.tail,
+      call: () =>
+        ops.tail({ source: 'am-everything', cookie: undefined, state }),
+    },
+    {
+      name: 'fetch',
+      message: 'Error fetching logs',
+      api: logApi.fetch,
+      call: () =>
+        ops.fetch({
+          source: 'am-everything',
+          startTs: '2026-01-01T00:00:00Z',
+          endTs: '2026-01-01T01:00:00Z',
+          cookie: undefined,
+          txid: undefined,
+          filter: undefined,
+          state,
+        }),
+    },
+    {
+      name: 'getLogSources',
+      message: 'Error getting log sources',
+      api: logApi.getSources,
+      call: () => ops.getLogSources({ state }),
+    },
+    {
+      name: 'searchEvents',
+      message: 'Error searching events',
+      api: logApi.fetch,
+      call: () =>
+        ops.searchEvents({
+          source: 'am-authentication',
+          startTs: '2026-01-01T00:00:00Z',
+          endTs: '2026-01-01T01:00:00Z',
+          state,
+        }),
+    },
+  ];
+
+  const caught = async (call: () => Promise<unknown>) =>
+    (await call().then(
+      () => undefined,
+      (error: unknown) => error
+    )) as FrodoError;
+
+  describe.each(calls)('$name', ({ message, api, call }) => {
+    test.each([
+      [60, 0, 41],
+      [28, 3, 7],
+    ])(
+      'is a FrodoError with the code and the state of the limit (limit %d, remaining %d, reset in %d seconds)',
+      async (limit, remaining, seconds) => {
+        const cause = failedRequest(429, {
+          'x-ratelimit-limit': String(limit),
+          'x-ratelimit-remaining': String(remaining),
+          'x-ratelimit-reset': String(NOW / 1000 + seconds),
+        });
+        api.mockRejectedValue(cause);
+
+        const error = await caught(call);
+
+        expect(error).toBeInstanceOf(FrodoError);
+        expect(error.code).toBe('LOG_API_RATE_LIMITED');
+        expect(error.rateLimit).toEqual({
+          limit,
+          remaining,
+          resetAt: NOW + seconds * 1000,
+        });
+        expect(error.message).toBe(
+          `${message}: the rate limit of the Log API is exceeded, it resets at ${new Date(NOW + seconds * 1000).toISOString()}`
+        );
+        expect(error.originalErrors).toEqual([cause]);
+        expect(error.isHttpError).toBe(true);
+        expect(error.httpStatus).toBe(429);
+      }
+    );
+
+    test('still has the code when the answer carries no rate limit headers', async () => {
+      const cause = failedRequest(429);
+      api.mockRejectedValue(cause);
+
+      const error = await caught(call);
+
+      expect(error.code).toBe('LOG_API_RATE_LIMITED');
+      expect(error.rateLimit).toBeUndefined();
+      expect(error.message).toBe(
+        `${message}: the rate limit of the Log API is exceeded`
+      );
+      expect(error.originalErrors).toEqual([cause]);
+    });
+
+    test('still has the code when only some of the headers are there', async () => {
+      api.mockRejectedValue(failedRequest(429, { 'retry-after': '12' }));
+
+      const error = await caught(call);
+
+      expect(error.code).toBe('LOG_API_RATE_LIMITED');
+      expect(error.rateLimit).toBeUndefined();
+    });
+
+    test.each([400, 401, 403, 500, 503])(
+      'is not coded for a %d, even with rate limit headers',
+      async (status) => {
+        api.mockRejectedValue(
+          failedRequest(status, {
+            'x-ratelimit-limit': '28',
+            'x-ratelimit-remaining': '0',
+            'x-ratelimit-reset': String(NOW / 1000 + 5),
+          })
+        );
+
+        const error = await caught(call);
+
+        expect(error).toBeInstanceOf(FrodoError);
+        expect(error.code).toBeUndefined();
+        expect(error.rateLimit).toBeUndefined();
+        expect(error.message).toBe(message);
+      }
+    );
+
+    test('is not coded for a failure that is no HTTP answer', async () => {
+      api.mockRejectedValue(new Error('socket hang up'));
+
+      const error = await caught(call);
+
+      expect(error.code).toBeUndefined();
+      expect(error.message).toBe(message);
+    });
+  });
+
+  test('a FrodoError that wraps the 429 is coded too', async () => {
+    const cause = failedRequest(429, {
+      'x-ratelimit-limit': '28',
+      'x-ratelimit-remaining': '0',
+      'x-ratelimit-reset': String(NOW / 1000 + 5),
+    });
+    logApi.tail.mockRejectedValue(new FrodoError('inner', cause));
+
+    const error = await caught(() =>
+      ops.tail({ source: 'am-everything', cookie: undefined, state })
+    );
+
+    expect(error.code).toBe('LOG_API_RATE_LIMITED');
+    expect(error.rateLimit?.resetAt).toBe(NOW + 5000);
+  });
+
+  describe('in a tail stream', () => {
+    const limited = (seconds: number) =>
+      failedRequest(429, {
+        'x-ratelimit-limit': '28',
+        'x-ratelimit-remaining': '0',
+        'x-ratelimit-reset': String(NOW / 1000 + seconds),
+      });
+
+    test('poll() rejects with the coded error and the stream reports the state of that answer', async () => {
+      logApi.tail
+        .mockResolvedValueOnce(
+          page({ rateLimit: { limit: 28, remaining: 4, resetAt: NOW + 9000 } })
+        )
+        .mockRejectedValueOnce(limited(30));
+      const stream = ops.createLogTailStream({
+        source: 'am-everything',
+        state,
+      });
+      await stream.poll();
+
+      const error = await caught(() => stream.poll());
+
+      expect(error.code).toBe('LOG_API_RATE_LIMITED');
+      expect(stream.rateLimit).toEqual({
+        limit: 28,
+        remaining: 0,
+        resetAt: NOW + 30_000,
+      });
+    });
+
+    test('a poll that fails otherwise leaves the state of the latest answer', async () => {
+      const first = { limit: 28, remaining: 4, resetAt: NOW + 9000 };
+      logApi.tail
+        .mockResolvedValueOnce(page({ rateLimit: first }))
+        .mockRejectedValueOnce(failedRequest(500));
+      const stream = ops.createLogTailStream({
+        source: 'am-everything',
+        state,
+      });
+      await stream.poll();
+
+      await expect(stream.poll()).rejects.toBeInstanceOf(FrodoError);
+      expect(stream.rateLimit).toEqual(first);
+    });
+
+    test('the cookie is not advanced by a rejected poll', async () => {
+      logApi.tail
+        .mockResolvedValueOnce(page({}, 'cookie-1'))
+        .mockRejectedValueOnce(limited(5))
+        .mockResolvedValueOnce(page({}, 'cookie-2'));
+      const stream = ops.createLogTailStream({
+        source: 'am-everything',
+        state,
+      });
+      await stream.poll();
+      await caught(() => stream.poll());
+      await stream.poll();
+
+      expect(logApi.tail).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ cookie: 'cookie-1' })
+      );
+      expect(logApi.tail).toHaveBeenNthCalledWith(
+        3,
+        expect.objectContaining({ cookie: 'cookie-1' })
+      );
+    });
   });
 });
