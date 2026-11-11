@@ -1,0 +1,24 @@
+{
+  "_id": "example-mcp-clients",
+  "_rev": "1622255839",
+  "coreOAuth2ClientConfig": {
+    "clientName": [
+      "Sparse test profile"
+    ],
+    "status": "Active"
+  },
+  "cimdConfig": {
+    "cimdSsrfProtectionEnabled": true,
+    "cimdMetadataDenyList": [
+      "scope"
+    ],
+    "cimdClientIdUrlPatterns": [
+      "https://agents.example.com/*"
+    ]
+  },
+  "_type": {
+    "_id": "CIMDProfile",
+    "name": "CIMD Profile",
+    "collection": true
+  }
+}

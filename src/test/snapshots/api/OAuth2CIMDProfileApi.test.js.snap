@@ -1,0 +1,2174 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`OAuth2CIMDProfileApi Cloud Tests Cloud root realm 1: Get all CIMD profiles of the root realm 1`] = `
+{
+  "data": {
+    "code": 403,
+    "message": "This operation is not available in PingOne Advanced Identity Cloud.",
+    "reason": "Forbidden",
+  },
+  "message": "Request failed with status code 403",
+  "name": "AxiosError",
+  "status": 403,
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests Cloud root realm 2: Get a CIMD profile of the root realm 1`] = `
+{
+  "data": {
+    "code": 403,
+    "message": "This operation is not available in PingOne Advanced Identity Cloud.",
+    "reason": "Forbidden",
+  },
+  "message": "Request failed with status code 403",
+  "name": "AxiosError",
+  "status": 403,
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests Cloud root realm 3: Get the template and the schema of the root realm 1`] = `
+[
+  {
+    "data": {
+      "code": 403,
+      "message": "This operation is not available in PingOne Advanced Identity Cloud.",
+      "reason": "Forbidden",
+    },
+    "message": "Request failed with status code 403",
+    "name": "AxiosError",
+    "status": 403,
+  },
+  {
+    "data": {
+      "code": 403,
+      "message": "This operation is not available in PingOne Advanced Identity Cloud.",
+      "reason": "Forbidden",
+    },
+    "message": "Request failed with status code 403",
+    "name": "AxiosError",
+    "status": 403,
+  },
+]
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests Cloud root realm 4: Create a CIMD profile in the root realm 1`] = `
+{
+  "data": {
+    "code": 403,
+    "message": "This operation is not available in PingOne Advanced Identity Cloud.",
+    "reason": "Forbidden",
+  },
+  "message": "Request failed with status code 403",
+  "name": "AxiosError",
+  "status": 403,
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests Cloud root realm 5: Delete a CIMD profile in the root realm 1`] = `
+{
+  "data": {
+    "code": 403,
+    "message": "This operation is not available in PingOne Advanced Identity Cloud.",
+    "reason": "Forbidden",
+  },
+  "message": "Request failed with status code 403",
+  "name": "AxiosError",
+  "status": 403,
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests deleteCIMDProfile() 1: Delete CIMD profile 'FrodoTestCIMDDelete1' 1`] = `
+{
+  "_id": "FrodoTestCIMDDelete1",
+  "_rev": "-103120092",
+  "_type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+  "advancedOAuth2ClientConfig": {
+    "acceptedJwtIssuers": {
+      "inherited": false,
+      "value": [],
+    },
+    "allowedResourceServerAudienceValues": {
+      "inherited": false,
+      "value": [],
+    },
+    "clientUri": {
+      "inherited": false,
+      "value": [],
+    },
+    "contacts": {
+      "inherited": false,
+      "value": [],
+    },
+    "customProperties": {
+      "inherited": false,
+      "value": [],
+    },
+    "descriptions": {
+      "inherited": false,
+      "value": [],
+    },
+    "grantTypes": {
+      "inherited": false,
+      "value": [
+        "authorization_code",
+        "refresh_token",
+      ],
+    },
+    "introspectionPolicySets": {
+      "inherited": false,
+      "value": [],
+    },
+    "isConsentImplied": {
+      "inherited": false,
+      "value": false,
+    },
+    "logoUri": {
+      "inherited": false,
+      "value": [],
+    },
+    "mixUpMitigation": {
+      "inherited": false,
+      "value": false,
+    },
+    "name": {
+      "inherited": false,
+      "value": [],
+    },
+    "policyUri": {
+      "inherited": false,
+      "value": [],
+    },
+    "refreshTokenGracePeriod": {
+      "inherited": false,
+      "value": 0,
+    },
+    "requestUris": {
+      "inherited": false,
+      "value": [],
+    },
+    "require_pushed_authorization_requests": {
+      "inherited": false,
+      "value": false,
+    },
+    "responseTypes": {
+      "inherited": false,
+      "value": [
+        "code",
+        "token",
+        "id_token",
+        "code token",
+        "token id_token",
+        "code id_token",
+        "code token id_token",
+        "device_code",
+        "device_code id_token",
+      ],
+    },
+    "sectorIdentifierUri": {
+      "inherited": false,
+    },
+    "subjectType": {
+      "inherited": false,
+      "value": "public",
+    },
+    "tlsCaSecretLabelIdentifier": {
+      "inherited": false,
+    },
+    "tokenEndpointAuthMethod": {
+      "inherited": false,
+      "value": "none",
+    },
+    "tokenExchangeAuthLevel": {
+      "inherited": false,
+      "value": 0,
+    },
+    "tosURI": {
+      "inherited": false,
+      "value": [],
+    },
+    "treeName": {
+      "inherited": false,
+      "value": "Login",
+    },
+  },
+  "cimdConfig": {
+    "cimdClientIdUrlPatterns": {
+      "inherited": false,
+      "value": [
+        "https://clients11.matrix.example.com/*",
+        "https://clients11.matrix.example.com:8443/agents/*",
+      ],
+    },
+    "cimdMetadataDenyList": {
+      "inherited": false,
+      "value": [
+        "scope",
+        "redirect_uris",
+      ],
+    },
+    "cimdSsrfProtectionEnabled": {
+      "inherited": false,
+      "value": true,
+    },
+  },
+  "coreOAuth2ClientConfig": {
+    "accessTokenLifetime": {
+      "inherited": false,
+      "value": 300,
+    },
+    "authorizationCodeLifetime": {
+      "inherited": false,
+      "value": 0,
+    },
+    "authorizationDetailTypes": {
+      "inherited": false,
+      "value": [],
+    },
+    "clientName": {
+      "inherited": false,
+      "value": [
+        "FrodoTest CIMD profile 11",
+      ],
+    },
+    "defaultScopes": {
+      "inherited": false,
+      "value": [
+        "openid",
+      ],
+    },
+    "loopbackInterfaceRedirection": {
+      "inherited": false,
+      "value": false,
+    },
+    "redirectionUris": {
+      "inherited": false,
+      "value": [
+        "https://clients11.matrix.example.com/callback",
+      ],
+    },
+    "refreshTokenLifetime": {
+      "inherited": false,
+      "value": 0,
+    },
+    "scopes": {
+      "inherited": false,
+      "value": [
+        "openid",
+        "profile",
+      ],
+    },
+    "status": {
+      "inherited": false,
+      "value": "Active",
+    },
+  },
+  "coreOpenIDClientConfig": {
+    "claims": {
+      "inherited": false,
+      "value": [],
+    },
+    "clientSessionUri": {
+      "inherited": false,
+    },
+    "defaultAcrValues": {
+      "inherited": false,
+      "value": [],
+    },
+    "defaultMaxAge": {
+      "inherited": false,
+      "value": 600,
+    },
+    "defaultMaxAgeEnabled": {
+      "inherited": false,
+      "value": false,
+    },
+    "jwtTokenLifetime": {
+      "inherited": false,
+      "value": 0,
+    },
+    "postLogoutRedirectUri": {
+      "inherited": false,
+      "value": [],
+    },
+  },
+  "overrideOAuth2ClientConfig": {
+    "acceptAudienceParametersInTokenExchangeRequests": false,
+    "accessTokenMayActScript": "[Empty]",
+    "accessTokenModificationPluginType": "PROVIDER",
+    "accessTokenModificationScript": "[Empty]",
+    "authorizeEndpointDataProviderClass": "org.forgerock.oauth2.core.plugins.registry.DefaultEndpointDataProvider",
+    "authorizeEndpointDataProviderPluginType": "PROVIDER",
+    "authorizeEndpointDataProviderScript": "[Empty]",
+    "clientsCanSkipConsent": false,
+    "enableApplicationContext": false,
+    "enableRemoteConsent": false,
+    "evaluateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeEvaluator",
+    "evaluateScopePluginType": "PROVIDER",
+    "evaluateScopeScript": "[Empty]",
+    "issueRefreshToken": true,
+    "issueRefreshTokenOnRefreshedToken": true,
+    "oidcClaimsPluginType": "PROVIDER",
+    "oidcClaimsScript": "[Empty]",
+    "oidcMayActScript": "[Empty]",
+    "overrideableOIDCClaims": [],
+    "providerOverridesEnabled": false,
+    "remoteConsentServiceId": null,
+    "restrictTokenExchangeScopesToSubjectTokenScopes": false,
+    "scopesPolicySet": "oauth2Scopes",
+    "statelessTokensEnabled": false,
+    "tlsClientCertificateChainValidationEnabled": false,
+    "tokenEncryptionEnabled": false,
+    "useForceAuthnForMaxAge": false,
+    "usePolicyEngineForScope": false,
+    "useTokenIntrospectionClaimForJWT": false,
+    "validateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeValidator",
+    "validateScopePluginType": "PROVIDER",
+    "validateScopeScript": "[Empty]",
+  },
+  "signEncOAuth2ClientConfig": {
+    "clientJwtPublicKey": {
+      "inherited": false,
+    },
+    "idTokenEncryptionAlgorithm": {
+      "inherited": false,
+      "value": "RSA-OAEP-256",
+    },
+    "idTokenEncryptionEnabled": {
+      "inherited": false,
+      "value": false,
+    },
+    "idTokenEncryptionMethod": {
+      "inherited": false,
+      "value": "A128CBC-HS256",
+    },
+    "idTokenPublicEncryptionKey": {
+      "inherited": false,
+    },
+    "idTokenSignedResponseAlg": {
+      "inherited": false,
+      "value": "RS256",
+    },
+    "jwkSet": {
+      "inherited": false,
+    },
+    "jwkStoreCacheMissCacheTime": {
+      "inherited": false,
+      "value": 60000,
+    },
+    "jwksCacheTimeout": {
+      "inherited": false,
+      "value": 3600000,
+    },
+    "jwksUri": {
+      "inherited": false,
+    },
+    "mTLSCertificateBoundAccessTokens": {
+      "inherited": false,
+      "value": false,
+    },
+    "mTLSSubjectDN": {
+      "inherited": false,
+    },
+    "mTLSTrustedCert": {
+      "inherited": false,
+    },
+    "publicKeyLocation": {
+      "inherited": false,
+      "value": "jwks_uri",
+    },
+    "requestParameterEncryptedAlg": {
+      "inherited": false,
+    },
+    "requestParameterEncryptedEncryptionAlgorithm": {
+      "inherited": false,
+      "value": "A128CBC-HS256",
+    },
+    "requestParameterSignedAlg": {
+      "inherited": false,
+    },
+    "tokenEndpointAuthSigningAlgorithm": {
+      "inherited": false,
+      "value": "RS256",
+    },
+    "tokenIntrospectionEncryptedResponseAlg": {
+      "inherited": false,
+      "value": "RSA-OAEP-256",
+    },
+    "tokenIntrospectionEncryptedResponseEncryptionAlgorithm": {
+      "inherited": false,
+      "value": "A128CBC-HS256",
+    },
+    "tokenIntrospectionResponseFormat": {
+      "inherited": false,
+      "value": "JSON",
+    },
+    "tokenIntrospectionSignedResponseAlg": {
+      "inherited": false,
+      "value": "RS256",
+    },
+    "userinfoEncryptedResponseAlg": {
+      "inherited": false,
+    },
+    "userinfoEncryptedResponseEncryptionAlgorithm": {
+      "inherited": false,
+      "value": "A128CBC-HS256",
+    },
+    "userinfoResponseFormat": {
+      "inherited": false,
+      "value": "JSON",
+    },
+    "userinfoSignedResponseAlg": {
+      "inherited": false,
+    },
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests deleteCIMDProfile() 2: Delete CIMD profile 'FrodoTestCIMDDelete1' again 1`] = `
+{
+  "data": {
+    "code": 404,
+    "message": "Not Found",
+    "reason": "Not Found",
+  },
+  "message": "Request failed with status code 404",
+  "name": "AxiosError",
+  "status": 404,
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests encodeCIMDProfileId() 1: Encode ids for the last segment of a path 1`] = `
+[
+  "FrodoTestCIMDProfile1",
+  "FrodoTest%20CIMD%20id%20%5Bx%5D%5E%7C%C3%A9%24%26%3D%3A%40~.",
+  "a%21b%27c%28d%29e%2Af",
+  "a%20b",
+  "a%2Fb%3Fc%23d",
+]
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests getCIMDProfile() 1: Get CIMD profile 'FrodoTestCIMDProfile1' (wrapped shape) 1`] = `
+{
+  "_id": "FrodoTestCIMDProfile1",
+  "_rev": "264837098",
+  "_type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+  "advancedOAuth2ClientConfig": {
+    "acceptedJwtIssuers": {
+      "inherited": false,
+      "value": [],
+    },
+    "allowedResourceServerAudienceValues": {
+      "inherited": false,
+      "value": [],
+    },
+    "clientUri": {
+      "inherited": false,
+      "value": [],
+    },
+    "contacts": {
+      "inherited": false,
+      "value": [],
+    },
+    "customProperties": {
+      "inherited": false,
+      "value": [],
+    },
+    "descriptions": {
+      "inherited": false,
+      "value": [],
+    },
+    "grantTypes": {
+      "inherited": false,
+      "value": [
+        "authorization_code",
+        "refresh_token",
+      ],
+    },
+    "introspectionPolicySets": {
+      "inherited": false,
+      "value": [],
+    },
+    "isConsentImplied": {
+      "inherited": false,
+      "value": false,
+    },
+    "logoUri": {
+      "inherited": false,
+      "value": [],
+    },
+    "mixUpMitigation": {
+      "inherited": false,
+      "value": false,
+    },
+    "name": {
+      "inherited": false,
+      "value": [],
+    },
+    "policyUri": {
+      "inherited": false,
+      "value": [],
+    },
+    "refreshTokenGracePeriod": {
+      "inherited": false,
+      "value": 0,
+    },
+    "requestUris": {
+      "inherited": false,
+      "value": [],
+    },
+    "require_pushed_authorization_requests": {
+      "inherited": false,
+      "value": false,
+    },
+    "responseTypes": {
+      "inherited": false,
+      "value": [
+        "code",
+        "token",
+        "id_token",
+        "code token",
+        "token id_token",
+        "code id_token",
+        "code token id_token",
+        "device_code",
+        "device_code id_token",
+      ],
+    },
+    "sectorIdentifierUri": {
+      "inherited": false,
+    },
+    "subjectType": {
+      "inherited": false,
+      "value": "public",
+    },
+    "tlsCaSecretLabelIdentifier": {
+      "inherited": false,
+    },
+    "tokenEndpointAuthMethod": {
+      "inherited": false,
+      "value": "none",
+    },
+    "tokenExchangeAuthLevel": {
+      "inherited": false,
+      "value": 0,
+    },
+    "tosURI": {
+      "inherited": false,
+      "value": [],
+    },
+    "treeName": {
+      "inherited": false,
+      "value": "Login",
+    },
+  },
+  "cimdConfig": {
+    "cimdClientIdUrlPatterns": {
+      "inherited": false,
+      "value": [
+        "https://clients1.matrix.example.com/*",
+        "https://clients1.matrix.example.com:8443/agents/*",
+      ],
+    },
+    "cimdMetadataDenyList": {
+      "inherited": false,
+      "value": [
+        "scope",
+        "redirect_uris",
+      ],
+    },
+    "cimdSsrfProtectionEnabled": {
+      "inherited": false,
+      "value": true,
+    },
+  },
+  "coreOAuth2ClientConfig": {
+    "accessTokenLifetime": {
+      "inherited": false,
+      "value": 300,
+    },
+    "authorizationCodeLifetime": {
+      "inherited": false,
+      "value": 0,
+    },
+    "authorizationDetailTypes": {
+      "inherited": false,
+      "value": [],
+    },
+    "clientName": {
+      "inherited": false,
+      "value": [
+        "FrodoTest CIMD profile 1",
+      ],
+    },
+    "defaultScopes": {
+      "inherited": false,
+      "value": [
+        "openid",
+      ],
+    },
+    "loopbackInterfaceRedirection": {
+      "inherited": false,
+      "value": false,
+    },
+    "redirectionUris": {
+      "inherited": false,
+      "value": [
+        "https://clients1.matrix.example.com/callback",
+      ],
+    },
+    "refreshTokenLifetime": {
+      "inherited": false,
+      "value": 0,
+    },
+    "scopes": {
+      "inherited": false,
+      "value": [
+        "openid",
+        "profile",
+      ],
+    },
+    "status": {
+      "inherited": false,
+      "value": "Active",
+    },
+  },
+  "coreOpenIDClientConfig": {
+    "claims": {
+      "inherited": false,
+      "value": [],
+    },
+    "clientSessionUri": {
+      "inherited": false,
+    },
+    "defaultAcrValues": {
+      "inherited": false,
+      "value": [],
+    },
+    "defaultMaxAge": {
+      "inherited": false,
+      "value": 600,
+    },
+    "defaultMaxAgeEnabled": {
+      "inherited": false,
+      "value": false,
+    },
+    "jwtTokenLifetime": {
+      "inherited": false,
+      "value": 0,
+    },
+    "postLogoutRedirectUri": {
+      "inherited": false,
+      "value": [],
+    },
+  },
+  "overrideOAuth2ClientConfig": {
+    "acceptAudienceParametersInTokenExchangeRequests": false,
+    "accessTokenMayActScript": "[Empty]",
+    "accessTokenModificationPluginType": "PROVIDER",
+    "accessTokenModificationScript": "[Empty]",
+    "authorizeEndpointDataProviderClass": "org.forgerock.oauth2.core.plugins.registry.DefaultEndpointDataProvider",
+    "authorizeEndpointDataProviderPluginType": "PROVIDER",
+    "authorizeEndpointDataProviderScript": "[Empty]",
+    "clientsCanSkipConsent": false,
+    "enableApplicationContext": false,
+    "enableRemoteConsent": false,
+    "evaluateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeEvaluator",
+    "evaluateScopePluginType": "PROVIDER",
+    "evaluateScopeScript": "[Empty]",
+    "issueRefreshToken": true,
+    "issueRefreshTokenOnRefreshedToken": true,
+    "oidcClaimsPluginType": "PROVIDER",
+    "oidcClaimsScript": "[Empty]",
+    "oidcMayActScript": "[Empty]",
+    "overrideableOIDCClaims": [],
+    "providerOverridesEnabled": false,
+    "remoteConsentServiceId": null,
+    "restrictTokenExchangeScopesToSubjectTokenScopes": false,
+    "scopesPolicySet": "oauth2Scopes",
+    "statelessTokensEnabled": false,
+    "tlsClientCertificateChainValidationEnabled": false,
+    "tokenEncryptionEnabled": false,
+    "useForceAuthnForMaxAge": false,
+    "usePolicyEngineForScope": false,
+    "useTokenIntrospectionClaimForJWT": false,
+    "validateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeValidator",
+    "validateScopePluginType": "PROVIDER",
+    "validateScopeScript": "[Empty]",
+  },
+  "signEncOAuth2ClientConfig": {
+    "clientJwtPublicKey": {
+      "inherited": false,
+    },
+    "idTokenEncryptionAlgorithm": {
+      "inherited": false,
+      "value": "RSA-OAEP-256",
+    },
+    "idTokenEncryptionEnabled": {
+      "inherited": false,
+      "value": false,
+    },
+    "idTokenEncryptionMethod": {
+      "inherited": false,
+      "value": "A128CBC-HS256",
+    },
+    "idTokenPublicEncryptionKey": {
+      "inherited": false,
+    },
+    "idTokenSignedResponseAlg": {
+      "inherited": false,
+      "value": "RS256",
+    },
+    "jwkSet": {
+      "inherited": false,
+    },
+    "jwkStoreCacheMissCacheTime": {
+      "inherited": false,
+      "value": 60000,
+    },
+    "jwksCacheTimeout": {
+      "inherited": false,
+      "value": 3600000,
+    },
+    "jwksUri": {
+      "inherited": false,
+    },
+    "mTLSCertificateBoundAccessTokens": {
+      "inherited": false,
+      "value": false,
+    },
+    "mTLSSubjectDN": {
+      "inherited": false,
+    },
+    "mTLSTrustedCert": {
+      "inherited": false,
+    },
+    "publicKeyLocation": {
+      "inherited": false,
+      "value": "jwks_uri",
+    },
+    "requestParameterEncryptedAlg": {
+      "inherited": false,
+    },
+    "requestParameterEncryptedEncryptionAlgorithm": {
+      "inherited": false,
+      "value": "A128CBC-HS256",
+    },
+    "requestParameterSignedAlg": {
+      "inherited": false,
+    },
+    "tokenEndpointAuthSigningAlgorithm": {
+      "inherited": false,
+      "value": "RS256",
+    },
+    "tokenIntrospectionEncryptedResponseAlg": {
+      "inherited": false,
+      "value": "RSA-OAEP-256",
+    },
+    "tokenIntrospectionEncryptedResponseEncryptionAlgorithm": {
+      "inherited": false,
+      "value": "A128CBC-HS256",
+    },
+    "tokenIntrospectionResponseFormat": {
+      "inherited": false,
+      "value": "JSON",
+    },
+    "tokenIntrospectionSignedResponseAlg": {
+      "inherited": false,
+      "value": "RS256",
+    },
+    "userinfoEncryptedResponseAlg": {
+      "inherited": false,
+    },
+    "userinfoEncryptedResponseEncryptionAlgorithm": {
+      "inherited": false,
+      "value": "A128CBC-HS256",
+    },
+    "userinfoResponseFormat": {
+      "inherited": false,
+      "value": "JSON",
+    },
+    "userinfoSignedResponseAlg": {
+      "inherited": false,
+    },
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests getCIMDProfile() 2: Get CIMD profile 'FrodoTest CIMD id [x]^|é$&=:@~.' 1`] = `
+{
+  "groups": {
+    "advancedOAuth2ClientConfig": {
+      "attributes": 24,
+      "nulls": 0,
+      "wrapped": 24,
+    },
+    "cimdConfig": {
+      "attributes": 3,
+      "nulls": 0,
+      "wrapped": 3,
+    },
+    "coreOAuth2ClientConfig": {
+      "attributes": 10,
+      "nulls": 0,
+      "wrapped": 10,
+    },
+    "coreOpenIDClientConfig": {
+      "attributes": 7,
+      "nulls": 0,
+      "wrapped": 7,
+    },
+    "overrideOAuth2ClientConfig": {
+      "attributes": 32,
+      "nulls": 1,
+      "wrapped": 0,
+    },
+    "signEncOAuth2ClientConfig": {
+      "attributes": 26,
+      "nulls": 0,
+      "wrapped": 26,
+    },
+  },
+  "hasRevision": true,
+  "id": "FrodoTest CIMD id [x]^|é$&=:@~.",
+  "type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests getCIMDProfile() 4: Get a CIMD profile that does not exist 1`] = `
+{
+  "data": {
+    "code": 404,
+    "message": "Not Found",
+    "reason": "Not Found",
+  },
+  "message": "Request failed with status code 404",
+  "name": "AxiosError",
+  "status": 404,
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests getCIMDProfileSchema() 1: Get the CIMD profile schema 1`] = `
+{
+  "groups": {
+    "advancedOAuth2ClientConfig": [
+      "contacts",
+      "mixUpMitigation",
+      "allowedResourceServerAudienceValues",
+      "sectorIdentifierUri",
+      "tokenExchangeAuthLevel",
+      "responseTypes",
+      "tosURI",
+      "tokenEndpointAuthMethod",
+      "customProperties",
+      "grantTypes",
+      "clientUri",
+      "tlsCaSecretLabelIdentifier",
+      "require_pushed_authorization_requests",
+      "policyUri",
+      "refreshTokenGracePeriod",
+      "isConsentImplied",
+      "acceptedJwtIssuers",
+      "subjectType",
+      "requestUris",
+      "logoUri",
+      "name",
+      "descriptions",
+      "treeName",
+    ],
+    "cimdConfig": [
+      "cimdSsrfProtectionEnabled",
+      "cimdClientIdUrlPatterns",
+      "cimdMetadataDenyList",
+    ],
+    "coreOAuth2ClientConfig": [
+      "accessTokenLifetime",
+      "authorizationCodeLifetime",
+      "authorizationDetailTypes",
+      "redirectionUris",
+      "refreshTokenLifetime",
+      "defaultScopes",
+      "status",
+      "scopes",
+      "loopbackInterfaceRedirection",
+      "clientName",
+    ],
+    "coreOpenIDClientConfig": [
+      "defaultMaxAge",
+      "jwtTokenLifetime",
+      "claims",
+      "postLogoutRedirectUri",
+      "defaultAcrValues",
+      "clientSessionUri",
+      "defaultMaxAgeEnabled",
+    ],
+    "overrideOAuth2ClientConfig": [
+      "oidcMayActScript",
+      "issueRefreshToken",
+      "remoteConsentServiceId",
+      "evaluateScopeScript",
+      "accessTokenModificationScript",
+      "oidcClaimsPluginType",
+      "useTokenIntrospectionClaimForJWT",
+      "enableRemoteConsent",
+      "validateScopeScript",
+      "authorizeEndpointDataProviderPluginType",
+      "oidcClaimsClass",
+      "scopesPolicySet",
+      "evaluateScopeClass",
+      "evaluateScopePluginType",
+      "tokenEncryptionEnabled",
+      "usePolicyEngineForScope",
+      "issueRefreshTokenOnRefreshedToken",
+      "providerOverridesEnabled",
+      "tlsClientCertificateChainValidationEnabled",
+      "clientsCanSkipConsent",
+      "oidcClaimsScript",
+      "validateScopeClass",
+      "customLoginUrlTemplate",
+      "accessTokenModificationPluginType",
+      "enableApplicationContext",
+      "overrideableOIDCClaims",
+      "authorizeEndpointDataProviderClass",
+      "acceptAudienceParametersInTokenExchangeRequests",
+      "restrictTokenExchangeScopesToSubjectTokenScopes",
+      "accessTokenModifierClass",
+      "useForceAuthnForMaxAge",
+      "statelessTokensEnabled",
+      "accessTokenMayActScript",
+      "validateScopePluginType",
+      "authorizeEndpointDataProviderScript",
+    ],
+    "signEncOAuth2ClientConfig": [
+      "mTLSTrustedCert",
+      "tokenIntrospectionEncryptedResponseAlg",
+      "requestParameterEncryptedAlg",
+      "userinfoEncryptedResponseAlg",
+      "idTokenEncryptionAlgorithm",
+      "userinfoEncryptedResponseEncryptionAlgorithm",
+      "mTLSSubjectDN",
+      "tokenIntrospectionResponseFormat",
+      "tokenIntrospectionSignedResponseAlg",
+      "requestParameterEncryptedEncryptionAlgorithm",
+      "jwkStoreCacheMissCacheTime",
+      "jwksCacheTimeout",
+      "publicKeyLocation",
+      "tokenEndpointAuthSigningAlgorithm",
+      "clientJwtPublicKey",
+      "userinfoResponseFormat",
+      "tokenIntrospectionEncryptedResponseEncryptionAlgorithm",
+      "idTokenEncryptionMethod",
+      "idTokenPublicEncryptionKey",
+      "idTokenSignedResponseAlg",
+      "jwkSet",
+      "mTLSCertificateBoundAccessTokens",
+      "idTokenEncryptionEnabled",
+      "userinfoSignedResponseAlg",
+      "requestParameterSignedAlg",
+      "jwksUri",
+    ],
+  },
+  "type": "object",
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests getCIMDProfileTemplate() 1: Get the CIMD profile template 1`] = `
+{
+  "advancedOAuth2ClientConfig": {
+    "acceptedJwtIssuers": [],
+    "allowedResourceServerAudienceValues": [
+      "",
+    ],
+    "clientUri": [],
+    "contacts": [],
+    "customProperties": [
+      "",
+    ],
+    "descriptions": [],
+    "grantTypes": [
+      "authorization_code",
+    ],
+    "introspectionPolicySets": [],
+    "isConsentImplied": false,
+    "logoUri": [],
+    "mixUpMitigation": false,
+    "name": [],
+    "policyUri": [],
+    "refreshTokenGracePeriod": 0,
+    "requestUris": [],
+    "require_pushed_authorization_requests": false,
+    "responseTypes": [
+      "code",
+      "token",
+      "id_token",
+      "code token",
+      "token id_token",
+      "code id_token",
+      "code token id_token",
+      "device_code",
+      "device_code id_token",
+    ],
+    "sectorIdentifierUri": null,
+    "subjectType": "public",
+    "tlsCaSecretLabelIdentifier": null,
+    "tokenEndpointAuthMethod": "none",
+    "tokenExchangeAuthLevel": 0,
+    "tosURI": [],
+    "treeName": "[Empty]",
+  },
+  "cimdConfig": {
+    "cimdClientIdUrlPatterns": [],
+    "cimdMetadataDenyList": [],
+    "cimdSsrfProtectionEnabled": true,
+  },
+  "coreOAuth2ClientConfig": {
+    "accessTokenLifetime": 0,
+    "authorizationCodeLifetime": 0,
+    "authorizationDetailTypes": [],
+    "clientName": [],
+    "defaultScopes": [],
+    "loopbackInterfaceRedirection": false,
+    "redirectionUris": [],
+    "refreshTokenLifetime": 0,
+    "scopes": [],
+    "status": "Active",
+  },
+  "coreOpenIDClientConfig": {
+    "claims": [],
+    "clientSessionUri": null,
+    "defaultAcrValues": [],
+    "defaultMaxAge": 600,
+    "defaultMaxAgeEnabled": false,
+    "jwtTokenLifetime": 0,
+    "postLogoutRedirectUri": [],
+  },
+  "overrideOAuth2ClientConfig": {
+    "acceptAudienceParametersInTokenExchangeRequests": false,
+    "accessTokenMayActScript": "[Empty]",
+    "accessTokenModificationPluginType": "PROVIDER",
+    "accessTokenModificationScript": "[Empty]",
+    "accessTokenModifierClass": null,
+    "authorizeEndpointDataProviderClass": "org.forgerock.oauth2.core.plugins.registry.DefaultEndpointDataProvider",
+    "authorizeEndpointDataProviderPluginType": "PROVIDER",
+    "authorizeEndpointDataProviderScript": "[Empty]",
+    "clientsCanSkipConsent": false,
+    "customLoginUrlTemplate": null,
+    "enableApplicationContext": false,
+    "enableRemoteConsent": false,
+    "evaluateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeEvaluator",
+    "evaluateScopePluginType": "PROVIDER",
+    "evaluateScopeScript": "[Empty]",
+    "issueRefreshToken": true,
+    "issueRefreshTokenOnRefreshedToken": true,
+    "oidcClaimsClass": null,
+    "oidcClaimsPluginType": "PROVIDER",
+    "oidcClaimsScript": "[Empty]",
+    "oidcMayActScript": "[Empty]",
+    "overrideableOIDCClaims": [],
+    "providerOverridesEnabled": false,
+    "remoteConsentServiceId": null,
+    "restrictTokenExchangeScopesToSubjectTokenScopes": false,
+    "scopesPolicySet": "oauth2Scopes",
+    "statelessTokensEnabled": false,
+    "tlsClientCertificateChainValidationEnabled": false,
+    "tokenEncryptionEnabled": false,
+    "useForceAuthnForMaxAge": false,
+    "usePolicyEngineForScope": false,
+    "useTokenIntrospectionClaimForJWT": false,
+    "validateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeValidator",
+    "validateScopePluginType": "PROVIDER",
+    "validateScopeScript": "[Empty]",
+  },
+  "signEncOAuth2ClientConfig": {
+    "clientJwtPublicKey": null,
+    "idTokenEncryptionAlgorithm": "RSA-OAEP-256",
+    "idTokenEncryptionEnabled": false,
+    "idTokenEncryptionMethod": "A128CBC-HS256",
+    "idTokenPublicEncryptionKey": null,
+    "idTokenSignedResponseAlg": "RS256",
+    "jwkSet": null,
+    "jwkStoreCacheMissCacheTime": 60000,
+    "jwksCacheTimeout": 3600000,
+    "jwksUri": null,
+    "mTLSCertificateBoundAccessTokens": false,
+    "mTLSSubjectDN": null,
+    "mTLSTrustedCert": null,
+    "publicKeyLocation": "jwks_uri",
+    "requestParameterEncryptedAlg": null,
+    "requestParameterEncryptedEncryptionAlgorithm": "A128CBC-HS256",
+    "requestParameterSignedAlg": null,
+    "tokenEndpointAuthSigningAlgorithm": "RS256",
+    "tokenIntrospectionEncryptedResponseAlg": "RSA-OAEP-256",
+    "tokenIntrospectionEncryptedResponseEncryptionAlgorithm": "A128CBC-HS256",
+    "tokenIntrospectionResponseFormat": "JSON",
+    "tokenIntrospectionSignedResponseAlg": "RS256",
+    "userinfoEncryptedResponseAlg": null,
+    "userinfoEncryptedResponseEncryptionAlgorithm": "A128CBC-HS256",
+    "userinfoResponseFormat": "JSON",
+    "userinfoSignedResponseAlg": null,
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests getCIMDProfiles() 1: Get all CIMD profiles of a realm that has none 1`] = `
+{
+  "pagedResultsCookie": null,
+  "remainingPagedResults": -1,
+  "result": [],
+  "resultCount": 0,
+  "totalPagedResults": 0,
+  "totalPagedResultsPolicy": "EXACT",
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests getCIMDProfiles() with profiles 1: Get all CIMD profiles of the realm (plain shape) 1`] = `
+[
+  "FrodoTestCIMDProfile1",
+  "FrodoTestCIMDProfile2",
+  "FrodoTestCIMDProfile3",
+  "FrodoTestCIMDCase",
+  "FrodoTest CIMD id [x]^|é$&=:@~.",
+]
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests getCIMDProfiles() with profiles 1: Get all CIMD profiles of the realm (plain shape) 2`] = `
+[
+  {
+    "groups": {
+      "advancedOAuth2ClientConfig": {
+        "attributes": 24,
+        "nulls": 2,
+        "wrapped": 0,
+      },
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 10,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOpenIDClientConfig": {
+        "attributes": 7,
+        "nulls": 1,
+        "wrapped": 0,
+      },
+      "overrideOAuth2ClientConfig": {
+        "attributes": 35,
+        "nulls": 4,
+        "wrapped": 0,
+      },
+      "signEncOAuth2ClientConfig": {
+        "attributes": 26,
+        "nulls": 10,
+        "wrapped": 0,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTestCIMDProfile1",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+  {
+    "groups": {
+      "advancedOAuth2ClientConfig": {
+        "attributes": 24,
+        "nulls": 2,
+        "wrapped": 0,
+      },
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 10,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOpenIDClientConfig": {
+        "attributes": 7,
+        "nulls": 1,
+        "wrapped": 0,
+      },
+      "overrideOAuth2ClientConfig": {
+        "attributes": 35,
+        "nulls": 4,
+        "wrapped": 0,
+      },
+      "signEncOAuth2ClientConfig": {
+        "attributes": 26,
+        "nulls": 10,
+        "wrapped": 0,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTestCIMDProfile2",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+  {
+    "groups": {
+      "advancedOAuth2ClientConfig": {
+        "attributes": 24,
+        "nulls": 2,
+        "wrapped": 0,
+      },
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 10,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOpenIDClientConfig": {
+        "attributes": 7,
+        "nulls": 1,
+        "wrapped": 0,
+      },
+      "overrideOAuth2ClientConfig": {
+        "attributes": 35,
+        "nulls": 4,
+        "wrapped": 0,
+      },
+      "signEncOAuth2ClientConfig": {
+        "attributes": 26,
+        "nulls": 10,
+        "wrapped": 0,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTestCIMDProfile3",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+  {
+    "groups": {
+      "advancedOAuth2ClientConfig": {
+        "attributes": 24,
+        "nulls": 2,
+        "wrapped": 0,
+      },
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 10,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOpenIDClientConfig": {
+        "attributes": 7,
+        "nulls": 1,
+        "wrapped": 0,
+      },
+      "overrideOAuth2ClientConfig": {
+        "attributes": 35,
+        "nulls": 4,
+        "wrapped": 0,
+      },
+      "signEncOAuth2ClientConfig": {
+        "attributes": 26,
+        "nulls": 10,
+        "wrapped": 0,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTestCIMDCase",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+  {
+    "groups": {
+      "advancedOAuth2ClientConfig": {
+        "attributes": 24,
+        "nulls": 2,
+        "wrapped": 0,
+      },
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 10,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOpenIDClientConfig": {
+        "attributes": 7,
+        "nulls": 1,
+        "wrapped": 0,
+      },
+      "overrideOAuth2ClientConfig": {
+        "attributes": 35,
+        "nulls": 4,
+        "wrapped": 0,
+      },
+      "signEncOAuth2ClientConfig": {
+        "attributes": 26,
+        "nulls": 10,
+        "wrapped": 0,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTest CIMD id [x]^|é$&=:@~.",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+]
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests getCIMDProfiles() with profiles 1: Get all CIMD profiles of the realm (plain shape) 3`] = `
+{
+  "_id": "FrodoTestCIMDProfile1",
+  "_rev": "-1478538299",
+  "_type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+  "advancedOAuth2ClientConfig": {
+    "acceptedJwtIssuers": [],
+    "allowedResourceServerAudienceValues": [],
+    "clientUri": [],
+    "contacts": [],
+    "customProperties": [],
+    "descriptions": [],
+    "grantTypes": [
+      "authorization_code",
+      "refresh_token",
+    ],
+    "introspectionPolicySets": [],
+    "isConsentImplied": false,
+    "logoUri": [],
+    "mixUpMitigation": false,
+    "name": [],
+    "policyUri": [],
+    "refreshTokenGracePeriod": 0,
+    "requestUris": [],
+    "require_pushed_authorization_requests": false,
+    "responseTypes": [
+      "code",
+      "token",
+      "id_token",
+      "code token",
+      "token id_token",
+      "code id_token",
+      "code token id_token",
+      "device_code",
+      "device_code id_token",
+    ],
+    "sectorIdentifierUri": null,
+    "subjectType": "public",
+    "tlsCaSecretLabelIdentifier": null,
+    "tokenEndpointAuthMethod": "none",
+    "tokenExchangeAuthLevel": 0,
+    "tosURI": [],
+    "treeName": "Login",
+  },
+  "cimdConfig": {
+    "cimdClientIdUrlPatterns": [
+      "https://clients1.matrix.example.com/*",
+      "https://clients1.matrix.example.com:8443/agents/*",
+    ],
+    "cimdMetadataDenyList": [
+      "scope",
+      "redirect_uris",
+    ],
+    "cimdSsrfProtectionEnabled": true,
+  },
+  "coreOAuth2ClientConfig": {
+    "accessTokenLifetime": 300,
+    "authorizationCodeLifetime": 0,
+    "authorizationDetailTypes": [],
+    "clientName": [
+      "FrodoTest CIMD profile 1",
+    ],
+    "defaultScopes": [
+      "openid",
+    ],
+    "loopbackInterfaceRedirection": false,
+    "redirectionUris": [
+      "https://clients1.matrix.example.com/callback",
+    ],
+    "refreshTokenLifetime": 0,
+    "scopes": [
+      "openid",
+      "profile",
+    ],
+    "status": "Active",
+  },
+  "coreOpenIDClientConfig": {
+    "claims": [],
+    "clientSessionUri": null,
+    "defaultAcrValues": [],
+    "defaultMaxAge": 600,
+    "defaultMaxAgeEnabled": false,
+    "jwtTokenLifetime": 0,
+    "postLogoutRedirectUri": [],
+  },
+  "overrideOAuth2ClientConfig": {
+    "acceptAudienceParametersInTokenExchangeRequests": false,
+    "accessTokenMayActScript": "[Empty]",
+    "accessTokenModificationPluginType": "PROVIDER",
+    "accessTokenModificationScript": "[Empty]",
+    "accessTokenModifierClass": null,
+    "authorizeEndpointDataProviderClass": "org.forgerock.oauth2.core.plugins.registry.DefaultEndpointDataProvider",
+    "authorizeEndpointDataProviderPluginType": "PROVIDER",
+    "authorizeEndpointDataProviderScript": "[Empty]",
+    "clientsCanSkipConsent": false,
+    "customLoginUrlTemplate": null,
+    "enableApplicationContext": false,
+    "enableRemoteConsent": false,
+    "evaluateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeEvaluator",
+    "evaluateScopePluginType": "PROVIDER",
+    "evaluateScopeScript": "[Empty]",
+    "issueRefreshToken": true,
+    "issueRefreshTokenOnRefreshedToken": true,
+    "oidcClaimsClass": null,
+    "oidcClaimsPluginType": "PROVIDER",
+    "oidcClaimsScript": "[Empty]",
+    "oidcMayActScript": "[Empty]",
+    "overrideableOIDCClaims": [],
+    "providerOverridesEnabled": false,
+    "remoteConsentServiceId": null,
+    "restrictTokenExchangeScopesToSubjectTokenScopes": false,
+    "scopesPolicySet": "oauth2Scopes",
+    "statelessTokensEnabled": false,
+    "tlsClientCertificateChainValidationEnabled": false,
+    "tokenEncryptionEnabled": false,
+    "useForceAuthnForMaxAge": false,
+    "usePolicyEngineForScope": false,
+    "useTokenIntrospectionClaimForJWT": false,
+    "validateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeValidator",
+    "validateScopePluginType": "PROVIDER",
+    "validateScopeScript": "[Empty]",
+  },
+  "signEncOAuth2ClientConfig": {
+    "clientJwtPublicKey": null,
+    "idTokenEncryptionAlgorithm": "RSA-OAEP-256",
+    "idTokenEncryptionEnabled": false,
+    "idTokenEncryptionMethod": "A128CBC-HS256",
+    "idTokenPublicEncryptionKey": null,
+    "idTokenSignedResponseAlg": "RS256",
+    "jwkSet": null,
+    "jwkStoreCacheMissCacheTime": 60000,
+    "jwksCacheTimeout": 3600000,
+    "jwksUri": null,
+    "mTLSCertificateBoundAccessTokens": false,
+    "mTLSSubjectDN": null,
+    "mTLSTrustedCert": null,
+    "publicKeyLocation": "jwks_uri",
+    "requestParameterEncryptedAlg": null,
+    "requestParameterEncryptedEncryptionAlgorithm": "A128CBC-HS256",
+    "requestParameterSignedAlg": null,
+    "tokenEndpointAuthSigningAlgorithm": "RS256",
+    "tokenIntrospectionEncryptedResponseAlg": "RSA-OAEP-256",
+    "tokenIntrospectionEncryptedResponseEncryptionAlgorithm": "A128CBC-HS256",
+    "tokenIntrospectionResponseFormat": "JSON",
+    "tokenIntrospectionSignedResponseAlg": "RS256",
+    "userinfoEncryptedResponseAlg": null,
+    "userinfoEncryptedResponseEncryptionAlgorithm": "A128CBC-HS256",
+    "userinfoResponseFormat": "JSON",
+    "userinfoSignedResponseAlg": null,
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests putCIMDProfile() 1: Create CIMD profile 'FrodoTestCIMDProfile1' (plain values) 1`] = `
+{
+  "data": {
+    "_id": "FrodoTestCIMDProfile1",
+    "_rev": "264837098",
+    "_type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+    "advancedOAuth2ClientConfig": {
+      "acceptedJwtIssuers": {
+        "inherited": false,
+        "value": [],
+      },
+      "allowedResourceServerAudienceValues": {
+        "inherited": false,
+        "value": [],
+      },
+      "clientUri": {
+        "inherited": false,
+        "value": [],
+      },
+      "contacts": {
+        "inherited": false,
+        "value": [],
+      },
+      "customProperties": {
+        "inherited": false,
+        "value": [],
+      },
+      "descriptions": {
+        "inherited": false,
+        "value": [],
+      },
+      "grantTypes": {
+        "inherited": false,
+        "value": [
+          "authorization_code",
+          "refresh_token",
+        ],
+      },
+      "introspectionPolicySets": {
+        "inherited": false,
+        "value": [],
+      },
+      "isConsentImplied": {
+        "inherited": false,
+        "value": false,
+      },
+      "logoUri": {
+        "inherited": false,
+        "value": [],
+      },
+      "mixUpMitigation": {
+        "inherited": false,
+        "value": false,
+      },
+      "name": {
+        "inherited": false,
+        "value": [],
+      },
+      "policyUri": {
+        "inherited": false,
+        "value": [],
+      },
+      "refreshTokenGracePeriod": {
+        "inherited": false,
+        "value": 0,
+      },
+      "requestUris": {
+        "inherited": false,
+        "value": [],
+      },
+      "require_pushed_authorization_requests": {
+        "inherited": false,
+        "value": false,
+      },
+      "responseTypes": {
+        "inherited": false,
+        "value": [
+          "code",
+          "token",
+          "id_token",
+          "code token",
+          "token id_token",
+          "code id_token",
+          "code token id_token",
+          "device_code",
+          "device_code id_token",
+        ],
+      },
+      "sectorIdentifierUri": {
+        "inherited": false,
+      },
+      "subjectType": {
+        "inherited": false,
+        "value": "public",
+      },
+      "tlsCaSecretLabelIdentifier": {
+        "inherited": false,
+      },
+      "tokenEndpointAuthMethod": {
+        "inherited": false,
+        "value": "none",
+      },
+      "tokenExchangeAuthLevel": {
+        "inherited": false,
+        "value": 0,
+      },
+      "tosURI": {
+        "inherited": false,
+        "value": [],
+      },
+      "treeName": {
+        "inherited": false,
+        "value": "Login",
+      },
+    },
+    "cimdConfig": {
+      "cimdClientIdUrlPatterns": {
+        "inherited": false,
+        "value": [
+          "https://clients1.matrix.example.com/*",
+          "https://clients1.matrix.example.com:8443/agents/*",
+        ],
+      },
+      "cimdMetadataDenyList": {
+        "inherited": false,
+        "value": [
+          "scope",
+          "redirect_uris",
+        ],
+      },
+      "cimdSsrfProtectionEnabled": {
+        "inherited": false,
+        "value": true,
+      },
+    },
+    "coreOAuth2ClientConfig": {
+      "accessTokenLifetime": {
+        "inherited": false,
+        "value": 300,
+      },
+      "authorizationCodeLifetime": {
+        "inherited": false,
+        "value": 0,
+      },
+      "authorizationDetailTypes": {
+        "inherited": false,
+        "value": [],
+      },
+      "clientName": {
+        "inherited": false,
+        "value": [
+          "FrodoTest CIMD profile 1",
+        ],
+      },
+      "defaultScopes": {
+        "inherited": false,
+        "value": [
+          "openid",
+        ],
+      },
+      "loopbackInterfaceRedirection": {
+        "inherited": false,
+        "value": false,
+      },
+      "redirectionUris": {
+        "inherited": false,
+        "value": [
+          "https://clients1.matrix.example.com/callback",
+        ],
+      },
+      "refreshTokenLifetime": {
+        "inherited": false,
+        "value": 0,
+      },
+      "scopes": {
+        "inherited": false,
+        "value": [
+          "openid",
+          "profile",
+        ],
+      },
+      "status": {
+        "inherited": false,
+        "value": "Active",
+      },
+    },
+    "coreOpenIDClientConfig": {
+      "claims": {
+        "inherited": false,
+        "value": [],
+      },
+      "clientSessionUri": {
+        "inherited": false,
+      },
+      "defaultAcrValues": {
+        "inherited": false,
+        "value": [],
+      },
+      "defaultMaxAge": {
+        "inherited": false,
+        "value": 600,
+      },
+      "defaultMaxAgeEnabled": {
+        "inherited": false,
+        "value": false,
+      },
+      "jwtTokenLifetime": {
+        "inherited": false,
+        "value": 0,
+      },
+      "postLogoutRedirectUri": {
+        "inherited": false,
+        "value": [],
+      },
+    },
+    "overrideOAuth2ClientConfig": {
+      "acceptAudienceParametersInTokenExchangeRequests": false,
+      "accessTokenMayActScript": "[Empty]",
+      "accessTokenModificationPluginType": "PROVIDER",
+      "accessTokenModificationScript": "[Empty]",
+      "authorizeEndpointDataProviderClass": "org.forgerock.oauth2.core.plugins.registry.DefaultEndpointDataProvider",
+      "authorizeEndpointDataProviderPluginType": "PROVIDER",
+      "authorizeEndpointDataProviderScript": "[Empty]",
+      "clientsCanSkipConsent": false,
+      "enableApplicationContext": false,
+      "enableRemoteConsent": false,
+      "evaluateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeEvaluator",
+      "evaluateScopePluginType": "PROVIDER",
+      "evaluateScopeScript": "[Empty]",
+      "issueRefreshToken": true,
+      "issueRefreshTokenOnRefreshedToken": true,
+      "oidcClaimsPluginType": "PROVIDER",
+      "oidcClaimsScript": "[Empty]",
+      "oidcMayActScript": "[Empty]",
+      "overrideableOIDCClaims": [],
+      "providerOverridesEnabled": false,
+      "remoteConsentServiceId": null,
+      "restrictTokenExchangeScopesToSubjectTokenScopes": false,
+      "scopesPolicySet": "oauth2Scopes",
+      "statelessTokensEnabled": false,
+      "tlsClientCertificateChainValidationEnabled": false,
+      "tokenEncryptionEnabled": false,
+      "useForceAuthnForMaxAge": false,
+      "usePolicyEngineForScope": false,
+      "useTokenIntrospectionClaimForJWT": false,
+      "validateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeValidator",
+      "validateScopePluginType": "PROVIDER",
+      "validateScopeScript": "[Empty]",
+    },
+    "signEncOAuth2ClientConfig": {
+      "clientJwtPublicKey": {
+        "inherited": false,
+      },
+      "idTokenEncryptionAlgorithm": {
+        "inherited": false,
+        "value": "RSA-OAEP-256",
+      },
+      "idTokenEncryptionEnabled": {
+        "inherited": false,
+        "value": false,
+      },
+      "idTokenEncryptionMethod": {
+        "inherited": false,
+        "value": "A128CBC-HS256",
+      },
+      "idTokenPublicEncryptionKey": {
+        "inherited": false,
+      },
+      "idTokenSignedResponseAlg": {
+        "inherited": false,
+        "value": "RS256",
+      },
+      "jwkSet": {
+        "inherited": false,
+      },
+      "jwkStoreCacheMissCacheTime": {
+        "inherited": false,
+        "value": 60000,
+      },
+      "jwksCacheTimeout": {
+        "inherited": false,
+        "value": 3600000,
+      },
+      "jwksUri": {
+        "inherited": false,
+      },
+      "mTLSCertificateBoundAccessTokens": {
+        "inherited": false,
+        "value": false,
+      },
+      "mTLSSubjectDN": {
+        "inherited": false,
+      },
+      "mTLSTrustedCert": {
+        "inherited": false,
+      },
+      "publicKeyLocation": {
+        "inherited": false,
+        "value": "jwks_uri",
+      },
+      "requestParameterEncryptedAlg": {
+        "inherited": false,
+      },
+      "requestParameterEncryptedEncryptionAlgorithm": {
+        "inherited": false,
+        "value": "A128CBC-HS256",
+      },
+      "requestParameterSignedAlg": {
+        "inherited": false,
+      },
+      "tokenEndpointAuthSigningAlgorithm": {
+        "inherited": false,
+        "value": "RS256",
+      },
+      "tokenIntrospectionEncryptedResponseAlg": {
+        "inherited": false,
+        "value": "RSA-OAEP-256",
+      },
+      "tokenIntrospectionEncryptedResponseEncryptionAlgorithm": {
+        "inherited": false,
+        "value": "A128CBC-HS256",
+      },
+      "tokenIntrospectionResponseFormat": {
+        "inherited": false,
+        "value": "JSON",
+      },
+      "tokenIntrospectionSignedResponseAlg": {
+        "inherited": false,
+        "value": "RS256",
+      },
+      "userinfoEncryptedResponseAlg": {
+        "inherited": false,
+      },
+      "userinfoEncryptedResponseEncryptionAlgorithm": {
+        "inherited": false,
+        "value": "A128CBC-HS256",
+      },
+      "userinfoResponseFormat": {
+        "inherited": false,
+        "value": "JSON",
+      },
+      "userinfoSignedResponseAlg": {
+        "inherited": false,
+      },
+    },
+  },
+  "status": 201,
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests putCIMDProfile() 2: Create CIMD profile 'FrodoTestCIMDProfile2' (wrapped values) 1`] = `
+{
+  "groups": {
+    "advancedOAuth2ClientConfig": {
+      "attributes": 24,
+      "nulls": 0,
+      "wrapped": 24,
+    },
+    "cimdConfig": {
+      "attributes": 3,
+      "nulls": 0,
+      "wrapped": 3,
+    },
+    "coreOAuth2ClientConfig": {
+      "attributes": 10,
+      "nulls": 0,
+      "wrapped": 10,
+    },
+    "coreOpenIDClientConfig": {
+      "attributes": 7,
+      "nulls": 0,
+      "wrapped": 7,
+    },
+    "overrideOAuth2ClientConfig": {
+      "attributes": 32,
+      "nulls": 1,
+      "wrapped": 0,
+    },
+    "signEncOAuth2ClientConfig": {
+      "attributes": 26,
+      "nulls": 0,
+      "wrapped": 26,
+    },
+  },
+  "hasRevision": true,
+  "id": "FrodoTestCIMDProfile2",
+  "type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests putCIMDProfile() 3: Create CIMD profile 'FrodoTestCIMDProfile3' (minimal body) 1`] = `
+{
+  "groups": {
+    "advancedOAuth2ClientConfig": {
+      "attributes": 24,
+      "nulls": 0,
+      "wrapped": 24,
+    },
+    "cimdConfig": {
+      "attributes": 3,
+      "nulls": 0,
+      "wrapped": 3,
+    },
+    "coreOAuth2ClientConfig": {
+      "attributes": 10,
+      "nulls": 0,
+      "wrapped": 10,
+    },
+    "coreOpenIDClientConfig": {
+      "attributes": 7,
+      "nulls": 0,
+      "wrapped": 7,
+    },
+    "overrideOAuth2ClientConfig": {
+      "attributes": 32,
+      "nulls": 1,
+      "wrapped": 0,
+    },
+    "signEncOAuth2ClientConfig": {
+      "attributes": 26,
+      "nulls": 0,
+      "wrapped": 26,
+    },
+  },
+  "hasRevision": true,
+  "id": "FrodoTestCIMDProfile3",
+  "type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests putCIMDProfile() 4: Create CIMD profile 'FrodoTestCIMDProfile1' that already exists 1`] = `
+{
+  "data": {
+    "code": 412,
+    "message": "Unable to access SMS config: Identity FrodoTestCIMDProfile1 of type CIMDProfile already exists.",
+    "reason": "Precondition Failed",
+  },
+  "message": "Request failed with status code 412",
+  "name": "AxiosError",
+  "status": 412,
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests putCIMDProfile() 5: Create a CIMD profile with a pattern the server refuses 1`] = `
+{
+  "data": {
+    "code": 400,
+    "message": "Data validation failed for the attribute, CIMD Client ID URL Patterns",
+    "reason": "Bad Request",
+  },
+  "message": "Request failed with status code 400",
+  "name": "AxiosError",
+  "status": 400,
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests putCIMDProfile() 6: Create a CIMD profile with attributes the server does not know 1`] = `
+[
+  "acceptAudienceParametersInTokenExchangeRequests",
+  "acceptedJwtIssuers",
+  "accessTokenLifetime",
+  "accessTokenMayActScript",
+  "accessTokenModificationPluginType",
+  "accessTokenModificationScript",
+  "accessTokenModifierClass",
+  "allowedResourceServerAudienceValues",
+  "authorizationCodeLifetime",
+  "authorizationDetailTypes",
+  "authorizeEndpointDataProviderClass",
+  "authorizeEndpointDataProviderPluginType",
+  "authorizeEndpointDataProviderScript",
+  "cimdClientIdUrlPatterns",
+  "cimdMetadataDenyList",
+  "cimdSsrfProtectionEnabled",
+  "claims",
+  "clientJwtPublicKey",
+  "clientName",
+  "clientSessionUri",
+  "clientUri",
+  "clientsCanSkipConsent",
+  "contacts",
+  "customLoginUrlTemplate",
+  "customProperties",
+  "defaultAcrValues",
+  "defaultMaxAge",
+  "defaultMaxAgeEnabled",
+  "defaultScopes",
+  "descriptions",
+  "enableApplicationContext",
+  "enableRemoteConsent",
+  "evaluateScopeClass",
+  "evaluateScopePluginType",
+  "evaluateScopeScript",
+  "grantTypes",
+  "idTokenEncryptionAlgorithm",
+  "idTokenEncryptionEnabled",
+  "idTokenEncryptionMethod",
+  "idTokenPublicEncryptionKey",
+  "idTokenSignedResponseAlg",
+  "introspectionPolicySets",
+  "isConsentImplied",
+  "issueRefreshToken",
+  "issueRefreshTokenOnRefreshedToken",
+  "jwkSet",
+  "jwkStoreCacheMissCacheTime",
+  "jwksCacheTimeout",
+  "jwksUri",
+  "jwtTokenLifetime",
+  "logoUri",
+  "loopbackInterfaceRedirection",
+  "mTLSCertificateBoundAccessTokens",
+  "mTLSSubjectDN",
+  "mTLSTrustedCert",
+  "mixUpMitigation",
+  "name",
+  "oidcClaimsClass",
+  "oidcClaimsPluginType",
+  "oidcClaimsScript",
+  "oidcMayActScript",
+  "overrideableOIDCClaims",
+  "policyUri",
+  "postLogoutRedirectUri",
+  "providerOverridesEnabled",
+  "publicKeyLocation",
+  "redirectionUris",
+  "refreshTokenGracePeriod",
+  "refreshTokenLifetime",
+  "remoteConsentServiceId",
+  "requestParameterEncryptedAlg",
+  "requestParameterEncryptedEncryptionAlgorithm",
+  "requestParameterSignedAlg",
+  "requestUris",
+  "require_pushed_authorization_requests",
+  "responseTypes",
+  "restrictTokenExchangeScopesToSubjectTokenScopes",
+  "scopes",
+  "scopesPolicySet",
+  "sectorIdentifierUri",
+  "statelessTokensEnabled",
+  "status",
+  "subjectType",
+  "tlsCaSecretLabelIdentifier",
+  "tlsClientCertificateChainValidationEnabled",
+  "tokenEncryptionEnabled",
+  "tokenEndpointAuthMethod",
+  "tokenEndpointAuthSigningAlgorithm",
+  "tokenExchangeAuthLevel",
+  "tokenIntrospectionEncryptedResponseAlg",
+  "tokenIntrospectionEncryptedResponseEncryptionAlgorithm",
+  "tokenIntrospectionResponseFormat",
+  "tokenIntrospectionSignedResponseAlg",
+  "tosURI",
+  "treeName",
+  "useForceAuthnForMaxAge",
+  "usePolicyEngineForScope",
+  "useTokenIntrospectionClaimForJWT",
+  "userinfoEncryptedResponseAlg",
+  "userinfoEncryptedResponseEncryptionAlgorithm",
+  "userinfoResponseFormat",
+  "userinfoSignedResponseAlg",
+  "validateScopeClass",
+  "validateScopePluginType",
+  "validateScopeScript",
+]
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests putCIMDProfile() 9: Create CIMD profile 'FRODOTESTCIMDCASE' that exists with the case of another id 1`] = `
+{
+  "data": {
+    "code": 412,
+    "message": "Unable to access SMS config: Identity FRODOTESTCIMDCASE of type CIMDProfile already exists.",
+    "reason": "Precondition Failed",
+  },
+  "message": "Request failed with status code 412",
+  "name": "AxiosError",
+  "status": 412,
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests putCIMDProfile() as an update 1: Update CIMD profile 'FrodoTestCIMDProfile1' (replace) 1`] = `
+{
+  "groups": {
+    "advancedOAuth2ClientConfig": {
+      "attributes": 3,
+      "nulls": 0,
+      "wrapped": 3,
+    },
+    "cimdConfig": {
+      "attributes": 3,
+      "nulls": 0,
+      "wrapped": 3,
+    },
+    "coreOAuth2ClientConfig": {
+      "attributes": 2,
+      "nulls": 0,
+      "wrapped": 2,
+    },
+  },
+  "hasRevision": true,
+  "id": "FrodoTestCIMDProfile1",
+  "type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileApi Cloud Tests putCIMDProfile() as an update 2: Update CIMD profile 'FrodoTestCIMDProfile2' with the answer of a read (the revision is not sent) 1`] = `
+{
+  "groups": {
+    "advancedOAuth2ClientConfig": {
+      "attributes": 24,
+      "nulls": 0,
+      "wrapped": 24,
+    },
+    "cimdConfig": {
+      "attributes": 3,
+      "nulls": 0,
+      "wrapped": 3,
+    },
+    "coreOAuth2ClientConfig": {
+      "attributes": 10,
+      "nulls": 0,
+      "wrapped": 10,
+    },
+    "coreOpenIDClientConfig": {
+      "attributes": 7,
+      "nulls": 0,
+      "wrapped": 7,
+    },
+    "overrideOAuth2ClientConfig": {
+      "attributes": 32,
+      "nulls": 1,
+      "wrapped": 0,
+    },
+    "signEncOAuth2ClientConfig": {
+      "attributes": 26,
+      "nulls": 0,
+      "wrapped": 26,
+    },
+  },
+  "hasRevision": true,
+  "id": "FrodoTestCIMDProfile2",
+  "type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+}
+`;

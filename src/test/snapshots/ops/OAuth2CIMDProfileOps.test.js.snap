@@ -1,0 +1,1866 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`OAuth2CIMDProfileOps Cloud Tests Cloud root realm 3: Read, create, update, delete and export a CIMD profile of the root realm 1`] = `
+{
+  "create": {
+    "code": "CIMD_PROFILES_NOT_AVAILABLE",
+    "message": "CIMD profiles are not available in the / realm of this deployment: the server does not offer the agent type 'CIMDProfile'.",
+    "name": "FrodoError",
+  },
+  "delete": {
+    "code": "CIMD_PROFILES_NOT_AVAILABLE",
+    "message": "CIMD profiles are not available in the / realm of this deployment: the server does not offer the agent type 'CIMDProfile'.",
+    "name": "FrodoError",
+  },
+  "export": {
+    "code": "CIMD_PROFILES_NOT_AVAILABLE",
+    "message": "CIMD profiles are not available in the / realm of this deployment: the server does not offer the agent type 'CIMDProfile'.",
+    "name": "FrodoError",
+  },
+  "read": {
+    "code": "CIMD_PROFILES_NOT_AVAILABLE",
+    "message": "CIMD profiles are not available in the / realm of this deployment: the server does not offer the agent type 'CIMDProfile'.",
+    "name": "FrodoError",
+  },
+  "schema": {
+    "code": "CIMD_PROFILES_NOT_AVAILABLE",
+    "message": "CIMD profiles are not available in the / realm of this deployment: the server does not offer the agent type 'CIMDProfile'.",
+    "name": "FrodoError",
+  },
+  "template": {
+    "code": "CIMD_PROFILES_NOT_AVAILABLE",
+    "message": "CIMD profiles are not available in the / realm of this deployment: the server does not offer the agent type 'CIMDProfile'.",
+    "name": "FrodoError",
+  },
+  "update": {
+    "code": "CIMD_PROFILES_NOT_AVAILABLE",
+    "message": "CIMD profiles are not available in the / realm of this deployment: the server does not offer the agent type 'CIMDProfile'.",
+    "name": "FrodoError",
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests createCIMDProfile() 1: Create CIMD profile 'FrodoTestCIMDProfile1' (plain values) 1`] = `
+{
+  "groups": {
+    "advancedOAuth2ClientConfig": {
+      "attributes": 24,
+      "nulls": 0,
+      "wrapped": 24,
+    },
+    "cimdConfig": {
+      "attributes": 3,
+      "nulls": 0,
+      "wrapped": 3,
+    },
+    "coreOAuth2ClientConfig": {
+      "attributes": 10,
+      "nulls": 0,
+      "wrapped": 10,
+    },
+    "coreOpenIDClientConfig": {
+      "attributes": 7,
+      "nulls": 0,
+      "wrapped": 7,
+    },
+    "overrideOAuth2ClientConfig": {
+      "attributes": 32,
+      "nulls": 1,
+      "wrapped": 0,
+    },
+    "signEncOAuth2ClientConfig": {
+      "attributes": 26,
+      "nulls": 0,
+      "wrapped": 26,
+    },
+  },
+  "hasRevision": true,
+  "id": "FrodoTestCIMDProfile1",
+  "type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests createCIMDProfile() 1: Create CIMD profile 'FrodoTestCIMDProfile1' (plain values) 2`] = `
+{
+  "cimdClientIdUrlPatterns": {
+    "inherited": false,
+    "value": [
+      "https://clients1.matrix.example.com/*",
+      "https://clients1.matrix.example.com:8443/agents/*",
+    ],
+  },
+  "cimdMetadataDenyList": {
+    "inherited": false,
+    "value": [
+      "scope",
+      "redirect_uris",
+    ],
+  },
+  "cimdSsrfProtectionEnabled": {
+    "inherited": false,
+    "value": true,
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests createCIMDProfile() 2: Create CIMD profile 'FrodoTestCIMDProfile2' (wrapped values, SSRF protection off) 1`] = `
+{
+  "groups": {
+    "advancedOAuth2ClientConfig": {
+      "attributes": 24,
+      "nulls": 0,
+      "wrapped": 24,
+    },
+    "cimdConfig": {
+      "attributes": 3,
+      "nulls": 0,
+      "wrapped": 3,
+    },
+    "coreOAuth2ClientConfig": {
+      "attributes": 10,
+      "nulls": 0,
+      "wrapped": 10,
+    },
+    "coreOpenIDClientConfig": {
+      "attributes": 7,
+      "nulls": 0,
+      "wrapped": 7,
+    },
+    "overrideOAuth2ClientConfig": {
+      "attributes": 32,
+      "nulls": 1,
+      "wrapped": 0,
+    },
+    "signEncOAuth2ClientConfig": {
+      "attributes": 26,
+      "nulls": 0,
+      "wrapped": 26,
+    },
+  },
+  "hasRevision": true,
+  "id": "FrodoTestCIMDProfile2",
+  "type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests createCIMDProfile() 2: Create CIMD profile 'FrodoTestCIMDProfile2' (wrapped values, SSRF protection off) 2`] = `
+{
+  "cimdClientIdUrlPatterns": {
+    "inherited": false,
+    "value": [
+      "https://clients2.matrix.example.com/agents/*",
+    ],
+  },
+  "cimdMetadataDenyList": {
+    "inherited": false,
+    "value": [
+      "client_name",
+      "contacts",
+    ],
+  },
+  "cimdSsrfProtectionEnabled": {
+    "inherited": false,
+    "value": false,
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests createCIMDProfile() 3: Create CIMD profile 'FrodoTestCIMDProfile3' (minimal body) 1`] = `
+{
+  "groups": {
+    "advancedOAuth2ClientConfig": {
+      "attributes": 24,
+      "nulls": 0,
+      "wrapped": 24,
+    },
+    "cimdConfig": {
+      "attributes": 3,
+      "nulls": 0,
+      "wrapped": 3,
+    },
+    "coreOAuth2ClientConfig": {
+      "attributes": 10,
+      "nulls": 0,
+      "wrapped": 10,
+    },
+    "coreOpenIDClientConfig": {
+      "attributes": 7,
+      "nulls": 0,
+      "wrapped": 7,
+    },
+    "overrideOAuth2ClientConfig": {
+      "attributes": 32,
+      "nulls": 1,
+      "wrapped": 0,
+    },
+    "signEncOAuth2ClientConfig": {
+      "attributes": 26,
+      "nulls": 0,
+      "wrapped": 26,
+    },
+  },
+  "hasRevision": true,
+  "id": "FrodoTestCIMDProfile3",
+  "type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests createCIMDProfile() 4: Create CIMD profile 'FrodoTestCIMDProfile1' that already exists 1`] = `
+{
+  "causes": [
+    {
+      "data": {
+        "code": 412,
+        "message": "Unable to access SMS config: Identity FrodoTestCIMDProfile1 of type CIMDProfile already exists.",
+        "reason": "Precondition Failed",
+      },
+      "message": "Request failed with status code 412",
+      "name": "AxiosError",
+      "status": 412,
+    },
+  ],
+  "message": "bravo realm CIMD profile FrodoTestCIMDProfile1 already exists!",
+  "name": "FrodoError",
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests createCIMDProfile() 5: Create a CIMD profile with a pattern the server refuses 1`] = `
+{
+  "causes": [
+    {
+      "data": {
+        "code": 400,
+        "message": "Data validation failed for the attribute, CIMD Client ID URL Patterns",
+        "reason": "Bad Request",
+      },
+      "message": "Request failed with status code 400",
+      "name": "AxiosError",
+      "status": 400,
+    },
+  ],
+  "message": "Error creating bravo realm CIMD profile FrodoTestCIMDInvalid",
+  "name": "FrodoError",
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests createCIMDProfile() 6: Create a CIMD profile with attributes the server does not know 1`] = `"Error creating bravo realm CIMD profile FrodoTestCIMDUnknown: the server does not accept the attribute(s) cimdBogus, notAGroup"`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests createCIMDProfile() 7: Create CIMD profiles with ids the module refuses before it sends anything 1`] = `
+{
+  "": "A CIMD profile id must be a non-empty string.",
+  " FrodoTestLeadingSpace": "The CIMD profile id ' FrodoTestLeadingSpace' begins or ends with a space.",
+  "..": "'..' is not a valid CIMD profile id.",
+  "FrodoTest!bang": "The CIMD profile id 'FrodoTest!bang' contains the character '!', which a deployment refuses in an id.",
+  "FrodoTest#hash": "The CIMD profile id 'FrodoTest#hash' contains the character '#', which a deployment refuses in an id.",
+  "FrodoTest+plus": "The CIMD profile id 'FrodoTest+plus' contains the character '+', which a deployment refuses in an id.",
+  "FrodoTest,comma": "The CIMD profile id 'FrodoTest,comma' contains the character ',', which a deployment refuses in an id.",
+  "FrodoTest/slash": "The CIMD profile id 'FrodoTest/slash' contains the character '/', which a deployment refuses in an id.",
+  "FrodoTest;semicolon": "The CIMD profile id 'FrodoTest;semicolon' contains the character ';', which a deployment refuses in an id.",
+  "FrodoTest?query": "The CIMD profile id 'FrodoTest?query' contains the character '?', which a deployment refuses in an id.",
+  "FrodoTestTrailingSpace ": "The CIMD profile id 'FrodoTestTrailingSpace ' begins or ends with a space.",
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests createCIMDProfile() 10: Create CIMD profile 'FRODOTESTCIMDCASE' that exists with the case of another id 1`] = `
+{
+  "causes": [
+    {
+      "data": {
+        "code": 412,
+        "message": "Unable to access SMS config: Identity FRODOTESTCIMDCASE of type CIMDProfile already exists.",
+        "reason": "Precondition Failed",
+      },
+      "message": "Request failed with status code 412",
+      "name": "AxiosError",
+      "status": 412,
+    },
+  ],
+  "message": "bravo realm CIMD profile FRODOTESTCIMDCASE already exists!",
+  "name": "FrodoError",
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests createCIMDProfileExportTemplate() 1: Create CIMD profile export template 1`] = `
+{
+  "cimdProfile": {},
+  "meta": Any<Object>,
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests deleteCIMDProfile() 1: Delete CIMD profile 'FrodoTestCIMDDelete1' 1`] = `
+{
+  "groups": {
+    "advancedOAuth2ClientConfig": {
+      "attributes": 24,
+      "nulls": 0,
+      "wrapped": 24,
+    },
+    "cimdConfig": {
+      "attributes": 3,
+      "nulls": 0,
+      "wrapped": 3,
+    },
+    "coreOAuth2ClientConfig": {
+      "attributes": 10,
+      "nulls": 0,
+      "wrapped": 10,
+    },
+    "coreOpenIDClientConfig": {
+      "attributes": 7,
+      "nulls": 0,
+      "wrapped": 7,
+    },
+    "overrideOAuth2ClientConfig": {
+      "attributes": 32,
+      "nulls": 1,
+      "wrapped": 0,
+    },
+    "signEncOAuth2ClientConfig": {
+      "attributes": 26,
+      "nulls": 0,
+      "wrapped": 26,
+    },
+  },
+  "hasRevision": true,
+  "id": "FrodoTestCIMDDelete1",
+  "type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests deleteCIMDProfile() 2: Delete CIMD profile 'FrodoTestCIMDDelete1' again 1`] = `
+{
+  "causes": [
+    {
+      "data": {
+        "code": 404,
+        "message": "Not Found",
+        "reason": "Not Found",
+      },
+      "message": "Request failed with status code 404",
+      "name": "AxiosError",
+      "status": 404,
+    },
+  ],
+  "message": "Error deleting bravo realm CIMD profile FrodoTestCIMDDelete1",
+  "name": "FrodoError",
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests deleteCIMDProfile() 4: Delete a CIMD profile with an id the module refuses 1`] = `
+{
+  "message": "The CIMD profile id 'FrodoTest/slash' contains the character '/', which a deployment refuses in an id.",
+  "name": "FrodoError",
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests deleteCIMDProfiles() 1: Delete all CIMD profiles with a result callback 1`] = `
+[
+  "FrodoTestCIMDAll1",
+  "FrodoTestCIMDAll2",
+  "FrodoTestCIMDAll3",
+]
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests deleteCIMDProfiles() 1: Delete all CIMD profiles with a result callback 2`] = `
+[
+  {
+    "result": "FrodoTestCIMDAll1",
+  },
+  {
+    "result": "FrodoTestCIMDAll2",
+  },
+  {
+    "result": "FrodoTestCIMDAll3",
+  },
+]
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests deleteCIMDProfiles() 2: Delete all CIMD profiles without a result callback 1`] = `
+[
+  "FrodoTestCIMDAll4",
+  "FrodoTestCIMDAll5",
+]
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests exportCIMDProfile() 1: Export CIMD profile 'FrodoTestCIMDProfile1' 1`] = `
+{
+  "cimdProfile": {
+    "FrodoTestCIMDProfile1": {
+      "_id": "FrodoTestCIMDProfile1",
+      "_rev": "1742763451",
+      "_type": {
+        "_id": "CIMDProfile",
+        "collection": true,
+        "name": "CIMD Profile",
+      },
+      "advancedOAuth2ClientConfig": {
+        "acceptedJwtIssuers": [],
+        "allowedResourceServerAudienceValues": [],
+        "clientUri": [],
+        "contacts": [],
+        "customProperties": [],
+        "descriptions": [],
+        "grantTypes": [
+          "authorization_code",
+          "refresh_token",
+        ],
+        "introspectionPolicySets": [],
+        "isConsentImplied": false,
+        "logoUri": [],
+        "mixUpMitigation": false,
+        "name": [],
+        "policyUri": [],
+        "refreshTokenGracePeriod": 0,
+        "requestUris": [],
+        "require_pushed_authorization_requests": false,
+        "responseTypes": [
+          "code",
+          "token",
+          "id_token",
+          "code token",
+          "token id_token",
+          "code id_token",
+          "code token id_token",
+          "device_code",
+          "device_code id_token",
+        ],
+        "sectorIdentifierUri": null,
+        "subjectType": "public",
+        "tlsCaSecretLabelIdentifier": null,
+        "tokenEndpointAuthMethod": "none",
+        "tokenExchangeAuthLevel": 0,
+        "tosURI": [],
+        "treeName": "Login",
+      },
+      "cimdConfig": {
+        "cimdClientIdUrlPatterns": [
+          "https://clients1.matrix.example.com/*",
+          "https://clients1.matrix.example.com:8443/agents/*",
+        ],
+        "cimdMetadataDenyList": [
+          "scope",
+          "redirect_uris",
+        ],
+        "cimdSsrfProtectionEnabled": true,
+      },
+      "coreOAuth2ClientConfig": {
+        "accessTokenLifetime": 300,
+        "authorizationCodeLifetime": 0,
+        "authorizationDetailTypes": [],
+        "clientName": [
+          "FrodoTest CIMD profile 1 (updated)",
+        ],
+        "defaultScopes": [
+          "openid",
+        ],
+        "loopbackInterfaceRedirection": false,
+        "redirectionUris": [
+          "https://clients1.matrix.example.com/callback",
+        ],
+        "refreshTokenLifetime": 0,
+        "scopes": [
+          "openid",
+          "profile",
+        ],
+        "status": "Active",
+      },
+      "coreOpenIDClientConfig": {
+        "claims": [],
+        "clientSessionUri": null,
+        "defaultAcrValues": [],
+        "defaultMaxAge": 600,
+        "defaultMaxAgeEnabled": false,
+        "jwtTokenLifetime": 0,
+        "postLogoutRedirectUri": [],
+      },
+      "overrideOAuth2ClientConfig": {
+        "acceptAudienceParametersInTokenExchangeRequests": false,
+        "accessTokenMayActScript": "[Empty]",
+        "accessTokenModificationPluginType": "PROVIDER",
+        "accessTokenModificationScript": "[Empty]",
+        "accessTokenModifierClass": null,
+        "authorizeEndpointDataProviderClass": "org.forgerock.oauth2.core.plugins.registry.DefaultEndpointDataProvider",
+        "authorizeEndpointDataProviderPluginType": "PROVIDER",
+        "authorizeEndpointDataProviderScript": "[Empty]",
+        "clientsCanSkipConsent": false,
+        "customLoginUrlTemplate": null,
+        "enableApplicationContext": false,
+        "enableRemoteConsent": false,
+        "evaluateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeEvaluator",
+        "evaluateScopePluginType": "PROVIDER",
+        "evaluateScopeScript": "[Empty]",
+        "issueRefreshToken": true,
+        "issueRefreshTokenOnRefreshedToken": true,
+        "oidcClaimsClass": null,
+        "oidcClaimsPluginType": "PROVIDER",
+        "oidcClaimsScript": "[Empty]",
+        "oidcMayActScript": "[Empty]",
+        "overrideableOIDCClaims": [],
+        "providerOverridesEnabled": false,
+        "remoteConsentServiceId": null,
+        "restrictTokenExchangeScopesToSubjectTokenScopes": false,
+        "scopesPolicySet": "oauth2Scopes",
+        "statelessTokensEnabled": false,
+        "tlsClientCertificateChainValidationEnabled": false,
+        "tokenEncryptionEnabled": false,
+        "useForceAuthnForMaxAge": false,
+        "usePolicyEngineForScope": false,
+        "useTokenIntrospectionClaimForJWT": false,
+        "validateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeValidator",
+        "validateScopePluginType": "PROVIDER",
+        "validateScopeScript": "[Empty]",
+      },
+      "signEncOAuth2ClientConfig": {
+        "clientJwtPublicKey": null,
+        "idTokenEncryptionAlgorithm": "RSA-OAEP-256",
+        "idTokenEncryptionEnabled": false,
+        "idTokenEncryptionMethod": "A128CBC-HS256",
+        "idTokenPublicEncryptionKey": null,
+        "idTokenSignedResponseAlg": "RS256",
+        "jwkSet": null,
+        "jwkStoreCacheMissCacheTime": 60000,
+        "jwksCacheTimeout": 3600000,
+        "jwksUri": null,
+        "mTLSCertificateBoundAccessTokens": false,
+        "mTLSSubjectDN": null,
+        "mTLSTrustedCert": null,
+        "publicKeyLocation": "jwks_uri",
+        "requestParameterEncryptedAlg": null,
+        "requestParameterEncryptedEncryptionAlgorithm": "A128CBC-HS256",
+        "requestParameterSignedAlg": null,
+        "tokenEndpointAuthSigningAlgorithm": "RS256",
+        "tokenIntrospectionEncryptedResponseAlg": "RSA-OAEP-256",
+        "tokenIntrospectionEncryptedResponseEncryptionAlgorithm": "A128CBC-HS256",
+        "tokenIntrospectionResponseFormat": "JSON",
+        "tokenIntrospectionSignedResponseAlg": "RS256",
+        "userinfoEncryptedResponseAlg": null,
+        "userinfoEncryptedResponseEncryptionAlgorithm": "A128CBC-HS256",
+        "userinfoResponseFormat": "JSON",
+        "userinfoSignedResponseAlg": null,
+      },
+    },
+  },
+  "meta": Any<Object>,
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests exportCIMDProfile() 2: Export a CIMD profile that does not exist 1`] = `
+{
+  "causes": [
+    {
+      "message": "bravo realm CIMD profile FrodoTestCIMDMissing not found",
+      "name": "FrodoError",
+    },
+  ],
+  "message": "Error exporting bravo realm CIMD profile FrodoTestCIMDMissing",
+  "name": "FrodoError",
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests exportCIMDProfiles() 1: Export all CIMD profiles 1`] = `
+[
+  "FrodoTest CIMD id [x]^|é$&=:@~.",
+  "FrodoTestCIMDCase",
+  "FrodoTestCIMDProfile1",
+  "FrodoTestCIMDProfile2",
+  "FrodoTestCIMDProfile3",
+  "FrodoTestCIMDUpsert",
+]
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests exportCIMDProfiles() 1: Export all CIMD profiles 2`] = `
+[
+  {
+    "groups": {
+      "advancedOAuth2ClientConfig": {
+        "attributes": 24,
+        "nulls": 2,
+        "wrapped": 0,
+      },
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 10,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOpenIDClientConfig": {
+        "attributes": 7,
+        "nulls": 1,
+        "wrapped": 0,
+      },
+      "overrideOAuth2ClientConfig": {
+        "attributes": 35,
+        "nulls": 4,
+        "wrapped": 0,
+      },
+      "signEncOAuth2ClientConfig": {
+        "attributes": 26,
+        "nulls": 10,
+        "wrapped": 0,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTest CIMD id [x]^|é$&=:@~.",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+  {
+    "groups": {
+      "advancedOAuth2ClientConfig": {
+        "attributes": 24,
+        "nulls": 2,
+        "wrapped": 0,
+      },
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 10,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOpenIDClientConfig": {
+        "attributes": 7,
+        "nulls": 1,
+        "wrapped": 0,
+      },
+      "overrideOAuth2ClientConfig": {
+        "attributes": 35,
+        "nulls": 4,
+        "wrapped": 0,
+      },
+      "signEncOAuth2ClientConfig": {
+        "attributes": 26,
+        "nulls": 10,
+        "wrapped": 0,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTestCIMDCase",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+  {
+    "groups": {
+      "advancedOAuth2ClientConfig": {
+        "attributes": 24,
+        "nulls": 2,
+        "wrapped": 0,
+      },
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 10,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOpenIDClientConfig": {
+        "attributes": 7,
+        "nulls": 1,
+        "wrapped": 0,
+      },
+      "overrideOAuth2ClientConfig": {
+        "attributes": 35,
+        "nulls": 4,
+        "wrapped": 0,
+      },
+      "signEncOAuth2ClientConfig": {
+        "attributes": 26,
+        "nulls": 10,
+        "wrapped": 0,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTestCIMDProfile1",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+  {
+    "groups": {
+      "advancedOAuth2ClientConfig": {
+        "attributes": 24,
+        "nulls": 2,
+        "wrapped": 0,
+      },
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 10,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOpenIDClientConfig": {
+        "attributes": 7,
+        "nulls": 1,
+        "wrapped": 0,
+      },
+      "overrideOAuth2ClientConfig": {
+        "attributes": 35,
+        "nulls": 4,
+        "wrapped": 0,
+      },
+      "signEncOAuth2ClientConfig": {
+        "attributes": 26,
+        "nulls": 10,
+        "wrapped": 0,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTestCIMDProfile2",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+  {
+    "groups": {
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 2,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTestCIMDProfile3",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+  {
+    "groups": {
+      "advancedOAuth2ClientConfig": {
+        "attributes": 24,
+        "nulls": 2,
+        "wrapped": 0,
+      },
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 10,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOpenIDClientConfig": {
+        "attributes": 7,
+        "nulls": 1,
+        "wrapped": 0,
+      },
+      "overrideOAuth2ClientConfig": {
+        "attributes": 35,
+        "nulls": 4,
+        "wrapped": 0,
+      },
+      "signEncOAuth2ClientConfig": {
+        "attributes": 26,
+        "nulls": 10,
+        "wrapped": 0,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTestCIMDUpsert",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+]
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests exportCIMDProfiles() 2: Export all CIMD profiles with a result callback 1`] = `
+[
+  {
+    "result": "FrodoTest CIMD id [x]^|é$&=:@~.",
+  },
+  {
+    "result": "FrodoTestCIMDCase",
+  },
+  {
+    "result": "FrodoTestCIMDProfile1",
+  },
+  {
+    "result": "FrodoTestCIMDProfile2",
+  },
+  {
+    "result": "FrodoTestCIMDProfile3",
+  },
+  {
+    "result": "FrodoTestCIMDUpsert",
+  },
+]
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests importCIMDProfile() 1: Import CIMD profile 'FrodoTestCIMDProfile1' over the existing one 1`] = `
+{
+  "created": false,
+  "repaired": false,
+  "shape": {
+    "groups": {
+      "advancedOAuth2ClientConfig": {
+        "attributes": 24,
+        "nulls": 0,
+        "wrapped": 24,
+      },
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 3,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 10,
+        "nulls": 0,
+        "wrapped": 10,
+      },
+      "coreOpenIDClientConfig": {
+        "attributes": 7,
+        "nulls": 0,
+        "wrapped": 7,
+      },
+      "overrideOAuth2ClientConfig": {
+        "attributes": 32,
+        "nulls": 1,
+        "wrapped": 0,
+      },
+      "signEncOAuth2ClientConfig": {
+        "attributes": 26,
+        "nulls": 0,
+        "wrapped": 26,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTestCIMDProfile1",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests importCIMDProfile() 2: Import a complete CIMD profile as 'FrodoTestCIMDProfile4' (new) 1`] = `
+{
+  "created": true,
+  "repaired": false,
+  "shape": {
+    "groups": {
+      "advancedOAuth2ClientConfig": {
+        "attributes": 24,
+        "nulls": 0,
+        "wrapped": 24,
+      },
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 3,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 10,
+        "nulls": 0,
+        "wrapped": 10,
+      },
+      "coreOpenIDClientConfig": {
+        "attributes": 7,
+        "nulls": 0,
+        "wrapped": 7,
+      },
+      "overrideOAuth2ClientConfig": {
+        "attributes": 32,
+        "nulls": 1,
+        "wrapped": 0,
+      },
+      "signEncOAuth2ClientConfig": {
+        "attributes": 26,
+        "nulls": 0,
+        "wrapped": 26,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTestCIMDProfile4",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests importCIMDProfile() 3: Import a sparse CIMD profile as 'FrodoTestCIMDProfile5' (new: created, then written again) 1`] = `
+{
+  "groups": {
+    "cimdConfig": {
+      "attributes": 3,
+      "nulls": 0,
+      "wrapped": 3,
+    },
+    "coreOAuth2ClientConfig": {
+      "attributes": 2,
+      "nulls": 0,
+      "wrapped": 2,
+    },
+  },
+  "hasRevision": true,
+  "id": "FrodoTestCIMDProfile5",
+  "type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests importCIMDProfile() 4: Import a CIMD profile of another agent type 1`] = `
+{
+  "causes": [
+    {
+      "message": "Wrong agent type! Expected 'CIMDProfile' but got 'WebAgent'.",
+      "name": "FrodoError",
+    },
+  ],
+  "message": "Error importing bravo realm CIMD profile FrodoTestCIMDProfile4",
+  "name": "FrodoError",
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests importCIMDProfile() 5: Import a CIMD profile that is not in the import data 1`] = `
+{
+  "message": "bravo realm CIMD profile FrodoTestCIMDProfile4 not found in import data!",
+  "name": "FrodoError",
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests importCIMDProfile() 6: Import a CIMD profile with a pattern the server refuses 1`] = `
+{
+  "causes": [
+    {
+      "data": {
+        "code": 400,
+        "message": "Data validation failed for the attribute, CIMD Client ID URL Patterns",
+        "reason": "Bad Request",
+      },
+      "message": "Request failed with status code 400",
+      "name": "AxiosError",
+      "status": 400,
+    },
+  ],
+  "message": "Error importing bravo realm CIMD profile FrodoTestCIMDInvalid",
+  "name": "FrodoError",
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests importCIMDProfiles() 1: Import CIMD profiles (one exists, one is new) with a result callback 1`] = `
+[
+  {
+    "result": {
+      "created": false,
+      "id": "FrodoTestCIMDProfile1",
+      "repaired": false,
+    },
+  },
+  {
+    "result": {
+      "created": true,
+      "id": "FrodoTestCIMDProfile6",
+      "repaired": false,
+    },
+  },
+]
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests importCIMDProfiles() 2: Import CIMD profiles (one is refused by the server) with a result callback 1`] = `
+[
+  {
+    "error": {
+      "causes": [
+        {
+          "data": {
+            "code": 400,
+            "message": "Data validation failed for the attribute, CIMD Client ID URL Patterns",
+            "reason": "Bad Request",
+          },
+          "message": "Request failed with status code 400",
+          "name": "AxiosError",
+          "status": 400,
+        },
+      ],
+      "message": "Error importing bravo realm CIMD profile FrodoTestCIMDInvalid",
+      "name": "FrodoError",
+    },
+  },
+  {
+    "result": {
+      "created": true,
+      "id": "FrodoTestCIMDProfile7",
+      "repaired": true,
+    },
+  },
+]
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests importCIMDProfiles() 3: Import CIMD profiles (one is refused by the server) without a result callback 1`] = `
+{
+  "causes": [
+    {
+      "causes": [
+        {
+          "data": {
+            "code": 400,
+            "message": "Data validation failed for the attribute, CIMD Client ID URL Patterns",
+            "reason": "Bad Request",
+          },
+          "message": "Request failed with status code 400",
+          "name": "AxiosError",
+          "status": 400,
+        },
+      ],
+      "message": "Error importing bravo realm CIMD profile FrodoTestCIMDInvalid",
+      "name": "FrodoError",
+    },
+  ],
+  "message": "Error importing bravo realm CIMD profiles",
+  "name": "FrodoError",
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests readCIMDProfile() 1: Read CIMD profile 'FrodoTestCIMDProfile1' 1`] = `
+{
+  "_id": "FrodoTestCIMDProfile1",
+  "_rev": "-1478538299",
+  "_type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+  "advancedOAuth2ClientConfig": {
+    "acceptedJwtIssuers": [],
+    "allowedResourceServerAudienceValues": [],
+    "clientUri": [],
+    "contacts": [],
+    "customProperties": [],
+    "descriptions": [],
+    "grantTypes": [
+      "authorization_code",
+      "refresh_token",
+    ],
+    "introspectionPolicySets": [],
+    "isConsentImplied": false,
+    "logoUri": [],
+    "mixUpMitigation": false,
+    "name": [],
+    "policyUri": [],
+    "refreshTokenGracePeriod": 0,
+    "requestUris": [],
+    "require_pushed_authorization_requests": false,
+    "responseTypes": [
+      "code",
+      "token",
+      "id_token",
+      "code token",
+      "token id_token",
+      "code id_token",
+      "code token id_token",
+      "device_code",
+      "device_code id_token",
+    ],
+    "sectorIdentifierUri": null,
+    "subjectType": "public",
+    "tlsCaSecretLabelIdentifier": null,
+    "tokenEndpointAuthMethod": "none",
+    "tokenExchangeAuthLevel": 0,
+    "tosURI": [],
+    "treeName": "Login",
+  },
+  "cimdConfig": {
+    "cimdClientIdUrlPatterns": [
+      "https://clients1.matrix.example.com/*",
+      "https://clients1.matrix.example.com:8443/agents/*",
+    ],
+    "cimdMetadataDenyList": [
+      "scope",
+      "redirect_uris",
+    ],
+    "cimdSsrfProtectionEnabled": true,
+  },
+  "coreOAuth2ClientConfig": {
+    "accessTokenLifetime": 300,
+    "authorizationCodeLifetime": 0,
+    "authorizationDetailTypes": [],
+    "clientName": [
+      "FrodoTest CIMD profile 1",
+    ],
+    "defaultScopes": [
+      "openid",
+    ],
+    "loopbackInterfaceRedirection": false,
+    "redirectionUris": [
+      "https://clients1.matrix.example.com/callback",
+    ],
+    "refreshTokenLifetime": 0,
+    "scopes": [
+      "openid",
+      "profile",
+    ],
+    "status": "Active",
+  },
+  "coreOpenIDClientConfig": {
+    "claims": [],
+    "clientSessionUri": null,
+    "defaultAcrValues": [],
+    "defaultMaxAge": 600,
+    "defaultMaxAgeEnabled": false,
+    "jwtTokenLifetime": 0,
+    "postLogoutRedirectUri": [],
+  },
+  "overrideOAuth2ClientConfig": {
+    "acceptAudienceParametersInTokenExchangeRequests": false,
+    "accessTokenMayActScript": "[Empty]",
+    "accessTokenModificationPluginType": "PROVIDER",
+    "accessTokenModificationScript": "[Empty]",
+    "accessTokenModifierClass": null,
+    "authorizeEndpointDataProviderClass": "org.forgerock.oauth2.core.plugins.registry.DefaultEndpointDataProvider",
+    "authorizeEndpointDataProviderPluginType": "PROVIDER",
+    "authorizeEndpointDataProviderScript": "[Empty]",
+    "clientsCanSkipConsent": false,
+    "customLoginUrlTemplate": null,
+    "enableApplicationContext": false,
+    "enableRemoteConsent": false,
+    "evaluateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeEvaluator",
+    "evaluateScopePluginType": "PROVIDER",
+    "evaluateScopeScript": "[Empty]",
+    "issueRefreshToken": true,
+    "issueRefreshTokenOnRefreshedToken": true,
+    "oidcClaimsClass": null,
+    "oidcClaimsPluginType": "PROVIDER",
+    "oidcClaimsScript": "[Empty]",
+    "oidcMayActScript": "[Empty]",
+    "overrideableOIDCClaims": [],
+    "providerOverridesEnabled": false,
+    "remoteConsentServiceId": null,
+    "restrictTokenExchangeScopesToSubjectTokenScopes": false,
+    "scopesPolicySet": "oauth2Scopes",
+    "statelessTokensEnabled": false,
+    "tlsClientCertificateChainValidationEnabled": false,
+    "tokenEncryptionEnabled": false,
+    "useForceAuthnForMaxAge": false,
+    "usePolicyEngineForScope": false,
+    "useTokenIntrospectionClaimForJWT": false,
+    "validateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeValidator",
+    "validateScopePluginType": "PROVIDER",
+    "validateScopeScript": "[Empty]",
+  },
+  "signEncOAuth2ClientConfig": {
+    "clientJwtPublicKey": null,
+    "idTokenEncryptionAlgorithm": "RSA-OAEP-256",
+    "idTokenEncryptionEnabled": false,
+    "idTokenEncryptionMethod": "A128CBC-HS256",
+    "idTokenPublicEncryptionKey": null,
+    "idTokenSignedResponseAlg": "RS256",
+    "jwkSet": null,
+    "jwkStoreCacheMissCacheTime": 60000,
+    "jwksCacheTimeout": 3600000,
+    "jwksUri": null,
+    "mTLSCertificateBoundAccessTokens": false,
+    "mTLSSubjectDN": null,
+    "mTLSTrustedCert": null,
+    "publicKeyLocation": "jwks_uri",
+    "requestParameterEncryptedAlg": null,
+    "requestParameterEncryptedEncryptionAlgorithm": "A128CBC-HS256",
+    "requestParameterSignedAlg": null,
+    "tokenEndpointAuthSigningAlgorithm": "RS256",
+    "tokenIntrospectionEncryptedResponseAlg": "RSA-OAEP-256",
+    "tokenIntrospectionEncryptedResponseEncryptionAlgorithm": "A128CBC-HS256",
+    "tokenIntrospectionResponseFormat": "JSON",
+    "tokenIntrospectionSignedResponseAlg": "RS256",
+    "userinfoEncryptedResponseAlg": null,
+    "userinfoEncryptedResponseEncryptionAlgorithm": "A128CBC-HS256",
+    "userinfoResponseFormat": "JSON",
+    "userinfoSignedResponseAlg": null,
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests readCIMDProfile() 4: Read a CIMD profile that does not exist 1`] = `
+{
+  "message": "bravo realm CIMD profile FrodoTestCIMDMissing not found",
+  "name": "FrodoError",
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests readCIMDProfile() 5: Read a CIMD profile with an id the module refuses 1`] = `
+{
+  "message": "The CIMD profile id 'FrodoTest/slash' contains the character '/', which a deployment refuses in an id.",
+  "name": "FrodoError",
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests readCIMDProfileSchema() 1: Read the CIMD profile schema 1`] = `
+{
+  "groups": {
+    "advancedOAuth2ClientConfig": [
+      "name",
+      "requestUris",
+      "tosURI",
+      "contacts",
+      "require_pushed_authorization_requests",
+      "acceptedJwtIssuers",
+      "grantTypes",
+      "tokenExchangeAuthLevel",
+      "subjectType",
+      "policyUri",
+      "tokenEndpointAuthMethod",
+      "allowedResourceServerAudienceValues",
+      "descriptions",
+      "customProperties",
+      "treeName",
+      "logoUri",
+      "clientUri",
+      "tlsCaSecretLabelIdentifier",
+      "mixUpMitigation",
+      "responseTypes",
+      "isConsentImplied",
+      "sectorIdentifierUri",
+      "refreshTokenGracePeriod",
+    ],
+    "cimdConfig": [
+      "cimdSsrfProtectionEnabled",
+      "cimdClientIdUrlPatterns",
+      "cimdMetadataDenyList",
+    ],
+    "coreOAuth2ClientConfig": [
+      "refreshTokenLifetime",
+      "loopbackInterfaceRedirection",
+      "scopes",
+      "status",
+      "authorizationDetailTypes",
+      "accessTokenLifetime",
+      "redirectionUris",
+      "authorizationCodeLifetime",
+      "clientName",
+      "defaultScopes",
+    ],
+    "coreOpenIDClientConfig": [
+      "postLogoutRedirectUri",
+      "jwtTokenLifetime",
+      "defaultMaxAgeEnabled",
+      "defaultMaxAge",
+      "defaultAcrValues",
+      "claims",
+      "clientSessionUri",
+    ],
+    "overrideOAuth2ClientConfig": [
+      "useTokenIntrospectionClaimForJWT",
+      "statelessTokensEnabled",
+      "providerOverridesEnabled",
+      "evaluateScopeClass",
+      "validateScopeScript",
+      "enableRemoteConsent",
+      "accessTokenMayActScript",
+      "tokenEncryptionEnabled",
+      "useForceAuthnForMaxAge",
+      "accessTokenModifierClass",
+      "acceptAudienceParametersInTokenExchangeRequests",
+      "issueRefreshTokenOnRefreshedToken",
+      "scopesPolicySet",
+      "evaluateScopeScript",
+      "evaluateScopePluginType",
+      "restrictTokenExchangeScopesToSubjectTokenScopes",
+      "remoteConsentServiceId",
+      "authorizeEndpointDataProviderScript",
+      "accessTokenModificationPluginType",
+      "authorizeEndpointDataProviderPluginType",
+      "validateScopeClass",
+      "enableApplicationContext",
+      "authorizeEndpointDataProviderClass",
+      "overrideableOIDCClaims",
+      "oidcMayActScript",
+      "oidcClaimsClass",
+      "clientsCanSkipConsent",
+      "oidcClaimsScript",
+      "usePolicyEngineForScope",
+      "issueRefreshToken",
+      "oidcClaimsPluginType",
+      "tlsClientCertificateChainValidationEnabled",
+      "customLoginUrlTemplate",
+      "validateScopePluginType",
+      "accessTokenModificationScript",
+    ],
+    "signEncOAuth2ClientConfig": [
+      "tokenIntrospectionEncryptedResponseEncryptionAlgorithm",
+      "tokenIntrospectionSignedResponseAlg",
+      "userinfoEncryptedResponseAlg",
+      "jwksUri",
+      "idTokenEncryptionMethod",
+      "requestParameterEncryptedAlg",
+      "userinfoSignedResponseAlg",
+      "mTLSSubjectDN",
+      "requestParameterEncryptedEncryptionAlgorithm",
+      "tokenIntrospectionEncryptedResponseAlg",
+      "requestParameterSignedAlg",
+      "tokenEndpointAuthSigningAlgorithm",
+      "jwkSet",
+      "mTLSCertificateBoundAccessTokens",
+      "userinfoResponseFormat",
+      "clientJwtPublicKey",
+      "tokenIntrospectionResponseFormat",
+      "userinfoEncryptedResponseEncryptionAlgorithm",
+      "publicKeyLocation",
+      "mTLSTrustedCert",
+      "idTokenSignedResponseAlg",
+      "jwksCacheTimeout",
+      "idTokenEncryptionAlgorithm",
+      "idTokenPublicEncryptionKey",
+      "idTokenEncryptionEnabled",
+      "jwkStoreCacheMissCacheTime",
+    ],
+  },
+  "type": "object",
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests readCIMDProfileTemplate() 1: Read the CIMD profile template 1`] = `
+{
+  "advancedOAuth2ClientConfig": {
+    "acceptedJwtIssuers": [],
+    "allowedResourceServerAudienceValues": [
+      "",
+    ],
+    "clientUri": [],
+    "contacts": [],
+    "customProperties": [
+      "",
+    ],
+    "descriptions": [],
+    "grantTypes": [
+      "authorization_code",
+    ],
+    "introspectionPolicySets": [],
+    "isConsentImplied": false,
+    "logoUri": [],
+    "mixUpMitigation": false,
+    "name": [],
+    "policyUri": [],
+    "refreshTokenGracePeriod": 0,
+    "requestUris": [],
+    "require_pushed_authorization_requests": false,
+    "responseTypes": [
+      "code",
+      "token",
+      "id_token",
+      "code token",
+      "token id_token",
+      "code id_token",
+      "code token id_token",
+      "device_code",
+      "device_code id_token",
+    ],
+    "sectorIdentifierUri": null,
+    "subjectType": "public",
+    "tlsCaSecretLabelIdentifier": null,
+    "tokenEndpointAuthMethod": "none",
+    "tokenExchangeAuthLevel": 0,
+    "tosURI": [],
+    "treeName": "[Empty]",
+  },
+  "cimdConfig": {
+    "cimdClientIdUrlPatterns": [],
+    "cimdMetadataDenyList": [],
+    "cimdSsrfProtectionEnabled": true,
+  },
+  "coreOAuth2ClientConfig": {
+    "accessTokenLifetime": 0,
+    "authorizationCodeLifetime": 0,
+    "authorizationDetailTypes": [],
+    "clientName": [],
+    "defaultScopes": [],
+    "loopbackInterfaceRedirection": false,
+    "redirectionUris": [],
+    "refreshTokenLifetime": 0,
+    "scopes": [],
+    "status": "Active",
+  },
+  "coreOpenIDClientConfig": {
+    "claims": [],
+    "clientSessionUri": null,
+    "defaultAcrValues": [],
+    "defaultMaxAge": 600,
+    "defaultMaxAgeEnabled": false,
+    "jwtTokenLifetime": 0,
+    "postLogoutRedirectUri": [],
+  },
+  "overrideOAuth2ClientConfig": {
+    "acceptAudienceParametersInTokenExchangeRequests": false,
+    "accessTokenMayActScript": "[Empty]",
+    "accessTokenModificationPluginType": "PROVIDER",
+    "accessTokenModificationScript": "[Empty]",
+    "accessTokenModifierClass": null,
+    "authorizeEndpointDataProviderClass": "org.forgerock.oauth2.core.plugins.registry.DefaultEndpointDataProvider",
+    "authorizeEndpointDataProviderPluginType": "PROVIDER",
+    "authorizeEndpointDataProviderScript": "[Empty]",
+    "clientsCanSkipConsent": false,
+    "customLoginUrlTemplate": null,
+    "enableApplicationContext": false,
+    "enableRemoteConsent": false,
+    "evaluateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeEvaluator",
+    "evaluateScopePluginType": "PROVIDER",
+    "evaluateScopeScript": "[Empty]",
+    "issueRefreshToken": true,
+    "issueRefreshTokenOnRefreshedToken": true,
+    "oidcClaimsClass": null,
+    "oidcClaimsPluginType": "PROVIDER",
+    "oidcClaimsScript": "[Empty]",
+    "oidcMayActScript": "[Empty]",
+    "overrideableOIDCClaims": [],
+    "providerOverridesEnabled": false,
+    "remoteConsentServiceId": null,
+    "restrictTokenExchangeScopesToSubjectTokenScopes": false,
+    "scopesPolicySet": "oauth2Scopes",
+    "statelessTokensEnabled": false,
+    "tlsClientCertificateChainValidationEnabled": false,
+    "tokenEncryptionEnabled": false,
+    "useForceAuthnForMaxAge": false,
+    "usePolicyEngineForScope": false,
+    "useTokenIntrospectionClaimForJWT": false,
+    "validateScopeClass": "org.forgerock.oauth2.core.plugins.registry.DefaultScopeValidator",
+    "validateScopePluginType": "PROVIDER",
+    "validateScopeScript": "[Empty]",
+  },
+  "signEncOAuth2ClientConfig": {
+    "clientJwtPublicKey": null,
+    "idTokenEncryptionAlgorithm": "RSA-OAEP-256",
+    "idTokenEncryptionEnabled": false,
+    "idTokenEncryptionMethod": "A128CBC-HS256",
+    "idTokenPublicEncryptionKey": null,
+    "idTokenSignedResponseAlg": "RS256",
+    "jwkSet": null,
+    "jwkStoreCacheMissCacheTime": 60000,
+    "jwksCacheTimeout": 3600000,
+    "jwksUri": null,
+    "mTLSCertificateBoundAccessTokens": false,
+    "mTLSSubjectDN": null,
+    "mTLSTrustedCert": null,
+    "publicKeyLocation": "jwks_uri",
+    "requestParameterEncryptedAlg": null,
+    "requestParameterEncryptedEncryptionAlgorithm": "A128CBC-HS256",
+    "requestParameterSignedAlg": null,
+    "tokenEndpointAuthSigningAlgorithm": "RS256",
+    "tokenIntrospectionEncryptedResponseAlg": "RSA-OAEP-256",
+    "tokenIntrospectionEncryptedResponseEncryptionAlgorithm": "A128CBC-HS256",
+    "tokenIntrospectionResponseFormat": "JSON",
+    "tokenIntrospectionSignedResponseAlg": "RS256",
+    "userinfoEncryptedResponseAlg": null,
+    "userinfoEncryptedResponseEncryptionAlgorithm": "A128CBC-HS256",
+    "userinfoResponseFormat": "JSON",
+    "userinfoSignedResponseAlg": null,
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests readCIMDProfiles() with profiles 1: Read all CIMD profiles (plain shape, sorted by id) 1`] = `
+[
+  "FrodoTest CIMD id [x]^|é$&=:@~.",
+  "FrodoTestCIMDCase",
+  "FrodoTestCIMDProfile1",
+  "FrodoTestCIMDProfile2",
+  "FrodoTestCIMDProfile3",
+]
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests readCIMDProfiles() with profiles 1: Read all CIMD profiles (plain shape, sorted by id) 2`] = `
+[
+  {
+    "groups": {
+      "advancedOAuth2ClientConfig": {
+        "attributes": 24,
+        "nulls": 2,
+        "wrapped": 0,
+      },
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 10,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOpenIDClientConfig": {
+        "attributes": 7,
+        "nulls": 1,
+        "wrapped": 0,
+      },
+      "overrideOAuth2ClientConfig": {
+        "attributes": 35,
+        "nulls": 4,
+        "wrapped": 0,
+      },
+      "signEncOAuth2ClientConfig": {
+        "attributes": 26,
+        "nulls": 10,
+        "wrapped": 0,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTest CIMD id [x]^|é$&=:@~.",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+  {
+    "groups": {
+      "advancedOAuth2ClientConfig": {
+        "attributes": 24,
+        "nulls": 2,
+        "wrapped": 0,
+      },
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 10,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOpenIDClientConfig": {
+        "attributes": 7,
+        "nulls": 1,
+        "wrapped": 0,
+      },
+      "overrideOAuth2ClientConfig": {
+        "attributes": 35,
+        "nulls": 4,
+        "wrapped": 0,
+      },
+      "signEncOAuth2ClientConfig": {
+        "attributes": 26,
+        "nulls": 10,
+        "wrapped": 0,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTestCIMDCase",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+  {
+    "groups": {
+      "advancedOAuth2ClientConfig": {
+        "attributes": 24,
+        "nulls": 2,
+        "wrapped": 0,
+      },
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 10,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOpenIDClientConfig": {
+        "attributes": 7,
+        "nulls": 1,
+        "wrapped": 0,
+      },
+      "overrideOAuth2ClientConfig": {
+        "attributes": 35,
+        "nulls": 4,
+        "wrapped": 0,
+      },
+      "signEncOAuth2ClientConfig": {
+        "attributes": 26,
+        "nulls": 10,
+        "wrapped": 0,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTestCIMDProfile1",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+  {
+    "groups": {
+      "advancedOAuth2ClientConfig": {
+        "attributes": 24,
+        "nulls": 2,
+        "wrapped": 0,
+      },
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 10,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOpenIDClientConfig": {
+        "attributes": 7,
+        "nulls": 1,
+        "wrapped": 0,
+      },
+      "overrideOAuth2ClientConfig": {
+        "attributes": 35,
+        "nulls": 4,
+        "wrapped": 0,
+      },
+      "signEncOAuth2ClientConfig": {
+        "attributes": 26,
+        "nulls": 10,
+        "wrapped": 0,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTestCIMDProfile2",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+  {
+    "groups": {
+      "advancedOAuth2ClientConfig": {
+        "attributes": 24,
+        "nulls": 2,
+        "wrapped": 0,
+      },
+      "cimdConfig": {
+        "attributes": 3,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOAuth2ClientConfig": {
+        "attributes": 10,
+        "nulls": 0,
+        "wrapped": 0,
+      },
+      "coreOpenIDClientConfig": {
+        "attributes": 7,
+        "nulls": 1,
+        "wrapped": 0,
+      },
+      "overrideOAuth2ClientConfig": {
+        "attributes": 35,
+        "nulls": 4,
+        "wrapped": 0,
+      },
+      "signEncOAuth2ClientConfig": {
+        "attributes": 26,
+        "nulls": 10,
+        "wrapped": 0,
+      },
+    },
+    "hasRevision": true,
+    "id": "FrodoTestCIMDProfile3",
+    "type": {
+      "_id": "CIMDProfile",
+      "collection": true,
+      "name": "CIMD Profile",
+    },
+  },
+]
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests updateCIMDProfile() 1: Update CIMD profile 'FrodoTestCIMDProfile1' with what a read returned 1`] = `
+{
+  "groups": {
+    "advancedOAuth2ClientConfig": {
+      "attributes": 24,
+      "nulls": 0,
+      "wrapped": 24,
+    },
+    "cimdConfig": {
+      "attributes": 3,
+      "nulls": 0,
+      "wrapped": 3,
+    },
+    "coreOAuth2ClientConfig": {
+      "attributes": 10,
+      "nulls": 0,
+      "wrapped": 10,
+    },
+    "coreOpenIDClientConfig": {
+      "attributes": 7,
+      "nulls": 0,
+      "wrapped": 7,
+    },
+    "overrideOAuth2ClientConfig": {
+      "attributes": 32,
+      "nulls": 1,
+      "wrapped": 0,
+    },
+    "signEncOAuth2ClientConfig": {
+      "attributes": 26,
+      "nulls": 0,
+      "wrapped": 26,
+    },
+  },
+  "hasRevision": true,
+  "id": "FrodoTestCIMDProfile1",
+  "type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests updateCIMDProfile() 2: Update CIMD profile 'FrodoTestCIMDProfile3' with a sparse body 1`] = `
+{
+  "groups": {
+    "cimdConfig": {
+      "attributes": 3,
+      "nulls": 0,
+      "wrapped": 3,
+    },
+    "coreOAuth2ClientConfig": {
+      "attributes": 2,
+      "nulls": 0,
+      "wrapped": 2,
+    },
+  },
+  "hasRevision": true,
+  "id": "FrodoTestCIMDProfile3",
+  "type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests updateCIMDProfile() 3: Read the sparse CIMD profile 'FrodoTestCIMDProfile3' 1`] = `
+{
+  "_id": "FrodoTestCIMDProfile3",
+  "_rev": "-1223646441",
+  "_type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+  "cimdConfig": {
+    "cimdClientIdUrlPatterns": [
+      "https://clients3.matrix.example.com/*",
+    ],
+    "cimdMetadataDenyList": [
+      "scope",
+    ],
+    "cimdSsrfProtectionEnabled": true,
+  },
+  "coreOAuth2ClientConfig": {
+    "clientName": [
+      "FrodoTest CIMD sparse 3",
+    ],
+    "status": "Active",
+  },
+}
+`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests updateCIMDProfile() 4: Update a CIMD profile with attributes the server does not know 1`] = `"Error updating bravo realm CIMD profile FrodoTestCIMDProfile3: the server does not accept the attribute(s) cimdBogus, notAGroup"`;
+
+exports[`OAuth2CIMDProfileOps Cloud Tests updateCIMDProfile() 5: Update CIMD profile 'FrodoTestCIMDUpsert' that does not exist (the server creates it) 1`] = `
+{
+  "groups": {
+    "advancedOAuth2ClientConfig": {
+      "attributes": 24,
+      "nulls": 0,
+      "wrapped": 24,
+    },
+    "cimdConfig": {
+      "attributes": 3,
+      "nulls": 0,
+      "wrapped": 3,
+    },
+    "coreOAuth2ClientConfig": {
+      "attributes": 10,
+      "nulls": 0,
+      "wrapped": 10,
+    },
+    "coreOpenIDClientConfig": {
+      "attributes": 7,
+      "nulls": 0,
+      "wrapped": 7,
+    },
+    "overrideOAuth2ClientConfig": {
+      "attributes": 32,
+      "nulls": 1,
+      "wrapped": 0,
+    },
+    "signEncOAuth2ClientConfig": {
+      "attributes": 26,
+      "nulls": 0,
+      "wrapped": 26,
+    },
+  },
+  "hasRevision": true,
+  "id": "FrodoTestCIMDUpsert",
+  "type": {
+    "_id": "CIMDProfile",
+    "collection": true,
+    "name": "CIMD Profile",
+  },
+}
+`;
