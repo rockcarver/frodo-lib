@@ -4030,10 +4030,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "OAuth2TrustedJwtIssuer",
     methodName: "deleteOAuth2TrustedJwtIssuers",
-    signature: "deleteOAuth2TrustedJwtIssuers(): Promise<OAuth2TrustedJwtIssuerSkeleton[]>",
-    description: "Delete all OAuth2 trusted jwt issuers",
-    params: [],
-    returns: "{Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise that resolves to an array of trusted jwt issuer objects",
+    signature: "deleteOAuth2TrustedJwtIssuers( resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton> ): Promise<OAuth2TrustedJwtIssuerSkeleton[]>",
+    description: "Delete all OAuth2 trusted jwt issuers. Every issuer is tried: an issuer that cannot be deleted does not stop the others.",
+    params: [
+      { name: "resultCallback", type: "ResultCallback<OAuth2TrustedJwtIssuerSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every issuer is passed to it as it happens (a failed issuer as an error that names it) and a failed issuer does not throw. Without it, the failures are collected and thrown as one error after every issuer was tried. Failing to read the issuers always throws.", required: false },
+    ],
+    returns: "{Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise that resolves to an array of the deleted trusted jwt issuers",
   },
   {
     typeName: "OAuth2TrustedJwtIssuer",
@@ -4048,10 +4050,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "OAuth2TrustedJwtIssuer",
     methodName: "exportOAuth2TrustedJwtIssuers",
-    signature: "exportOAuth2TrustedJwtIssuers( options?: OAuth2TrustedJwtIssuerExportOptions ): Promise<OAuth2TrustedJwtIssuerExportInterface>",
+    signature: "exportOAuth2TrustedJwtIssuers( options?: OAuth2TrustedJwtIssuerExportOptions, resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton> ): Promise<OAuth2TrustedJwtIssuerExportInterface>",
     description: "Export all OAuth2 trusted jwt issuers",
     params: [
       { name: "options", type: "OAuth2TrustedJwtIssuerExportOptions", description: "deprecated, has no effect: a trusted jwt issuer has no scripts", required: false },
+      { name: "resultCallback", type: "ResultCallback<OAuth2TrustedJwtIssuerSkeleton>", description: "Optional callback to process individual results. When given, every issuer that is part of the export is passed to it as it happens. Failing to read the issuers always throws.", required: false },
     ],
     returns: "{Promise<OAuth2TrustedJwtIssuerExportInterface>} a promise that resolves to the export data",
   },
@@ -4092,11 +4095,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "OAuth2TrustedJwtIssuer",
     methodName: "importOAuth2TrustedJwtIssuers",
-    signature: "importOAuth2TrustedJwtIssuers( importData: OAuth2TrustedJwtIssuerExportInterface, options?: OAuth2TrustedJwtIssuerImportOptions ): Promise<OAuth2TrustedJwtIssuerSkeleton[]>",
-    description: "Import OAuth2 trusted jwt issuers. The import data is not modified.",
+    signature: "importOAuth2TrustedJwtIssuers( importData: OAuth2TrustedJwtIssuerExportInterface, options?: OAuth2TrustedJwtIssuerImportOptions, resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton> ): Promise<OAuth2TrustedJwtIssuerSkeleton[]>",
+    description: "Import OAuth2 trusted jwt issuers. The import data is not modified. Every issuer is tried: an issuer that cannot be imported does not stop the others. Import data without issuers is an empty import.",
     params: [
       { name: "importData", type: "OAuth2TrustedJwtIssuerExportInterface", description: "import data", required: true },
       { name: "options", type: "OAuth2TrustedJwtIssuerImportOptions", description: "deprecated, has no effect: a trusted jwt issuer has no scripts", required: false },
+      { name: "resultCallback", type: "ResultCallback<OAuth2TrustedJwtIssuerSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every issuer is passed to it as it happens (a failed issuer as an error that names it) and a failed issuer does not throw. Without it, the failures are collected and thrown as one error after every issuer was tried.", required: false },
     ],
     returns: "{Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise that resolves to an array of the imported trusted jwt issuers",
   },

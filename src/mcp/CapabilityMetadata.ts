@@ -3442,6 +3442,15 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'oauth2oidc.client.exportOAuth2Clients': {
     excludeParameters: ['resultCallback'],
   },
+  'oauth2oidc.issuer.exportOAuth2TrustedJwtIssuers': {
+    excludeParameters: ['resultCallback'],
+  },
+  'oauth2oidc.issuer.importOAuth2TrustedJwtIssuers': {
+    excludeParameters: ['resultCallback'],
+  },
+  'oauth2oidc.issuer.deleteOAuth2TrustedJwtIssuers': {
+    excludeParameters: ['resultCallback'],
+  },
   'service.importServices': { excludeParameters: ['resultCallback'] },
   'agent.deleteAgents': { excludeParameters: ['resultCallback'] },
   'agent.deleteIdentityGatewayAgents': {
