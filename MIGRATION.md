@@ -206,6 +206,29 @@ releases missed):
   copies now. That retry also names every attribute it removes in a warning
   (it used to say so only in verbose or debug mode), and it no longer takes the
   elements of an array (`allowedSubjects`) for attributes.
+- `frodo.cloud.log`: the Log API is throttled (Ping documents a limit per
+  environment, shared by everything that reads its logs, and the answers report
+  it in the `X-RateLimit-*` headers), and the functions now say so.
+  `tail` and `fetch` return `rateLimit` (`limit`, `remaining`, `resetAt`, in
+  milliseconds since 1970) in their page, and so does the tail stream
+  (`createLogTailStream().rateLimit`, updated by every poll). A request
+  that the API rejects with 429 ends `tail`, `fetch`, `getLogSources` and
+  `searchEvents` with a `FrodoError` that has the code `LOG_API_RATE_LIMITED`
+  (before, the cause was not recognisable without reading its status) and, if
+  the answer carried the headers, `rateLimit`; a caller that keeps a table of
+  hints by `FrodoError.code` needs a row for it. `tail` no longer waits and
+  sends the request again when the 429 carries `Retry-After`: it returns the
+  error at once, and the caller waits until `error.rateLimit.resetAt`.
+  `fetch` and `getLogSources` still wait for the end of the window and send the
+  request once more, and now also do so where the answer has no `Retry-After`
+  but carries `X-RateLimit-Reset`. `searchEvents` no longer waits one second
+  between two requests: it spreads the requests it may use over the time left in
+  the window, using at most half of the limit that the API reports unless the new
+  last parameter `rateLimitShare` (greater than 0, at most 1) says otherwise, so
+  a long search on an environment with a limit of 60 per minute takes up to twice
+  as long as before and leaves the rest to a running tail. The types of the
+  results of `tail` and `fetch` are now `LogEventsPage`
+  (`PagedResult<LogEventSkeleton>` plus the optional `rateLimit`).
 
 **Deprecation**:
 

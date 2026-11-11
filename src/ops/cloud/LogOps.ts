@@ -124,6 +124,11 @@ export type Log = {
   deleteLogApiKeys(): Promise<LogApiKey[]>;
   /**
    * Tail logs
+   * @remarks
+   * The Log API throttles the requests of an environment, and the limit is shared by everything that reads its
+   * logs. A request that the API rejects for that reason is not waited for here: it ends with a `FrodoError` that
+   * has the code `LOG_API_RATE_LIMITED` and, if the answer carried the `X-RateLimit-*` headers, `rateLimit`, whose
+   * `resetAt` is when the window resets. The caller that polls owns the waiting.
    * @param {string} source log source(s) to tail
    * @param {string} cookie paged results cookie
    * @returns {Promise<LogEventsPage>} promise resolving to paged log event result; `rateLimit` holds the rate limit state that the answer reported (limit, remaining requests, reset time), if it carried the headers
@@ -144,12 +149,22 @@ export type Log = {
    * batch verbatim -- sometimes even within one poll's own result array,
    * not just across a cookie boundary -- so this dedupes broadly by event
    * content, not merely by skipping one known boundary event.
+   *
+   * `rateLimit` of the stream is the state of the Log API limit as the latest answer reported it, and a poll that
+   * the API rejects for the rate limit fails like `tail()` (code `LOG_API_RATE_LIMITED`) without losing the
+   * position of the stream; the caller decides when to poll again.
    * @param {string} source log source(s) to tail
    * @returns {LogTailStream} a stream object with a `poll()` method and the `rateLimit` of the latest answer
    */
   createLogTailStream(source: string): LogTailStream;
   /**
    * Fetch logs
+   * @remarks
+   * The Log API throttles the requests of an environment, and the limit is shared by everything that reads its
+   * logs. A request that the API rejects for that reason is sent once more after the end of the window, when the
+   * answer says when that is (`Retry-After` or `X-RateLimit-Reset`). Otherwise, and when the second request is
+   * rejected too, the call ends with a `FrodoError` that has the code `LOG_API_RATE_LIMITED` and, if the answer
+   * carried the `X-RateLimit-*` headers, `rateLimit`.
    * @param {string} source log source(s) to tail
    * @param {string} startTs start timestamp
    * @param {string} endTs end timestamp

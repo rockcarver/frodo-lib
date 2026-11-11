@@ -5,10 +5,11 @@
  * `/monitoring/logs/sources`) is the one throttled API that frodo uses. Ping
  * documents 60 requests per minute for an environment, shared by everything
  * that reads the logs of that environment (other processes, MCP servers,
- * SIEM exports), see
- * https://docs.pingidentity.com/pingoneaic/tenants/audit-debug-logs-pull.html.
- * The limit that a response reports is the one to go by: it has been seen to
- * differ between environments, so nothing in the library assumes a value.
+ * SIEM exports). Source:
+ * https://docs.pingidentity.com/pingoneaic/tenants/audit-debug-logs-pull.md
+ *
+ * The limit that a response reports is the one to go by: recorded answers
+ * report different limits, so nothing in the library assumes a value.
  *
  * Every answer of the API carries the headers `X-RateLimit-Limit`,
  * `X-RateLimit-Remaining` and `X-RateLimit-Reset` (seconds since 1970-01-01
@@ -163,7 +164,7 @@ export function getSearchSpacingMs(
 ): number {
   if (!rateLimit) return UNKNOWN_SPACING_MS;
   const untilReset = Math.max(0, rateLimit.resetAt - now);
-  // a tolerance for the float error of limit * share (28 * 0.5 is exact, 28 * 0.7 is not)
+  // a tolerance for the float error of limit * share (a limit times 0.5 is exact, a limit times 0.7 is not)
   const allowed = Math.max(1, Math.floor(rateLimit.limit * share + 1e-9));
   const reserve = Math.max(0, rateLimit.limit - allowed);
   const spendable = rateLimit.remaining - reserve;
