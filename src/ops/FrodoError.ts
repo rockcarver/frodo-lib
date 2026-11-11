@@ -1,4 +1,5 @@
 import { AxiosError, type AxiosResponse } from 'axios';
+import type { LogApiRateLimit } from '../utils/LogApiRateLimitUtils';
 import { PROXY_FAILURE_CODES } from '../utils/ProxyFailureUtils';
 
 /**
@@ -44,6 +45,12 @@ export const FRODO_ERROR_CODES = [
   'INSUFFICIENT_SCOPE',
   /** CIMD profiles were asked for in a realm of a deployment that does not offer the agent type `CIMDProfile`. */
   'CIMD_PROFILES_NOT_AVAILABLE',
+  /**
+   * The Log API rejected a request with 429 because the rate limit of the environment is exceeded. The limit is
+   * shared by every reader of the logs of the environment. If the answer carried the `X-RateLimit-*` headers, the
+   * error holds them as `rateLimit`, and `rateLimit.resetAt` is when the window resets.
+   */
+  'LOG_API_RATE_LIMITED',
 ] as const;
 
 /** The identity of an error condition, see {@link FRODO_ERROR_CODES}. */
@@ -65,6 +72,12 @@ export class FrodoError extends Error {
    * the `FrodoError` that wraps it is given that failure's code.
    */
   code?: FrodoErrorCode;
+  /**
+   * The state of the rate limit of the Log API, on the error that reports a request the API rejected with 429 (code
+   * `LOG_API_RATE_LIMITED`), if the answer carried the `X-RateLimit-*` headers. Like `code`, it is not copied by an
+   * error that wraps this one.
+   */
+  rateLimit?: LogApiRateLimit;
   originalErrors: Error[] = [];
   isHttpError: boolean = false;
   httpCode: string;

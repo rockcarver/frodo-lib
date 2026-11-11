@@ -1,4 +1,3 @@
-import { type PagedResult } from '../../api/ApiTypes';
 import {
   createLogApiKey as _createLogApiKey,
   deleteLogApiKey as _deleteLogApiKey,
@@ -9,12 +8,44 @@ import {
   isLogApiKeyValid as _isLogApiKeyValid,
   tail as _tail,
   type LogApiKey,
+  type LogApiRateLimit,
   type LogEventPayloadSkeleton,
   type LogEventSkeleton,
+  type LogEventsPage,
 } from '../../api/cloud/LogApi';
 import { State } from '../../shared/State';
 import { sleep } from '../../utils/FrodoUtils';
-import { FrodoError } from '../FrodoError';
+import {
+  getSearchSpacingMs,
+  parseLogApiRateLimit,
+} from '../../utils/LogApiRateLimitUtils';
+import { FrodoError, getFailedResponse } from '../FrodoError';
+
+/**
+ * The error of a failed request of the Log API. A request that the API rejected with 429 gets the code
+ * `LOG_API_RATE_LIMITED`, and `rateLimit` when the answer carried the `X-RateLimit-*` headers, so that a caller can
+ * tell "throttled" from "failed" and knows when the window resets. Any other failure is a plain `FrodoError`.
+ * @param {string} message what the operation was doing, `Error tailing logs`
+ * @param {Error} error the error of the api layer
+ * @returns {FrodoError} the error to throw
+ */
+function logApiFailure(message: string, error: Error): FrodoError {
+  const response = getFailedResponse(error);
+  if (response?.status !== 429) {
+    return new FrodoError(message, error);
+  }
+  const rateLimit = parseLogApiRateLimit(response.headers);
+  const resets = rateLimit
+    ? `, it resets at ${new Date(rateLimit.resetAt).toISOString()}`
+    : '';
+  const failure = new FrodoError(
+    `${message}: the rate limit of the Log API is exceeded${resets}`,
+    error,
+    'LOG_API_RATE_LIMITED'
+  );
+  if (rateLimit) failure.rateLimit = rateLimit;
+  return failure;
+}
 
 export type LogTailStream = {
   /**
@@ -24,6 +55,13 @@ export type LogTailStream = {
    * twice, even across repeated calls -- see `createLogTailStream()`.
    */
   poll(): Promise<LogEventSkeleton[]>;
+  /**
+   * The rate limit of the Log API as the answer to the latest `poll()` reported it: the limit of requests per
+   * window, how many are left, and when the window resets. It is shared by every reader of the logs of the
+   * environment, so `remaining` falls when other readers poll too. `undefined` before the first poll finished and
+   * when the latest answer did not carry the `X-RateLimit-*` headers.
+   */
+  readonly rateLimit: LogApiRateLimit | undefined;
 };
 
 export type Log = {
@@ -86,11 +124,16 @@ export type Log = {
   deleteLogApiKeys(): Promise<LogApiKey[]>;
   /**
    * Tail logs
+   * @remarks
+   * The Log API throttles the requests of an environment, and the limit is shared by everything that reads its
+   * logs. A request that the API rejects for that reason is not waited for here: it ends with a `FrodoError` that
+   * has the code `LOG_API_RATE_LIMITED` and, if the answer carried the `X-RateLimit-*` headers, `rateLimit`, whose
+   * `resetAt` is when the window resets. The caller that polls owns the waiting.
    * @param {string} source log source(s) to tail
    * @param {string} cookie paged results cookie
-   * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+   * @returns {Promise<LogEventsPage>} promise resolving to paged log event result; `rateLimit` holds the rate limit state that the answer reported (limit, remaining requests, reset time), if it carried the headers
    */
-  tail(source: string, cookie: string): Promise<PagedResult<LogEventSkeleton>>;
+  tail(source: string, cookie: string): Promise<LogEventsPage>;
   /**
    * Creates a stateful, deduped consumer of `tail()` -- everything a caller
    * doing a live polling loop (e.g. an interactive follow-style view) needs
@@ -106,19 +149,29 @@ export type Log = {
    * batch verbatim -- sometimes even within one poll's own result array,
    * not just across a cookie boundary -- so this dedupes broadly by event
    * content, not merely by skipping one known boundary event.
+   *
+   * `rateLimit` of the stream is the state of the Log API limit as the latest answer reported it, and a poll that
+   * the API rejects for the rate limit fails like `tail()` (code `LOG_API_RATE_LIMITED`) without losing the
+   * position of the stream; the caller decides when to poll again.
    * @param {string} source log source(s) to tail
-   * @returns {LogTailStream} a stream object with a `poll()` method
+   * @returns {LogTailStream} a stream object with a `poll()` method and the `rateLimit` of the latest answer
    */
   createLogTailStream(source: string): LogTailStream;
   /**
    * Fetch logs
+   * @remarks
+   * The Log API throttles the requests of an environment, and the limit is shared by everything that reads its
+   * logs. A request that the API rejects for that reason is sent once more after the end of the window, when the
+   * answer says when that is (`Retry-After` or `X-RateLimit-Reset`). Otherwise, and when the second request is
+   * rejected too, the call ends with a `FrodoError` that has the code `LOG_API_RATE_LIMITED` and, if the answer
+   * carried the `X-RateLimit-*` headers, `rateLimit`.
    * @param {string} source log source(s) to tail
    * @param {string} startTs start timestamp
    * @param {string} endTs end timestamp
    * @param {string} cookie paged results cookie
    * @param {string} txid transaction id
    * @param {string} filter query filter
-   * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+   * @returns {Promise<LogEventsPage>} promise resolving to paged log event result; `rateLimit` holds the rate limit state that the answer reported (limit, remaining requests, reset time), if it carried the headers
    */
   fetch(
     source: string,
@@ -127,7 +180,7 @@ export type Log = {
     cookie: string,
     txid: string,
     filter: string
-  ): Promise<PagedResult<LogEventSkeleton>>;
+  ): Promise<LogEventsPage>;
   /**
    * Search audit events by event name(s) and/or principal, across the full time
    * range (auto-paginating), with client-side dedup by transaction id.
@@ -138,6 +191,7 @@ export type Log = {
    * @param {string} principal optional principal substring to match against payload.userId (co)
    * @param {number} maxEvents safety cap on total events fetched across pages
    * @param {boolean} dedupeByTransactionId collapse multiple events sharing a transaction id (e.g. a failed-then-successful retry) down to the last one seen; default true
+   * @param {number} rateLimitShare the share of the requests per window that the Log API allows (as the API reports it) that the search may use, greater than 0 and at most 1; default 0.5. The rest is left to other readers of the logs of the environment, such as a running tail.
    * @returns {Promise<LogEventSkeleton[]>} promise resolving to the matched (and optionally deduped) events
    */
   searchEvents(
@@ -147,7 +201,8 @@ export type Log = {
     eventNames?: string[],
     principal?: string,
     maxEvents?: number,
-    dedupeByTransactionId?: boolean
+    dedupeByTransactionId?: boolean,
+    rateLimitShare?: number
   ): Promise<LogEventSkeleton[]>;
 };
 
@@ -183,10 +238,7 @@ export default (state: State): Log => {
     async deleteLogApiKeys(): Promise<LogApiKey[]> {
       return deleteLogApiKeys({ state });
     },
-    tail(
-      source: string,
-      cookie: string
-    ): Promise<PagedResult<LogEventSkeleton>> {
+    tail(source: string, cookie: string): Promise<LogEventsPage> {
       return tail({ source, cookie, state });
     },
     createLogTailStream(source: string): LogTailStream {
@@ -199,7 +251,7 @@ export default (state: State): Log => {
       cookie: string,
       txid: string,
       filter: string
-    ): Promise<PagedResult<LogEventSkeleton>> {
+    ): Promise<LogEventsPage> {
       return fetch({ source, startTs, endTs, cookie, txid, filter, state });
     },
     async searchEvents(
@@ -209,7 +261,8 @@ export default (state: State): Log => {
       eventNames?: string[],
       principal?: string,
       maxEvents?: number,
-      dedupeByTransactionId?: boolean
+      dedupeByTransactionId?: boolean,
+      rateLimitShare?: number
     ): Promise<LogEventSkeleton[]> {
       return searchEvents({
         source,
@@ -219,6 +272,7 @@ export default (state: State): Log => {
         principal,
         maxEvents,
         dedupeByTransactionId,
+        rateLimitShare,
         state,
       });
     },
@@ -497,7 +551,7 @@ export async function getLogSources({ state }: { state: State }) {
     const { result } = await _getSources({ state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error getting log sources`, error);
+    throw logApiFailure(`Error getting log sources`, error);
   }
 }
 
@@ -632,7 +686,7 @@ export async function deleteLogApiKeys({
  * Tail logs
  * @param {string} source log source(s) to tail
  * @param {string} cookie paged results cookie
- * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+ * @returns {Promise<LogEventsPage>} promise resolving to paged log event result, with the rate limit state of the answer
  */
 export async function tail({
   source,
@@ -642,11 +696,11 @@ export async function tail({
   source: string;
   cookie: string;
   state: State;
-}): Promise<PagedResult<LogEventSkeleton>> {
+}): Promise<LogEventsPage> {
   try {
     return await _tail({ source, cookie, state });
   } catch (error) {
-    throw new FrodoError(`Error tailing logs`, error);
+    throw logApiFailure(`Error tailing logs`, error);
   }
 }
 
@@ -672,7 +726,7 @@ function tailDedupeKey(event: LogEventSkeleton): string | undefined {
  * of leaving every caller to dedupe `tail()` for itself.
  * @param {string} source log source(s) to tail
  * @param {State} state library state
- * @returns {LogTailStream} a stream object with a `poll()` method
+ * @returns {LogTailStream} a stream object with a `poll()` method and the `rateLimit` of the latest answer
  */
 export function createLogTailStream({
   source,
@@ -682,13 +736,27 @@ export function createLogTailStream({
   state: State;
 }): LogTailStream {
   let cookie: string | undefined;
+  let rateLimit: LogApiRateLimit | undefined;
   const seen = new Set<string>();
   const seenOrder: string[] = [];
 
   return {
+    get rateLimit(): LogApiRateLimit | undefined {
+      return rateLimit;
+    },
     async poll(): Promise<LogEventSkeleton[]> {
-      const page = await tail({ source, cookie, state });
+      let page: LogEventsPage;
+      try {
+        page = await tail({ source, cookie, state });
+      } catch (error) {
+        // a poll that the API rejected for the rate limit reports the state too: the latest word of the API
+        if (error instanceof FrodoError && error.rateLimit) {
+          rateLimit = error.rateLimit;
+        }
+        throw error;
+      }
       cookie = page.pagedResultsCookie;
+      rateLimit = page.rateLimit;
       const events = Array.isArray(page.result) ? page.result : [];
       const fresh: LogEventSkeleton[] = [];
       for (const event of events) {
@@ -717,7 +785,7 @@ export function createLogTailStream({
  * @param {string} cookie paged results cookie
  * @param {string} txid transaction id
  * @param {string} filter query filter
- * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+ * @returns {Promise<LogEventsPage>} promise resolving to paged log event result, with the rate limit state of the answer
  */
 export async function fetch({
   source,
@@ -735,7 +803,7 @@ export async function fetch({
   txid: string;
   filter: string;
   state: State;
-}): Promise<PagedResult<LogEventSkeleton>> {
+}): Promise<LogEventsPage> {
   try {
     return await _fetch({
       source,
@@ -747,7 +815,7 @@ export async function fetch({
       state,
     });
   } catch (error) {
-    throw new FrodoError(`Error fetching logs`, error);
+    throw logApiFailure(`Error fetching logs`, error);
   }
 }
 
@@ -815,12 +883,17 @@ function* splitIntoSafeWindows(
 }
 
 /**
+ * The share of the requests per window that a search may use, unless the caller says otherwise. A search takes up
+ * to half of what the Log API allows and leaves the rest to other readers of the logs, a running tail among them.
+ */
+const DEFAULT_RATE_LIMIT_SHARE = 0.5;
+
+/**
  * Search audit events by event name(s) and/or principal, across the full
  * time range (auto-paginating within each ~24h chunk the Log API allows,
  * and auto-chunking the requested range into consecutive windows that size
- * when it's wider than that — see {@link MAX_LOG_WINDOW_MS} — respecting the
- * ~1 request/second Log API rate limit between every fetch call, chunk
- * boundaries included), with client-side dedup by transaction id.
+ * when it's wider than that — see {@link MAX_LOG_WINDOW_MS}), with
+ * client-side dedup by transaction id.
  *
  * @remarks
  * Filtering happens server-side (see {@link buildEventFilter}) rather than
@@ -836,6 +909,19 @@ function* splitIntoSafeWindows(
  * in chronological order), "last seen" is the most recent event for that
  * transaction — the actual outcome, not an arbitrary one. CREST filters
  * can't express this dedup themselves, so it has to happen client-side.
+ *
+ * The Log API throttles the requests of an environment, and the limit is
+ * shared by everything that reads its logs (see `LogApiRateLimit`). The
+ * search spaces its requests by what the previous answer reported
+ * (`limit`, `remaining` and the reset of the window), so that it uses at
+ * most `rateLimitShare` of the requests per window and does not starve a
+ * tail that runs at the same time: it spreads the requests it may use over
+ * the time left in the window, and waits for the next window when it has
+ * used them up. If the answers carry no rate limit headers it waits a
+ * second between two requests. A request that the API rejects with 429
+ * anyway is sent once more after the wait the answer asks for. A 429 that
+ * asks for no wait, and a second 429, end the search with the code
+ * `LOG_API_RATE_LIMITED`.
  */
 export async function searchEvents({
   source,
@@ -845,6 +931,7 @@ export async function searchEvents({
   principal,
   maxEvents = 1000,
   dedupeByTransactionId = true,
+  rateLimitShare = DEFAULT_RATE_LIMIT_SHARE,
   state,
 }: {
   source: string;
@@ -854,17 +941,27 @@ export async function searchEvents({
   principal?: string;
   maxEvents?: number;
   dedupeByTransactionId?: boolean;
+  rateLimitShare?: number;
   state: State;
 }): Promise<LogEventSkeleton[]> {
   const filter = buildEventFilter({ eventNames, principal });
+  if (
+    typeof rateLimitShare !== 'number' ||
+    !(rateLimitShare > 0 && rateLimitShare <= 1)
+  ) {
+    throw new FrodoError(
+      'searchEvents: rateLimitShare must be a number greater than 0 and at most 1.'
+    );
+  }
   const events: LogEventSkeleton[] = [];
   let firstFetch = true;
+  let rateLimit: LogApiRateLimit | undefined;
   try {
     for (const window of splitIntoSafeWindows(startTs, endTs)) {
       let cookie: string | undefined;
       do {
         if (!firstFetch) {
-          await sleep(1000);
+          await sleep(getSearchSpacingMs(rateLimit, rateLimitShare));
         }
         firstFetch = false;
         const page = await _fetch({
@@ -878,13 +975,14 @@ export async function searchEvents({
         });
         events.push(...page.result);
         cookie = page.pagedResultsCookie;
+        rateLimit = page.rateLimit;
       } while (cookie && events.length < maxEvents);
       if (events.length >= maxEvents) {
         break;
       }
     }
   } catch (error) {
-    throw new FrodoError(`Error searching events`, error);
+    throw logApiFailure(`Error searching events`, error);
   }
 
   if (!dedupeByTransactionId) {

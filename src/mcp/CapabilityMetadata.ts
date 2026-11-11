@@ -2650,7 +2650,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     supportsPaging: true,
     supportsIncludeTotal: false,
     notes:
-      'Reads the next batch of log events from a live cursor position for the given source(s). No time range or filter; use cloud.log.fetch for bounded/filtered queries and for the event/source taxonomy (identity events, session-granted signal, config-change attribution) documented on that skill. Requires a Log API key/secret — see cloud.log.createLogApiKey.',
+      'Reads the next batch of log events from a live cursor position for the given source(s). No time range or filter; use cloud.log.fetch for bounded/filtered queries and for the event/source taxonomy (identity events, session-granted signal, config-change attribution) documented on that skill. The result carries rateLimit (limit, remaining and resetAt of the Log API, shared by every reader of the logs of the environment); a call that the API rejects for the rate limit fails with the code LOG_API_RATE_LIMITED and is not retried, so wait until rateLimit.resetAt before calling again. Requires a Log API key/secret — see cloud.log.createLogApiKey.',
   },
   'cloud.log.fetch': {
     operationType: 'search',
@@ -2713,6 +2713,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       '\n' +
       'Identity: a resolved `userId` DN under a realm segment (...,o=<realm>,ou=services,ou=am-config) is a genuine managed user; a DN directly under root ou=am-config (whether it says ou=agent or, misleadingly, ou=user) is an AM-internal identity. Extract the uuid from the DN and resolve it with idm.managed.resolveUserName(<realm>_user, uuid).\n' +
       '\n' +
+      'The result carries rateLimit (limit, remaining and resetAt of the Log API, shared by every reader of the logs of the environment). A call that the API rejects for the rate limit waits for the end of the window, when the answer says when it ends, and asks once more; otherwise, and on a second rejection, it fails with the code LOG_API_RATE_LIMITED.\n' +
       'Requires a Log API key/secret — see cloud.log.createLogApiKey.',
   },
   'cloud.log.searchEvents': {
@@ -2763,11 +2764,17 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         defaultValue: true,
         examples: [true, false],
       },
+      rateLimitShare: {
+        description:
+          'The share of the requests per window that the Log API allows (the API reports the limit) that this search may use, greater than 0 and at most 1. The rest is left to other readers of the logs of the environment, such as a running tail. A smaller share makes a long search slower.',
+        defaultValue: 0.5,
+        examples: [0.5, 1],
+      },
     },
     supportsPaging: false,
     supportsIncludeTotal: false,
     notes:
-      'Composed primitive over cloud.log.fetch: builds the correct server-side _queryFilter from structured eventNames/principal inputs (see cloud.log.fetch\'s notes for the underlying CREST syntax and event/source taxonomy — this skill assumes that context), and handles the two constraints that make wide-range questions like "activities of user X over 2 weeks" fail if called against cloud.log.fetch directly: it auto-chunks startTs..endTs into consecutive ~24h windows (the Log API 400s past that span — see cloud.log.fetch\'s notes), and auto-paginates within each, all while respecting the ~1 request/second rate limit between every call, chunk boundaries included. Dedupes by transaction id client-side (CREST filters cannot express "collapse retries of the same transaction", so this has to happen after fetching). Prefer this over cloud.log.fetch directly for "how many/which X happened" questions scoped by event name and/or identity, especially over wide time ranges; use cloud.log.fetch directly only when you need raw pagination control or a transaction-id-scoped lookup.',
+      'Composed primitive over cloud.log.fetch: builds the correct server-side _queryFilter from structured eventNames/principal inputs (see cloud.log.fetch\'s notes for the underlying CREST syntax and event/source taxonomy — this skill assumes that context), and handles the two constraints that make wide-range questions like "activities of user X over 2 weeks" fail if called against cloud.log.fetch directly: it auto-chunks startTs..endTs into consecutive ~24h windows (the Log API 400s past that span — see cloud.log.fetch\'s notes), and auto-paginates within each, all while pacing its requests by the rate limit that the Log API reports in its answers (shared by every reader of the logs of the environment): it uses at most rateLimitShare (default half) of the requests per window and waits for the next window when it has used them up, chunk boundaries included. Dedupes by transaction id client-side (CREST filters cannot express "collapse retries of the same transaction", so this has to happen after fetching). Prefer this over cloud.log.fetch directly for "how many/which X happened" questions scoped by event name and/or identity, especially over wide time ranges; use cloud.log.fetch directly only when you need raw pagination control or a transaction-id-scoped lookup.',
   },
   'cloud.log.resolveLevel': { excluded: true },
   'cloud.log.resolvePayloadLevel': { excluded: true },

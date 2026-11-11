@@ -143,12 +143,16 @@ describe('FrodoError.code', () => {
       }
     };
     walk(path.resolve(__dirname, '..'));
-    // the third argument of `new FrodoError(message, originalErrors, 'CODE')`,
-    // or the code of a proxy failure that a request reports (ProxyFailureUtils)
+    // the third argument of `new FrodoError(message, null, 'CODE')`, or of
+    // `new FrodoError(message, error, 'CODE')` where the error that is wrapped
+    // is the cause of the condition, or the code of a proxy failure that a
+    // request reports (ProxyFailureUtils)
     const thrown = sources.flatMap((source) => [
-      ...[...source.matchAll(/,\s+null,\s+'([A-Z]+(?:_[A-Z]+)+)'\s+\)/g)].map(
-        (match) => match[1]
-      ),
+      ...[
+        ...source.matchAll(
+          /,\s+(?:null|error),\s+'([A-Z]+(?:_[A-Z]+)+)'\s+\)/g
+        ),
+      ].map((match) => match[1]),
       ...[...source.matchAll(/\bmake\(\s*'(PROXY_[A-Z]+(?:_[A-Z]+)*)'/g)].map(
         (match) => match[1]
       ),
