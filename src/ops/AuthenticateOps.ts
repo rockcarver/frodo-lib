@@ -50,7 +50,7 @@ import {
   loadConnectionProfile,
   saveConnectionProfile,
 } from './ConnectionProfileOps';
-import { FrodoError } from './FrodoError';
+import { FrodoError, getFailedResponse } from './FrodoError';
 import { createSignedJwtToken, JwkRsa } from './JoseOps';
 import { resolveIdentity } from './ManagedObjectOps';
 import {
@@ -628,9 +628,10 @@ async function determineDeploymentType(state: State): Promise<string> {
         });
       } catch (e) {
         // debugMessage(e.response);
+        const redirect = getFailedResponse(e);
         if (
-          e.response?.status === 302 &&
-          e.response.headers?.location?.indexOf('code=') > -1
+          redirect?.status === 302 &&
+          redirect.headers?.location?.indexOf('code=') > -1
         ) {
           verboseMessage({
             message:
@@ -648,9 +649,10 @@ async function determineDeploymentType(state: State): Promise<string> {
               state,
             });
           } catch (ex) {
+            const redirect = getFailedResponse(ex);
             if (
-              ex.response?.status === 302 &&
-              ex.response.headers?.location?.indexOf('code=') > -1
+              redirect?.status === 302 &&
+              redirect.headers?.location?.indexOf('code=') > -1
             ) {
               // maybe we don't want to run through the auto-detect code if we get a custom admin client id?
               adminClientId = state.getAdminClientId() || forgeopsClientId;
@@ -735,8 +737,9 @@ async function probeDeploymentType({
       // but a 2xx from the fidc client still proves the client exists.
       return { status: 200, redirected: true };
     } catch (e) {
-      const status = e.response?.status;
-      const location = e.response?.headers?.location || '';
+      const failed = getFailedResponse(e);
+      const status = failed?.status;
+      const location = failed?.headers?.location || '';
       const redirected = status === 302 && location.indexOf('UI/Login') > -1;
       debugMessage({
         message: `AuthenticateOps.probeDeploymentType: ${clientId} -> status=${status} redirected=${redirected}`,
@@ -1091,7 +1094,7 @@ async function getAuthCode(
         state,
       });
     } catch (error) {
-      response = error.response;
+      response = getFailedResponse(error);
       if (response.status < 200 || response.status > 399) {
         throw error;
       }

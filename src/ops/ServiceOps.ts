@@ -20,7 +20,7 @@ import {
 import { findFailedRequest, getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
-import { FrodoError } from './FrodoError';
+import { FrodoError, getFailedResponse } from './FrodoError';
 import { type ExportMetaData, type ResultCallback } from './OpsTypes';
 
 export type Service = {
@@ -451,9 +451,9 @@ export async function putFullService({
         debugMessage({ message: `ServiceOps.putFullService: clean`, state });
         await deleteFullService({ serviceId, globalConfig, state });
       } catch (error) {
+        const failed = getFailedResponse(error);
         if (!(
-          error.response?.status === 404 &&
-          error.response?.data?.message === 'Not Found'
+          failed?.status === 404 && failed?.data?.message === 'Not Found'
         )) {
           throw new FrodoError(
             `Error deleting service '${serviceId}' before import`,

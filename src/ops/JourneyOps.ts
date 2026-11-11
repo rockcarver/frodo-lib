@@ -77,7 +77,7 @@ import {
   updateEmailTemplate,
   type EmailTemplateSkeleton,
 } from './EmailTemplateOps';
-import { FrodoError, isNotFoundError } from './FrodoError';
+import { FrodoError, getFailedResponse, isNotFoundError } from './FrodoError';
 import {
   createSocialIdentityProvider,
   readSocialIdentityProviders,
@@ -2668,9 +2668,10 @@ export async function importJourney({
             state,
           });
         } catch (nodeImportError) {
+          const nodeImportResponse = getFailedResponse(nodeImportError);
           if (
-            nodeImportError.response?.status === 400 &&
-            nodeImportError.response?.data?.message ===
+            nodeImportResponse?.status === 400 &&
+            nodeImportResponse?.data?.message ===
               'Data validation failed for the attribute, Script'
           ) {
             throw new FrodoError(
@@ -2682,11 +2683,10 @@ export async function importJourney({
               nodeImportError
             );
           } else if (
-            nodeImportError.response?.status === 400 &&
-            nodeImportError.response?.data?.message ===
-              'Invalid attribute specified.'
+            nodeImportResponse?.status === 400 &&
+            nodeImportResponse?.data?.message === 'Invalid attribute specified.'
           ) {
-            const { validAttributes } = nodeImportError.response.data.detail;
+            const { validAttributes } = nodeImportResponse.data.detail;
             validAttributes.push('_id');
             for (const attribute of Object.keys(innerNodeData)) {
               if (!validAttributes.includes(attribute)) {
@@ -2716,7 +2716,7 @@ export async function importJourney({
                 nodeImportError2
               );
             }
-          } else if (nodeImportError.response?.status === 404) {
+          } else if (nodeImportResponse?.status === 404) {
             throw new FrodoError(
               `Unable to import ${getCurrentRealmName(state) + ' realm'} node ${innerNodeId}${
                 innerNodeId === newUuid ? '' : ` [${newUuid}]`
@@ -2817,9 +2817,10 @@ export async function importJourney({
             state,
           });
         } catch (nodeImportError) {
+          const nodeImportResponse = getFailedResponse(nodeImportError);
           if (
-            nodeImportError.response?.status === 400 &&
-            nodeImportError.response?.data?.message ===
+            nodeImportResponse?.status === 400 &&
+            nodeImportResponse?.data?.message ===
               'Data validation failed for the attribute, Script'
           ) {
             throw new FrodoError(
@@ -2831,11 +2832,10 @@ export async function importJourney({
               nodeImportError
             );
           } else if (
-            nodeImportError.response?.status === 400 &&
-            nodeImportError.response?.data?.message ===
-              'Invalid attribute specified.'
+            nodeImportResponse?.status === 400 &&
+            nodeImportResponse?.data?.message === 'Invalid attribute specified.'
           ) {
-            const { validAttributes } = nodeImportError.response.data.detail;
+            const { validAttributes } = nodeImportResponse.data.detail;
             validAttributes.push('_id');
             for (const attribute of Object.keys(nodeData)) {
               if (!validAttributes.includes(attribute)) {
@@ -2865,7 +2865,7 @@ export async function importJourney({
                 nodeImportError2
               );
             }
-          } else if (nodeImportError.response?.status === 404) {
+          } else if (nodeImportResponse?.status === 404) {
             throw new FrodoError(
               `Unable to import ${getCurrentRealmName(state) + ' realm'} node ${nodeId}${
                 nodeId === newUuid ? '' : ` [${newUuid}]`
@@ -3743,10 +3743,10 @@ export async function deleteJourney({
                       state,
                     });
                 } catch (error) {
+                  const failed = getFailedResponse(error);
                   if (
-                    axios.isAxiosError(error) &&
-                    error.response?.data?.code === 500 &&
-                    error.response.data.message ===
+                    failed?.data?.code === 500 &&
+                    failed.data.message ===
                       'Unable to read SMS config: Node did not exist'
                   ) {
                     status.nodes[containerNode._id] = { status: 'success' };

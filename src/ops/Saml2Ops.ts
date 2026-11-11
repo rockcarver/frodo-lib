@@ -30,7 +30,7 @@ import {
 } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { get } from '../utils/JsonUtils';
-import { FrodoError } from './FrodoError';
+import { FrodoError, getFailedResponse } from './FrodoError';
 import { type ExportMetaData, type ResultCallback } from './OpsTypes';
 import { updateScript } from './ScriptOps';
 
@@ -853,10 +853,11 @@ export async function exportSaml2Providers({
           exported = providerData;
         }
       } catch (error) {
+        const failed = getFailedResponse(error);
         if (
           // operation is not available in PingOne Advanced Identity Cloud
-          error.response?.status === 403 &&
-          error.response?.data?.message ===
+          failed?.status === 403 &&
+          failed?.data?.message ===
             'This operation is not available in PingOne Advanced Identity Cloud.'
         ) {
           const request = findFailedRequest(error);
