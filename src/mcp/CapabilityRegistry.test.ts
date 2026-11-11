@@ -385,6 +385,50 @@ describe('MCP capability foundation', () => {
     expect(
       updateIssuer?.parameters?.map((parameter) => parameter.name)
     ).toEqual(['issuerId', 'issuerData']);
+
+    for (const method of ['createCIMDProfile', 'updateCIMDProfile']) {
+      const cimd = byId.get(`oauth2oidc.cimd.${method}`);
+      expect(cimd).toBeDefined();
+      expect(cimd?.argumentMode).toBe('named');
+      expect(cimd?.parameters?.map((parameter) => parameter.name)).toEqual([
+        'profileId',
+        'profileData',
+      ]);
+      expect(cimd?.riskClass).toBe('high');
+      expect(cimd?.mutating).toBe(true);
+    }
+  });
+
+  test('exposes the CIMD profile module with reviewed risk', () => {
+    const capabilities = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['oauth2oidc'],
+      includeUtils: false,
+    });
+    const byId = new Map(capabilities.map((cap) => [cap.id, cap]));
+
+    // the question whether the realm offers the type is a read that changes nothing
+    const available = byId.get('oauth2oidc.cimd.isCIMDProfileAvailable');
+    expect(available).toBeDefined();
+    expect(available?.riskClass).toBe('low');
+    expect(available?.mutating).toBe(false);
+    expect(available?.operationType).toBe('read');
+
+    // the rest follows the CRUDQ naming: reads are low, a delete is high and destructive
+    for (const method of [
+      'readCIMDProfiles',
+      'readCIMDProfile',
+      'readCIMDProfileTemplate',
+      'readCIMDProfileSchema',
+    ]) {
+      const read = byId.get(`oauth2oidc.cimd.${method}`);
+      expect(read).toBeDefined();
+      expect(read?.riskClass).toBe('low');
+      expect(read?.mutating).toBe(false);
+    }
+    const remove = byId.get('oauth2oidc.cimd.deleteCIMDProfile');
+    expect(remove).toBeDefined();
+    expect(remove?.riskClass).toBe('high');
+    expect(remove?.mutating).toBe(true);
   });
 
   test('exposes explicit authn read/create/update/delete contracts', () => {

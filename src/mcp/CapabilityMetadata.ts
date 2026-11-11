@@ -2355,6 +2355,77 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Update or upsert a trusted JWT issuer. Prefer namedArgs { issuerId, issuerData }. Same trust-anchor exposure as createOAuth2TrustedJwtIssuer.',
   },
+  'oauth2oidc.cimd.createCIMDProfile': {
+    argumentMode: 'named',
+    parameterOverrides: {
+      profileId: {
+        description: 'CIMD profile id to create.',
+        examples: ['matrix-mcp-clients'],
+      },
+      profileData: {
+        type: 'CIMDProfileSkeleton',
+        description:
+          'CIMD profile payload object. Values may be plain or wrapped as { inherited, value }. cimdConfig.cimdClientIdUrlPatterns needs at least one pattern.',
+        schema: {
+          type: 'object',
+          properties: {
+            cimdConfig: { type: 'object' },
+            coreOAuth2ClientConfig: { type: 'object' },
+            advancedOAuth2ClientConfig: { type: 'object' },
+            coreOpenIDClientConfig: { type: 'object' },
+            signEncOAuth2ClientConfig: { type: 'object' },
+            overrideOAuth2ClientConfig: { type: 'object' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
+    supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Create a CIMD profile. Prefer namedArgs { profileId, profileData }. The client id URL patterns of the profile decide which https:// client ids may act as OAuth 2.0 clients without registration: cimdSsrfProtectionEnabled=false and wildcard patterns weaken the authorization server for the whole realm. Create fills in the server defaults, so { cimdConfig: { cimdClientIdUrlPatterns: [...] } } is enough. Fails if the id exists. Fails with the code CIMD_PROFILES_NOT_AVAILABLE where the realm does not offer CIMD profiles (check oauth2oidc.cimd.isCIMDProfileAvailable).',
+  },
+  'oauth2oidc.cimd.updateCIMDProfile': {
+    argumentMode: 'named',
+    parameterOverrides: {
+      profileId: {
+        description: 'CIMD profile id to update.',
+        examples: ['matrix-mcp-clients'],
+      },
+      profileData: {
+        type: 'CIMDProfileSkeleton',
+        description:
+          'CIMD profile payload object. Values may be plain or wrapped as { inherited, value }. It replaces what is stored: send every group you want to keep.',
+        schema: {
+          type: 'object',
+          properties: {
+            cimdConfig: { type: 'object' },
+            coreOAuth2ClientConfig: { type: 'object' },
+            advancedOAuth2ClientConfig: { type: 'object' },
+            coreOpenIDClientConfig: { type: 'object' },
+            signEncOAuth2ClientConfig: { type: 'object' },
+            overrideOAuth2ClientConfig: { type: 'object' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
+    supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Update or upsert a CIMD profile. Prefer namedArgs { profileId, profileData }. Same trust exposure as createCIMDProfile. Update replaces the stored attributes with exactly what you send, so send every group you want to keep (read the profile first): a body with only some groups silently removes the rest, including the metadata deny list and the SSRF switch. Create fills in defaults, update does not (except for an id that does not exist yet). The server ignores revisions, so a concurrent update is lost without notice. Values may be plain or { inherited, value }.',
+  },
+  'oauth2oidc.cimd.isCIMDProfileAvailable': {
+    operationType: 'read',
+    objectType: 'CIMDProfile',
+    mutating: false,
+    riskClass: 'low',
+    supportsRealm: true,
+    notes:
+      'Reports whether the realm offers CIMD profiles (agent type CIMDProfile); changes nothing. Where it answers false, reading all profiles gives an empty list and the functions that name a profile fail with the code CIMD_PROFILES_NOT_AVAILABLE.',
+  },
 
   // ── IDM managed objects ─────────────────────────────────────────────────────
   // Covers all idm.managed.* methods (createManagedObject, readManagedObject,
