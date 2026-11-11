@@ -1,4 +1,4 @@
-import { AxiosError } from 'axios';
+import { AxiosError, type AxiosResponse } from 'axios';
 import { PROXY_FAILURE_CODES } from '../utils/ProxyFailureUtils';
 
 /**
@@ -223,6 +223,30 @@ export class FrodoError extends Error {
   toString() {
     return this.getCombinedMessage();
   }
+}
+
+/**
+ * The HTTP response of the request that failed, whether `error` is the raw `AxiosError` that a function of the api
+ * layer throws or a `FrodoError` that wraps it. A `FrodoError` is followed through its first original error, at any
+ * depth: that is the error it takes its own `httpStatus` from. Use this (not `error.response`) to read the answer of
+ * the server in a `catch` block of code that calls an ops function: the ops function wraps a failed request in a
+ * `FrodoError`, which has no `response` of its own.
+ * @param {unknown} error the error that was caught
+ * @returns {AxiosResponse | undefined} the response, or undefined if no error in the chain carries one
+ */
+export function getFailedResponse(error: unknown): AxiosResponse | undefined {
+  const seen = new Set<unknown>();
+  let link: unknown = error;
+  while (link && typeof link === 'object' && !seen.has(link)) {
+    seen.add(link);
+    const { response, originalErrors } = link as {
+      response?: AxiosResponse;
+      originalErrors?: unknown;
+    };
+    if (response && typeof response === 'object') return response;
+    link = Array.isArray(originalErrors) ? originalErrors[0] : undefined;
+  }
+  return undefined;
 }
 
 /** True if `error` itself (not any wrapped cause) directly carries a 404 status. */

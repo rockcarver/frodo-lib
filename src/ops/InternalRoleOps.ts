@@ -457,7 +457,7 @@ export async function deleteInternalRoleByName({
       state,
     });
     if (roles.length == 1) {
-      return deleteInternalRole({
+      return await deleteInternalRole({
         roleId: roles[0]._id,
         state,
       });

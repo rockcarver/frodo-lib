@@ -542,7 +542,7 @@ function attachRejectedCredentialInterceptor(
         const renewing = credentialRenewals.get(state);
         if (renewing) {
           // another request found out first: wait for its new credential
-          if (!(await renewing)) return Promise.reject(error);
+          if (!(await renewing)) throw error;
         } else {
           const current = await resolve();
           if (current?.value === config.frodoCredential) {
@@ -551,7 +551,7 @@ function attachRejectedCredentialInterceptor(
               last !== undefined &&
               Date.now() - last < Constants.CREDENTIAL_RENEWAL_MIN_INTERVAL_MS
             ) {
-              return Promise.reject(error);
+              throw error;
             }
             const renewal = (async () => {
               if ((await forget()) === false) return false;
@@ -560,7 +560,7 @@ function attachRejectedCredentialInterceptor(
               return true;
             })().finally(() => credentialRenewals.delete(state));
             credentialRenewals.set(state, renewal);
-            if (!(await renewal)) return Promise.reject(error);
+            if (!(await renewal)) throw error;
           }
         }
         // eslint-disable-next-line @typescript-eslint/no-unused-vars

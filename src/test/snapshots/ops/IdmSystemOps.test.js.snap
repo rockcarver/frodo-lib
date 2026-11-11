@@ -3717,7 +3717,7 @@ exports[`IdmSystemOps updateSystemObject() 1: Update system object 1`] = `
 }
 `;
 
-exports[`IdmSystemOps updateSystemObject() 2: Update system object (fail if exists) 1`] = `[AxiosError: Request failed with status code 404]`;
+exports[`IdmSystemOps updateSystemObject() 2: Update system object (fail if exists) 1`] = `[FrodoError: Error updating __ACCOUNT__ 594fb793-a1c3-4b36-8469-2e869fdae7c4 in system OUD]`;
 
 exports[`IdmSystemOps updateSystemObjectProperties() 1: Update system object properties 1`] = `
 {

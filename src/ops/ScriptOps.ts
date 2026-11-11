@@ -769,7 +769,7 @@ export async function deleteScript({
   state: State;
 }): Promise<ScriptSkeleton> {
   try {
-    return _deleteScript({ scriptId, state });
+    return await _deleteScript({ scriptId, state });
   } catch (error) {
     throw new FrodoError(
       `Error deleting ${getCurrentRealmName(state) + ' realm'} script ${scriptId}`,
@@ -791,7 +791,7 @@ export async function deleteScriptByName({
   state: State;
 }): Promise<ScriptSkeleton> {
   try {
-    return _deleteScriptByName({ scriptName, state });
+    return await _deleteScriptByName({ scriptName, state });
   } catch (error) {
     throw new FrodoError(
       `Error deleting ${getCurrentRealmName(state) + ' realm'} script ${scriptName}`,
@@ -859,7 +859,11 @@ export async function exportScript({
   try {
     debugMessage({ message: `ScriptOps.exportScriptById: start`, state });
     const scriptData = await readScript({ scriptId, state });
-    const exportData = prepareScriptExport({ scriptData, options, state });
+    const exportData = await prepareScriptExport({
+      scriptData,
+      options,
+      state,
+    });
     debugMessage({ message: `ScriptOps.exportScriptById: end`, state });
     return exportData;
   } catch (error) {
@@ -893,7 +897,11 @@ export async function exportScriptByName({
   try {
     debugMessage({ message: `ScriptOps.exportScriptByName: start`, state });
     const scriptData = await readScriptByName({ scriptName, state });
-    const exportData = prepareScriptExport({ scriptData, options, state });
+    const exportData = await prepareScriptExport({
+      scriptData,
+      options,
+      state,
+    });
     debugMessage({ message: `ScriptOps.exportScriptByName: end`, state });
     return exportData;
   } catch (error) {

@@ -237,7 +237,7 @@ export async function readServer({
   state: State;
 }): Promise<ServerSkeleton> {
   try {
-    return getServer({ serverId, state });
+    return await getServer({ serverId, state });
   } catch (error) {
     throw new FrodoError(`Error reading server ${serverId}`, error);
   }

@@ -513,7 +513,7 @@ export async function getLogApiKey({
   state: State;
 }): Promise<LogApiKey> {
   try {
-    return _getLogApiKey({ keyId, state });
+    return await _getLogApiKey({ keyId, state });
   } catch (error) {
     throw new FrodoError(`Error getting log api key ${keyId}`, error);
   }
@@ -535,7 +535,7 @@ export async function isLogApiKeyValid({
   state: State;
 }): Promise<boolean> {
   try {
-    return _isLogApiKeyValid({ keyId, secret, state });
+    return await _isLogApiKeyValid({ keyId, secret, state });
   } catch (error) {
     throw new FrodoError(`Error validating log api key ${keyId}`, error);
   }
@@ -571,7 +571,7 @@ export async function createLogApiKey({
   state: State;
 }): Promise<LogApiKey> {
   try {
-    return _createLogApiKey({ keyName, state });
+    return await _createLogApiKey({ keyName, state });
   } catch (error) {
     throw new FrodoError(`Error creating log api key ${keyName}`, error);
   }
@@ -644,7 +644,7 @@ export async function tail({
   state: State;
 }): Promise<PagedResult<LogEventSkeleton>> {
   try {
-    return _tail({ source, cookie, state });
+    return await _tail({ source, cookie, state });
   } catch (error) {
     throw new FrodoError(`Error tailing logs`, error);
   }
@@ -737,7 +737,15 @@ export async function fetch({
   state: State;
 }): Promise<PagedResult<LogEventSkeleton>> {
   try {
-    return _fetch({ source, startTs, endTs, cookie, txid, filter, state });
+    return await _fetch({
+      source,
+      startTs,
+      endTs,
+      cookie,
+      txid,
+      filter,
+      state,
+    });
   } catch (error) {
     throw new FrodoError(`Error fetching logs`, error);
   }

@@ -483,7 +483,7 @@ export async function deleteOAuth2TrustedJwtIssuer({
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerSkeleton> {
   try {
-    return _deleteOAuth2TrustedJwtIssuer({ id: issuerId, state });
+    return await _deleteOAuth2TrustedJwtIssuer({ id: issuerId, state });
   } catch (error) {
     throw new FrodoError(
       `Error deleting ${getCurrentRealmName(state) + ' realm'} trusted issuer ${issuerId}`,

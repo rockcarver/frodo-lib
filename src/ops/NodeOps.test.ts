@@ -374,7 +374,15 @@ describe('NodeOps', () => {
             nodeData: TestData.node5,
             state,
           })
-        ).rejects.toThrow('Request failed with status code 409');
+        ).rejects.toMatchObject({
+          name: 'FrodoError',
+          message: 'Error creating SetStateNode node undefined',
+          originalErrors: [
+            expect.objectContaining({
+              message: 'Request failed with status code 409',
+            }),
+          ],
+        });
       });
     });
 
@@ -427,7 +435,16 @@ describe('NodeOps', () => {
             nodeType: 'PageNode',
             state,
           })
-        ).rejects.toThrow('Request failed with status code 404');
+        ).rejects.toMatchObject({
+          name: 'FrodoError',
+          message:
+            'Error deleting PageNode node 00000000-0000-0000-0000-000000000000',
+          originalErrors: [
+            expect.objectContaining({
+              message: 'Request failed with status code 404',
+            }),
+          ],
+        });
       });
     });
 

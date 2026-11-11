@@ -929,7 +929,7 @@ export async function deleteConfigEntity({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return _deleteConfigEntity({ entityId, state });
+    return await _deleteConfigEntity({ entityId, state });
   } catch (error) {
     throw new FrodoError(`Error deleting config entity ${entityId}`, error);
   }
@@ -1046,7 +1046,7 @@ export async function importSubConfigEntity({
       ).push(updatedSubConfigEntity);
     }
 
-    return importConfigEntities({
+    return await importConfigEntities({
       entityId,
       importData: entityExport,
       options,
@@ -1107,7 +1107,7 @@ export async function removeSubConfigEntity({
       entityExport.idm[entityId][subEntityKey] as NoIdObjectSkeletonInterface[]
     ).splice(existingSubEntityIndex, 1);
 
-    return importConfigEntities({
+    return await importConfigEntities({
       entityId,
       importData: entityExport,
       options,

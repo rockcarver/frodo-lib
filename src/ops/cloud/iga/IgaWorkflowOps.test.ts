@@ -245,7 +245,15 @@ describe('IgaWorkflowOps', () => {
             },
             state,
           })
-        ).rejects.toThrow(`Workflow '${unknownId}' not found.`);
+        ).rejects.toMatchObject({
+          name: 'FrodoError',
+          message: `Error exporting workflow ${unknownId}`,
+          originalErrors: [
+            expect.objectContaining({
+              message: `Workflow '${unknownId}' not found.`,
+            }),
+          ],
+        });
       });
     });
 

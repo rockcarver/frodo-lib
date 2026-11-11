@@ -153,7 +153,7 @@ export async function authorize({
   state: State;
 }): Promise<AxiosResponse<any, any>> {
   try {
-    return _authorize({ amBaseUrl, data, config, state });
+    return await _authorize({ amBaseUrl, data, config, state });
   } catch (error) {
     throw new FrodoError(`Error authorizing oauth2 client`, error);
   }
@@ -212,7 +212,7 @@ export async function accessTokenRfc7523AuthZGrant({
       scope: scope.join(' '),
       client_id: clientId,
     }).toString();
-    return accessToken({
+    return await accessToken({
       amBaseUrl: state.getHost(),
       config,
       data,
@@ -260,7 +260,7 @@ export async function getTokenInfo({
   state: State;
 }): Promise<TokenInfoResponseType> {
   try {
-    return _getTokenInfo({ amBaseUrl, config, state });
+    return await _getTokenInfo({ amBaseUrl, config, state });
   } catch (error) {
     throw new FrodoError(`Error getting oauth2 token info`, error);
   }

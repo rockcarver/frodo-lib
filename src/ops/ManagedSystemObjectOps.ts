@@ -377,14 +377,14 @@ export async function createManagedSystemObject({
 }): Promise<IdObjectSkeletonInterface> {
   try {
     if (id)
-      return _putManagedSystemObject({
+      return await _putManagedSystemObject({
         type,
         id,
         moData,
         failIfExists: true,
         state,
       });
-    return _createManagedSystemObject({ type, moData, state });
+    return await _createManagedSystemObject({ type, moData, state });
   } catch (error) {
     throw new FrodoError(
       `Error creating managed ${type} object${id ? ' (' + id + ')' : ''}`,
@@ -405,7 +405,7 @@ export async function readManagedSystemObject({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return _getManagedSystemObject({ type, id, fields, state });
+    return await _getManagedSystemObject({ type, id, fields, state });
   } catch (error) {
     throw new FrodoError(`Error reading managed ${type} object`, error);
   }
@@ -455,7 +455,7 @@ export async function countManagedSystemObjects({
   state: State;
 }): Promise<number> {
   try {
-    return _countManagedSystemObjects({ type, filter, state });
+    return await _countManagedSystemObjects({ type, filter, state });
   } catch (error) {
     throw new FrodoError(
       `Error counting managed ${type} objects matching filter "${filter}"`,
@@ -476,7 +476,7 @@ export async function updateManagedSystemObject({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return _putManagedSystemObject({ type, id, moData, state });
+    return await _putManagedSystemObject({ type, id, moData, state });
   } catch (error) {
     throw new FrodoError(
       `Error updating managed ${type} object (${id})`,
@@ -499,7 +499,13 @@ export async function updateManagedSystemObjectProperties({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return _patchManagedSystemObject({ type, id, operations, rev, state });
+    return await _patchManagedSystemObject({
+      type,
+      id,
+      operations,
+      rev,
+      state,
+    });
   } catch (error) {
     throw new FrodoError(
       `Error updating managed ${type} object properties (${id})`,
@@ -581,7 +587,7 @@ export async function deleteManagedSystemObject({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return _deleteManagedSystemObject({ type, id, state });
+    return await _deleteManagedSystemObject({ type, id, state });
   } catch (error) {
     throw new FrodoError(
       `Error deleting managed ${type} object (${id})`,

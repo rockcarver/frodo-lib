@@ -211,7 +211,7 @@ export async function readUser({
   state: State;
 }): Promise<UserSkeleton> {
   try {
-    return getUser({ userId, state });
+    return await getUser({ userId, state });
   } catch (error) {
     throw new FrodoError(`Error reading user ${userId}`, error);
   }
@@ -376,7 +376,7 @@ export async function readUserGroup({
   state: State;
 }): Promise<UserGroupSkeleton> {
   try {
-    return getUserGroup({ groupId, state });
+    return await getUserGroup({ groupId, state });
   } catch (error) {
     throw new FrodoError(`Error reading user group ${groupId}`, error);
   }
@@ -398,7 +398,7 @@ export async function readUserGroups({
     });
     const { result } = await getUserGroups({ state });
     // getUserGroups doesn't return groups with the privileges attribute, so request each group individually
-    const groups = Promise.all(
+    const groups = await Promise.all(
       result.map((g) => readUserGroup({ groupId: g._id, state }))
     );
     debugMessage({ message: `UserOps.readUserGroups: end`, state });

@@ -759,7 +759,7 @@ export async function createResourceType({
 }): Promise<ResourceTypeSkeleton> {
   try {
     if (resourceTypeUuid)
-      return _putResourceType({
+      return await _putResourceType({
         resourceTypeUuid,
         resourceTypeData,
         failIfExists: true,
