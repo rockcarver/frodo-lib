@@ -545,6 +545,59 @@ describe('MCP capability foundation', () => {
     }
   });
 
+  // Trust-anchor writes: trusted JWT issuers and CIMD profiles are reviewed
+  // together (decision: high, not critical). Each write says what it registers,
+  // and the generic agent capabilities that can reach the same objects say so.
+  test('trust-anchor writes carry the reviewed risk class and say what they write', () => {
+    const capabilities = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['oauth2oidc', 'agent'],
+      includeUtils: false,
+    });
+    const byId = new Map(capabilities.map((cap) => [cap.id, cap]));
+
+    const issuerWrites = [
+      'oauth2oidc.issuer.createOAuth2TrustedJwtIssuer',
+      'oauth2oidc.issuer.updateOAuth2TrustedJwtIssuer',
+      'oauth2oidc.issuer.importOAuth2TrustedJwtIssuer',
+      'oauth2oidc.issuer.importFirstOAuth2TrustedJwtIssuer',
+      'oauth2oidc.issuer.importOAuth2TrustedJwtIssuers',
+    ];
+    const cimdWrites = [
+      'oauth2oidc.cimd.createCIMDProfile',
+      'oauth2oidc.cimd.updateCIMDProfile',
+      'oauth2oidc.cimd.importCIMDProfile',
+      'oauth2oidc.cimd.importCIMDProfiles',
+    ];
+    for (const id of issuerWrites) {
+      const capability = byId.get(id);
+      expect(capability).toBeDefined();
+      expect(capability?.mutating).toBe(true);
+      expect(capability?.riskClass).toBe('high');
+      expect(capability?.notes).toMatch(/trust[- ]anchor/);
+    }
+    for (const id of cimdWrites) {
+      const capability = byId.get(id);
+      expect(capability).toBeDefined();
+      expect(capability?.mutating).toBe(true);
+      expect(capability?.riskClass).toBe('high');
+      expect(capability?.notes).toMatch(/without registration/);
+    }
+
+    // the generic agent capabilities that can write or delete the same objects
+    for (const id of [
+      'agent.importAgent',
+      'agent.importAgents',
+      'agent.deleteAgent',
+      'agent.deleteAgents',
+    ]) {
+      const capability = byId.get(id);
+      expect(capability).toBeDefined();
+      expect(capability?.riskClass).toBe('high');
+      expect(capability?.notes).toMatch(/oauth2oidc\.issuer/);
+      expect(capability?.notes).toMatch(/oauth2oidc\.cimd/);
+    }
+  });
+
   test('exposes explicit authn read/create/update/delete contracts', () => {
     const capabilities = buildCapabilityInventory(frodo, {
       includeTopLevelDomains: ['authn'],

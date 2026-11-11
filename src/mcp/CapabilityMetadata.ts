@@ -2355,6 +2355,30 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Update or upsert a trusted JWT issuer. Prefer namedArgs { issuerId, issuerData }. Same trust-anchor exposure as createOAuth2TrustedJwtIssuer.',
   },
+  // Trust-anchor writes (trusted JWT issuers and CIMD profiles) are reviewed
+  // together: create, update and import are all `high`, not `critical`, so that
+  // agent-assisted setup stays possible under the `agentic` preset (which
+  // allows create and update and denies import and delete by operation type).
+  // The notes say what the write registers; imports carry the same exposure as
+  // the single writes and had no entry before.
+  'oauth2oidc.issuer.importOAuth2TrustedJwtIssuer': {
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Import a trusted JWT issuer from an export. Writes a trust anchor (issuer + public JWKS) accepted for the already-critical RFC 7523 JWT-bearer grant — auth-bypass-adjacent if misconfigured. Same trust-anchor exposure as createOAuth2TrustedJwtIssuer.',
+  },
+  'oauth2oidc.issuer.importFirstOAuth2TrustedJwtIssuer': {
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Import the first trusted JWT issuer of an export. Writes a trust anchor (issuer + public JWKS) accepted for the already-critical RFC 7523 JWT-bearer grant — auth-bypass-adjacent if misconfigured. Same trust-anchor exposure as createOAuth2TrustedJwtIssuer.',
+  },
+  'oauth2oidc.issuer.importOAuth2TrustedJwtIssuers': {
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Import all trusted JWT issuers of an export. Each one is a trust anchor (issuer + public JWKS) accepted for the already-critical RFC 7523 JWT-bearer grant — auth-bypass-adjacent if misconfigured. Same trust-anchor exposure as createOAuth2TrustedJwtIssuer.',
+  },
   'oauth2oidc.cimd.createCIMDProfile': {
     argumentMode: 'named',
     parameterOverrides: {
@@ -2415,7 +2439,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     mutating: true,
     riskClass: 'high',
     notes:
-      'Update or upsert a CIMD profile. Prefer namedArgs { profileId, profileData }. Same trust exposure as createCIMDProfile. Update replaces the stored attributes with exactly what you send, so send every group you want to keep (read the profile first): a body with only some groups silently removes the rest, including the metadata deny list and the SSRF switch. Create fills in defaults, update does not (except for an id that does not exist yet). The server ignores revisions, so a concurrent update is lost without notice. Values may be plain or { inherited, value }.',
+      'Update or upsert a CIMD profile. Prefer namedArgs { profileId, profileData }. Same trust exposure as createCIMDProfile: the profile decides which https:// client ids may act as OAuth 2.0 clients without registration. Update replaces the stored attributes with exactly what you send, so send every group you want to keep (read the profile first): a body with only some groups silently removes the rest, including the metadata deny list and the SSRF switch. Create fills in defaults, update does not (except for an id that does not exist yet). The server ignores revisions, so a concurrent update is lost without notice. Values may be plain or { inherited, value }.',
   },
   'oauth2oidc.cimd.isCIMDProfileAvailable': {
     operationType: 'read',
@@ -3491,7 +3515,19 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   // The per-item result callback of these bulk imports and exports is a JS
   // function reference that an MCP JSON payload can never carry: it is not
   // offered to MCP callers (as for authn.journey.exportJourneys).
-  'agent.importAgents': { excludeParameters: ['resultCallback'] },
+  'agent.importAgents': {
+    excludeParameters: ['resultCallback'],
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Imports agents of any type the realm lists, which includes trust settings: trusted JWT issuers (trust anchors for the RFC 7523 JWT-bearer grant, see oauth2oidc.issuer) and CIMD profiles (which https:// client ids may act as OAuth 2.0 clients without registration, see oauth2oidc.cimd). Prefer the capabilities of those modules for them.',
+  },
+  'agent.importAgent': {
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Imports one agent of any type the realm lists, which includes trust settings: trusted JWT issuers (trust anchors for the RFC 7523 JWT-bearer grant, see oauth2oidc.issuer) and CIMD profiles (which https:// client ids may act as OAuth 2.0 clients without registration, see oauth2oidc.cimd). Prefer the capabilities of those modules for them.',
+  },
   'agent.importIdentityGatewayAgents': {
     excludeParameters: ['resultCallback'],
   },
@@ -3521,9 +3557,27 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'oauth2oidc.cimd.importCIMDProfiles': {
     excludeParameters: ['resultCallback'],
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Import all CIMD profiles of an export. Each profile decides which https:// client ids may act as OAuth 2.0 clients without registration: cimdSsrfProtectionEnabled=false and wildcard patterns weaken the authorization server for the whole realm. Existing profiles are replaced by exactly what the export holds. Same trust exposure as createCIMDProfile. Where the realm does not offer CIMD profiles nothing is imported.',
+  },
+  'oauth2oidc.cimd.importCIMDProfile': {
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Import one CIMD profile from an export. The profile decides which https:// client ids may act as OAuth 2.0 clients without registration: cimdSsrfProtectionEnabled=false and wildcard patterns weaken the authorization server for the whole realm. An existing profile is replaced by exactly what the export holds. Same trust exposure as createCIMDProfile.',
   },
   'service.importServices': { excludeParameters: ['resultCallback'] },
-  'agent.deleteAgents': { excludeParameters: ['resultCallback'] },
+  'agent.deleteAgents': {
+    excludeParameters: ['resultCallback'],
+    notes:
+      'Deletes every agent of every type the realm lists, which includes trust settings: trusted JWT issuers (see oauth2oidc.issuer) and CIMD profiles (see oauth2oidc.cimd). Irreversible.',
+  },
+  'agent.deleteAgent': {
+    notes:
+      'Deletes one agent of any type, which includes trust settings: a trusted JWT issuer (see oauth2oidc.issuer) or a CIMD profile (see oauth2oidc.cimd). Irreversible.',
+  },
   'agent.deleteIdentityGatewayAgents': {
     excludeParameters: ['resultCallback'],
   },
