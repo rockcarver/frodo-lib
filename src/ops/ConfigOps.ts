@@ -1598,6 +1598,8 @@ export async function importFullConfiguration({
           importOAuth2TrustedJwtIssuers,
           {
             importData: importData.realm[realm],
+            // only a callback of the caller makes the issuers items of their own, as for the journeys
+            resultCallback: resultCallback ? errorCallback : undefined,
             state,
           },
           indicatorId,

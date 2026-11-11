@@ -797,7 +797,12 @@ describe('importOAuth2TrustedJwtIssuers', () => {
 
     expect(error.message).toBe('Error importing alpha realm trusted issuers');
     expect(error.originalErrors).toHaveLength(1);
+    // since the result callback: the error of an item names the import and
+    // keeps the error of the update as its cause
     expect(error.originalErrors[0].message).toBe(
+      'Error importing alpha realm trusted issuer matrix-one'
+    );
+    expect(error.originalErrors[0].originalErrors[0].message).toBe(
       'Error updating alpha realm trusted issuer matrix-one'
     );
     expect(putOAuth2TrustedJwtIssuer).toHaveBeenCalledTimes(2);
@@ -871,5 +876,240 @@ describe('deployment shapes', () => {
     expect(exported.trustedJwtIssuer).toEqual({});
     await expect(ops.deleteOAuth2TrustedJwtIssuers()).resolves.toEqual([]);
     expect(deleteOAuth2TrustedJwtIssuerApi).not.toHaveBeenCalled();
+  });
+});
+
+describe('the result callback of the bulk functions', () => {
+  /** A callback that records what it is called with. */
+  function recorder() {
+    const calls: { error?: FrodoError; result?: any }[] = [];
+    const callback = jest.fn((error?: FrodoError, result?: any) => {
+      calls.push({ error, result });
+    });
+    return { calls, callback };
+  }
+
+  describe('deleteOAuth2TrustedJwtIssuers', () => {
+    const one = { _id: 'matrix-one' };
+    const two = { _id: 'matrix-two' };
+    const three = { _id: 'matrix-three' };
+
+    beforeEach(() => {
+      getOAuth2TrustedJwtIssuers.mockResolvedValue({
+        result: [one, two, three],
+      });
+    });
+
+    test('reports every issuer once, a failed one as an error that names it and keeps the cause; nothing throws; the others are still deleted', async () => {
+      const failure = requestError(500, 'Server Error');
+      deleteOAuth2TrustedJwtIssuerApi.mockImplementation(
+        async ({ id }: { id: string }) => {
+          if (id === 'matrix-two') throw failure;
+          return { _id: id };
+        }
+      );
+      const { calls, callback } = recorder();
+      const ops = OAuth2TrustedJwtIssuerOps(mockState());
+
+      const result = await ops.deleteOAuth2TrustedJwtIssuers(callback);
+
+      expect(result).toEqual([one, three]);
+      expect(deleteOAuth2TrustedJwtIssuerApi).toHaveBeenCalledTimes(3);
+      expect(calls).toHaveLength(3);
+      expect(calls[0]).toEqual({ error: undefined, result: one });
+      expect(calls[1].result).toBeUndefined();
+      expect(calls[1].error).toBeInstanceOf(FrodoError);
+      expect(calls[1].error.message).toBe(
+        'Error deleting alpha realm trusted issuer matrix-two'
+      );
+      expect(calls[1].error.originalErrors[0]).toBe(failure);
+      expect(calls[2]).toEqual({ error: undefined, result: three });
+    });
+
+    test('without a callback every issuer is tried and the failures are thrown as one error with one nested error each', async () => {
+      deleteOAuth2TrustedJwtIssuerApi.mockImplementation(
+        async ({ id }: { id: string }) => {
+          if (id !== 'matrix-two') throw requestError(500, 'Server Error');
+          return { _id: id };
+        }
+      );
+      const ops = OAuth2TrustedJwtIssuerOps(mockState());
+
+      const error = await rejection(() => ops.deleteOAuth2TrustedJwtIssuers());
+
+      expect(error.message).toBe('Error deleting alpha realm trusted issuers');
+      expect(error.originalErrors.map((e) => e.message)).toEqual([
+        'Error deleting alpha realm trusted issuer matrix-one',
+        'Error deleting alpha realm trusted issuer matrix-three',
+      ]);
+      expect(deleteOAuth2TrustedJwtIssuerApi).toHaveBeenCalledTimes(3);
+    });
+
+    test('a failure to read the issuers throws also with a callback, and the callback is not called', async () => {
+      getOAuth2TrustedJwtIssuers.mockRejectedValue(
+        requestError(500, 'Server Error')
+      );
+      const { callback } = recorder();
+      const ops = OAuth2TrustedJwtIssuerOps(mockState());
+
+      const error = await rejection(() =>
+        ops.deleteOAuth2TrustedJwtIssuers(callback)
+      );
+
+      expect(error.message).toBe('Error deleting alpha realm trusted issuers');
+      expect(callback).not.toHaveBeenCalled();
+      expect(deleteOAuth2TrustedJwtIssuerApi).not.toHaveBeenCalled();
+    });
+
+    test('a realm without issuers: no request, no callback, empty result', async () => {
+      getOAuth2TrustedJwtIssuers.mockResolvedValue({ result: [] });
+      const { callback } = recorder();
+      const ops = OAuth2TrustedJwtIssuerOps(mockState());
+      await expect(
+        ops.deleteOAuth2TrustedJwtIssuers(callback)
+      ).resolves.toEqual([]);
+      expect(callback).not.toHaveBeenCalled();
+      expect(deleteOAuth2TrustedJwtIssuerApi).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('importOAuth2TrustedJwtIssuers', () => {
+    test('reports every issuer once, a failed one as an error that names it; nothing throws; the others are still imported', async () => {
+      const failure = requestError(500, 'Server Error');
+      putOAuth2TrustedJwtIssuer.mockImplementation(async (args: any) => {
+        if (args.id === 'matrix-two') throw failure;
+        return args.issuerData;
+      });
+      const importData = sampleExport(
+        'matrix-one',
+        'matrix-two',
+        'matrix-three'
+      );
+      const before = copy(importData);
+      const { calls, callback } = recorder();
+      const ops = OAuth2TrustedJwtIssuerOps(mockState());
+
+      const result = await ops.importOAuth2TrustedJwtIssuers(
+        importData,
+        undefined,
+        callback
+      );
+
+      expect(result.map((issuer) => issuer._id)).toEqual([
+        'matrix-one',
+        'matrix-three',
+      ]);
+      expect(putOAuth2TrustedJwtIssuer).toHaveBeenCalledTimes(3);
+      expect(calls).toHaveLength(3);
+      expect(calls[0].error).toBeUndefined();
+      expect(calls[0].result._id).toBe('matrix-one');
+      expect(calls[1].result).toBeUndefined();
+      expect(calls[1].error.message).toBe(
+        'Error importing alpha realm trusted issuer matrix-two'
+      );
+      // the cause chain: the import, the update, the request
+      expect(calls[1].error.originalErrors[0].message).toBe(
+        'Error updating alpha realm trusted issuer matrix-two'
+      );
+      expect(calls[1].error.originalErrors[0].originalErrors[0]).toBe(failure);
+      expect(calls[2].error).toBeUndefined();
+      expect(calls[2].result._id).toBe('matrix-three');
+      // the data passed in is as it was
+      expect(importData).toEqual(before);
+    });
+
+    test('without a callback every issuer is tried and the failures are thrown as one error with one nested error each', async () => {
+      putOAuth2TrustedJwtIssuer.mockImplementation(async (args: any) => {
+        if (args.id !== 'matrix-two') throw requestError(500, 'Server Error');
+        return args.issuerData;
+      });
+      const ops = OAuth2TrustedJwtIssuerOps(mockState());
+
+      const error = await rejection(() =>
+        ops.importOAuth2TrustedJwtIssuers(
+          sampleExport('matrix-one', 'matrix-two', 'matrix-three')
+        )
+      );
+
+      expect(error.message).toBe('Error importing alpha realm trusted issuers');
+      expect(error.originalErrors.map((e) => e.message)).toEqual([
+        'Error importing alpha realm trusted issuer matrix-one',
+        'Error importing alpha realm trusted issuer matrix-three',
+      ]);
+      expect(putOAuth2TrustedJwtIssuer).toHaveBeenCalledTimes(3);
+    });
+
+    test.each([
+      ['no issuers', { trustedJwtIssuer: {} }],
+      ['no trustedJwtIssuer key', {}],
+    ])('import data with %s is an empty import', async (_name, importData) => {
+      const { callback } = recorder();
+      const ops = OAuth2TrustedJwtIssuerOps(mockState());
+
+      await expect(
+        ops.importOAuth2TrustedJwtIssuers(
+          importData as OAuth2TrustedJwtIssuerExportInterface,
+          undefined,
+          callback
+        )
+      ).resolves.toEqual([]);
+      expect(putOAuth2TrustedJwtIssuer).not.toHaveBeenCalled();
+      expect(callback).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('exportOAuth2TrustedJwtIssuers', () => {
+    test('reports every issuer of the export once, in order', async () => {
+      const one = sampleIssuer('matrix-one');
+      const two = sampleIssuer('matrix-two');
+      getOAuth2TrustedJwtIssuers.mockResolvedValue({ result: [one, two] });
+      const { calls, callback } = recorder();
+      const ops = OAuth2TrustedJwtIssuerOps(mockState());
+
+      const exported = await ops.exportOAuth2TrustedJwtIssuers(
+        undefined,
+        callback
+      );
+
+      expect(calls).toEqual([
+        { error: undefined, result: one },
+        { error: undefined, result: two },
+      ]);
+      expect(Object.keys(exported.trustedJwtIssuer)).toEqual([
+        'matrix-one',
+        'matrix-two',
+      ]);
+    });
+
+    test('a failure to read throws also with a callback, and the callback is not called', async () => {
+      getOAuth2TrustedJwtIssuers.mockRejectedValue(
+        requestError(500, 'Server Error')
+      );
+      const { callback } = recorder();
+      const ops = OAuth2TrustedJwtIssuerOps(mockState());
+
+      const error = await rejection(() =>
+        ops.exportOAuth2TrustedJwtIssuers(undefined, callback)
+      );
+
+      expect(error.message).toBe('Error exporting alpha realm trusted issuers');
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    test('the Cloud root realm reports nothing', async () => {
+      getOAuth2TrustedJwtIssuers.mockRejectedValue(
+        requestError(403, CLOUD_ONLY_MESSAGE)
+      );
+      const { callback } = recorder();
+      const ops = OAuth2TrustedJwtIssuerOps(
+        mockState({ realm: '/', deployment: 'cloud' })
+      );
+      const exported = await ops.exportOAuth2TrustedJwtIssuers(
+        undefined,
+        callback
+      );
+      expect(exported.trustedJwtIssuer).toEqual({});
+      expect(callback).not.toHaveBeenCalled();
+    });
   });
 });

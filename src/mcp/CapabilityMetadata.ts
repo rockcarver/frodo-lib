@@ -2374,6 +2374,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       'Import the first trusted JWT issuer of an export. Writes a trust anchor (issuer + public JWKS) accepted for the already-critical RFC 7523 JWT-bearer grant — auth-bypass-adjacent if misconfigured. Same trust-anchor exposure as createOAuth2TrustedJwtIssuer.',
   },
   'oauth2oidc.issuer.importOAuth2TrustedJwtIssuers': {
+    excludeParameters: ['resultCallback'],
     mutating: true,
     riskClass: 'high',
     notes:
@@ -3567,6 +3568,12 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'high',
     notes:
       'Import one CIMD profile from an export. The profile decides which https:// client ids may act as OAuth 2.0 clients without registration: cimdSsrfProtectionEnabled=false and wildcard patterns weaken the authorization server for the whole realm. An existing profile is replaced by exactly what the export holds. Same trust exposure as createCIMDProfile.',
+  },
+  'oauth2oidc.issuer.exportOAuth2TrustedJwtIssuers': {
+    excludeParameters: ['resultCallback'],
+  },
+  'oauth2oidc.issuer.deleteOAuth2TrustedJwtIssuers': {
+    excludeParameters: ['resultCallback'],
   },
   'service.importServices': { excludeParameters: ['resultCallback'] },
   'agent.deleteAgents': {

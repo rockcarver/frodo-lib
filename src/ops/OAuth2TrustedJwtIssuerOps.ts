@@ -12,7 +12,7 @@ import { getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
 import { FrodoError, isNotFoundError } from './FrodoError';
-import { ExportMetaData } from './OpsTypes';
+import { type ExportMetaData, type ResultCallback } from './OpsTypes';
 
 export type OAuth2TrustedJwtIssuer = {
   /**
@@ -54,10 +54,13 @@ export type OAuth2TrustedJwtIssuer = {
     issuerData: OAuth2TrustedJwtIssuerSkeleton
   ): Promise<OAuth2TrustedJwtIssuerSkeleton>;
   /**
-   * Delete all OAuth2 trusted jwt issuers
-   * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise that resolves to an array of trusted jwt issuer objects
+   * Delete all OAuth2 trusted jwt issuers. Every issuer is tried: an issuer that cannot be deleted does not stop the others.
+   * @param {ResultCallback<OAuth2TrustedJwtIssuerSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every issuer is passed to it as it happens (a failed issuer as an error that names it) and a failed issuer does not throw. Without it, the failures are collected and thrown as one error after every issuer was tried. Failing to read the issuers always throws.
+   * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise that resolves to an array of the deleted trusted jwt issuers
    */
-  deleteOAuth2TrustedJwtIssuers(): Promise<OAuth2TrustedJwtIssuerSkeleton[]>;
+  deleteOAuth2TrustedJwtIssuers(
+    resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>
+  ): Promise<OAuth2TrustedJwtIssuerSkeleton[]>;
   /**
    * Delete OAuth2 trusted jwt issuer
    * @param {string} issuerId trusted jwt issuer id
@@ -69,10 +72,12 @@ export type OAuth2TrustedJwtIssuer = {
   /**
    * Export all OAuth2 trusted jwt issuers
    * @param {OAuth2TrustedJwtIssuerExportOptions} options deprecated, has no effect: a trusted jwt issuer has no scripts
+   * @param {ResultCallback<OAuth2TrustedJwtIssuerSkeleton>} resultCallback Optional callback to process individual results. When given, every issuer that is part of the export is passed to it as it happens. Failing to read the issuers always throws.
    * @returns {Promise<OAuth2TrustedJwtIssuerExportInterface>} a promise that resolves to the export data
    */
   exportOAuth2TrustedJwtIssuers(
-    options?: OAuth2TrustedJwtIssuerExportOptions
+    options?: OAuth2TrustedJwtIssuerExportOptions,
+    resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>
   ): Promise<OAuth2TrustedJwtIssuerExportInterface>;
   /**
    * Export OAuth2 trusted jwt issuer by ID
@@ -107,14 +112,16 @@ export type OAuth2TrustedJwtIssuer = {
     options?: OAuth2TrustedJwtIssuerImportOptions
   ): Promise<OAuth2TrustedJwtIssuerSkeleton>;
   /**
-   * Import OAuth2 trusted jwt issuers. The import data is not modified.
+   * Import OAuth2 trusted jwt issuers. The import data is not modified. Every issuer is tried: an issuer that cannot be imported does not stop the others. Import data without issuers is an empty import.
    * @param {OAuth2TrustedJwtIssuerExportInterface} importData import data
    * @param {OAuth2TrustedJwtIssuerImportOptions} options deprecated, has no effect: a trusted jwt issuer has no scripts
+   * @param {ResultCallback<OAuth2TrustedJwtIssuerSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every issuer is passed to it as it happens (a failed issuer as an error that names it) and a failed issuer does not throw. Without it, the failures are collected and thrown as one error after every issuer was tried.
    * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise that resolves to an array of the imported trusted jwt issuers
    */
   importOAuth2TrustedJwtIssuers(
     importData: OAuth2TrustedJwtIssuerExportInterface,
-    options?: OAuth2TrustedJwtIssuerImportOptions
+    options?: OAuth2TrustedJwtIssuerImportOptions,
+    resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>
   ): Promise<OAuth2TrustedJwtIssuerSkeleton[]>;
 };
 
@@ -145,10 +152,10 @@ export default (state: State): OAuth2TrustedJwtIssuer => {
     ): Promise<OAuth2TrustedJwtIssuerSkeleton> {
       return updateOAuth2TrustedJwtIssuer({ issuerId, issuerData, state });
     },
-    async deleteOAuth2TrustedJwtIssuers(): Promise<
-      OAuth2TrustedJwtIssuerSkeleton[]
-    > {
-      return deleteOAuth2TrustedJwtIssuers({ state });
+    async deleteOAuth2TrustedJwtIssuers(
+      resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>
+    ): Promise<OAuth2TrustedJwtIssuerSkeleton[]> {
+      return deleteOAuth2TrustedJwtIssuers({ resultCallback, state });
     },
     async deleteOAuth2TrustedJwtIssuer(
       issuerId: string
@@ -156,9 +163,10 @@ export default (state: State): OAuth2TrustedJwtIssuer => {
       return deleteOAuth2TrustedJwtIssuer({ issuerId, state });
     },
     async exportOAuth2TrustedJwtIssuers(
-      options?: OAuth2TrustedJwtIssuerExportOptions
+      options?: OAuth2TrustedJwtIssuerExportOptions,
+      resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>
     ): Promise<OAuth2TrustedJwtIssuerExportInterface> {
-      return exportOAuth2TrustedJwtIssuers({ options, state });
+      return exportOAuth2TrustedJwtIssuers({ options, resultCallback, state });
     },
     async exportOAuth2TrustedJwtIssuer(
       issuerId: string
@@ -181,9 +189,15 @@ export default (state: State): OAuth2TrustedJwtIssuer => {
       return importFirstOAuth2TrustedJwtIssuer({ importData, state });
     },
     async importOAuth2TrustedJwtIssuers(
-      importData: OAuth2TrustedJwtIssuerExportInterface
+      importData: OAuth2TrustedJwtIssuerExportInterface,
+      _options?: OAuth2TrustedJwtIssuerImportOptions,
+      resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>
     ): Promise<OAuth2TrustedJwtIssuerSkeleton[]> {
-      return importOAuth2TrustedJwtIssuers({ importData, state });
+      return importOAuth2TrustedJwtIssuers({
+        importData,
+        resultCallback,
+        state,
+      });
     },
   };
 };
@@ -232,6 +246,36 @@ export function createOAuth2TrustedJwtIssuerExportTemplate({
     meta: getMetadata({ state }),
     trustedJwtIssuer: {},
   } as OAuth2TrustedJwtIssuerExportInterface;
+}
+
+/**
+ * Report the outcome of one issuer: to the result callback if there is one, otherwise a failure is collected.
+ * @param {object} params structured and named parameters
+ * @param {OAuth2TrustedJwtIssuerSkeleton} params.issuer the issuer that was processed (undefined if it failed)
+ * @param {FrodoError} params.failure the error that names the issuer (undefined if it succeeded)
+ * @param {FrodoError[]} params.errors where the failures are collected when there is no result callback
+ * @param {ResultCallback<OAuth2TrustedJwtIssuerSkeleton>} params.resultCallback Optional callback to process individual results
+ */
+function _reportIssuerResult({
+  issuer,
+  failure,
+  errors,
+  resultCallback,
+}: {
+  issuer?: OAuth2TrustedJwtIssuerSkeleton;
+  failure?: FrodoError;
+  errors: FrodoError[];
+  resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>;
+}) {
+  if (failure) {
+    if (resultCallback) {
+      resultCallback(failure, undefined);
+    } else {
+      errors.push(failure);
+    }
+  } else if (resultCallback) {
+    resultCallback(undefined, issuer);
+  }
 }
 
 /**
@@ -422,14 +466,21 @@ export async function updateOAuth2TrustedJwtIssuer({
 
 /**
  * Delete all OAuth2 trusted jwt issuers
+ * Every issuer is tried: an issuer that cannot be deleted does not stop the others.
+ * @param {object} params structured and named parameters
+ * @param {ResultCallback<OAuth2TrustedJwtIssuerSkeleton>} params.resultCallback Optional callback to process individual results. When given, the outcome of every issuer is passed to it as it happens (a failed issuer as an error that names it) and a failed issuer does not throw. Without it, the failures are collected and thrown as one error after every issuer was tried. Failing to read the issuers always throws.
+ * @param {State} params.state state object
  * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise that resolves to an array of the deleted trusted jwt issuers
+ * @throws {FrodoError} If the issuers cannot be read (always), or if one or more issuers cannot be deleted and there is no result callback.
  */
 export async function deleteOAuth2TrustedJwtIssuers({
+  resultCallback,
   state,
 }: {
+  resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>;
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerSkeleton[]> {
-  const errors = [];
+  const errors: FrodoError[] = [];
   try {
     debugMessage({
       message: `OAuth2TrustedJwtIssuerOps.deleteOAuth2TrustedJwtIssuers: start`,
@@ -438,20 +489,21 @@ export async function deleteOAuth2TrustedJwtIssuers({
     const result: OAuth2TrustedJwtIssuerSkeleton[] = [];
     const issuers = await readOAuth2TrustedJwtIssuers({ state });
     for (const issuer of issuers) {
+      let failure: FrodoError | undefined;
       try {
         debugMessage({
           message: `OAuth2TrustedJwtIssuerOps.deleteOAuth2TrustedJwtIssuers: '${issuer._id}'`,
           state,
         });
-        result.push(
-          await deleteOAuth2TrustedJwtIssuer({
-            issuerId: issuer._id,
-            state,
-          })
-        );
+        await _deleteOAuth2TrustedJwtIssuer({ id: issuer._id, state });
       } catch (error) {
-        errors.push(error);
+        failure = new FrodoError(
+          `Error deleting ${getCurrentRealmName(state) + ' realm'} trusted issuer ${issuer._id}`,
+          error
+        );
       }
+      if (!failure) result.push(issuer);
+      _reportIssuerResult({ issuer, failure, errors, resultCallback });
     }
     if (errors.length > 0) {
       throw new FrodoError(
@@ -500,15 +552,20 @@ export async function deleteOAuth2TrustedJwtIssuer({
 
 /**
  * Export all OAuth2 trusted jwt issuers
+ * @param {object} params structured and named parameters
+ * @param {OAuth2TrustedJwtIssuerExportOptions} params.options deprecated, has no effect: a trusted jwt issuer has no scripts
+ * @param {ResultCallback<OAuth2TrustedJwtIssuerSkeleton>} params.resultCallback Optional callback to process individual results. When given, every issuer that is part of the export is passed to it as it happens. Failing to read the issuers always throws.
+ * @param {State} params.state state object
  * @returns {Promise<OAuth2TrustedJwtIssuerExportInterface>} a promise that resolves to the export data
  */
 export async function exportOAuth2TrustedJwtIssuers({
+  resultCallback,
   state,
 }: {
   options?: OAuth2TrustedJwtIssuerExportOptions;
+  resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>;
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerExportInterface> {
-  const errors = [];
   try {
     debugMessage({
       message: `OAuth2TrustedJwtIssuerOps.exportOAuth2TrustedJwtIssuers: start`,
@@ -516,18 +573,11 @@ export async function exportOAuth2TrustedJwtIssuers({
     });
     const exportData = createOAuth2TrustedJwtIssuerExportTemplate({ state });
     const issuers = await readOAuth2TrustedJwtIssuers({ state });
+    // The list carries the whole objects, so there is no per-issuer failure
+    // here: every issuer is part of the export and is reported as such.
     for (const issuer of issuers) {
-      try {
-        exportData.trustedJwtIssuer[issuer._id] = issuer;
-      } catch (error) {
-        errors.push(error);
-      }
-    }
-    if (errors.length > 0) {
-      throw new FrodoError(
-        `Error exporting ${getCurrentRealmName(state) + ' realm'} trusted issuers`,
-        errors
-      );
+      exportData.trustedJwtIssuer[issuer._id] = issuer;
+      if (resultCallback) resultCallback(undefined, issuer);
     }
     debugMessage({
       message: `OAuth2TrustedJwtIssuerOps.exportOAuth2TrustedJwtIssuers: end`,
@@ -535,10 +585,6 @@ export async function exportOAuth2TrustedJwtIssuers({
     });
     return exportData;
   } catch (error) {
-    // re-throw previously caught errors
-    if (errors.length > 0) {
-      throw error;
-    }
     throw new FrodoError(
       `Error exporting ${getCurrentRealmName(state) + ' realm'} trusted issuers`,
       error
@@ -673,29 +719,49 @@ export async function importFirstOAuth2TrustedJwtIssuer({
 
 /**
  * Import OAuth2 trusted jwt issuers. The import data is not modified.
- * @param {OAuth2TrustedJwtIssuerExportInterface} importData import data
+ * Every issuer is tried: an issuer that cannot be imported does not stop the others. Import data without issuers is an empty import.
+ * @param {object} params structured and named parameters
+ * @param {OAuth2TrustedJwtIssuerExportInterface} params.importData import data
+ * @param {ResultCallback<OAuth2TrustedJwtIssuerSkeleton>} params.resultCallback Optional callback to process individual results. When given, the outcome of every issuer is passed to it as it happens (a failed issuer as an error that names it) and a failed issuer does not throw. Without it, the failures are collected and thrown as one error after every issuer was tried.
+ * @param {State} params.state state object
  * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise that resolves to an array of the imported trusted jwt issuers
+ * @throws {FrodoError} If one or more issuers cannot be imported and there is no result callback.
  */
 export async function importOAuth2TrustedJwtIssuers({
   importData,
+  resultCallback,
   state,
 }: {
   importData: OAuth2TrustedJwtIssuerExportInterface;
+  resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>;
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerSkeleton[]> {
-  const response = [];
-  const errors = [];
-  for (const id of Object.keys(importData.trustedJwtIssuer)) {
+  const response: OAuth2TrustedJwtIssuerSkeleton[] = [];
+  const errors: FrodoError[] = [];
+  debugMessage({
+    message: `OAuth2TrustedJwtIssuerOps.importOAuth2TrustedJwtIssuers: start`,
+    state,
+  });
+  for (const id of Object.keys(importData?.trustedJwtIssuer ?? {})) {
+    let issuer: OAuth2TrustedJwtIssuerSkeleton | undefined;
+    let failure: FrodoError | undefined;
     try {
       const issuerData = cloneDeep(importData.trustedJwtIssuer[id]);
       delete issuerData._provider;
       delete issuerData._rev;
-      response.push(
-        await updateOAuth2TrustedJwtIssuer({ issuerId: id, issuerData, state })
-      );
+      issuer = await updateOAuth2TrustedJwtIssuer({
+        issuerId: id,
+        issuerData,
+        state,
+      });
     } catch (error) {
-      errors.push(error);
+      failure = new FrodoError(
+        `Error importing ${getCurrentRealmName(state) + ' realm'} trusted issuer ${id}`,
+        error
+      );
     }
+    if (!failure) response.push(issuer);
+    _reportIssuerResult({ issuer, failure, errors, resultCallback });
   }
   if (errors.length > 0) {
     throw new FrodoError(
@@ -703,5 +769,9 @@ export async function importOAuth2TrustedJwtIssuers({
       errors
     );
   }
+  debugMessage({
+    message: `OAuth2TrustedJwtIssuerOps.importOAuth2TrustedJwtIssuers: end`,
+    state,
+  });
   return response;
 }
