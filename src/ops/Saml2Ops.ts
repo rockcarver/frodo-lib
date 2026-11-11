@@ -305,10 +305,15 @@ export async function readSaml2EntityIds({
   } catch (error) {
     if (
       // operation is not available in PingOne Advanced Identity Cloud
-      error.httpStatus === 403 &&
-      error.httpMessage ===
+      error.response?.status === 403 &&
+      error.response?.data?.message ===
         'This operation is not available in PingOne Advanced Identity Cloud.'
     ) {
+      const request = findFailedRequest(error);
+      debugMessage({
+        message: `Saml2Ops.readSaml2EntityIds: skipped, saml2 providers are not available in PingOne Advanced Identity Cloud${request ? ` [${request}]` : ''}`,
+        state,
+      });
       return [];
     } else {
       throw new FrodoError(
@@ -850,8 +855,8 @@ export async function exportSaml2Providers({
       } catch (error) {
         if (
           // operation is not available in PingOne Advanced Identity Cloud
-          error.httpStatus === 403 &&
-          error.httpMessage ===
+          error.response?.status === 403 &&
+          error.response?.data?.message ===
             'This operation is not available in PingOne Advanced Identity Cloud.'
         ) {
           const request = findFailedRequest(error);

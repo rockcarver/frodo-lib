@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { AxiosError } from 'axios';
 
 /**
  * `exportSaml2Providers` and `importSaml2Providers` try every provider.
@@ -308,10 +309,20 @@ describe('exportSaml2Providers', () => {
   });
 
   test('a provider that is not available in the cloud is skipped without a word and leaves a debug line', async () => {
-    const notAvailable: any = new Error('HTTP 403');
-    notAvailable.httpStatus = 403;
-    notAvailable.httpMessage =
-      'This operation is not available in PingOne Advanced Identity Cloud.';
+    // the answer as the api layer raises it: an AxiosError that carries the response of the server (a raw AxiosError
+    // has no httpStatus and no httpMessage, FrodoError copies those from its immediate original error)
+    const notAvailable: any = new AxiosError(
+      'Request failed with status code 403',
+      'ERR_BAD_REQUEST'
+    );
+    notAvailable.response = {
+      status: 403,
+      data: {
+        code: 403,
+        message:
+          'This operation is not available in PingOne Advanced Identity Cloud.',
+      },
+    };
     notAvailable.config = {
       method: 'get',
       url: 'https://am.example.com/json/realms/root/realms/alpha/saml2/hosted',
