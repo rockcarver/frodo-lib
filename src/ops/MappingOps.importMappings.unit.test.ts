@@ -258,6 +258,27 @@ describe('importMappings, with a result callback', () => {
     expect(callback.mock.calls[2][0]).toBeUndefined();
   });
 
+  test('a failed read of sync.json fails the legacy mappings, and the new mappings are still imported', async () => {
+    readConfigEntity.mockRejectedValue(failure);
+    const callback = jest.fn();
+
+    const result = await importMappings({
+      importData: importDataOf(['a', 'b'], ['x']),
+      resultCallback: callback,
+      state,
+    });
+
+    expect(ids(result)).toEqual(['mapping/a', 'mapping/b']);
+    expect(callback).toHaveBeenCalledTimes(3);
+    const failed: any = callback.mock.calls[2][0];
+    expect(failed.message).toBe('Error importing mapping sync/x');
+    expect(failed.originalErrors[0].message).toBe(
+      'Error updating sync mapping sync/x'
+    );
+    expect(rootCause(failed)).toBe(failure);
+    expect(written).toEqual(['mapping/a', 'mapping/b']);
+  });
+
   test('reports every mapping as failed and returns nothing when all fail', async () => {
     failingEntities.add('mapping/a');
     failingEntities.add('mapping/b');
