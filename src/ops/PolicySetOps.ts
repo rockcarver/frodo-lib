@@ -26,7 +26,7 @@ import {
 } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
-import { ExportMetaData } from './OpsTypes';
+import { ExportMetaData, ResultCallback } from './OpsTypes';
 import {
   findScriptUuids,
   getScripts,
@@ -81,10 +81,12 @@ export type PolicySet = {
   /**
    * Export policy sets
    * @param {PolicySetExportOptions} options export options
+   * @param {ResultCallback<PolicySetSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every policy set is passed to it as it happens: a policy set that was exported completely as the policy set, a policy set whose prerequisites or dependencies could not be exported as an error that names the policy set and carries the cause. Such a policy set is left out of the export and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every policy set was tried. Failing to read the policy sets always throws.
    * @returns {Promise<PolicySetExportInterface>} a promise that resolves to an PolicySetExportInterface object
    */
   exportPolicySets(
-    options?: PolicySetExportOptions
+    options?: PolicySetExportOptions,
+    resultCallback?: ResultCallback<PolicySetSkeleton>
   ): Promise<PolicySetExportInterface>;
   /**
    * Import policy set
@@ -112,11 +114,13 @@ export type PolicySet = {
    * Import policy sets
    * @param {PolicySetExportInterface} importData import data
    * @param {PolicySetImportOptions} options import options
+   * @param {ResultCallback<PolicySetSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every policy set is passed to it once, as it happens: a policy set that was imported completely as the policy set (a policy set that needed no update as it is in the import data), a policy set that could not be imported, or whose prerequisites or dependencies could not be imported, as one error that names the policy set and carries the causes. Such a policy set is not part of the result and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every policy set was tried.
    * @returns {Promise<PolicySetSkeleton[]>} The imported policy sets
    */
   importPolicySets(
     importData: PolicySetExportInterface,
-    options?: PolicySetImportOptions
+    options?: PolicySetImportOptions,
+    resultCallback?: ResultCallback<PolicySetSkeleton>
   ): Promise<PolicySetSkeleton[]>;
 };
 
@@ -161,9 +165,10 @@ export default (state: State): PolicySet => {
         deps: true,
         prereqs: false,
         useStringArrays: true,
-      }
+      },
+      resultCallback: ResultCallback<PolicySetSkeleton> = void 0
     ): Promise<PolicySetExportInterface> {
-      return exportPolicySets({ options, state });
+      return exportPolicySets({ options, resultCallback, state });
     },
     async importPolicySet(
       policySetName: string,
@@ -185,9 +190,10 @@ export default (state: State): PolicySet => {
     },
     async importPolicySets(
       importData: PolicySetExportInterface,
-      options: PolicySetImportOptions = { deps: true, prereqs: false }
+      options: PolicySetImportOptions = { deps: true, prereqs: false },
+      resultCallback: ResultCallback<PolicySetSkeleton> = void 0
     ): Promise<PolicySetSkeleton[]> {
-      return importPolicySets({ importData, options, state });
+      return importPolicySets({ importData, options, resultCallback, state });
     },
   };
 };
@@ -543,6 +549,7 @@ export async function exportPolicySet({
 /**
  * Export policy sets
  * @param {PolicySetExportOptions} options export options
+ * @param {ResultCallback<PolicySetSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every policy set is passed to it as it happens: a policy set that was exported completely as the policy set, a policy set whose prerequisites or dependencies could not be exported as an error that names the policy set and carries the cause. Such a policy set is left out of the export and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every policy set was tried. Failing to read the policy sets always throws.
  * @returns {Promise<PolicySetExportInterface>} a promise that resolves to an PolicySetExportInterface object
  */
 export async function exportPolicySets({
@@ -551,14 +558,17 @@ export async function exportPolicySets({
     prereqs: false,
     useStringArrays: true,
   },
+  resultCallback = void 0,
   state,
 }: {
   options: PolicySetExportOptions;
+  resultCallback?: ResultCallback<PolicySetSkeleton>;
   state: State;
 }): Promise<PolicySetExportInterface> {
   debugMessage({ message: `PolicySetOps.exportPolicySet: start`, state });
   const exportData = createPolicySetExportTemplate({ state });
   const errors = [];
+  let failed = 0;
   let indicatorId: string;
   try {
     const policySets = await readPolicySets({ state });
@@ -573,16 +583,21 @@ export async function exportPolicySets({
         message: `Exporting ${getCurrentRealmName(state) + ' realm'} policy set ${policySetData._id}`,
         state,
       });
-      exportData.policyset[policySetData.name] = policySetData;
+      // with a callback a policy set is exported on its own, so that a failed policy set leaves nothing behind in the export
+      const policySetExport = resultCallback
+        ? createPolicySetExportTemplate({ state })
+        : exportData;
+      const policySetErrors: Error[] = [];
+      policySetExport.policyset[policySetData.name] = policySetData;
       if (options.prereqs) {
         try {
           await exportPolicySetPrerequisites({
             policySetData,
-            exportData,
+            exportData: policySetExport,
             state,
           });
         } catch (error) {
-          errors.push(error);
+          policySetErrors.push(error);
         }
       }
       if (options.deps) {
@@ -590,17 +605,38 @@ export async function exportPolicySets({
           await exportPolicySetDependencies({
             policySetData,
             options,
-            exportData,
+            exportData: policySetExport,
             state,
           });
         } catch (error) {
-          errors.push(error);
+          policySetErrors.push(error);
         }
+      }
+      if (!resultCallback) {
+        errors.push(...policySetErrors);
+      } else if (policySetErrors.length > 0) {
+        failed++;
+        resultCallback(
+          new FrodoError(
+            `Error exporting ${getCurrentRealmName(state) + ' realm'} policy set ${policySetData.name}`,
+            policySetErrors
+          )
+        );
+      } else {
+        Object.assign(exportData.script, policySetExport.script);
+        Object.assign(exportData.resourcetype, policySetExport.resourcetype);
+        Object.assign(exportData.policy, policySetExport.policy);
+        Object.assign(exportData.policyset, policySetExport.policyset);
+        resultCallback(undefined, policySetData);
       }
     }
     stopProgressIndicator({
       id: indicatorId,
-      message: `Exported ${policySets.length} ${getCurrentRealmName(state) + ' realm'} policy sets.`,
+      message:
+        failed > 0
+          ? `Exported ${policySets.length - failed} of ${policySets.length} ${getCurrentRealmName(state) + ' realm'} policy sets.`
+          : `Exported ${policySets.length} ${getCurrentRealmName(state) + ' realm'} policy sets.`,
+      status: failed > 0 ? 'fail' : 'none',
       state,
     });
     if (errors.length > 0) {
@@ -942,20 +978,27 @@ export async function importFirstPolicySet({
  * Import policy sets
  * @param {PolicySetExportInterface} importData import data
  * @param {PolicySetImportOptions} options import options
+ * @param {ResultCallback<PolicySetSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every policy set is passed to it once, as it happens: a policy set that was imported completely as the policy set (a policy set that needed no update as it is in the import data), a policy set that could not be imported, or whose prerequisites or dependencies could not be imported, as one error that names the policy set and carries the causes. Such a policy set is not part of the result and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every policy set was tried.
  * @returns {Promise<PolicySetSkeleton[]>} The imported policy sets
  */
 export async function importPolicySets({
   importData,
   options = { deps: true, prereqs: false },
+  resultCallback = void 0,
   state,
 }: {
   importData: PolicySetExportInterface;
   options?: PolicySetImportOptions;
+  resultCallback?: ResultCallback<PolicySetSkeleton>;
   state: State;
 }): Promise<PolicySetSkeleton[]> {
   const response: PolicySetSkeleton[] = [];
   const errors = [];
   for (const id of Object.keys(importData.policyset)) {
+    // the errors of this policy set: with a callback they are reported as one error that names the policy set
+    const policySetErrors: Error[] = [];
+    let written = false;
+    let updated: PolicySetSkeleton | null = null;
     try {
       const policySetData = importData.policyset[id];
       delete policySetData._rev;
@@ -967,25 +1010,24 @@ export async function importPolicySets({
             state,
           });
         } catch (error) {
-          errors.push(error);
+          policySetErrors.push(error);
         }
       }
       try {
-        response.push(
-          await updateRemote({
-            data: policySetData,
-            type: 'policy set',
-            readFn: async () =>
-              await readPolicySet({ policySetName: policySetData.name, state }),
-            updateFn: async () =>
-              await _updatePolicySet({ policySetData, state }),
-            createFn: async () =>
-              await _createPolicySet({ policySetData, state }),
-            state,
-          })
-        );
+        updated = await updateRemote({
+          data: policySetData,
+          type: 'policy set',
+          readFn: async () =>
+            await readPolicySet({ policySetName: policySetData.name, state }),
+          updateFn: async () =>
+            await _updatePolicySet({ policySetData, state }),
+          createFn: async () =>
+            await _createPolicySet({ policySetData, state }),
+          state,
+        });
+        written = true;
       } catch (error) {
-        errors.push(error);
+        policySetErrors.push(error);
       }
       if (options.deps) {
         try {
@@ -995,11 +1037,25 @@ export async function importPolicySets({
             state,
           });
         } catch (error) {
-          errors.push(error);
+          policySetErrors.push(error);
         }
       }
     } catch (error) {
-      errors.push(error);
+      policySetErrors.push(error);
+    }
+    if (!resultCallback) {
+      if (written) response.push(updated);
+      errors.push(...policySetErrors);
+    } else if (policySetErrors.length > 0) {
+      resultCallback(
+        new FrodoError(
+          `Error importing ${getCurrentRealmName(state) + ' realm'} policy set ${id}`,
+          policySetErrors
+        )
+      );
+    } else {
+      response.push(updated);
+      resultCallback(undefined, updated ?? importData.policyset[id]);
     }
   }
   if (errors.length > 0) {
