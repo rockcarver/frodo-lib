@@ -183,12 +183,14 @@ describe('unfiltered type list', () => {
     await expect(
       isAgentTypeOffered({ agentType: 'CIMDProfile', state })
     ).resolves.toBe(true);
+    await expect(
+      isAgentTypeOffered({ agentType: 'TrustedJwtIssuer', state })
+    ).resolves.toBe(true);
     const types = await readAgentTypes({ state });
     expect(types).not.toContain('OAuth2Client');
     expect(types).not.toContain('CIMDProfile');
-    expect(types).toEqual(
-      expect.arrayContaining(['WebAgent', 'TrustedJwtIssuer'])
-    );
+    expect(types).not.toContain('TrustedJwtIssuer');
+    expect(types).toEqual(expect.arrayContaining(['WebAgent']));
     expect(getAgentTypes).toHaveBeenCalledTimes(1);
   });
 
@@ -202,24 +204,33 @@ describe('unfiltered type list', () => {
     expect(getAgentTypes).toHaveBeenCalledTimes(1);
   });
 
-  test('a type added to the blacklist after the first read is dropped by the next read, without a request', async () => {
+  test('the Soap STS agent is left out of a read outside classic deployments only, whichever facades exist', async () => {
     getAgentTypes.mockResolvedValue({
       result: [typeItem('WebAgent'), typeItem('SoapSTSAgent')],
     });
-    const state = mockState({ deployment: 'cloud' });
-    // SoapSTSAgent is not on the blacklist yet: creating the facade for a
-    // deployment other than classic puts it there (module wide, from then on).
-    await expect(readAgentTypes({ state })).resolves.toEqual([
+    const host = uniqueHost();
+    const cloud = mockState({ host, deployment: 'cloud' });
+    const classic = mockState({ host, deployment: 'classic' });
+    // creating the facade of a state changes the reads of no other state
+    AgentOps(cloud);
+    await expect(readAgentTypes({ state: classic })).resolves.toEqual([
       'WebAgent',
       'SoapSTSAgent',
     ]);
-    AgentOps(state);
-    await expect(readAgentTypes({ state })).resolves.toEqual(['WebAgent']);
-    expect(getAgentTypes).toHaveBeenCalledTimes(1);
-    // The helper still has the type.
-    await expect(
-      isAgentTypeOffered({ agentType: 'SoapSTSAgent', state })
-    ).resolves.toBe(true);
+    await expect(readAgentTypes({ state: cloud })).resolves.toEqual([
+      'WebAgent',
+    ]);
+    AgentOps(classic);
+    await expect(readAgentTypes({ state: classic })).resolves.toEqual([
+      'WebAgent',
+      'SoapSTSAgent',
+    ]);
+    // The helper has the type for both.
+    for (const state of [cloud, classic]) {
+      await expect(
+        isAgentTypeOffered({ agentType: 'SoapSTSAgent', state })
+      ).resolves.toBe(true);
+    }
   });
 });
 

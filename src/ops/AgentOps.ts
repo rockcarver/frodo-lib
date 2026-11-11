@@ -39,7 +39,7 @@ import { type ExportMetaData, type ResultCallback } from './OpsTypes';
 
 export type Agent = {
   /**
-   * Read all agent types. Agent types that have their own module (OAuth2 clients, CIMD profiles) are not part of the answer; see `frodo.oauth2oidc`.
+   * Read all agent types. Agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not part of the answer; see `frodo.oauth2oidc`.
    * @param {boolean} refreshCache true to ask the server again and replace the cached list of the realm. Default: false.
    * @returns {Promise<AgentType[]>} a promise that resolves to an array of agent type strings
    */
@@ -55,36 +55,36 @@ export type Agent = {
     agentId: string
   ): Promise<AgentSkeleton>;
   /**
-   * Read all agents. At realm level, agent types that have their own module (OAuth2 clients, CIMD profiles) are not included; see `frodo.oauth2oidc`.
+   * Read all agents. At realm level, agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not included; see `frodo.oauth2oidc`.
    * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
    * @returns {Promise<AgentSkeleton[]>} a promise that resolves to an array of agent objects
    */
   readAgents(globalConfig: boolean): Promise<AgentSkeleton[]>;
   /**
-   * Read agent. At realm level, agent types that have their own module (OAuth2 clients, CIMD profiles) are not searched: an agent of such a type is not found; see `frodo.oauth2oidc`.
+   * Read agent. At realm level, agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not searched: an agent of such a type is not found; see `frodo.oauth2oidc`.
    * @param {string} agentId agent id/name
    * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
    * @returns {Promise<AgentSkeleton>} a promise that resolves to an agent object
    */
   readAgent(agentId: string, globalConfig: boolean): Promise<AgentSkeleton>;
   /**
-   * Delete all agents. Agent types that have their own module (OAuth2 clients, CIMD profiles) are not deleted; see `frodo.oauth2oidc`.
+   * Delete all agents. Agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not deleted; see `frodo.oauth2oidc`.
    * @param {ResultCallback<AgentSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried. Failing to read the agents always throws.
    */
   deleteAgents(resultCallback?: ResultCallback<AgentSkeleton>): Promise<void>;
   /**
-   * Delete agent. Agent types that have their own module (OAuth2 clients, CIMD profiles) are not searched: an agent of such a type is not found; see `frodo.oauth2oidc`.
+   * Delete agent. Agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not searched: an agent of such a type is not found; see `frodo.oauth2oidc`.
    * @param agentId agent id/name
    */
   deleteAgent(agentId: string): Promise<void>;
   /**
-   * Export all agents. The response can be saved to file as is. At realm level, agent types that have their own module (OAuth2 clients, CIMD profiles) are not included; see `frodo.oauth2oidc`.
+   * Export all agents. The response can be saved to file as is. At realm level, agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not included; see `frodo.oauth2oidc`.
    * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
    * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
    */
   exportAgents(globalConfig: boolean): Promise<AgentExportInterface>;
   /**
-   * Export agent. The response can be saved to file as is. At realm level, agent types that have their own module (OAuth2 clients, CIMD profiles) are not searched: an agent of such a type is not found; see `frodo.oauth2oidc`.
+   * Export agent. The response can be saved to file as is. At realm level, agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not searched: an agent of such a type is not found; see `frodo.oauth2oidc`.
    * @param agentId agent id/name
    * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
    * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
@@ -483,9 +483,6 @@ export type Agent = {
 };
 
 export default (state: State): Agent => {
-  if (state.getDeploymentType() !== Constants.CLASSIC_DEPLOYMENT_TYPE_KEY) {
-    AgentTypeBlacklist.push('SoapSTSAgent');
-  }
   return {
     // General
     async readAgentTypes(refreshCache = false) {
@@ -785,8 +782,10 @@ function isAlreadyExistsError(error: unknown): boolean {
  * through the module). Each type here has its own key in a full export (see
  * `ConfigOps.ts`) and its own module that reads the type list of the realm
  * through `isAgentTypeOffered`. Add a type to this list in the same change that
- * gives it a module, and never add one with `push`: the list is shared by every
- * facade instance in the process.
+ * gives it a module, and never add one at run time: the list is shared by every
+ * facade instance in the process. What the generic code skips for one state
+ * (the Soap STS agent outside classic deployments) is worked out per call, by
+ * `getAgentTypeBlacklist`.
  *
  * The generic import (`importAgent`, `importAgents`) and `readAgentByTypeAndId`
  * do not consult this list, so an export that still holds such an object under
@@ -794,13 +793,31 @@ function isAlreadyExistsError(error: unknown): boolean {
  */
 export const AGENT_TYPES_WITH_OWN_MODULE: readonly AgentType[] = [
   'OAuth2Client',
+  'TrustedJwtIssuer',
   'CIMDProfile',
 ];
 
-const AgentTypeBlacklist: AgentType[] = [...AGENT_TYPES_WITH_OWN_MODULE];
+/**
+ * The agent types that the generic agent code skips for a state: the types that
+ * have a module of their own, and, outside classic deployments, the Soap STS
+ * agent (a classic-only type, which the generic import refuses elsewhere).
+ *
+ * Worked out from the deployment type of the state at the time of the call, and
+ * returned as a new array, so that two states in one process, and a state whose
+ * deployment type is set after the facade was created, never affect each other.
+ * @param {State} state the state object
+ * @returns {AgentType[]} the agent type ids the generic agent code does not read, export or delete
+ */
+function getAgentTypeBlacklist(state: State): AgentType[] {
+  const blacklist: AgentType[] = [...AGENT_TYPES_WITH_OWN_MODULE];
+  if (state.getDeploymentType() !== Constants.CLASSIC_DEPLOYMENT_TYPE_KEY) {
+    blacklist.push('SoapSTSAgent');
+  }
+  return blacklist;
+}
 
 /**
- * Read all available agent types. Agent types that have their own module (OAuth2 clients, CIMD profiles) are not returned; see `frodo.oauth2oidc`.
+ * Read all available agent types. Agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not returned; see `frodo.oauth2oidc`.
  * @param {object} params structured and named parameters
  * @param {boolean} params.refreshCache true to ask the server again and replace the cached list. Default: false.
  * @param {State} params.state the state object
@@ -815,14 +832,17 @@ export async function readAgentTypes({
 }): Promise<AgentType[]> {
   debugMessage({ message: `AgentOps.readAgentTypes: start`, state });
   const agentTypeItems = await readAgentTypeItems({ refreshCache, state });
+  // the list is cached as the server answered it: the types this code does not
+  // handle are left out here, per call
+  const blacklist = getAgentTypeBlacklist(state);
   debugMessage({ message: `AgentOps.readAgentTypes: end`, state });
   return agentTypeItems
-    .filter((item) => !AgentTypeBlacklist.includes(item._id))
+    .filter((item) => !blacklist.includes(item._id))
     .map((item) => item._id);
 }
 
 /**
- * Get all agents. Results are sorted alphabetically. At realm level, agent types that have their own module (OAuth2 clients, CIMD profiles) are not included; see `frodo.oauth2oidc`.
+ * Get all agents. Results are sorted alphabetically. At realm level, agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not included; see `frodo.oauth2oidc`.
  * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<AgentSkeleton[]>} a promise that resolves to an array of agent objects
  */
@@ -856,10 +876,8 @@ async function _readAgents({
       const resolved = await _getAgents({ state, globalConfig });
       agents = agents.concat(resolved.result);
     } else {
-      const agentTypes = await readAgentTypes({ state });
-      const availableAgentTypes = agentTypes.filter(
-        (agentType) => !AgentTypeBlacklist.includes(agentType)
-      );
+      // readAgentTypes leaves out the types that this code does not handle
+      const availableAgentTypes = await readAgentTypes({ state });
       const resolved = await Promise.allSettled(
         availableAgentTypes.map((agentType) =>
           _getAgentsByType({ agentType, state })
@@ -923,7 +941,7 @@ async function _readAgents({
 }
 
 /**
- * Get agent. At realm level, agent types that have their own module (OAuth2 clients, CIMD profiles) are not searched: an agent of such a type is not found; see `frodo.oauth2oidc`.
+ * Get agent. At realm level, agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not searched: an agent of such a type is not found; see `frodo.oauth2oidc`.
  * @param {string} agentId agent id/name
  * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<AgentSkeleton>} a promise that resolves to an agent object
@@ -1046,7 +1064,7 @@ function _reportAgentImport({
 }
 
 /**
- * Delete all agents. Agent types that have their own module (OAuth2 clients, CIMD profiles) are not deleted; see `frodo.oauth2oidc`.
+ * Delete all agents. Agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not deleted; see `frodo.oauth2oidc`.
  * @param {object} params structured and named parameters
  * @param {ResultCallback<AgentSkeleton>} params.resultCallback Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
  * @param {State} params.state state object
@@ -1091,7 +1109,7 @@ export async function deleteAgents({
 }
 
 /**
- * Delete agent. Agent types that have their own module (OAuth2 clients, CIMD profiles) are not searched: an agent of such a type is not found; see `frodo.oauth2oidc`.
+ * Delete agent. Agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not searched: an agent of such a type is not found; see `frodo.oauth2oidc`.
  * @param agentId agent id/name
  */
 export async function deleteAgent({
@@ -1132,7 +1150,7 @@ export async function deleteAgent({
 }
 
 /**
- * Export all agents. The response can be saved to file as is. At realm level, agent types that have their own module (OAuth2 clients, CIMD profiles) are not included; see `frodo.oauth2oidc`.
+ * Export all agents. The response can be saved to file as is. At realm level, agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not included; see `frodo.oauth2oidc`.
  * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
  */
@@ -1183,7 +1201,7 @@ export async function exportAgents({
 }
 
 /**
- * Export agent. The response can be saved to file as is. At realm level, agent types that have their own module (OAuth2 clients, CIMD profiles) are not searched: an agent of such a type is not found; see `frodo.oauth2oidc`.
+ * Export agent. The response can be saved to file as is. At realm level, agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not searched: an agent of such a type is not found; see `frodo.oauth2oidc`.
  * @param agentId agent id/name
  * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.

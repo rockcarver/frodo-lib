@@ -100,9 +100,11 @@ const OWN_KEY: Record<string, string> = {
 /**
  * Types that have a module of their own, are not yet on the list of
  * `AgentOps.ts` and so are exported under `agent` as well as under their key.
- * A tracking issue is needed for an entry; the list only shrinks.
+ * A tracking issue is needed for an entry; the list only shrinks. It is empty:
+ * trusted JWT issuers were the one entry (exported twice from 4.0.0 on) until
+ * they joined the list.
  */
-const KNOWN_DOUBLE_HANDLED: string[] = ['TrustedJwtIssuer'];
+const KNOWN_DOUBLE_HANDLED: string[] = [];
 
 // --- the fake tenant -------------------------------------------------------
 
@@ -114,6 +116,9 @@ const objectOf = (type: string) => ({
   _rev: '-1',
   _type: { _id: type, name: `${type} Agents`, collection: true },
 });
+
+/** the `GET .../realm-config/agents/<Type>` requests of the tenant, by type */
+const listRequests: string[] = [];
 
 function answer(method: string, url: string, body?: unknown) {
   const queryAt = url.indexOf('?');
@@ -146,6 +151,7 @@ function answer(method: string, url: string, body?: unknown) {
       };
     }
     if (method === 'GET' && type && type !== 'groups') {
+      listRequests.push(type);
       return { data: { ...empty, result: [objectOf(type)], resultCount: 1 } };
     }
   }
@@ -288,6 +294,10 @@ describe('a full export of a realm that lists every known agent type', () => {
     }
     // an object that is under two keys, or none, is named with the keys it is under
     expect(wrong).toEqual({});
+  });
+
+  test('every type is read once: by its module, or by the generic agent code, never by both', () => {
+    expect([...listRequests].sort()).toEqual([...types].sort());
   });
 
   test('the generic agent section holds the generic types only', () => {
