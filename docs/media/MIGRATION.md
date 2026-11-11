@@ -171,8 +171,49 @@ releases missed):
   capability that takes it as its last parameter is rejected as an unknown
   argument. A host that calls the runtime in process and puts a function at the
   position of the callback keeps it.
+- `frodo.oauth2oidc.issuer.deleteOAuth2TrustedJwtIssuer`
+  (`src/ops/OAuth2TrustedJwtIssuerOps.ts`) now rejects with a `FrodoError`
+  that names the realm and the issuer and carries the original error. Before,
+  a failed delete rejected with the raw request error, because the call was not
+  awaited inside its `try`. A caller that reads `error.response` of the
+  rejection reads `error.httpStatus` (or `error.originalErrors[0].response`)
+  now; `isNotFoundError` accepts both. The nested errors of a failed
+  `deleteOAuth2TrustedJwtIssuers` are `FrodoError`s that name the issuer in the
+  same way.
+- `frodo.config.importFullConfiguration` writes a trusted JWT issuer once. An
+  issuer that an export holds under both `realm.<realm>.agent` and
+  `realm.<realm>.trustedJwtIssuer` (every export of a full configuration since
+  4.0.0) used to be written twice, the second write winning, and a failure was
+  reported twice. It is now written once from the `trustedJwtIssuer` copy, and
+  an issuer that only the `agent` section holds is written through the issuer
+  module. Nothing is lost: an export of any earlier layout (issuers under
+  `agent`, under `trustedJwtIssuer`, or under both) still imports completely.
+  If the two copies differ, the `trustedJwtIssuer` copy is the one that is
+  imported, as it was in effect before; an edit made only to the `agent` copy
+  is ignored. The Agents step of the import is skipped when the `agent` section
+  held nothing but issuers.
+- `frodo.oauth2oidc.issuer.importOAuth2TrustedJwtIssuer`,
+  `importFirstOAuth2TrustedJwtIssuer` and `importOAuth2TrustedJwtIssuers` also
+  read the trusted JWT issuers of the `agent` section of the import data, so an
+  `agent export` file of the 4.x line that holds issuers imports through the
+  module (the copy in the `trustedJwtIssuer` section wins if both have the same
+  id). Their `importData` type is now `OAuth2TrustedJwtIssuerImportData`.
+- The functions of `frodo.oauth2oidc.issuer` no longer modify the objects they
+  are given. The imports used to delete `_provider` and `_rev` from the issuer
+  objects in the `importData` of the caller, `updateOAuth2TrustedJwtIssuer` and
+  `putOAuth2TrustedJwtIssuer` (api layer) from the object they wrote, and the
+  retry after "Invalid attribute specified." from its attributes; they work on
+  copies now. That retry also names every attribute it removes in a warning
+  (it used to say so only in verbose or debug mode), and it no longer takes the
+  elements of an array (`allowedSubjects`) for attributes.
 
 **Deprecation**:
+
+The `options` parameter of the export and import functions of
+`frodo.oauth2oidc.issuer` (`OAuth2TrustedJwtIssuerExportOptions` and
+`OAuth2TrustedJwtIssuerImportOptions`) is **deprecated** since 5.0.0: the options
+have no effect, a trusted JWT issuer has no scripts. The parameter is kept so
+that no caller breaks and will be removed in the next major version.
 
 The `@rockcarver/frodo-lib/types/<module>` deep-import subpath is
 **deprecated** since 4.12.0: it only resolves under the legacy

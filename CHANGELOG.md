@@ -10,6 +10,17 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-37] - 2026-11-11
+
+### Added
+- Introduced the CIMD profile module, including API and operations for read, create, update, and delete, registered as `frodo.oauth2oidc.cimd`. This module supports bulk export and import with per-item `resultCallback`, and includes a risk review of trust-anchor writes. The API is stable from its first release. (#1037)
+- Added support for trusted JWT issuers with per-item result callbacks on export, import, and delete operations. This feature enhances error handling and process transparency. (#1036)
+
+### Fixed
+- Corrected the handling of promises in `try` blocks across 48 async functions in the operations layer. Previously, unawaited promises could bypass `catch` blocks, leading to raw `AxiosError` instead of `FrodoError`. This fix ensures proper error wrapping and consistent error handling. (#1035)
+- Resolved an issue on Windows where file locks could temporarily fail with `EPERM`. The `withFileLockSync` function now correctly waits for the lock to be available, improving reliability on Windows systems. (#1012)
+- Fixed trusted JWT issuers to avoid input mutation and ensure correct documentation and public types. The module now writes each issuer once during a full import, maintaining compatibility with older file imports. (#1036)
+
 ## [v5.0.0-36] - 2026-11-11
 
 ### Added
@@ -2934,6 +2945,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-37]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-36...v5.0.0-37
 [v5.0.0-36]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-35...v5.0.0-36
 [v5.0.0-35]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-34...v5.0.0-35
 [v5.0.0-33]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-32...v5.0.0-33
