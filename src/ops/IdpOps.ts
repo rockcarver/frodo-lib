@@ -21,7 +21,7 @@ import {
 } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
-import { type ExportMetaData } from './OpsTypes';
+import { type ExportMetaData, type ResultCallback } from './OpsTypes';
 import { readScript, updateScript } from './ScriptOps';
 
 export type Idp = {
@@ -82,10 +82,12 @@ export type Idp = {
   /**
    * Export all social identity providers
    * @param {SocialIdentityProviderExportOptions} options export options
+   * @param {ResultCallback<SocialIdpSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every provider is passed to it as it happens (a failed provider as an error that names it) and a failed provider does not throw: the providers that could be exported are returned. Without it, the failures are collected and thrown as one error after every provider was tried. Failing to read the providers always throws.
    * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
    */
   exportSocialIdentityProviders(
-    options?: SocialIdentityProviderExportOptions
+    options?: SocialIdentityProviderExportOptions,
+    resultCallback?: ResultCallback<SocialIdpSkeleton>
   ): Promise<SocialProviderExportInterface>;
   /**
    * Import social identity provider
@@ -170,9 +172,10 @@ export default (state: State): Idp => {
       options: SocialIdentityProviderExportOptions = {
         deps: true,
         useStringArrays: true,
-      }
+      },
+      resultCallback?: ResultCallback<SocialIdpSkeleton>
     ): Promise<SocialProviderExportInterface> {
-      return exportSocialIdentityProviders({ options, state });
+      return exportSocialIdentityProviders({ options, resultCallback, state });
     },
     async importSocialIdentityProvider(
       providerId: string,
@@ -589,13 +592,18 @@ export async function exportSocialIdentityProvider({
 
 /**
  * Export all providers
+ * Every provider is tried: a provider that cannot be exported does not stop the others.
+ * @param {SocialIdentityProviderExportOptions} options export options
+ * @param {ResultCallback<SocialIdpSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every provider is passed to it as it happens (a failed provider as an error that names it) and a failed provider does not throw: the providers that could be exported are returned. Without it, the failures are collected and thrown as one error after every provider was tried. Failing to read the providers always throws.
  * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
  */
 export async function exportSocialIdentityProviders({
   options = { deps: true, useStringArrays: true },
+  resultCallback = void 0,
   state,
 }: {
   options?: SocialIdentityProviderExportOptions;
+  resultCallback?: ResultCallback<SocialIdpSkeleton>;
   state: State;
 }): Promise<SocialProviderExportInterface> {
   const errors: Error[] = [];
@@ -609,15 +617,16 @@ export async function exportSocialIdentityProviders({
       state,
     });
     for (const idpData of allIdpsData) {
+      let scriptData: ScriptSkeleton;
+      let failure: FrodoError;
       try {
         updateProgressIndicator({
           id: indicatorId,
           message: `Exporting ${getCurrentRealmName(state) + ' realm'} provider ${idpData._id}`,
           state,
         });
-        exportData.idp[idpData._id] = idpData;
         if (options.deps && idpData.transform) {
-          const scriptData = await readScript({
+          scriptData = await readScript({
             scriptId: idpData.transform,
             state,
           });
@@ -626,15 +635,24 @@ export async function exportSocialIdentityProviders({
               scriptData.script as string
             );
           }
-          exportData.script[idpData.transform] = scriptData;
         }
       } catch (error) {
-        errors.push(
-          new FrodoError(
-            `Error exporting ${getCurrentRealmName(state) + ' realm'} provider ${idpData._id}`,
-            error
-          )
+        failure = new FrodoError(
+          `Error exporting ${getCurrentRealmName(state) + ' realm'} provider ${idpData._id}`,
+          error
         );
+      }
+      if (failure) {
+        // a provider without its script is not a complete export of the provider
+        if (resultCallback) {
+          resultCallback(failure, undefined);
+        } else {
+          errors.push(failure);
+        }
+      } else {
+        exportData.idp[idpData._id] = idpData;
+        if (scriptData) exportData.script[idpData.transform] = scriptData;
+        if (resultCallback) resultCallback(undefined, idpData);
       }
     }
     if (errors.length > 0) {

@@ -139,11 +139,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Agent",
     methodName: "importAgents",
-    signature: "importAgents( importData: AgentExportInterface, globalConfig: boolean ): Promise<AgentSkeleton[]>",
+    signature: "importAgents( importData: AgentExportInterface, globalConfig: boolean, resultCallback?: ResultCallback<AgentSkeleton> ): Promise<AgentSkeleton[]>",
     description: "Import agents. The import data is usually read from an agent export file.",
     params: [
       { name: "globalConfig", type: "boolean", description: "true if global agent is the target of the operation, false otherwise. Default: false.", required: true },
       { name: "importData", type: "AgentExportInterface", description: "agent import data.", required: true },
+      { name: "resultCallback", type: "ResultCallback<AgentSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every agent is passed to it as it happens (a failed agent as an error that names the agent and its type) and a failed agent does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.", required: false },
     ],
     returns: "{Promise<AgentSkeleton[]>} The agents that were imported.",
   },
@@ -240,10 +241,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Agent",
     methodName: "importIdentityGatewayAgents",
-    signature: "importIdentityGatewayAgents(importData: AgentExportInterface): Promise<void>",
+    signature: "importIdentityGatewayAgents( importData: AgentExportInterface, resultCallback?: ResultCallback<AgentSkeleton> ): Promise<void>",
     description: "Import identity gateway agents. The import data is usually read from an agent export file.",
     params: [
       { name: "importData", type: "AgentExportInterface", description: "agent import data.", required: true },
+      { name: "resultCallback", type: "ResultCallback<AgentSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every agent is passed to it as it happens (a failed agent as an error that names the agent and its type) and a failed agent does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.", required: false },
     ],
     returns: "",
   },
@@ -339,10 +341,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Agent",
     methodName: "importJavaAgents",
-    signature: "importJavaAgents(importData: AgentExportInterface): Promise<void>",
+    signature: "importJavaAgents( importData: AgentExportInterface, resultCallback?: ResultCallback<AgentSkeleton> ): Promise<void>",
     description: "Import java agents. The import data is usually read from an agent export file.",
     params: [
       { name: "importData", type: "AgentExportInterface", description: "agent import data.", required: true },
+      { name: "resultCallback", type: "ResultCallback<AgentSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every agent is passed to it as it happens (a failed agent as an error that names the agent and its type) and a failed agent does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.", required: false },
     ],
     returns: "",
   },
@@ -438,10 +441,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Agent",
     methodName: "importWebAgents",
-    signature: "importWebAgents(importData: AgentExportInterface): Promise<void>",
+    signature: "importWebAgents( importData: AgentExportInterface, resultCallback?: ResultCallback<AgentSkeleton> ): Promise<void>",
     description: "Import web agents. The import data is usually read from an agent export file.",
     params: [
       { name: "importData", type: "AgentExportInterface", description: "agent import data.", required: true },
+      { name: "resultCallback", type: "ResultCallback<AgentSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every agent is passed to it as it happens (a failed agent as an error that names the agent and its type) and a failed agent does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.", required: false },
     ],
     returns: "",
   },
@@ -543,11 +547,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Agent",
     methodName: "importAIAgents",
-    signature: "importAIAgents( importData: AgentExportInterface, includeAgentIdentity?: boolean ): Promise<void>",
+    signature: "importAIAgents( importData: AgentExportInterface, includeAgentIdentity?: boolean, resultCallback?: ResultCallback<AgentSkeleton> ): Promise<void>",
     description: "Import AI agents. The import data is usually read from an agent export file.",
     params: [
       { name: "importData", type: "AgentExportInterface", description: "agent import data.", required: true },
       { name: "includeAgentIdentity", type: "boolean", description: "whether to import related AI agent identity objects", required: false },
+      { name: "resultCallback", type: "ResultCallback<AgentSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every agent is passed to it as it happens (a failed agent as an error that names the agent and its type) and a failed agent does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.", required: false },
     ],
     returns: "",
   },
@@ -920,9 +925,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Application",
     methodName: "exportApplications",
-    signature: "exportApplications( options?: ApplicationExportOptions ): Promise<ApplicationExportInterface>",
+    signature: "exportApplications( options?: ApplicationExportOptions, resultCallback?: ResultCallback<ApplicationGlossarySkeleton> ): Promise<ApplicationExportInterface>",
     description: "Export all applications. The response can be saved to file as is.",
-    params: [],
+    params: [
+      { name: "options", type: "ApplicationExportOptions", description: "export options", required: false },
+      { name: "resultCallback", type: "ResultCallback<ApplicationGlossarySkeleton>", description: "Optional callback to process individual results. When given, the outcome of every application is passed to it as it happens (a failed application as an error that names it, with the reasons nested) and a failed application does not throw: the applications that could be exported are returned. The dependencies of a failed application that were read before it failed may still be in the export. Without it, the failures are collected and thrown as one error after every application was tried. Failing to read the applications always throws.", required: false },
+    ],
     returns: "{Promise<ApplicationExportInterface>} Promise resolving to an ApplicationExportInterface object.",
   },
   {
@@ -1372,11 +1380,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "CirclesOfTrust",
     methodName: "importCirclesOfTrust",
-    signature: "importCirclesOfTrust( importData: CirclesOfTrustExportInterface, entityProviders?: string[] ): Promise<CircleOfTrustSkeleton[]>",
+    signature: "importCirclesOfTrust( importData: CirclesOfTrustExportInterface, entityProviders?: string[], resultCallback?: ResultCallback<CircleOfTrustSkeleton> ): Promise<CircleOfTrustSkeleton[]>",
     description: "Import all circles of trust",
     params: [
       { name: "entityProviders", type: "string[]", description: "filter by entity providers", required: false },
       { name: "importData", type: "CirclesOfTrustExportInterface", description: "Import data", required: true },
+      { name: "resultCallback", type: "ResultCallback<CircleOfTrustSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every circle of trust that was created or updated is passed to it as it happens (a failed circle of trust as an error that names it) and a failed circle of trust does not throw: the circles of trust that could be imported are returned. A circle of trust that is filtered out or does not need updating is not reported. Without it, the failures are collected and thrown as one error after every circle of trust was tried. Failing to read the entity providers always throws.", required: false },
     ],
     returns: "{Promise<CircleOfTrustSkeleton[]>} a promise resolving to an array of circle of trust objects that were created or updated. Note: If a circle of trust already exists and does not need updating, it is omitted from the response array.",
   },
@@ -2282,10 +2291,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Idp",
     methodName: "exportSocialIdentityProviders",
-    signature: "exportSocialIdentityProviders( options?: SocialIdentityProviderExportOptions ): Promise<SocialProviderExportInterface>",
+    signature: "exportSocialIdentityProviders( options?: SocialIdentityProviderExportOptions, resultCallback?: ResultCallback<SocialIdpSkeleton> ): Promise<SocialProviderExportInterface>",
     description: "Export all social identity providers",
     params: [
       { name: "options", type: "SocialIdentityProviderExportOptions", description: "export options", required: false },
+      { name: "resultCallback", type: "ResultCallback<SocialIdpSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every provider is passed to it as it happens (a failed provider as an error that names it) and a failed provider does not throw: the providers that could be exported are returned. Without it, the failures are collected and thrown as one error after every provider was tried. Failing to read the providers always throws.", required: false },
     ],
     returns: "{Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object",
   },
@@ -3828,10 +3838,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "OAuth2Client",
     methodName: "exportOAuth2Clients",
-    signature: "exportOAuth2Clients( options?: OAuth2ClientExportOptions ): Promise<OAuth2ClientExportInterface>",
+    signature: "exportOAuth2Clients( options?: OAuth2ClientExportOptions, resultCallback?: ResultCallback<OAuth2ClientSkeleton> ): Promise<OAuth2ClientExportInterface>",
     description: "Export all OAuth2 clients",
     params: [
       { name: "options", type: "OAuth2ClientExportOptions", description: "export options", required: false },
+      { name: "resultCallback", type: "ResultCallback<OAuth2ClientSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every client is passed to it as it happens (a failed client as an error that names it) and a failed client does not throw: the clients that could be exported are returned. Without it, the failures are collected and thrown as one error after every client was tried. Failing to read the provider or the clients always throws.", required: false },
     ],
     returns: "{OAuth2ClientExportInterface} export data",
   },
@@ -4922,10 +4933,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Saml2",
     methodName: "exportSaml2Providers",
-    signature: "exportSaml2Providers( options?: Saml2EntitiesExportOptions ): Promise<Saml2ExportInterface>",
+    signature: "exportSaml2Providers( options?: Saml2EntitiesExportOptions, resultCallback?: ResultCallback<Saml2ProviderSkeleton> ): Promise<Saml2ExportInterface>",
     description: "Export all entity providers. The response can be saved to file as is.",
     params: [
       { name: "options", type: "Saml2EntitiesExportOptions", description: "export options", required: false },
+      { name: "resultCallback", type: "ResultCallback<Saml2ProviderSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every provider is passed to it as it happens (a failed provider as an error that names it) and a failed provider does not throw: the providers that could be exported are returned. Without it, the failures are collected and thrown as one error after every provider was tried. Failing to list the providers always throws.", required: false },
     ],
     returns: "{Promise<Saml2ExportInterface>} Promise resolving to a Saml2ExportInterface object.",
   },
@@ -4944,11 +4956,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Saml2",
     methodName: "importSaml2Providers",
-    signature: "importSaml2Providers( importData: Saml2ExportInterface, options?: Saml2EntitiesImportOptions ): Promise<Saml2ProviderSkeleton[]>",
+    signature: "importSaml2Providers( importData: Saml2ExportInterface, options?: Saml2EntitiesImportOptions, resultCallback?: ResultCallback<Saml2ProviderSkeleton> ): Promise<Saml2ProviderSkeleton[]>",
     description: "Import SAML entity providers",
     params: [
       { name: "importData", type: "Saml2ExportInterface", description: "Import data", required: true },
       { name: "options", type: "Saml2EntitiesImportOptions", description: "import options", required: false },
+      { name: "resultCallback", type: "ResultCallback<Saml2ProviderSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every provider is passed to it as it happens (a failed provider as an error that names it) and a failed provider does not throw: the providers that could be imported are returned. Without it, the failures are collected and thrown as one error after every provider was tried.", required: false },
     ],
     returns: "{Promise<Saml2ProviderSkeleton[]>} a promise resolving to an array of provider objects",
   },
@@ -5495,11 +5508,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Service",
     methodName: "importServices",
-    signature: "importServices( importData: ServiceExportInterface, options: ServiceImportOptions ): Promise<AmServiceSkeleton[]>",
+    signature: "importServices( importData: ServiceExportInterface, options: ServiceImportOptions, resultCallback?: ResultCallback<AmServiceSkeleton> ): Promise<AmServiceSkeleton[]>",
     description: "Imports multiple services from the same file. Optionally clean (remove) existing services first",
     params: [
       { name: "importData", type: "ServiceExportInterface", description: "The service configuration export data to import", required: true },
       { name: "options", type: "ServiceImportOptions", description: "Import options", required: true },
+      { name: "resultCallback", type: "ResultCallback<AmServiceSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every service is passed to it as it happens (a failed service as an error that names it) and a failed service does not throw: the services that could be imported are returned. A service of the file that does not belong to the target (another realm, or global when importing into the realm) is not imported and not reported. Without it, the failures are collected and thrown as one error after every service was tried.", required: false },
     ],
     returns: "{Promise<AmServiceSkeleton[]>} A promise resolving to an array of service objects",
   },

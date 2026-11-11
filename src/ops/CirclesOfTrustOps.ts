@@ -18,7 +18,7 @@ import {
 import { getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
-import { type ExportMetaData } from './OpsTypes';
+import { type ExportMetaData, type ResultCallback } from './OpsTypes';
 import { readSaml2EntityIds } from './Saml2Ops';
 
 export type CirclesOfTrust = {
@@ -103,11 +103,13 @@ export type CirclesOfTrust = {
    * Import all circles of trust
    * @param {string[]} entityProviders filter by entity providers
    * @param {CirclesOfTrustExportInterface} importData Import data
+   * @param {ResultCallback<CircleOfTrustSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every circle of trust that was created or updated is passed to it as it happens (a failed circle of trust as an error that names it) and a failed circle of trust does not throw: the circles of trust that could be imported are returned. A circle of trust that is filtered out or does not need updating is not reported. Without it, the failures are collected and thrown as one error after every circle of trust was tried. Failing to read the entity providers always throws.
    * @returns {Promise<CircleOfTrustSkeleton[]>} a promise resolving to an array of circle of trust objects that were created or updated. Note: If a circle of trust already exists and does not need updating, it is omitted from the response array.
    */
   importCirclesOfTrust(
     importData: CirclesOfTrustExportInterface,
-    entityProviders?: string[]
+    entityProviders?: string[],
+    resultCallback?: ResultCallback<CircleOfTrustSkeleton>
   ): Promise<CircleOfTrustSkeleton[]>;
 };
 
@@ -153,9 +155,15 @@ export default (state: State): CirclesOfTrust => {
     },
     async importCirclesOfTrust(
       importData: CirclesOfTrustExportInterface,
-      entityProviders: string[] = []
+      entityProviders: string[] = [],
+      resultCallback?: ResultCallback<CircleOfTrustSkeleton>
     ): Promise<CircleOfTrustSkeleton[]> {
-      return importCirclesOfTrust({ importData, entityProviders, state });
+      return importCirclesOfTrust({
+        importData,
+        entityProviders,
+        resultCallback,
+        state,
+      });
     },
   };
 };
@@ -704,24 +712,32 @@ export async function importFirstCircleOfTrust({
 
 /**
  * Import circles of trust
+ * Every circle of trust is tried: one that cannot be imported does not stop the others.
+ * @param {string[]} entityProviders filter by entity providers
  * @param {CirclesOfTrustExportInterface} importData import data
+ * @param {ResultCallback<CircleOfTrustSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every circle of trust that was created or updated is passed to it as it happens (a failed circle of trust as an error that names it) and a failed circle of trust does not throw: the circles of trust that could be imported are returned. A circle of trust that is filtered out or does not need updating is not reported. Without it, the failures are collected and thrown as one error after every circle of trust was tried. Failing to read the entity providers always throws.
+ * @returns {Promise<CircleOfTrustSkeleton[]>} the circles of trust that were created or updated
  */
 export async function importCirclesOfTrust({
   entityProviders = [],
   importData,
+  resultCallback = void 0,
   state,
 }: {
   entityProviders?: string[];
   importData: CirclesOfTrustExportInterface;
+  resultCallback?: ResultCallback<CircleOfTrustSkeleton>;
   state: State;
 }): Promise<CircleOfTrustSkeleton[]> {
-  const responses = [];
+  const responses: CircleOfTrustSkeleton[] = [];
   const errors = [];
   try {
     entityProviders = entityProviders.map((id) => `${id}|saml2`);
     const validEntityIds = await readSaml2EntityIds({ state });
     const validProviders = validEntityIds.map((id) => `${id}|saml2`);
     for (const cotId of Object.keys(importData.saml.cot)) {
+      let imported: CircleOfTrustSkeleton;
+      let failure: Error;
       try {
         const cotData: CircleOfTrustSkeleton = importData.saml.cot[cotId];
         delete cotData._rev;
@@ -745,7 +761,7 @@ export async function importCirclesOfTrust({
                 cotData,
                 state,
               });
-              responses.push(response);
+              imported = response;
             } catch (createError) {
               if ((createError as FrodoError).httpStatus === 409) {
                 debugMessage({
@@ -778,7 +794,7 @@ export async function importCirclesOfTrust({
                     cotData: existingCot,
                     state,
                   });
-                  responses.push(response);
+                  imported = response;
                 } else {
                   debugMessage({
                     message: `CirclesOfTrustOps.importCirclesOfTrust: No new trusted providers for ${cotId}.`,
@@ -803,7 +819,7 @@ export async function importCirclesOfTrust({
               cotData,
               state,
             });
-            responses.push(response);
+            imported = response;
           } catch (createError) {
             if ((createError as FrodoError).httpStatus === 409) {
               debugMessage({
@@ -836,7 +852,7 @@ export async function importCirclesOfTrust({
                   cotData: existingCot,
                   state,
                 });
-                responses.push(response);
+                imported = response;
               } else {
                 debugMessage({
                   message: `CirclesOfTrustOps.importCirclesOfTrust: No new trusted providers for ${cotId}.`,
@@ -853,7 +869,23 @@ export async function importCirclesOfTrust({
           message: `Error ${error.response?.status} creating/updating ${getCurrentRealmName(state) + ' realm'} circle of trust: ${error.response?.data?.message}`,
           state,
         });
-        errors.push(error);
+        failure = error;
+      }
+      if (failure) {
+        if (resultCallback) {
+          resultCallback(
+            new FrodoError(
+              `Error importing ${getCurrentRealmName(state) + ' realm'} circle of trust ${cotId}`,
+              failure
+            ),
+            undefined
+          );
+        } else {
+          errors.push(failure);
+        }
+      } else if (imported) {
+        responses.push(imported);
+        if (resultCallback) resultCallback(undefined, imported);
       }
     }
     if (errors.length > 0) {
