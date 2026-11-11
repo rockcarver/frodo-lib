@@ -1114,13 +1114,51 @@ function isCausedByInsufficientScope(error: unknown): boolean {
 }
 
 /**
+ * Check if an error is the answer of PingOne Advanced Identity Cloud that an
+ * operation is not available in it (HTTP 403 with a fixed message).
+ * @param {unknown} error the error to inspect
+ * @returns {boolean} true if the error is that answer
+ */
+function isNotAvailableInCloud(error: unknown): boolean {
+  const { httpStatus, httpMessage } = (error ?? {}) as FrodoError;
+  return (
+    httpStatus === 403 &&
+    httpMessage ===
+      'This operation is not available in PingOne Advanced Identity Cloud.'
+  );
+}
+
+/**
+ * Find the request that failed, as `METHOD url`, in an error and the errors nested in it.
+ * @param {unknown} error the error to inspect
+ * @returns {string | undefined} the request, or undefined if no error in the chain carries one
+ */
+export function findFailedRequest(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object') return undefined;
+  const config = (error as { config?: { url?: string; method?: string } })
+    .config;
+  if (config?.url)
+    return `${(config.method ?? 'get').toUpperCase()} ${config.url}`;
+  const originalErrors = (error as FrodoError).originalErrors;
+  if (!Array.isArray(originalErrors)) return undefined;
+  for (const originalError of originalErrors) {
+    const request = findFailedRequest(originalError);
+    if (request) return request;
+  }
+  return undefined;
+}
+
+/**
  * Helper that calls a function expecting a result, and handles that result in the given result callback if it exists.
  * A result that is not null or undefined is passed to the callback as a success, including a falsy one (false, 0 or an empty string); an error is passed to it as a failure.
+ * Two kinds of failure are treated on purpose:
+ * - The answer of PingOne Advanced Identity Cloud that an operation is not available in it (HTTP 403) is neither a success nor a failure: it is not passed to the callback, nothing is thrown and null is returned, so that an export of everything skips what the deployment does not offer. A debug message names the skipped operation and the request.
+ * - A credential that lacks a scope the operation needs (an `InsufficientScopeError` anywhere in the error chain) is a failure like any other: the item could not be processed. The error that is thrown or passed to the callback carries the code `INSUFFICIENT_SCOPE`.
  * @param {ResultCallback<R> | undefined} resultCallback The result callback
  * @param {string} errorMessage The error message to associate with the error if one occurs
  * @param {(...params: any) => Promise<R | null>} func The function to call to get the result
- * @param {any} parameters The parameters for the function
- * @returns {R | null} The result of calling the function, or null if an error occurs that is handled by the resultCallback
+ * @param {any} parameters The parameters for the function. The first one that has a `state` property is the state that debug messages are written to.
+ * @returns {R | null} The result of calling the function, or null if the operation is not available in the cloud or an error occurs that is handled by the resultCallback
  */
 export async function getResult<R>(
   resultCallback: ResultCallback<R> | undefined,
@@ -1136,18 +1174,30 @@ export async function getResult<R>(
     }
     return result;
   } catch (error) {
-    if (!(
-      // operation is not available in PingOne Advanced Identity Cloud
-      (error.httpStatus === 403 &&
-        error.httpMessage ===
-          'This operation is not available in PingOne Advanced Identity Cloud.') ||
-      // tenant supports the feature, but this credential lacks the scope
-      // for it -- treat the same as "not available" for a best-effort,
-      // export-everything style caller rather than failing the whole export
-      isCausedByInsufficientScope(error)
-    )) {
+    if (isNotAvailableInCloud(error)) {
+      const state = (parameters as { state?: State }[]).find(
+        (parameter) => typeof parameter?.state?.getDebugHandler === 'function'
+      )?.state;
+      if (state) {
+        const operation =
+          [func.name, errorMessage && `(${errorMessage})`]
+            .filter(Boolean)
+            .join(' ') || 'an operation';
+        const request = findFailedRequest(error);
+        debugMessage({
+          message: `ExportImportUtils.getResult: skipped ${operation}, it is not available in PingOne Advanced Identity Cloud${request ? ` [${request}]` : ''}`,
+          state,
+        });
+      }
+    } else {
       const finalError = errorMessage
-        ? new FrodoError(errorMessage, error)
+        ? new FrodoError(
+            errorMessage,
+            error,
+            isCausedByInsufficientScope(error)
+              ? 'INSUFFICIENT_SCOPE'
+              : undefined
+          )
         : error;
       if (resultCallback) {
         resultCallback(finalError, undefined);

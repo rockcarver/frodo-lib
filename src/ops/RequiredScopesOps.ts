@@ -52,7 +52,9 @@ export function resolveAvailableScope({
 
   if (unavailable.length > 0) {
     throw new InsufficientScopeError(
-      `This operation requires scope(s) [${unavailable.join(', ')}], which cloud browser-login mode cannot obtain. AICMCPExchangeClient (the client browser-mode exchanges AM-domain tokens through) only allows: ${Constants.CLOUD_BROWSER_MODE_AVAILABLE_SCOPES.join(', ')}. Use a non-browser auth mode for this operation, or wait for a widened/dedicated exchange client.`
+      `This operation requires scope(s) [${unavailable.join(', ')}], which cloud browser-login mode cannot obtain. AICMCPExchangeClient (the client browser-mode exchanges AM-domain tokens through) only allows: ${Constants.CLOUD_BROWSER_MODE_AVAILABLE_SCOPES.join(', ')}. Use a non-browser auth mode for this operation, or wait for a widened/dedicated exchange client.`,
+      null,
+      'INSUFFICIENT_SCOPE'
     );
   }
 
@@ -126,7 +128,9 @@ export function assertHasRequiredScope({
     throw new InsufficientScopeError(
       `This operation requires scope(s) [${missing.join(', ')}], which the current session's token does not carry (granted: [${
         granted.join(', ') || 'none'
-      }]). Re-authenticate with a credential granted the required scope to continue.`
+      }]). Re-authenticate with a credential granted the required scope to continue.`,
+      null,
+      'INSUFFICIENT_SCOPE'
     );
   }
 }

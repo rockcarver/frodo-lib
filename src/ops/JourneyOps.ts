@@ -242,10 +242,14 @@ export type Journey = {
    * Import journeys
    * @param {MultiTreeExportInterface} importData map of trees object
    * @param {TreeImportOptions} options import options
-   * @param {ResultCallback} resultCallback Optional callback to process individual results
-   * @remarks The complete batch is validated before reading installed journeys or
+   * @param {ResultCallback} resultCallback Optional callback to process individual results. When given, the outcome of every journey is passed to it as it happens (the journey, or an error that names the journey) and a failed journey does not throw. Without it, a validation error or a missing dependency rejects the batch before anything is written, and a journey that cannot be written throws. Failing to list the installed journeys always throws.
+   * @returns {Promise<TreeSkeleton[]>} a promise that resolves to the journeys that were imported
+   * @remarks Without a result callback the complete batch is validated before reading installed journeys or
    * writing any journey. If validation fails, the batch is rejected without
-   * partially importing valid journeys.
+   * partially importing valid journeys. With a result callback every journey is an item of its own:
+   * a journey that has validation errors, a journey that needs a journey that is neither installed nor in the import data,
+   * and a journey that needs a journey of the batch that failed are reported to the callback as failed and are not written;
+   * every other journey is imported.
    */
   importJourneys(
     importData: MultiTreeExportInterface,
@@ -723,10 +727,14 @@ export function reportJourneyExportFindings(
   });
 }
 
-function assertNoJourneyErrors(
+/**
+ * The error for the findings of severity error among the findings that were given, naming the journeys they are about.
+ * @returns {FrodoError | undefined} the error, or undefined if there is no finding of severity error
+ */
+function createJourneyValidationError(
   findings: JourneyValidationFinding[],
   state: State
-): void {
+): FrodoError | undefined {
   const errors = findings.filter((finding) => finding.severity === 'error');
   if (errors.length > 0) {
     const journeyIds = [...new Set(errors.map((finding) => finding.journeyId))];
@@ -734,7 +742,7 @@ function assertNoJourneyErrors(
       journeyIds.length === 1
         ? `journey '${journeyIds[0]}'`
         : `journeys ${journeyIds.map((journeyId) => `'${journeyId}'`).join(', ')}`;
-    throw new FrodoError(
+    return new FrodoError(
       `Error importing ${getCurrentRealmName(state) + ' realm'} ${journeyLabel}:\n${errors
         .map(
           (finding) =>
@@ -743,6 +751,15 @@ function assertNoJourneyErrors(
         .join('\n')}`
     );
   }
+  return undefined;
+}
+
+function assertNoJourneyErrors(
+  findings: JourneyValidationFinding[],
+  state: State
+): void {
+  const error = createJourneyValidationError(findings, state);
+  if (error) throw error;
 }
 
 const scriptedNodesConditions = {
@@ -3067,6 +3084,22 @@ export async function resolveInnerTreeDependencies({
 }
 
 /**
+ * Get the journeys that a journey needs: the ones its inner journey nodes (and back channel initialization nodes) refer to.
+ * @param {SingleTreeExportInterface} journey the export of the journey
+ * @returns {string[]} the names of the journeys the journey needs, in the order of its nodes
+ */
+function getJourneyDependencies(journey: SingleTreeExportInterface): string[] {
+  const dependencies: string[] = [];
+  for (const node in journey.nodes) {
+    const dependency = getTreeDependencyId({ nodeConfig: journey.nodes[node] });
+    if (dependency) {
+      dependencies.push(dependency);
+    }
+  }
+  return dependencies;
+}
+
+/**
  * Resolve journey dependencies
  * @param {string[]} installedJorneys Map of installed journeys
  * @param {Record<string, SingleTreeExportInterface>} journeyMap Map of journeys to resolve dependencies for
@@ -3088,15 +3121,7 @@ export async function resolveDependencies(
 
   for (const tree in journeyMap) {
     if ({}.hasOwnProperty.call(journeyMap, tree)) {
-      const dependencies = [];
-      for (const node in journeyMap[tree].nodes) {
-        const dependency = getTreeDependencyId({
-          nodeConfig: journeyMap[tree].nodes[node],
-        });
-        if (dependency) {
-          dependencies.push(dependency);
-        }
-      }
+      const dependencies = getJourneyDependencies(journeyMap[tree]);
       let allResolved = true;
       for (const dependency of dependencies) {
         if (
@@ -3142,12 +3167,21 @@ export async function resolveDependencies(
 }
 
 /**
- * Import journeys. The complete batch is validated before reading installed
- * journeys or writing any journey, so a validation error rejects the batch
- * without partially importing valid journeys.
+ * Import journeys, in the order of their dependencies.
+ *
+ * Without a result callback the complete batch is validated and its dependencies are resolved before any journey
+ * is written, so an invalid journey or a missing dependency rejects the batch without partially importing valid
+ * journeys, and a journey that cannot be written ends the import with an error.
+ *
+ * With a result callback every journey is an item of its own and the outcome of every one is passed to the callback
+ * as it happens: the journey as imported, or an error that names the journey. A journey that has validation errors, a
+ * journey that needs a journey that is neither installed nor importable from the import data, and a journey that needs
+ * a journey of the batch that failed (for any of these reasons or because it could not be written) fail without being
+ * written, and every other journey is imported. Warnings are reported as without a callback.
  * @param {MultiTreeExportInterface} importData map of trees object
  * @param {TreeImportOptions} options import options
- * @param {ResultCallback} resultCallback Optional callback to process individual results
+ * @param {ResultCallback} resultCallback Optional callback to process individual results. When given, the outcome of every journey is passed to it as it happens (the journey, or an error that names the journey) and a failed journey does not throw. Without it, a validation error or a missing dependency rejects the batch before anything is written, and a journey that cannot be written throws. Failing to list the installed journeys always throws.
+ * @returns {Promise<TreeSkeleton[]>} a promise that resolves to the journeys that were imported
  */
 export async function importJourneys({
   importData,
@@ -3161,13 +3195,34 @@ export async function importJourneys({
   state: State;
 }): Promise<TreeSkeleton[]> {
   const response = [];
+  // with a result callback: the journeys that are not imported, by name, with the error that names them
+  const blockedJourneys = new Map<string, FrodoError>();
   if (options.validate !== false) {
     const validationFindings = validateJourneysExport(importData);
     reportJourneyFindings(
       validationFindings.filter((finding) => finding.severity === 'warning'),
       state
     );
-    assertNoJourneyErrors(validationFindings, state);
+    if (resultCallback) {
+      // each journey on its own, so that the findings are those of its key in the import data
+      for (const [journeyId, journey] of Object.entries(importData.trees)) {
+        const validationError = createJourneyValidationError(
+          validateJourneysExport({ trees: { [journeyId]: journey } }),
+          state
+        );
+        if (validationError) {
+          blockedJourneys.set(
+            journeyId,
+            new FrodoError(
+              `Error importing the ${getCurrentRealmName(state) + ' realm'} journey ${journeyId}`,
+              validationError
+            )
+          );
+        }
+      }
+    } else {
+      assertNoJourneyErrors(validationFindings, state);
+    }
   }
 
   const installedJourneys = (await readJourneys({ state })).map((x) => x._id);
@@ -3204,22 +3259,71 @@ export async function importJourneys({
       status: 'fail',
       state,
     });
-    const message: string[] = [
-      `${
-        Object.keys(unresolvedJourneys).length
-      } ${getCurrentRealmName(state) + ' realm'} journeys with unresolved dependencies:`,
-    ];
-    for (const journey of Object.keys(unresolvedJourneys)) {
-      message.push(`  - ${journey} requires ${unresolvedJourneys[journey]}`);
+    if (!resultCallback) {
+      const message: string[] = [
+        `${
+          Object.keys(unresolvedJourneys).length
+        } ${getCurrentRealmName(state) + ' realm'} journeys with unresolved dependencies:`,
+      ];
+      for (const journey of Object.keys(unresolvedJourneys)) {
+        message.push(`  - ${journey} requires ${unresolvedJourneys[journey]}`);
+      }
+      throw new FrodoError(message.join('\n'));
     }
-    throw new FrodoError(message.join('\n'));
+    for (const journey of Object.keys(unresolvedJourneys)) {
+      // a journey with validation errors is reported for those
+      if (blockedJourneys.has(journey)) continue;
+      const missing = unresolvedJourneys[journey].filter(
+        (dependency) =>
+          !installedJourneys.includes(dependency) &&
+          !resolvedJourneys.includes(dependency)
+      );
+      blockedJourneys.set(
+        journey,
+        new FrodoError(
+          `Error importing the ${getCurrentRealmName(state) + ' realm'} journey ${journey}`,
+          new FrodoError(
+            `Journey ${journey} requires ${missing.join(', ')}, which ${missing.length === 1 ? 'is' : 'are'} not installed and cannot be imported from the import data`
+          )
+        )
+      );
+    }
+  }
+  // the journeys that are known before anything is written to be unfit are reported first, in the order of the import data
+  if (resultCallback) {
+    for (const journey of Object.keys(importData.trees)) {
+      if (blockedJourneys.has(journey)) {
+        resultCallback(blockedJourneys.get(journey), undefined);
+      }
+    }
   }
   indicatorId = createProgressIndicator({
     total: resolvedJourneys.length,
     message: `Importing into ${getCurrentRealmName(state) + ' realm'}`,
     state,
   });
+  // the journeys that did not get imported: a journey that needs one of them is not imported either
+  const failedJourneys = new Set(blockedJourneys.keys());
   for (const tree of resolvedJourneys) {
+    if (blockedJourneys.has(tree)) continue;
+    if (resultCallback) {
+      const failedDependencies = getJourneyDependencies(
+        importData.trees[tree]
+      ).filter((dependency) => failedJourneys.has(dependency));
+      if (failedDependencies.length > 0) {
+        failedJourneys.add(tree);
+        resultCallback(
+          new FrodoError(
+            `Error importing the ${getCurrentRealmName(state) + ' realm'} journey ${tree}`,
+            new FrodoError(
+              `Journey ${tree} requires ${failedDependencies.join(', ')}, which could not be imported`
+            )
+          ),
+          undefined
+        );
+        continue;
+      }
+    }
     const result = await getResult(
       resultCallback,
       `Error importing the ${getCurrentRealmName(state) + ' realm'} journey ${tree}`,
@@ -3233,6 +3337,8 @@ export async function importJourneys({
     if (result) {
       response.push(result);
       updateProgressIndicator({ id: indicatorId, message: `${tree}`, state });
+    } else {
+      failedJourneys.add(tree);
     }
   }
   stopProgressIndicator({
