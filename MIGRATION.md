@@ -229,6 +229,33 @@ releases missed):
   as long as before and leaves the rest to a running tail. The types of the
   results of `tail` and `fetch` are now `LogEventsPage`
   (`PagedResult<LogEventSkeleton>` plus the optional `rateLimit`).
+- `frodo.agent.readAgentTypes`, `readAgents`, `readAgent`, `exportAgents`,
+  `exportAgent`, `deleteAgents` and `deleteAgent` (`src/ops/AgentOps.ts`, realm
+  level) no longer list, return, export, delete or find agents of the type
+  `CIMDProfile`. CIMD profiles have their own module, `frodo.oauth2oidc.cimd`
+  (`readCIMDProfiles`, `exportCIMDProfiles`, `deleteCIMDProfiles`,
+  `importCIMDProfiles` and the functions for a single profile). Before, every
+  CIMD profile of a realm that offers the type was part of those results,
+  because the generic functions handle every agent type that the realm lists
+  except the ones that have a module of their own (`OAuth2Client`, now
+  `CIMDProfile` too; the list is `AGENT_TYPES_WITH_OWN_MODULE` in
+  `src/ops/AgentOps.ts`). `readAgent(id)` of a profile now fails with "not
+  found", and `deleteAgents` no longer deletes profiles. `readAgentByTypeAndId`,
+  `importAgent` and `importAgents` still accept the type. frodo-cli's `agent
+  list`, `agent describe`, `agent export` and `agent delete -a` are built on
+  these functions: they stop carrying CIMD profiles when the CLI moves to a
+  library version with this change, which it does together with its own
+  commands for the type and its own migration entry.
+- `frodo.config.exportFullConfiguration` writes CIMD profiles to
+  `realm.<realm>.cimdProfile` instead of `realm.<realm>.agent`, and leaves the
+  key out for a realm that has no profile or does not offer the type, so an
+  export of such a realm is unchanged. `importFullConfiguration` imports both
+  layouts and writes each profile once, through the CIMD module, as the last
+  step of the realm: an export made by an earlier version, with the profiles in
+  the `agent` section, imports completely (if both sections hold a profile with
+  the same id, the `cimdProfile` copy is the one written). A realm that does
+  not offer the type skips the profiles with one warning. An export made by this version is not read by an earlier version,
+  which does not know the key and skips the profiles without a message.
 
 **Deprecation**:
 

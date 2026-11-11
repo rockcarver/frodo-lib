@@ -13,6 +13,7 @@ import { SecretSkeleton } from '../api/cloud/SecretsApi';
 import { TelemetryExporters } from '../api/cloud/TelemetryApi';
 import { VariableSkeleton } from '../api/cloud/VariablesApi';
 import { CustomNodeSkeleton } from '../api/NodeApi';
+import { CIMDProfileSkeleton } from '../api/OAuth2CIMDProfileApi';
 import { OAuth2ClientSkeleton } from '../api/OAuth2ClientApi';
 import { OAuth2TrustedJwtIssuerSkeleton } from '../api/OAuth2TrustedJwtIssuerApi';
 import { PolicySkeleton } from '../api/PoliciesApi';
@@ -125,6 +126,7 @@ import {
   SyncSkeleton,
 } from './MappingOps';
 import { exportCustomNodes, importCustomNodes } from './NodeOps';
+import { exportCIMDProfiles, importCIMDProfiles } from './OAuth2CIMDProfileOps';
 import { exportOAuth2Clients, importOAuth2Clients } from './OAuth2ClientOps';
 import {
   exportOAuth2TrustedJwtIssuers,
@@ -282,10 +284,11 @@ export interface FullExportOptions {
    *
    * Dynamic configuration is what changes at run time in the environment where
    * it is made and is not promoted: servers, sites, agents and agent groups,
-   * OAuth2 clients, trusted JWT issuers, SAML providers and circles of trust,
-   * policies, policy sets, resource types, managed applications, internal roles,
-   * ESV secrets and variables, telemetry, and the IGA objects (certification
-   * templates, events, glossary schemas, request forms and types, workflows).
+   * OAuth2 clients, trusted JWT issuers, CIMD profiles, SAML providers and
+   * circles of trust, policies, policy sets, resource types, managed
+   * applications, internal roles, ESV secrets and variables, telemetry, and the
+   * IGA objects (certification templates, events, glossary schemas, request
+   * forms and types, workflows).
    */
   includeDynamic?: boolean;
 }
@@ -350,10 +353,11 @@ export interface FullImportOptions {
    *
    * Dynamic configuration is what changes at run time in the environment where
    * it is made and is not promoted: servers, sites, agents and agent groups,
-   * OAuth2 clients, trusted JWT issuers, SAML providers and circles of trust,
-   * policies, policy sets, resource types, managed applications, internal roles,
-   * ESV secrets and variables, telemetry, and the IGA objects (certification
-   * templates, events, glossary schemas, request forms and types, workflows).
+   * OAuth2 clients, trusted JWT issuers, CIMD profiles, SAML providers and
+   * circles of trust, policies, policy sets, resource types, managed
+   * applications, internal roles, ESV secrets and variables, telemetry, and the
+   * IGA objects (certification templates, events, glossary schemas, request
+   * forms and types, workflows).
    */
   includeDynamic?: boolean;
 }
@@ -396,6 +400,11 @@ export interface FullRealmExportInterface extends AmConfigEntitiesInterface {
   agent: Record<string, AgentSkeleton> | undefined;
   application: Record<string, OAuth2ClientSkeleton> | undefined;
   authentication: AuthenticationSettingsSkeleton | undefined;
+  /**
+   * The CIMD profiles of the realm, keyed by id. The key is left out when the
+   * realm has none, or does not offer the type.
+   */
+  cimdProfile?: Record<string, CIMDProfileSkeleton>;
   idp: Record<string, SocialIdpSkeleton> | undefined;
   managedApplication: Record<string, ApplicationGlossarySkeleton> | undefined;
   policy: Record<string, PolicySkeleton> | undefined;
@@ -845,6 +854,19 @@ export async function exportFullConfiguration({
         } else {
           saml = cotExport?.saml;
         }
+        // CIMD profiles have a module and an export key of their own, so the
+        // generic agent export above does not carry them. The key is left out
+        // when the realm has none or does not offer the type, which keeps
+        // every export of a realm without profiles as it always was.
+        const cimdProfile = (
+          await exportWithErrorHandling(
+            exportCIMDProfiles,
+            stateObj,
+            'CIMD Profiles',
+            resultCallback,
+            requestable && includeDynamic
+          )
+        )?.cimdProfile;
         realmConfig[realm] = {
           agentGroup: (
             await exportWithErrorHandling(
@@ -1015,6 +1037,9 @@ export async function exportFullConfiguration({
               requestable && includeDynamic
             )
           )?.trustedJwtIssuer,
+          ...(cimdProfile && Object.keys(cimdProfile).length > 0
+            ? { cimdProfile }
+            : {}),
           ...config?.realm[realm],
         };
         //Clean up realm duplicates
@@ -1450,10 +1475,14 @@ export async function importFullConfiguration({
   try {
     for (const realm of Object.keys(importData.realm)) {
       state.setRealm(getRealmUsingExportFormat(realm));
-      // An object that a module owns (a trusted JWT issuer) is written once,
-      // by its module, whichever section of the file holds it. An export of
-      // 4.0.0 and later holds each issuer under `agent` and under
-      // `trustedJwtIssuer`; an `agent` export of the 4.x line only under `agent`.
+      // An object that a module owns (a trusted JWT issuer, a CIMD profile) is
+      // written once, by its module, whichever section of the file holds it.
+      // An export of 4.0.0 and later holds each issuer under `agent` and under
+      // `trustedJwtIssuer`; an `agent` export of the 4.x line only under
+      // `agent`. A CIMD profile that an export made before the module existed
+      // holds under `agent` is written by the module as well, so a deployment
+      // that does not offer the type is told once, in the same words as for
+      // the `cimdProfile` section.
       const routing = routeAgentSection(importData.realm[realm]);
       for (const { id, key } of routing.skipped) {
         debugMessage({
@@ -1462,7 +1491,7 @@ export async function importFullConfiguration({
         });
       }
       indicatorId = createProgressIndicator({
-        total: 17,
+        total: 18,
         message: `Importing everything for ${realm} realm...`,
         state,
       });
@@ -1718,6 +1747,24 @@ export async function importFullConfiguration({
           'Authentication Settings',
           resultCallback,
           includeStatic && !!importData.realm[realm].authentication
+        )
+      );
+      // Last: a profile names scripts, journeys and policy sets of the realm
+      // and the server refuses to write one that names a missing script or
+      // journey.
+      response.push(
+        await importWithErrorHandling(
+          importCIMDProfiles,
+          {
+            importData: { cimdProfile: routing.routed.cimdProfile },
+            // only a callback of the caller makes the profiles items of their own, as for the journeys
+            resultCallback: resultCallback ? errorCallback : undefined,
+            state,
+          },
+          indicatorId,
+          'CIMD Profiles',
+          resultCallback,
+          includeDynamic && !!routing.routed.cimdProfile
         )
       );
       stopProgressIndicator({

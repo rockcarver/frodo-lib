@@ -180,10 +180,14 @@ describe('unfiltered type list', () => {
     await expect(
       isAgentTypeOffered({ agentType: 'OAuth2Client', state })
     ).resolves.toBe(true);
+    await expect(
+      isAgentTypeOffered({ agentType: 'CIMDProfile', state })
+    ).resolves.toBe(true);
     const types = await readAgentTypes({ state });
     expect(types).not.toContain('OAuth2Client');
+    expect(types).not.toContain('CIMDProfile');
     expect(types).toEqual(
-      expect.arrayContaining(['CIMDProfile', 'WebAgent', 'TrustedJwtIssuer'])
+      expect.arrayContaining(['WebAgent', 'TrustedJwtIssuer'])
     );
     expect(getAgentTypes).toHaveBeenCalledTimes(1);
   });
