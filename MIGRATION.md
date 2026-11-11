@@ -134,6 +134,11 @@ releases missed):
   that could be deleted by the time it rejects. The message of the error from
   `exportServers` for a failed server is now `Error exporting servers`; it was
   `Error reading servers`.
+- `frodo.idm.connector.readConnectors`, `exportConnectors` and
+  `deleteConnectors` now leave out configurations whose id does not start with
+  `provisioner.openicf/`, such as `provisioner.openicf.connectorinfoprovider`.
+  Before, an export held that configuration under the key "undefined" and
+  `deleteConnectors` deleted it (#973).
 
 **Deprecation**:
 
