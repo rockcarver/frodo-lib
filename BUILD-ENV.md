@@ -153,6 +153,20 @@ node` (node10), which TypeScript 6 deprecates and 7 removes. Consumers
 - `@peculiar/x509` requires `reflect-metadata` imported first (tsyringe) —
   test suites that build certificates import it explicitly.
 - Full suite: 153 suites / 2,404 tests / 888 snapshots (~3 min) after the v5 deprecation-removal sweep — counts drift with API surface, so treat them as indicative.
+- Keep-alive and a proxy for an HTTP target (2026-11, #985): outbound
+  connections are kept alive (`FRODO_NO_KEEPALIVE=1` turns that off), with one
+  exception. A request for an `http:` target that goes through a proxy opens
+  its own connection to the proxy. `http-proxy-agent` (under `proxy-agent`)
+  puts the absolute URL into the request line and the credentials into
+  `Proxy-Authorization` when it opens a connection and not when a request
+  reuses one, so the second request on a kept-alive connection reached the
+  proxy as `GET /path` without credentials and was answered with 400 or 407
+  (still so in `http-proxy-agent` 9). `getHttpAgent()` in `src/api/BaseApi.ts`
+  therefore turns keep-alive off for the agents `proxy-agent` makes for
+  proxies and keeps it for the agent that serves requests which go straight to
+  their target (no proxy variable, or a host in `NO_PROXY`). An `https:` target
+  is not affected: the proxy only carries the bytes of a CONNECT tunnel, and the
+  tunnel is reused as a whole. `src/api/BaseApi.proxy.test.ts` pins both.
 - Proxy support (2026-11, #982): every request goes through `proxy-agent`
   (`getHttpAgent()` / `getHttpsAgent()` in `src/api/BaseApi.ts`), which reads
   `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY` and `NO_PROXY` (lower case first)

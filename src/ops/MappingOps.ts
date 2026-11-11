@@ -129,14 +129,17 @@ export type Mapping = {
     options?: MappingImportOptions
   ): Promise<MappingSkeleton>;
   /**
-   * Import all mappings
+   * Import all mappings. Every mapping is tried: a mapping that cannot be imported does not stop the others.
    * @param {MappingExportInterface} importData import data
    * @param {MappingImportOptions} options import options
+   * @param {ResultCallback<MappingSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every mapping is passed to it as it happens (a failed mapping as an error that names the mapping and carries the cause) and a failed mapping does not throw: the mappings that were imported are returned. Without it, the failures are collected and thrown as one error after every mapping was tried.
    * @returns {Promise<MappingSkeleton[]>} a promise resolving to an array of MappingSkeleton objects
+   * @throws {FrodoError} If one or more mappings cannot be imported and there is no result callback. The error carries one nested error per failed mapping.
    */
   importMappings(
     importData: MappingExportInterface,
-    options?: MappingImportOptions
+    options?: MappingImportOptions,
+    resultCallback?: ResultCallback<MappingSkeleton>
   ): Promise<MappingSkeleton[]>;
   /**
    * Helper that returns a boolean indicating whether the mapping is a legacy mapping or not given the id
@@ -228,9 +231,10 @@ export default (state: State): Mapping => {
     },
     async importMappings(
       importData: MappingExportInterface,
-      options?: MappingImportOptions
+      options?: MappingImportOptions,
+      resultCallback: ResultCallback<MappingSkeleton> = undefined
     ): Promise<MappingSkeleton[]> {
-      return importMappings({ importData, options, state });
+      return importMappings({ importData, options, resultCallback, state });
     },
     isLegacyMapping,
   };
@@ -1158,18 +1162,22 @@ export async function importFirstMapping({
 }
 
 /**
- * Import all mappings
+ * Import all mappings. Every mapping is tried: a mapping that cannot be imported does not stop the others.
  * @param {MappingExportInterface} importData import data
  * @param {MappingImportOptions} options import options
+ * @param {ResultCallback<MappingSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every mapping is passed to it as it happens (a failed mapping as an error that names the mapping and carries the cause) and a failed mapping does not throw: the mappings that were imported are returned. Without it, the failures are collected and thrown as one error after every mapping was tried.
  * @returns {Promise<MappingSkeleton[]>} a promise resolving to an array of MappingSkeleton objects
+ * @throws {FrodoError} If one or more mappings cannot be imported and there is no result callback. The error carries one nested error per failed mapping.
  */
 export async function importMappings({
   importData,
   options = { deps: true },
+  resultCallback = undefined,
   state,
 }: {
   importData: MappingExportInterface;
   options?: MappingImportOptions;
+  resultCallback?: ResultCallback<MappingSkeleton>;
   state: State;
 }): Promise<MappingSkeleton[]> {
   const response = [];
@@ -1181,20 +1189,38 @@ export async function importMappings({
   if (importData.sync && Array.isArray(importData.sync.mappings)) {
     mappings = mappings.concat(importData.sync.mappings);
   }
-  for (const mappingData of mappings) {
+  for (const [index, mappingData] of mappings.entries()) {
+    let imported: MappingSkeleton;
+    let failed = false;
+    let failure: unknown;
     try {
       if (options.deps) {
         // TODO
       }
-      response.push(
-        await updateMapping({
-          mappingId: mappingData._id,
-          mappingData,
-          state,
-        })
-      );
+      imported = await updateMapping({
+        mappingId: mappingData._id,
+        mappingData,
+        state,
+      });
     } catch (error) {
-      errors.push(error);
+      failed = true;
+      failure = error;
+    }
+    // the callback is called outside the try: an exception of the callback must
+    // not be taken for a failed import and reported a second time
+    if (!failed) {
+      response.push(imported);
+      if (resultCallback) resultCallback(undefined, imported);
+    } else if (resultCallback) {
+      // a mapping without an id is named by its name, or else by its position
+      const label =
+        mappingData?._id ?? mappingData?.name ?? `at position ${index + 1}`;
+      resultCallback(
+        new FrodoError(`Error importing mapping ${label}`, failure as Error),
+        undefined
+      );
+    } else {
+      errors.push(failure);
     }
   }
   if (errors.length > 0) {
