@@ -375,7 +375,7 @@ function buildCanonicalTools(): McpCanonicalTool[] {
     {
       toolName: DISPATCH_READ_ONLY_TOOL_NAME,
       description:
-        'Execute a read-only skill (count/read/list/search). Prefer the exact tool name and arguments returned as recommendedDispatch by frodo_find_skills.',
+        'Execute a read-only skill (count/read/list/search). Prefer the exact tool name and arguments returned as recommendedDispatch by frodo_find_skills. If the result has partial: true, some items failed: data holds the rest and itemResults.failures says why.',
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -386,7 +386,7 @@ function buildCanonicalTools(): McpCanonicalTool[] {
     {
       toolName: DISPATCH_TOOL_NAME,
       description:
-        'Execute a mutating skill (create/update/delete/import/export/special) by skill id or by operation/domain/objectType selector.',
+        'Execute a mutating skill (create/update/delete/import/export/special) by skill id or by operation/domain/objectType selector. If the result has partial: true, some items failed: data holds the rest and itemResults.failures says why.',
       annotations: {
         readOnlyHint: false,
         destructiveHint: true,

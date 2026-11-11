@@ -21,6 +21,7 @@ import type { BrowserLoginPromptHandler } from '../ops/BrowserAuthenticateOps';
 import { determineCallerTrustTier } from '../ops/CallerTrustTierOps';
 import { FrodoError } from '../ops/FrodoError';
 import { StateInterface } from '../shared/State';
+import { findResultCallbackPosition } from './CapabilityRegistry';
 import {
   describeCapabilityRouting,
   McpCapabilityRoutingStatus,
@@ -34,6 +35,12 @@ import {
   McpDeploymentType,
 } from './CapabilityTypes';
 import { resolveDocsContext } from './DocsContext';
+import {
+  createResultCollector,
+  McpItemResults,
+  McpResultCollector,
+  placeResultCallback,
+} from './ResultCollector';
 import { matchSemanticIdentifiers } from './SemanticIdentifiers';
 import {
   descriptorPatternsSupportFamily,
@@ -484,6 +491,29 @@ export type McpToolExecutionResult = {
   data: unknown;
   /** Optional execution metadata for scope and pagination diagnostics. */
   metadata?: McpToolExecutionMetadata;
+  /**
+   * `true` when at least one item of a bulk call failed: `data` then holds
+   * what the function returned for the items that did not fail, and
+   * {@link McpToolExecutionResult.itemResults} lists the failures. Absent
+   * (the result is exactly what it was before) when no item failed.
+   *
+   * @remarks
+   * Not related to `metadata.pagination.isPartial`, which says that the rows
+   * of a list were cut to a page.
+   */
+  partial?: true;
+  /**
+   * The failed items of a bulk call, with the number of items that succeeded.
+   * Present only together with `partial`. A bulk function of the facade takes
+   * a trailing `resultCallback` that an MCP caller cannot send; the runtime
+   * passes its own, so a section or an item that fails (for example for lack
+   * of a scope of the credential, code `INSUFFICIENT_SCOPE`) no longer ends
+   * the call with one error that hides the readable part.
+   */
+  itemResults?: McpItemResults & {
+    /** What `data` holds and what the failures mean, for a reader that does not know the counts. */
+    summary: string;
+  };
 };
 
 /**
@@ -837,6 +867,7 @@ export function createToolRuntime(
         descriptorId: descriptor.id,
         deploymentType,
       });
+      const collection = prepareResultCollection(descriptor);
       let methodResult: unknown;
       try {
         methodResult =
@@ -846,12 +877,14 @@ export function createToolRuntime(
                 descriptor,
                 args as McpGenericExecutionArguments,
                 options.managedObjectTypes ?? [],
-                options.managedObjectHydrationStatus
+                options.managedObjectHydrationStatus,
+                collection
               )
             : await invokeDescriptorMethod(
                 scopedFrodo,
                 descriptor,
-                toInvocationArgs(args, descriptor)
+                toInvocationArgs(args, descriptor),
+                collection
               );
         emitRuntimeTrace(request, options, {
           event: 'dispatch-success',
@@ -892,11 +925,22 @@ export function createToolRuntime(
         truncation
       );
 
+      const itemResults = collection?.collector.results();
+
       return {
         toolName: request.toolName,
         descriptorId: descriptor.id,
         data: responseData,
         ...(metadata ? { metadata } : {}),
+        ...(itemResults
+          ? {
+              partial: true as const,
+              itemResults: {
+                ...itemResults,
+                summary: summarizeItemResults(itemResults, descriptor.mutating),
+              },
+            }
+          : {}),
       };
     }
 
@@ -1564,7 +1608,8 @@ async function invokeGenericDescriptorMethod(
   descriptor: McpCapabilityDescriptor,
   args: McpGenericExecutionArguments,
   managedObjectTypes: readonly string[],
-  managedObjectHydrationStatus?: McpManagedObjectHydrationStatus
+  managedObjectHydrationStatus?: McpManagedObjectHydrationStatus,
+  collection?: ResultCollection
 ): Promise<unknown> {
   if (
     args.semanticTarget &&
@@ -1602,7 +1647,8 @@ async function invokeGenericDescriptorMethod(
   return invokeDescriptorMethod(
     scopedFrodo,
     descriptor,
-    toInvocationArgs(args, descriptor)
+    toInvocationArgs(args, descriptor),
+    collection
   );
 }
 
@@ -3247,21 +3293,90 @@ function cloneDefaultParameterValue(value: unknown): unknown {
 }
 
 /**
+ * A collecting result callback for one call and the position where the method
+ * takes it.
+ */
+type ResultCollection = {
+  /** Zero-based position of the `resultCallback` parameter of the method. */
+  position: number;
+  collector: McpResultCollector;
+};
+
+/**
+ * Prepares the collecting result callback for a call, when the method of the
+ * descriptor takes one.
+ *
+ * @remarks
+ * Which methods take a result callback is read from the signature of the
+ * facade method (the generated Help.ts catalog), not from a list in the
+ * capability metadata, so every function with a `resultCallback` is covered,
+ * including those added later. An MCP caller cannot send a function; with the
+ * callback in place a bulk function reports each failed item to it and goes
+ * on, instead of throwing at the first one (frodo-lib#957).
+ *
+ * @param descriptor Capability descriptor about to be invoked.
+ * @returns The collection, or `undefined` for a method without a result callback.
+ */
+function prepareResultCollection(
+  descriptor: McpCapabilityDescriptor
+): ResultCollection | undefined {
+  const position = findResultCallbackPosition(descriptor.methodName);
+  return position === undefined
+    ? undefined
+    : { position, collector: createResultCollector() };
+}
+
+/**
+ * Says in a sentence what `data` holds when items failed.
+ *
+ * @param results What the function reported.
+ * @param mutating Whether the capability writes: a failed item is then not applied.
+ * @returns The sentence.
+ */
+function summarizeItemResults(
+  results: McpItemResults,
+  mutating: boolean
+): string {
+  const one = results.failedCount === 1;
+  const failed = `${one ? '1 reported item' : `${results.failedCount} reported items`} failed`;
+  const consequence = mutating
+    ? `${one ? 'was' : 'were'} not completed`
+    : `${one ? 'is' : 'are'} missing from data`;
+  const omitted = results.omittedFailureCount
+    ? ` ${results.omittedFailureCount} failures are not listed.`
+    : '';
+  const rest = mutating
+    ? 'data holds what the function returned for the others.'
+    : 'data holds the rest.';
+  return `${failed} and ${consequence}; ${results.succeededCount} succeeded.${omitted} ${rest} Report the failures to the user.`;
+}
+
+/**
  * Resolves and executes the exact method referenced by a capability descriptor.
  *
  * @param instance Request-scoped Frodo instance.
  * @param descriptor Capability descriptor containing method path metadata.
  * @param args Positional arguments to pass to the resolved method.
+ * @param collection The collecting result callback to pass to a method that
+ *   takes one, see {@link prepareResultCollection}.
  * @returns The resolved method result.
  */
 async function invokeDescriptorMethod(
   instance: Frodo,
   descriptor: McpCapabilityDescriptor,
-  args: unknown[]
+  args: unknown[],
+  collection?: ResultCollection
 ): Promise<unknown> {
   const method = resolveDescriptorMethod(instance, descriptor);
+  const callArgs = collection
+    ? placeResultCallback(
+        args,
+        collection.position,
+        collection.collector.callback
+      )
+    : args;
   try {
-    return await Promise.resolve(method(...args));
+    return await Promise.resolve(method(...callArgs));
   } catch (error) {
     // Preserve full error context when wrapping invocation failures
     const methodPath = descriptor.modulePath
