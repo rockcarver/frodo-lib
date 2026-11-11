@@ -17,12 +17,13 @@ import {
 } from '../utils/Console';
 import {
   convertBase64TextToArray,
+  findFailedRequest,
   getMetadata,
 } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError, isNotFoundError } from './FrodoError';
 import { readOAuth2Provider } from './OAuth2ProviderOps';
-import { ExportMetaData } from './OpsTypes';
+import { ExportMetaData, type ResultCallback } from './OpsTypes';
 import { readScript, updateScript } from './ScriptOps';
 
 export type OAuth2Client = {
@@ -76,10 +77,12 @@ export type OAuth2Client = {
   /**
    * Export all OAuth2 clients
    * @param {OAuth2ClientExportOptions} options export options
+   * @param {ResultCallback<OAuth2ClientSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every client is passed to it as it happens (a failed client as an error that names it) and a failed client does not throw: the clients that could be exported are returned. Without it, the failures are collected and thrown as one error after every client was tried. Failing to read the provider or the clients always throws.
    * @returns {OAuth2ClientExportInterface} export data
    */
   exportOAuth2Clients(
-    options?: OAuth2ClientExportOptions
+    options?: OAuth2ClientExportOptions,
+    resultCallback?: ResultCallback<OAuth2ClientSkeleton>
   ): Promise<OAuth2ClientExportInterface>;
   /**
    * Export OAuth2 client by ID
@@ -155,9 +158,13 @@ export default (state: State): OAuth2Client => {
       return deleteOAuth2Client({ clientId, state });
     },
     async exportOAuth2Clients(
-      options: OAuth2ClientExportOptions = { useStringArrays: true, deps: true }
+      options: OAuth2ClientExportOptions = {
+        useStringArrays: true,
+        deps: true,
+      },
+      resultCallback?: ResultCallback<OAuth2ClientSkeleton>
     ): Promise<OAuth2ClientExportInterface> {
-      return exportOAuth2Clients({ options, state });
+      return exportOAuth2Clients({ options, resultCallback, state });
     },
     async exportOAuth2Client(
       clientId: string,
@@ -562,6 +569,11 @@ async function exportOAuth2ClientDependencies(
             error
           );
         }
+        const request = findFailedRequest(error);
+        debugMessage({
+          message: `OAuth2ClientOps.exportOAuth2ClientDependencies: skipped script ${scriptId} referenced by client ${clientData['_id']}, this operation is not available in PingOne Advanced Identity Cloud${request ? ` [${request}]` : ''}`,
+          state,
+        });
       }
     }
   }
@@ -573,14 +585,18 @@ async function exportOAuth2ClientDependencies(
 
 /**
  * Export all OAuth2 clients
+ * Every client is tried: a client that cannot be exported does not stop the others.
  * @param {OAuth2ClientExportOptions} options export options
+ * @param {ResultCallback<OAuth2ClientSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every client is passed to it as it happens (a failed client as an error that names it) and a failed client does not throw: the clients that could be exported are returned. Without it, the failures are collected and thrown as one error after every client was tried. Failing to read the provider or the clients always throws.
  * @returns {Promise<OAuth2ClientExportInterface>} export data
  */
 export async function exportOAuth2Clients({
   options = { useStringArrays: true, deps: true },
+  resultCallback = void 0,
   state,
 }: {
   options?: OAuth2ClientExportOptions;
+  resultCallback?: ResultCallback<OAuth2ClientSkeleton>;
   state: State;
 }): Promise<OAuth2ClientExportInterface> {
   debugMessage({
@@ -604,19 +620,42 @@ export async function exportOAuth2Clients({
         message: `Exporting ${getCurrentRealmName(state) + ' realm'} OAuth2 client ${client._id}`,
         state,
       });
+      let failure: Error;
       try {
         client._provider = provider;
-        exportData.application[client._id] = client;
         if (options.deps) {
+          // the scripts of a client are collected apart and added to the
+          // export only when all of them could be read
+          const clientExport = {
+            ...exportData,
+            script: { ...exportData.script },
+          };
           await exportOAuth2ClientDependencies(
             client,
             options,
-            exportData,
+            clientExport,
             state
           );
+          Object.assign(exportData.script, clientExport.script);
         }
       } catch (error) {
-        errors.push(error);
+        failure = error;
+      }
+      if (failure) {
+        if (resultCallback) {
+          resultCallback(
+            new FrodoError(
+              `Error exporting ${getCurrentRealmName(state) + ' realm'} oauth2 client ${client._id}`,
+              failure
+            ),
+            undefined
+          );
+        } else {
+          errors.push(failure);
+        }
+      } else {
+        exportData.application[client._id] = client;
+        if (resultCallback) resultCallback(undefined, client);
       }
     }
     stopProgressIndicator({

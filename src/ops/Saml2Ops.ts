@@ -25,12 +25,13 @@ import {
   convertBase64UrlTextToArray,
   convertTextArrayToBase64,
   convertTextArrayToBase64Url,
+  findFailedRequest,
   getMetadata,
 } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { get } from '../utils/JsonUtils';
 import { FrodoError } from './FrodoError';
-import { type ExportMetaData } from './OpsTypes';
+import { type ExportMetaData, type ResultCallback } from './OpsTypes';
 import { updateScript } from './ScriptOps';
 
 export type Saml2 = {
@@ -112,10 +113,12 @@ export type Saml2 = {
   /**
    * Export all entity providers. The response can be saved to file as is.
    * @param {Saml2EntitiesExportOptions} options export options
+   * @param {ResultCallback<Saml2ProviderSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every provider is passed to it as it happens (a failed provider as an error that names it) and a failed provider does not throw: the providers that could be exported are returned. Without it, the failures are collected and thrown as one error after every provider was tried. Failing to list the providers always throws.
    * @returns {Promise<Saml2ExportInterface>} Promise resolving to a Saml2ExportInterface object.
    */
   exportSaml2Providers(
-    options?: Saml2EntitiesExportOptions
+    options?: Saml2EntitiesExportOptions,
+    resultCallback?: ResultCallback<Saml2ProviderSkeleton>
   ): Promise<Saml2ExportInterface>;
   /**
    * Import a SAML entity provider
@@ -133,11 +136,13 @@ export type Saml2 = {
    * Import SAML entity providers
    * @param {Saml2ExportInterface} importData Import data
    * @param {Saml2EntitiesImportOptions} options import options
+   * @param {ResultCallback<Saml2ProviderSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every provider is passed to it as it happens (a failed provider as an error that names it) and a failed provider does not throw: the providers that could be imported are returned. Without it, the failures are collected and thrown as one error after every provider was tried.
    * @returns {Promise<Saml2ProviderSkeleton[]>} a promise resolving to an array of provider objects
    */
   importSaml2Providers(
     importData: Saml2ExportInterface,
-    options?: Saml2EntitiesImportOptions
+    options?: Saml2EntitiesImportOptions,
+    resultCallback?: ResultCallback<Saml2ProviderSkeleton>
   ): Promise<Saml2ProviderSkeleton[]>;
 };
 
@@ -187,9 +192,10 @@ export default (state: State): Saml2 => {
       return exportSaml2Provider({ entityId, options, state });
     },
     async exportSaml2Providers(
-      options: Saml2EntitiesExportOptions = { deps: true }
+      options: Saml2EntitiesExportOptions = { deps: true },
+      resultCallback?: ResultCallback<Saml2ProviderSkeleton>
     ): Promise<Saml2ExportInterface> {
-      return exportSaml2Providers({ options, state });
+      return exportSaml2Providers({ options, resultCallback, state });
     },
     async importSaml2Provider(
       entityId: string,
@@ -200,9 +206,15 @@ export default (state: State): Saml2 => {
     },
     async importSaml2Providers(
       importData: Saml2ExportInterface,
-      options: Saml2EntitiesImportOptions = { deps: true }
+      options: Saml2EntitiesImportOptions = { deps: true },
+      resultCallback?: ResultCallback<Saml2ProviderSkeleton>
     ): Promise<Saml2ProviderSkeleton[]> {
-      return importSaml2Providers({ importData, options, state });
+      return importSaml2Providers({
+        importData,
+        options,
+        resultCallback,
+        state,
+      });
     },
   };
 };
@@ -766,13 +778,18 @@ export async function exportSaml2Provider({
 
 /**
  * Export all entity providers. The response can be saved to file as is.
+ * Every provider is tried: a provider that cannot be exported does not stop the others. Providers that are not available in PingOne Advanced Identity Cloud are skipped.
+ * @param {Saml2EntitiesExportOptions} options export options
+ * @param {ResultCallback<Saml2ProviderSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every provider is passed to it as it happens (a failed provider as an error that names it) and a failed provider does not throw: the providers that could be exported are returned. Without it, the failures are collected and thrown as one error after every provider was tried. Failing to list the providers always throws.
  * @returns {Promise<Saml2ExportInterface>} Promise resolving to a Saml2ExportInterface object.
  */
 export async function exportSaml2Providers({
   options = { deps: true },
+  resultCallback = void 0,
   state,
 }: {
   options?: Saml2EntitiesExportOptions;
+  resultCallback?: ResultCallback<Saml2ProviderSkeleton>;
   state: State;
 }): Promise<Saml2ExportInterface> {
   let indicatorId: string;
@@ -786,6 +803,8 @@ export async function exportSaml2Providers({
       state,
     });
     for (const stub of stubs) {
+      let exported: Saml2ProviderSkeleton;
+      let failure: FrodoError;
       try {
         updateProgressIndicator({
           id: indicatorId,
@@ -797,29 +816,64 @@ export async function exportSaml2Providers({
           entityId64: stub._id,
           state,
         });
-        await exportMetadata({ providerData, fileData, state });
+        // the metadata and the dependencies of a provider are collected apart
+        // and added to the export only when the provider is complete
+        const providerExport = {
+          script: {},
+          saml: { hosted: {}, remote: {}, metadata: {} },
+        } as Saml2ExportInterface;
+        await exportMetadata({ providerData, fileData: providerExport, state });
+        let dependencyError: Error;
         if (options.deps) {
           try {
-            await exportDependencies({ providerData, fileData, state });
+            await exportDependencies({
+              providerData,
+              fileData: providerExport,
+              state,
+            });
           } catch (error) {
-            errors.push(error);
+            dependencyError = error;
           }
         }
-        fileData.saml[stub.location][providerData._id] = providerData;
+        if (dependencyError) {
+          if (resultCallback) {
+            // the provider fails, the error below names it
+            throw dependencyError;
+          }
+          errors.push(dependencyError);
+        } else {
+          Object.assign(fileData.script, providerExport.script);
+          Object.assign(fileData.saml.metadata, providerExport.saml.metadata);
+          fileData.saml[stub.location][providerData._id] = providerData;
+          exported = providerData;
+        }
       } catch (error) {
-        if (!(
+        if (
           // operation is not available in PingOne Advanced Identity Cloud
           error.httpStatus === 403 &&
           error.httpMessage ===
             'This operation is not available in PingOne Advanced Identity Cloud.'
-        )) {
-          errors.push(
-            new FrodoError(
-              `Error exporting ${getCurrentRealmName(state) + ' realm'} saml2 provider ${stub._id}`,
-              error
-            )
+        ) {
+          const request = findFailedRequest(error);
+          debugMessage({
+            message: `Saml2Ops.exportSaml2Providers: skipped provider ${stub._id}, this operation is not available in PingOne Advanced Identity Cloud${request ? ` [${request}]` : ''}`,
+            state,
+          });
+        } else {
+          failure = new FrodoError(
+            `Error exporting ${getCurrentRealmName(state) + ' realm'} saml2 provider ${stub._id}`,
+            error
           );
         }
+      }
+      if (failure) {
+        if (resultCallback) {
+          resultCallback(failure, undefined);
+        } else {
+          errors.push(failure);
+        }
+      } else if (exported && resultCallback) {
+        resultCallback(undefined, exported);
       }
     }
     if (errors.length > 0) {
@@ -1057,21 +1111,25 @@ export async function importSaml2Provider({
 
 /**
  * Import SAML entity providers
+ * Every provider is tried: a provider that cannot be imported does not stop the others.
  * @param {Saml2ExportInterface} importData Import data
  * @param {Saml2ProviderImportOptions} options import options
+ * @param {ResultCallback<Saml2ProviderSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every provider is passed to it as it happens (a failed provider as an error that names it, with the reasons nested) and a failed provider does not throw: the providers that could be imported are returned. A provider whose dependencies could not be imported is a failed provider, although the provider itself may have been written. Without a callback, the failures are collected and thrown as one error after every provider was tried.
  * @returns {Promise<Saml2ProviderSkeleton[]>} a promise resolving to an array of provider objects
  */
 export async function importSaml2Providers({
   importData,
   options = { deps: true },
+  resultCallback = void 0,
   state,
 }: {
   importData: Saml2ExportInterface;
   options?: Saml2EntitiesImportOptions;
+  resultCallback?: ResultCallback<Saml2ProviderSkeleton>;
   state: State;
 }): Promise<Saml2ProviderSkeleton[]> {
   debugMessage({ message: `Saml2Ops.importSaml2Providers: start`, state });
-  const response = [];
+  const response: Saml2ProviderSkeleton[] = [];
   const errors = [];
   try {
     // find providers in hosted and in remote and map locations
@@ -1088,6 +1146,26 @@ export async function importSaml2Providers({
         ? 'hosted'
         : 'remote';
       const providerData = importData.saml[location][entityId64];
+      // what went wrong with this provider
+      const failures: Error[] = [];
+      // report the outcome of this provider: to the result callback, or
+      // collect the failures as one error each
+      const report = (imported?: Saml2ProviderSkeleton) => {
+        if (failures.length === 0) {
+          response.push(imported);
+          if (resultCallback) resultCallback(undefined, imported);
+        } else if (resultCallback) {
+          resultCallback(
+            new FrodoError(
+              `Error importing ${getCurrentRealmName(state) + ' realm'} saml2 provider ${entityId}`,
+              failures
+            ),
+            undefined
+          );
+        } else {
+          errors.push(...failures);
+        }
+      };
       if (options.deps) {
         try {
           await importDependencies({
@@ -1096,7 +1174,7 @@ export async function importSaml2Providers({
             state,
           });
         } catch (error) {
-          errors.push(
+          failures.push(
             new FrodoError(
               `Error importing ${getCurrentRealmName(state) + ' realm'} saml2 provider ${entityId} dependencies`,
               error
@@ -1106,10 +1184,23 @@ export async function importSaml2Providers({
       }
       let metaData = null;
       if (location === 'remote') {
-        metaData = convertTextArrayToBase64Url(
-          importData.saml.metadata[entityId64]
-        );
+        try {
+          metaData = convertTextArrayToBase64Url(
+            importData.saml.metadata[entityId64]
+          );
+        } catch (error) {
+          if (!resultCallback) throw error;
+          failures.push(
+            new FrodoError(
+              `Error reading the metadata of ${getCurrentRealmName(state) + ' realm'} saml2 provider ${entityId} from the import data`,
+              error
+            )
+          );
+          report();
+          continue;
+        }
       }
+      let imported: Saml2ProviderSkeleton;
       try {
         const createResponse = await _createProvider({
           location,
@@ -1126,17 +1217,15 @@ export async function importSaml2Providers({
             providerData,
             state,
           });
-          response.push({ ...createResponse, ...updateResponse });
+          imported = { ...createResponse, ...updateResponse };
         } else {
-          response.push(createResponse);
+          imported = createResponse;
         }
       } catch (createProviderErr) {
         try {
-          response.push(
-            await _updateProvider({ location, providerData, state })
-          );
+          imported = await _updateProvider({ location, providerData, state });
         } catch (updateProviderErr) {
-          errors.push(
+          failures.push(
             new FrodoError(
               `Error creating or updating ${getCurrentRealmName(state) + ' realm'} saml2 provider ${entityId}`,
               [createProviderErr, updateProviderErr]
@@ -1144,6 +1233,7 @@ export async function importSaml2Providers({
           );
         }
       }
+      report(imported);
     }
     if (errors.length > 0) {
       throw new FrodoError(
