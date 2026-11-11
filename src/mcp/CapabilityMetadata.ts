@@ -3004,6 +3004,28 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     excluded: true,
   },
 
+  // --- bulk exports and imports that report each item to a result callback:
+  // the callback is for in-process library callers, MCP callers do not get it.
+  'authz.policy.exportPolicies': { excludeParameters: ['resultCallback'] },
+  'authz.policy.exportPoliciesByPolicySet': {
+    excludeParameters: ['resultCallback'],
+  },
+  'authz.policy.importPolicies': { excludeParameters: ['resultCallback'] },
+  'authz.policySet.exportPolicySets': { excludeParameters: ['resultCallback'] },
+  'authz.policySet.importPolicySets': { excludeParameters: ['resultCallback'] },
+  'authz.resourceType.importResourceTypes': {
+    excludeParameters: ['resultCallback'],
+  },
+  'cloud.adminFed.exportAdminFederationProviders': {
+    excludeParameters: ['resultCallback'],
+  },
+  'cloud.adminFed.importAdminFederationProviders': {
+    excludeParameters: ['resultCallback'],
+  },
+  'cloud.secret.importSecrets': { excludeParameters: ['resultCallback'] },
+  'cloud.variable.importVariables': { excludeParameters: ['resultCallback'] },
+  'server.importServers': { excludeParameters: ['resultCallback'] },
+
   'cloud.feature.hasFeature': { mutating: false, riskClass: 'low' },
 
   'cloud.iga.workflow.publishWorkflow': {
@@ -3395,6 +3417,41 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'low',
   },
 
+  // The per-item result callback of these bulk imports and exports is a JS
+  // function reference that an MCP JSON payload can never carry: it is not
+  // offered to MCP callers (as for authn.journey.exportJourneys).
+  'agent.importAgents': { excludeParameters: ['resultCallback'] },
+  'agent.importIdentityGatewayAgents': {
+    excludeParameters: ['resultCallback'],
+  },
+  'agent.importJavaAgents': { excludeParameters: ['resultCallback'] },
+  'agent.importWebAgents': { excludeParameters: ['resultCallback'] },
+  'agent.importAIAgents': { excludeParameters: ['resultCallback'] },
+  'saml2.entityProvider.exportSaml2Providers': {
+    excludeParameters: ['resultCallback'],
+  },
+  'saml2.entityProvider.importSaml2Providers': {
+    excludeParameters: ['resultCallback'],
+  },
+  'saml2.circlesOfTrust.importCirclesOfTrust': {
+    excludeParameters: ['resultCallback'],
+  },
+  'oauth2oidc.external.exportSocialIdentityProviders': {
+    excludeParameters: ['resultCallback'],
+  },
+  'oauth2oidc.client.exportOAuth2Clients': {
+    excludeParameters: ['resultCallback'],
+  },
+  'service.importServices': { excludeParameters: ['resultCallback'] },
+  'agent.deleteAgents': { excludeParameters: ['resultCallback'] },
+  'agent.deleteIdentityGatewayAgents': {
+    excludeParameters: ['resultCallback'],
+  },
+  'agent.deleteJavaAgents': { excludeParameters: ['resultCallback'] },
+  'agent.deleteWebAgents': { excludeParameters: ['resultCallback'] },
+  'agent.deleteAIAgents': { excludeParameters: ['resultCallback'] },
+  'app.exportApplications': { excludeParameters: ['resultCallback'] },
+
   'script.getLibraryScriptNames': {
     // Takes a full ScriptSkeleton as input (parses require() calls out of its
     // body) — internal plumbing for library-dependency resolution, not a
@@ -3649,6 +3706,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes: 'Same payload shape as server.exportServer.',
   },
   'server.exportServers': {
+    excludeParameters: ['resultCallback'],
     mutating: false,
     riskClass: 'high',
     notes: 'Same payload shape as server.exportServer, for every server.',
@@ -3660,6 +3718,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       'AM has no true "names only" list endpoint, so this uses _action=nextdescendents on the services collection and returns each service\'s full top-level attributes — potentially including secret fields (e.g. the SMTP/EmailService transport password). Previously low.',
   },
   'service.getFullServices': {
+    excludeParameters: ['resultCallback'],
     mutating: false,
     riskClass: 'critical',
     notes:
@@ -3672,6 +3731,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       'Wraps the same full-service-config content as service.getFullServices. Previously medium.',
   },
   'service.exportServices': {
+    excludeParameters: ['resultCallback'],
     mutating: false,
     riskClass: 'critical',
     notes:

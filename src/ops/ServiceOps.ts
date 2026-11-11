@@ -17,7 +17,7 @@ import {
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../utils/Console';
-import { getMetadata } from '../utils/ExportImportUtils';
+import { findFailedRequest, getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
 import { FrodoError } from './FrodoError';
@@ -94,11 +94,13 @@ export type Service = {
    * Imports multiple services from the same file. Optionally clean (remove) existing services first
    * @param {ServiceExportInterface} importData The service configuration export data to import
    * @param {ServiceImportOptions} options Import options
+   * @param {ResultCallback<AmServiceSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every service is passed to it as it happens (a failed service as an error that names it) and a failed service does not throw: the services that could be imported are returned. A service of the file that does not belong to the target (another realm, or global when importing into the realm) is not imported and not reported. Without it, the failures are collected and thrown as one error after every service was tried.
    * @returns {Promise<AmServiceSkeleton[]>} A promise resolving to an array of service objects
    */
   importServices(
     importData: ServiceExportInterface,
-    options: ServiceImportOptions
+    options: ServiceImportOptions,
+    resultCallback?: ResultCallback<AmServiceSkeleton>
   ): Promise<AmServiceSkeleton[]>;
 };
 
@@ -204,6 +206,7 @@ export default (state: State): Service => {
      * Imports multiple services from the same file. Optionally clean (remove) existing services first
      * @param {ServiceExportInterface} importData The service configuration export data to import
      * @param {ServiceImportOptions} options Import options
+     * @param {ResultCallback<AmServiceSkeleton>} resultCallback Optional callback to process individual results
      * @returns {Promise<AmServiceSkeleton[]>} A promise resolving to an array of service objects
      */
     async importServices(
@@ -212,11 +215,13 @@ export default (state: State): Service => {
         clean: false,
         global: false,
         realm: false,
-      }
+      },
+      resultCallback?: ResultCallback<AmServiceSkeleton>
     ): Promise<AmServiceSkeleton[]> {
       return importServices({
         importData,
         options,
+        resultCallback,
         state,
       });
     },
@@ -361,6 +366,16 @@ export async function getFullServices({
             service.status !== 'fulfilled' ||
             nextDescendents.status !== 'fulfilled'
           ) {
+            const unavailable = results.find(
+              (result) =>
+                result.status === 'rejected' &&
+                isUnavailableServiceError(result.reason)
+            ) as PromiseRejectedResult | undefined;
+            const request = findFailedRequest(unavailable?.reason);
+            debugMessage({
+              message: `ServiceOps.getFullServices: skipped service ${listItem._id}, this operation is not available in PingOne Advanced Identity Cloud${request ? ` [${request}]` : ''}`,
+              state,
+            });
             return;
           }
 
@@ -545,10 +560,12 @@ export async function putFullService({
 
 /**
  * Saves multiple services using the serviceEntries which contain both id and data with descendants
+ * Every service is tried: a service that cannot be saved does not stop the others.
  * @param {[string, FullService][]} serviceEntries The services to add
  * @param {boolean} clean Indicates whether to remove possible existing services first
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @param {boolean} realmConfig true if the current realm service is the target of the operation, false otherwise. Default: false.
+ * @param {ResultCallback<AmServiceSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every service is passed to it as it happens (a failed service as an error that names it) and a failed service does not throw: the services that could be saved are returned. A service that does not belong to the target is not saved and not reported. Without it, the failures are collected and thrown as one error after every service was tried.
  * @returns {Promise<AmService[]>} promise resolving to an array of service objects
  */
 export async function putFullServices({
@@ -556,12 +573,14 @@ export async function putFullServices({
   clean,
   globalConfig = false,
   realmConfig = false,
+  resultCallback = void 0,
   state,
 }: {
   serviceEntries: [string, FullService][];
   clean: boolean;
   globalConfig: boolean;
   realmConfig: boolean;
+  resultCallback?: ResultCallback<AmServiceSkeleton>;
   state: State;
 }): Promise<AmServiceSkeleton[]> {
   debugMessage({
@@ -571,8 +590,9 @@ export async function putFullServices({
   const errors: Error[] = [];
   const results: AmServiceSkeleton[] = [];
   for (const [id, data] of serviceEntries) {
+    let result: AmServiceSkeleton;
+    let failure: Error;
     try {
-      let result: AmServiceSkeleton;
       if (globalConfig || (!realmConfig && data.location === 'global')) {
         result = await putFullService({
           serviceId: id,
@@ -594,10 +614,22 @@ export async function putFullServices({
           state,
         });
       }
-      if (result) results.push(result);
       debugMessage({ message: `Imported: ${id}`, state });
     } catch (error) {
-      errors.push(error);
+      failure = error;
+    }
+    if (failure) {
+      if (resultCallback) {
+        resultCallback(
+          new FrodoError(`Error importing service ${id}`, failure),
+          undefined
+        );
+      } else {
+        errors.push(failure);
+      }
+    } else if (result) {
+      results.push(result);
+      if (resultCallback) resultCallback(undefined, result);
     }
   }
   if (errors.length > 0) {
@@ -896,8 +928,10 @@ export async function importService({
 
 /**
  * Imports multiple services from the same file. Optionally clean (remove) existing services first
+ * Every service is tried: a service that cannot be imported does not stop the others.
  * @param {ServiceExportInterface} importData The service configuration export data to import
  * @param {ServiceImportOptions} options Import options
+ * @param {ResultCallback<AmServiceSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every service is passed to it as it happens (a failed service as an error that names it) and a failed service does not throw: the services that could be imported are returned. A service of the file that does not belong to the target (another realm, or global when importing into the realm) is not imported and not reported. Without it, the failures are collected and thrown as one error after every service was tried.
  * @returns {Promise<AmServiceSkeleton[]>} A promise resolving to an array of service objects
  */
 export async function importServices({
@@ -907,10 +941,12 @@ export async function importServices({
     global: false,
     realm: false,
   },
+  resultCallback = void 0,
   state,
 }: {
   importData: ServiceExportInterface;
   options: ServiceImportOptions;
+  resultCallback?: ResultCallback<AmServiceSkeleton>;
   state: State;
 }): Promise<AmServiceSkeleton[]> {
   debugMessage({
@@ -923,6 +959,7 @@ export async function importServices({
       clean: options.clean,
       globalConfig: options.global,
       realmConfig: options.realm,
+      resultCallback,
       state,
     });
     debugMessage({ message: `ServiceOps.importServices: end`, state });

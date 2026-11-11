@@ -27,6 +27,7 @@ jest.unstable_mockModule('../utils/Console', () => ({
 }));
 
 jest.unstable_mockModule('../utils/ExportImportUtils', () => ({
+  findFailedRequest: jest.fn(),
   getMetadata: jest.fn(() => ({ exportedBy: 'jest' })),
 }));
 

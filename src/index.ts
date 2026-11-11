@@ -42,6 +42,8 @@ export type {
   McpExecutionPaginationMetadata,
   McpExecutionScopeMetadata,
   McpGenericExecutionArguments,
+  McpItemFailure,
+  McpItemResults,
   McpRuntimeAdminAccountAuth,
   McpRuntimeAuth,
   McpRuntimeRequestContext,

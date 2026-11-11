@@ -110,6 +110,7 @@ export {
   getRealmFromContext,
   resolveRequestScopedFrodo,
 } from './ToolRuntime';
+export { type McpItemFailure, type McpItemResults } from './ResultCollector';
 export {
   type McpService,
   type McpServiceOptions,

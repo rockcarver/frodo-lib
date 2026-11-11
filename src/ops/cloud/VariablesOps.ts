@@ -18,7 +18,7 @@ import {
 } from '../../utils/Console';
 import { getMetadata, updateRemote } from '../../utils/ExportImportUtils';
 import { FrodoError } from '../FrodoError';
-import { ExportMetaData } from '../OpsTypes';
+import { ExportMetaData, ResultCallback } from '../OpsTypes';
 
 export type Variable = {
   /**
@@ -66,10 +66,12 @@ export type Variable = {
   /**
    * Import variables
    * @param {VariablesExportInterface} importData import data
+   * @param {ResultCallback<VariableSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every variable is passed to it once, as it happens: a variable that was imported as the variable (a variable that needed no update as it is in the import data), a variable that could not be imported as an error that names the variable and carries the cause. Such a variable is not part of the result and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every variable was tried.
    * @returns {Promise<VariableSkeleton[]>} array of imported variable objects
    */
   importVariables(
-    importData: VariablesExportInterface
+    importData: VariablesExportInterface,
+    resultCallback?: ResultCallback<VariableSkeleton>
   ): Promise<VariableSkeleton[]>;
   /**
    * Create variable
@@ -162,9 +164,10 @@ export default (state: State): Variable => {
       return importVariable({ variableId, importData, state });
     },
     async importVariables(
-      importData: VariablesExportInterface
+      importData: VariablesExportInterface,
+      resultCallback: ResultCallback<VariableSkeleton> = void 0
     ): Promise<VariableSkeleton[]> {
-      return importVariables({ importData, state });
+      return importVariables({ importData, resultCallback, state });
     },
     async createVariable(
       variableId: string,
@@ -393,13 +396,16 @@ export async function importVariable({
 /**
  * Import variables
  * @param {VariablesExportInterface} importData import data
+ * @param {ResultCallback<VariableSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every variable is passed to it once, as it happens: a variable that was imported as the variable (a variable that needed no update as it is in the import data), a variable that could not be imported as an error that names the variable and carries the cause. Such a variable is not part of the result and does not stop the others, and the function does not throw for it. Without it, the failures are collected and thrown as one error after every variable was tried.
  * @returns {Promise<VariableSkeleton[]>} array of imported variable objects
  */
 export async function importVariables({
   importData,
+  resultCallback = void 0,
   state,
 }: {
   importData: VariablesExportInterface;
+  resultCallback?: ResultCallback<VariableSkeleton>;
   state: State;
 }): Promise<VariableSkeleton[]> {
   const response = [];
@@ -407,22 +413,28 @@ export async function importVariables({
   for (const id of Object.keys(importData.variable)) {
     const variable = importData.variable[id];
     delete variable._rev;
+    let imported: VariableSkeleton | null;
     try {
-      response.push(
-        await updateVariable({
-          variableId: variable._id,
-          value: variable.value ? variable.value : variable.valueBase64,
-          description: variable.description,
-          expressionType: variable.expressionType || 'string',
-          noEncode: variable.value ? false : true,
-          state,
-        })
-      );
+      imported = await updateVariable({
+        variableId: variable._id,
+        value: variable.value ? variable.value : variable.valueBase64,
+        description: variable.description,
+        expressionType: variable.expressionType || 'string',
+        noEncode: variable.value ? false : true,
+        state,
+      });
     } catch (error) {
-      errors.push(
-        new FrodoError(`Error importing variable ${variable._id}`, error)
+      const failure = new FrodoError(
+        `Error importing variable ${variable._id}`,
+        error
       );
+      if (resultCallback) resultCallback(failure);
+      else errors.push(failure);
+      continue;
     }
+    response.push(imported);
+    // a variable that needed no update is reported as it is in the import data
+    if (resultCallback) resultCallback(undefined, imported ?? variable);
   }
   if (errors.length > 0) {
     throw new FrodoError(`Error importing variables`, errors);
