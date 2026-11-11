@@ -31,7 +31,6 @@
  * See decisions/0017-proxy-support-is-guarded-by-a-short-named-set-of-tests.md.
  */
 import { spawnSync } from 'child_process';
-import { createPrivateKey, createPublicKey, webcrypto } from 'crypto';
 import fs from 'fs';
 import http from 'http';
 import https from 'https';
@@ -39,17 +38,10 @@ import net, { AddressInfo } from 'net';
 import path from 'path';
 import 'reflect-metadata';
 import { jest } from '@jest/globals';
-import {
-  BasicConstraintsExtension,
-  GeneralName,
-  KeyUsagesExtension,
-  SubjectAlternativeNameExtension,
-  X509CertificateGenerator,
-} from '@peculiar/x509';
 import { FrodoError } from '../ops/FrodoError';
 import StateImpl from '../shared/State';
+import { createLoopbackCertificate } from '../test/utils/LoopbackCertificate';
 import { proxyProbeVerdict, runProxyProbe } from '../test/utils/ProxyProbe';
-import { getPrivateKey, getPublicKey } from '../test/utils/TestUtils';
 import { generateAmApi } from './BaseApi';
 import { getServerInfo } from './ServerInfoApi';
 
@@ -83,49 +75,6 @@ const ENV_NAMES = [
   'npm_config_no_proxy',
   'FRODO_NO_KEEPALIVE',
 ];
-
-// ---------------------------------------------------------------------------
-// A self-signed certificate for the HTTPS targets
-// ---------------------------------------------------------------------------
-
-async function createSelfSignedCertificate(): Promise<{
-  key: string;
-  cert: string;
-}> {
-  // The signing keys are the fixed test PEMs from TestUtils. @peculiar/x509
-  // signs with WebCrypto CryptoKeys, so import the PEMs as PKCS#8/SPKI DER.
-  const alg = { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' };
-  const signingKey = await webcrypto.subtle.importKey(
-    'pkcs8',
-    createPrivateKey(getPrivateKey()).export({ type: 'pkcs8', format: 'der' }),
-    alg,
-    true,
-    ['sign']
-  );
-  const publicKey = await webcrypto.subtle.importKey(
-    'spki',
-    createPublicKey(getPublicKey()).export({ type: 'spki', format: 'der' }),
-    alg,
-    true,
-    ['verify']
-  );
-  const cert = await X509CertificateGenerator.create({
-    serialNumber: '01',
-    subject: 'CN=127.0.0.1',
-    issuer: 'CN=127.0.0.1',
-    notBefore: new Date(Date.now() - 24 * 60 * 60 * 1000),
-    notAfter: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    publicKey,
-    signingKey,
-    signingAlgorithm: 'RSASSA-PKCS1-v1_5',
-    extensions: [
-      new SubjectAlternativeNameExtension([new GeneralName('ip', '127.0.0.1')]),
-      new BasicConstraintsExtension(false, undefined, true),
-      new KeyUsagesExtension(0x80, true), // digitalSignature
-    ],
-  });
-  return { key: getPrivateKey(), cert: cert.toString('pem') };
-}
 
 // ---------------------------------------------------------------------------
 // The servers: targets and a proxy, all on the loopback interface
@@ -452,7 +401,7 @@ const savedEnv = new Map<string, string | undefined>();
 let tls: { key: string; cert: string };
 
 beforeAll(async () => {
-  tls = await createSelfSignedCertificate();
+  tls = await createLoopbackCertificate();
 });
 
 beforeEach(() => {
@@ -487,6 +436,32 @@ function expectDirect(proxy: Proxy, target: Target, requests = 1) {
   expect(proxy.forwards).toEqual([]);
   expect(proxy.tunnelBytes).toBe(0);
   expect(target.requests).toHaveLength(requests);
+}
+
+/**
+ * The error names the proxy and says what it did, with a stable code (the
+ * failures themselves are tested in BaseApi.proxyFailure.test.ts): here it
+ * is asserted next to each status or address that these tests pin.
+ */
+function expectNamesProxy(
+  error: any,
+  proxyPort: number,
+  facts: {
+    code: string;
+    target: 'http' | 'https';
+    status?: number;
+  }
+) {
+  expect(error.proxyFailure).toMatchObject({
+    code: facts.code,
+    proxy: { protocol: 'http', host: '127.0.0.1', port: proxyPort },
+    target: facts.target,
+    ...(facts.status && { status: facts.status }),
+  });
+  // a caller finds the code on the error an ops function raises, and a person reads the proxy
+  const wrapped = new FrodoError('Error getting server info', error);
+  expect(wrapped.code).toBe(facts.code);
+  expect(wrapped.getCombinedMessage()).toContain(`127.0.0.1:${proxyPort}`);
 }
 
 describe('BaseApi with HTTPS_PROXY: an HTTPS target is reached through a CONNECT tunnel', () => {
@@ -719,6 +694,12 @@ describe('BaseApi with credentials in the proxy URL', () => {
     expect(error.response?.status).toBe(407);
     // the challenge of the proxy is kept, so a caller can tell the proxy from the target
     expect(error.response?.headers['proxy-authenticate']).toMatch(/^Basic/);
+    expectNamesProxy(error, proxy.port, {
+      code: 'PROXY_AUTHENTICATION_REQUIRED',
+      target: 'https',
+      status: 407,
+    });
+    expect(error.proxyFailure.authenticate).toMatch(/^Basic/);
     expect(proxy.connects[0].headers['proxy-authorization']).toBeUndefined();
     expect(target.requests).toEqual([]);
     await expectNothingSentAfterRefusal(proxy);
@@ -738,6 +719,11 @@ describe('BaseApi with credentials in the proxy URL', () => {
     const error = await failureOf(ask(target.host));
 
     expect(error.response?.status).toBe(407);
+    expectNamesProxy(error, proxy.port, {
+      code: 'PROXY_AUTHENTICATION_REQUIRED',
+      target: 'https',
+      status: 407,
+    });
     expect(proxy.connects[0].headers['proxy-authorization']).toBe(
       basic('alice:wrong')
     );
@@ -757,6 +743,11 @@ describe('BaseApi with credentials in the proxy URL', () => {
       expect(new FrodoError('x', error).getCombinedMessage()).toContain(
         `Status: ${status}`
       );
+      expectNamesProxy(error, proxy.port, {
+        code: 'PROXY_TUNNEL_REFUSED',
+        target: 'https',
+        status,
+      });
       expect(target.requests).toEqual([]);
       await expectNothingSentAfterRefusal(proxy);
     }
@@ -785,6 +776,11 @@ describe('BaseApi with credentials in the proxy URL', () => {
     const error = await failureOf(ask(target.host));
 
     expect(error.response?.status).toBe(407);
+    expectNamesProxy(error, proxy.port, {
+      code: 'PROXY_AUTHENTICATION_REQUIRED',
+      target: 'http',
+      status: 407,
+    });
     expect(target.requests).toEqual([]);
   });
 });
@@ -801,6 +797,10 @@ describe('BaseApi with a proxy that cannot be reached', () => {
     expect(Date.now() - started).toBeLessThan(5000);
     expect(error.code).toBe('ECONNREFUSED');
     expect(error.message).toContain(`127.0.0.1:${dead}`);
+    expectNamesProxy(error, dead, {
+      code: 'PROXY_CONNECTION_REFUSED',
+      target: 'https',
+    });
     // the library does not fall back to a direct request
     expect(target.requests).toEqual([]);
     expect(
@@ -819,6 +819,10 @@ describe('BaseApi with a proxy that cannot be reached', () => {
     expect(Date.now() - started).toBeLessThan(5000);
     expect(error.code).toBe('ECONNREFUSED');
     expect(error.message).toContain(`127.0.0.1:${dead}`);
+    expectNamesProxy(error, dead, {
+      code: 'PROXY_CONNECTION_REFUSED',
+      target: 'http',
+    });
     expect(target.requests).toEqual([]);
   }, 15000);
 });
@@ -1750,6 +1754,7 @@ describe('the jest setup file test/jest-no-ambient-proxy.setup.js', () => {
 describe('the test:proxy script of package.json', () => {
   const REQUIRED = [
     'src/api/BaseApi.proxy.test.ts',
+    'src/api/BaseApi.proxyFailure.test.ts',
     'src/api/BaseApi.expiredCert.test.ts',
     'src/api/BaseApi.agentConfig.unit.test.ts',
     'src/api/BaseApi.connectionReuse.test.ts',

@@ -176,7 +176,9 @@ node` (node10), which TypeScript 6 deprecates and 7 removes. Consumers
   among them `src/api/BaseApi.proxy.test.ts` (an in-process CONNECT and
   forward proxy and loopback targets: CONNECT, `NO_PROXY`, proxy credentials,
   an unreachable proxy, an HTTP target, tunnel reuse, variables read at request
-  time) and a live probe (`src/api/BaseApi.proxy.live.test.ts`, off unless
+  time), `src/api/BaseApi.proxyFailure.test.ts` (a proxy that refuses the
+  tunnel, closes the connection or cannot be reached, and the failures that are
+  not the proxy's) and a live probe (`src/api/BaseApi.proxy.live.test.ts`, off unless
   `FRODO_PROXY_LIVE=1`, fails without `HTTPS_PROXY` and `FRODO_HOST`; it sends
   the request without the proxy first and sends it through the proxy only if
   the tenant answered 2xx, otherwise it warns and skips that request, so a
@@ -188,6 +190,19 @@ node` (node10), which TypeScript 6 deprecates and 7 removes. Consumers
   proxy too; a test of the proxy support sets its own variables. The CI step
   `Proxy Tests` runs `npm run test:proxy` with the squid container and
   `FRODO_PROXY_LIVE=1`. Rules: `decisions/0017`.
+- Proxy failures (2026-11, #986): a request that fails because of its proxy (it
+  refused the tunnel or the credentials, closed the connection, refused the
+  connection, or could not be reached) carries `proxyFailure` on its error: the
+  proxy (protocol, host and port, never credentials), what it did, whether the
+  target was HTTP or HTTPS, and a stable `FrodoError.code` (`PROXY_*`, listed in
+  `FRODO_ERROR_CODES`). The `FrodoError` that wraps the request's error has the
+  code, and `getCombinedMessage()` prints the facts. The decision that a proxy
+  was used for the request is the one the proxy agent made for it
+  (`trackProxyDecisions()` in `src/utils/ProxyFailureUtils.ts` records it; the
+  variables and `NO_PROXY` are read by the agent and nowhere else). Only failures that
+  are certain to be the proxy's are named; anything after a `200` to CONNECT, on
+  a reused tunnel, or on a target that is on `NO_PROXY` is not. The advice
+  (check the proxy variables) is the caller's, core 0001.
 - NOTE (2026-10): the Polly stack is unmaintained (2023). A nock/MSW spike
   (2026-10-03) proved replay fidelity on the gnarliest recording (425/425
   exact via a ~60-line HAR converter) but found deep Polly coupling in the

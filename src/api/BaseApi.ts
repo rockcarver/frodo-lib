@@ -27,6 +27,10 @@ import { sleep } from '../utils/FrodoUtils';
 import { mergeDeep } from '../utils/JsonUtils';
 import { attachNameResolutionDiagnosis } from '../utils/NetworkDiagnosisUtils';
 import {
+  attachProxyFailure,
+  trackProxyDecisions,
+} from '../utils/ProxyFailureUtils';
+import {
   isSensitiveHeaderName,
   redactBody,
   redactHeaderValue,
@@ -73,6 +77,20 @@ const transactionId = `frodo-${randomUUID()}`;
 let httpAgent, httpsAgent, httpsInsecureAgent;
 
 /**
+ * Create an agent that sends a request through the proxy the environment names
+ * for it (if any). It records which proxy it chose for each request, so that
+ * the error of a request that failed because of its proxy can say so (see
+ * ProxyFailureUtils).
+ */
+function createProxyAgent(options: ProxyAgentOptions): ProxyAgent {
+  const agent = trackProxyDecisions(new ProxyAgent(options));
+  // The agent keeps the proxy URLs it has used, credentials included, and axios
+  // puts the agent of a request into the JSON of the error of that request.
+  Object.defineProperty(agent, 'toJSON', { value: () => '[ProxyAgent]' });
+  return agent;
+}
+
+/**
  * Helper method to create the shared agent for requests to http: targets
  *
  * A request that goes through a forward proxy must carry the whole URL in its
@@ -101,7 +119,7 @@ function getHttpAgent(): ProxyAgent {
     keepAliveMsecs,
     scheduling,
   };
-  httpAgent = new ProxyAgent({
+  httpAgent = createProxyAgent({
     ...agentOptions,
     keepAlive: false,
     httpAgent: new HttpAgent(agentOptions),
@@ -125,7 +143,7 @@ function getHttpsAgent(
   const options: ProxyAgentOptions = {
     rejectUnauthorized: !allowInsecureConnection,
   };
-  const agent = new ProxyAgent({
+  const agent = createProxyAgent({
     ...options,
     maxSockets,
     maxFreeSockets,
@@ -191,11 +209,15 @@ function createAxiosInstance(
   }
 
   // A host name that cannot be resolved says only ENOTFOUND, whether the name is
-  // mistyped, DNS is down or the process may not use the network at all. Added
-  // after axios-retry's handler, so it runs once the retries are over.
+  // mistyped, DNS is down or the process may not use the network at all. A
+  // proxy that refuses the tunnel or cannot be reached is not named by its
+  // error either. Both are added to the error here, after axios-retry's
+  // handler, so it runs once the retries are over.
   axiosInstance.interceptors.response.use(
     (response) => response,
     async (error) => {
+      // the proxy the agent chose for this very request, see ProxyFailureUtils
+      attachProxyFailure(error);
       await attachNameResolutionDiagnosis(error);
       return Promise.reject(error);
     }
