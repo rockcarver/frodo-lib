@@ -13,6 +13,7 @@ import { jest } from '@jest/globals';
 
 jest.unstable_mockModule('./ConnectionProfileOps', () => ({
   findSavedConnectionTarget: () => undefined,
+  decryptSavedAuthenticationHeaderOverrides: async () => ({}),
   getConnectionProfile: jest.fn(async (_args?: any): Promise<any> => ({})),
   loadConnectionProfile: jest.fn(async (_args?: any): Promise<any> => false),
   saveConnectionProfile: jest.fn(async (_args?: any): Promise<any> => true),

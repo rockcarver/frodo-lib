@@ -29,6 +29,7 @@ jest.unstable_mockModule('./SessionOps', () => ({
 
 jest.unstable_mockModule('./ConnectionProfileOps', () => ({
   findSavedConnectionTarget: () => undefined,
+  decryptSavedAuthenticationHeaderOverrides: async () => ({}),
   getConnectionProfile: jest.fn(),
   loadConnectionProfile: jest.fn(),
   saveConnectionProfile: jest.fn(),

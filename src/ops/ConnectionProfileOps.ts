@@ -49,6 +49,12 @@ export type ConnectionProfile = {
   initConnectionProfiles(): Promise<void>;
   /**
    * Get connection profile by host
+   *
+   * The secrets of the profile come back decrypted: the password, the log API
+   * secret, the service account key, the Amster private key and the values of
+   * the authentication and configuration header overrides. A profile that an
+   * older version saved with plain header overrides is read as well, and is
+   * not changed by reading it.
    * @param {String} host host tenant, host url, unique substring, or alias
    * @returns {Object} connection profile or null
    */
@@ -71,6 +77,13 @@ export type ConnectionProfile = {
   loadConnectionProfile(): Promise<boolean>;
   /**
    * Save connection profile
+   *
+   * The password, the log API secret, the service account key, the Amster
+   * private key and the values of the authentication and configuration header
+   * overrides are stored encrypted with the master key. The names of the
+   * headers are encrypted with their values. Saving a profile that holds the
+   * plain header overrides an older version wrote replaces them with the
+   * encrypted ones.
    * @param {string} host host url for new profiles, unique substring or alias for existing profiles
    * @returns {Promise<boolean>} true if the operation succeeded, false otherwise
    */
@@ -238,6 +251,13 @@ export interface SecureConnectionProfileInterface {
   logApiKey?: string | null;
   encodedLogApiSecret?: string | null;
   authenticationService?: string | null;
+  // The values of the header overrides are secrets, so a profile written by
+  // this version keeps each map encrypted as a whole, like the other secrets
+  // (names included: they say how the deployment is protected). The plain
+  // maps are what older versions wrote; they are still read, and replaced by
+  // the encoded ones the next time the profile is saved.
+  encodedAuthenticationHeaderOverrides?: string | null;
+  encodedConfigurationHeaderOverrides?: string | null;
   authenticationHeaderOverrides?: Record<string, string>;
   configurationHeaderOverrides?: Record<string, string>;
   adminClientId?: string | null;
@@ -424,6 +444,84 @@ async function encryptUnlessUnchanged(
     }
   }
   return dataProtection.encrypt(value);
+}
+
+type HeaderOverridesKind = 'authentication' | 'configuration';
+
+const headerOverridesFields = {
+  authentication: {
+    encoded: 'encodedAuthenticationHeaderOverrides',
+    plain: 'authenticationHeaderOverrides',
+  },
+  configuration: {
+    encoded: 'encodedConfigurationHeaderOverrides',
+    plain: 'configurationHeaderOverrides',
+  },
+} as const;
+
+/**
+ * The header overrides a saved profile holds: the encrypted map, if any, and
+ * the plain map that older versions wrote. Where both name the same header the
+ * plain value wins: this version never writes both, so a plain map next to an
+ * encrypted one was written later by an older version.
+ * @param {SecureConnectionProfileInterface} profile the profile as it is in the file
+ * @param {HeaderOverridesKind} kind which of the two maps
+ * @param {DataProtection} dataProtection used to decrypt the encrypted map
+ * @returns {Promise<Record<string, string>>} the header names and their values
+ */
+async function decodeHeaderOverrides(
+  profile: SecureConnectionProfileInterface,
+  kind: HeaderOverridesKind,
+  dataProtection: DataProtection
+): Promise<Record<string, string>> {
+  const fields = headerOverridesFields[kind];
+  const encoded = profile[fields.encoded];
+  return {
+    ...(encoded ? await dataProtection.decrypt(encoded) : {}),
+    ...(profile[fields.plain] ?? {}),
+  };
+}
+
+/**
+ * Put the header overrides of one kind into a profile that is about to be
+ * saved, encrypted, and remove the plain map an older version wrote.
+ *
+ * - Overrides in the state replace the profile's: the state was loaded from
+ *   the profile when the profile was used.
+ * - No overrides in the state: a profile that still holds a plain map is
+ *   upgraded (its maps are encrypted now); a profile that holds an encrypted
+ *   map is left as it is, whether the key can read it or not.
+ * @param {SecureConnectionProfileInterface} profile the profile to save
+ * @param {HeaderOverridesKind} kind which of the two maps
+ * @param {Record<string, string>} overrides the overrides in the state
+ * @param {DataProtection} dataProtection used to encrypt
+ */
+async function encodeHeaderOverrides(
+  profile: SecureConnectionProfileInterface,
+  kind: HeaderOverridesKind,
+  overrides: Record<string, string> | undefined,
+  dataProtection: DataProtection
+): Promise<void> {
+  const fields = headerOverridesFields[kind];
+  let toStore: Record<string, string> | undefined;
+  if (overrides && Object.keys(overrides).length) {
+    toStore = overrides;
+  } else if (profile[fields.plain]) {
+    try {
+      toStore = await decodeHeaderOverrides(profile, kind, dataProtection);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      // the encrypted map cannot be read with this key: leave the profile as it is
+      return;
+    }
+  }
+  if (!toStore || !Object.keys(toStore).length) return;
+  profile[fields.encoded] = await encryptUnlessUnchanged(
+    dataProtection,
+    profile[fields.encoded],
+    toStore
+  );
+  delete profile[fields.plain];
 }
 
 /**
@@ -619,7 +717,9 @@ export async function initConnectionProfiles({ state }: { state: State }) {
  * for the login paths that must not read credentials: the full host URL, the
  * deployment type, whether to allow an insecure connection and the
  * authentication header overrides. Reads the profiles file only. It decrypts
- * nothing and needs no master key.
+ * nothing and needs no master key: the header overrides come back as they are
+ * stored, and `decryptSavedAuthenticationHeaderOverrides` turns them into the
+ * header values when a login needs them.
  * @param {string} host host url, unique substring, or alias
  * @param {State} state library state
  * @returns the fields, or undefined when there is no profiles file, no match, more than one match or the file cannot be read
@@ -636,6 +736,7 @@ export function findSavedConnectionTarget({
       deploymentType?: string;
       allowInsecureConnection?: boolean;
       authenticationHeaderOverrides?: Record<string, string>;
+      encodedAuthenticationHeaderOverrides?: string | null;
     }
   | undefined {
   if (!host) return undefined;
@@ -653,15 +754,55 @@ export function findSavedConnectionTarget({
       deploymentType,
       allowInsecureConnection,
       authenticationHeaderOverrides,
+      encodedAuthenticationHeaderOverrides,
     } = profiles[0];
     return {
       tenant,
       deploymentType,
       allowInsecureConnection,
       authenticationHeaderOverrides,
+      encodedAuthenticationHeaderOverrides,
     };
   } catch {
     return undefined;
+  }
+}
+
+/**
+ * The authentication header overrides of a saved profile that
+ * `findSavedConnectionTarget` found: the encrypted map is decrypted (the only
+ * place a login that reads no credential needs the master key, and only for a
+ * profile that has overrides), merged with the plain map an older version
+ * wrote. A profile without overrides never touches the key.
+ * @param {object} saved what `findSavedConnectionTarget` returned
+ * @param {State} state library state
+ * @returns {Promise<Record<string, string>>} the header names and values, empty if the profile has none
+ * @throws {FrodoError} if the encrypted map cannot be decrypted, like the encrypted password of the profile
+ */
+export async function decryptSavedAuthenticationHeaderOverrides({
+  saved,
+  state,
+}: {
+  saved: {
+    authenticationHeaderOverrides?: Record<string, string>;
+    encodedAuthenticationHeaderOverrides?: string | null;
+  };
+  state: State;
+}): Promise<Record<string, string>> {
+  if (!saved.encodedAuthenticationHeaderOverrides) {
+    return saved.authenticationHeaderOverrides ?? {};
+  }
+  try {
+    return await decodeHeaderOverrides(
+      saved as SecureConnectionProfileInterface,
+      'authentication',
+      new DataProtection({
+        pathToMasterKey: state.getMasterKeyPath(),
+        state,
+      })
+    );
+  } catch (error) {
+    throw new FrodoError(`Error decrypting connection profile`, error);
   }
 }
 
@@ -728,12 +869,16 @@ export async function getConnectionProfileByHost({
       authenticationService: profiles[0].authenticationService
         ? profiles[0].authenticationService
         : null,
-      authenticationHeaderOverrides: profiles[0].authenticationHeaderOverrides
-        ? profiles[0].authenticationHeaderOverrides
-        : {},
-      configurationHeaderOverrides: profiles[0].configurationHeaderOverrides
-        ? profiles[0].configurationHeaderOverrides
-        : {},
+      authenticationHeaderOverrides: await decodeHeaderOverrides(
+        profiles[0],
+        'authentication',
+        dataProtection
+      ),
+      configurationHeaderOverrides: await decodeHeaderOverrides(
+        profiles[0],
+        'configuration',
+        dataProtection
+      ),
       adminClientId: profiles[0].adminClientId
         ? profiles[0].adminClientId
         : null,
@@ -1107,40 +1252,50 @@ export async function saveConnectionProfile({
         state,
       });
     }
+    // The values of the header overrides are secrets: stored encrypted (see
+    // SecureConnectionProfileInterface). Only the names are ever logged.
+    const authenticationHeaderOverrides =
+      state.getAuthenticationHeaderOverrides();
     if (
-      state.getAuthenticationHeaderOverrides() &&
-      Object.entries(state.getAuthenticationHeaderOverrides()).length
+      authenticationHeaderOverrides &&
+      Object.entries(authenticationHeaderOverrides).length
     ) {
-      profile.authenticationHeaderOverrides =
-        state.getAuthenticationHeaderOverrides();
       debugMessage({
         message: 'Advanced setting: Authentication Header Overrides: ',
         state,
       });
       debugMessage({
-        message: Object.keys(state.getAuthenticationHeaderOverrides()).join(
-          ', '
-        ),
+        message: Object.keys(authenticationHeaderOverrides).join(', '),
         state,
       });
     }
+    await encodeHeaderOverrides(
+      profile,
+      'authentication',
+      authenticationHeaderOverrides,
+      dataProtection
+    );
+    const configurationHeaderOverrides =
+      state.getConfigurationHeaderOverrides();
     if (
-      state.getConfigurationHeaderOverrides() &&
-      Object.entries(state.getConfigurationHeaderOverrides()).length
+      configurationHeaderOverrides &&
+      Object.entries(configurationHeaderOverrides).length
     ) {
-      profile.configurationHeaderOverrides =
-        state.getConfigurationHeaderOverrides();
       debugMessage({
         message: 'Advanced setting: Configuration Header Overrides: ',
         state,
       });
       debugMessage({
-        message: Object.keys(state.getConfigurationHeaderOverrides()).join(
-          ', '
-        ),
+        message: Object.keys(configurationHeaderOverrides).join(', '),
         state,
       });
     }
+    await encodeHeaderOverrides(
+      profile,
+      'configuration',
+      configurationHeaderOverrides,
+      dataProtection
+    );
 
     // remove the helper key 'tenant'
     delete profile.tenant;

@@ -402,6 +402,55 @@ describe('getTokensInteractive() resolves a non-URL host before use', () => {
     expect(invocationState.getPassword()).toBeUndefined();
   });
 
+  test('10b: the plain header overrides an older version saved are adopted, and the profile is not rewritten', async () => {
+    const olderHost = 'https://openam-older.forgeblocks.com/am';
+    const profiles = JSON.parse(
+      fs.readFileSync(connectionProfilesPath, 'utf8')
+    );
+    profiles[olderHost] = {
+      deploymentType: 'cloud',
+      authenticationHeaderOverrides: { 'X-Gateway': 'test-only-plain-value' },
+    };
+    fs.writeFileSync(connectionProfilesPath, JSON.stringify(profiles));
+    const before = fs.readFileSync(connectionProfilesPath, 'utf8');
+    successfulLogin();
+
+    const invocationState = StateImpl({ host: olderHost });
+    invocationState.setConnectionProfilesPath(connectionProfilesPath);
+    invocationState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+    invocationState.setAuthenticationHeaderOverrides({});
+
+    await getTokensInteractive({ state: invocationState, promptHandler });
+
+    expect(invocationState.getAuthenticationHeaderOverrides()).toEqual({
+      'X-Gateway': 'test-only-plain-value',
+    });
+    expect(fs.readFileSync(connectionProfilesPath, 'utf8')).toBe(before);
+  });
+
+  test('10c: header overrides that the master key cannot decrypt fail the login before any request', async () => {
+    const lockedHost = 'https://openam-locked.forgeblocks.com/am';
+    const saveState = StateImpl({ host: lockedHost });
+    saveState.setConnectionProfilesPath(connectionProfilesPath);
+    saveState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+    saveState.setDeploymentType('cloud');
+    saveState.setAuthenticationHeaderOverrides({ 'X-Gateway': 'locked' });
+    await saveConnectionProfile({ host: lockedHost, state: saveState });
+    fs.writeFileSync(resolve(TMP_DIR, 'other.key'), 'test-other-master-key');
+    runInteractiveAuthorizationCodeFlow.mockReset();
+
+    const invocationState = StateImpl({ host: lockedHost });
+    invocationState.setConnectionProfilesPath(connectionProfilesPath);
+    invocationState.setMasterKeyPath(resolve(TMP_DIR, 'other.key'));
+    invocationState.setAuthenticationHeaderOverrides({});
+
+    await expect(
+      getTokensInteractive({ state: invocationState, promptHandler })
+    ).rejects.toThrow();
+    expect(runInteractiveAuthorizationCodeFlow).not.toHaveBeenCalled();
+    expect(invocationState.getAuthenticationHeaderOverrides()).toEqual({});
+  });
+
   test('11: classic is chosen only when the probe is conclusive', async () => {
     // both clients answer 400: an AM without the built-in clients
     authorize.mockReset();
