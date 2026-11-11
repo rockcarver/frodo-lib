@@ -83,6 +83,45 @@ releases missed):
   Exports are unaffected: they report findings as warnings and never block.
 - [`frodo.authn.journey.validateJourneys(journeyIds?, journeysExport?)`](https://rockcarver.github.io/frodo-lib/types/Reference.Journey.html#validatejourneys)
   validates journeys from the tenant or from a multi-journey export.
+- `frodo.authn.journey.importJourneys` (`src/ops/JourneyOps.ts`) with a result
+  callback no longer rejects the whole batch for an invalid journey or a
+  missing dependency. Every journey is an item: the callback gets an imported
+  journey as the journey and a failed one as an error that names it, as it
+  happens, and the function returns the journeys that were imported. A journey
+  that has validation errors, a journey that needs a journey that is neither
+  installed nor in the import data, and a journey that needs a journey of the
+  batch that failed are reported as failed and are not written; every other
+  journey is imported, in the order of its dependencies. Without a callback
+  nothing changes: the batch is validated and its dependencies are resolved
+  before any journey is written, and a validation error or a missing dependency
+  rejects the batch. `frodo.config.importFullConfiguration` imports its journeys
+  section this way when it is given a result callback (an invalid journey is
+  reported to the callback and no longer rejects the section), and as before
+  when it is not.
+- A credential that lacks a scope an operation needs (an `InsufficientScopeError`
+  anywhere in the error chain) is now a failed item, no longer skipped. The
+  shared result helper (`getResult` in `src/utils/ExportImportUtils.ts`) used to
+  treat it like the answer "This operation is not available in PingOne Advanced
+  Identity Cloud." (HTTP 403): the item was left out of the result without a
+  word, nothing was reported to a result callback and nothing was thrown. It now
+  fails like any other item. With a result callback, the callback gets an error
+  that names the item, with the `InsufficientScopeError` as its cause, and the
+  run goes on; without one, the function throws that error at the first such
+  item, as it does for every other failure. This reaches every function that
+  reports its items through the helper, among them
+  `frodo.config.exportFullConfiguration` and `importFullConfiguration`,
+  `frodo.am.config.exportAmConfigEntities` and `importAmConfigEntities`,
+  `frodo.idm.config.exportConfigEntities`, `frodo.authn.journey.exportJourneys`
+  and `importJourneys`, `frodo.script.exportScripts` and the bulk deletes and
+  imports of IGA objects. A full configuration export with a credential that
+  lacks the scope of one section therefore throws (or, with a callback, reports
+  that section as failed) where it used to return the other sections without
+  it. The error of the failed item carries the code `INSUFFICIENT_SCOPE`
+  (`FrodoError.code`), and so does the `InsufficientScopeError` nested in it, so
+  a caller can recognise the condition without parsing the message. The
+  answer "not available in PingOne Advanced Identity Cloud" is unchanged, it is
+  still skipped without being reported; a debug message now names the skipped
+  operation and the request.
 - `frodo.cloud.env.promotion`: `promoteConfiguration` now sends its request to
   the promotion endpoint (it used to post to the lock endpoint, so it never
   promoted anything). `lockEnvironment` and `unlockEnvironment` return a

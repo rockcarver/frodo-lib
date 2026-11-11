@@ -15,7 +15,7 @@ import {
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../utils/Console';
-import { getMetadata } from '../utils/ExportImportUtils';
+import { findFailedRequest, getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
 import { type ExportMetaData, type ResultCallback } from './OpsTypes';
@@ -75,7 +75,7 @@ export type CirclesOfTrust = {
    */
   exportCircleOfTrust(cotId: string): Promise<CirclesOfTrustExportInterface>;
   /**
-   * Export all circles of trust
+   * Export all circles of trust. A deployment that does not offer them (PingOne Advanced Identity Cloud answers that the operation is not available) exports none and nothing is thrown; every other failure, including a credential without the scope it needs, throws.
    * @param {string[]} entityProviders filter by entity providers
    */
   exportCirclesOfTrust(
@@ -474,8 +474,9 @@ export type CircleOfTrustExportOptions = {
 };
 
 /**
- * Export circles of trust
+ * Export circles of trust. A deployment that does not offer them (PingOne Advanced Identity Cloud answers that the operation is not available) exports none and nothing is thrown; every other failure, including a credential without the scope it needs, throws.
  * @returns {Promise<CirclesOfTrustExportInterface>} a promise that resolves to an CirclesOfTrustExportInterface object
+ * @throws {FrodoError} If the circles of trust cannot be read for any other reason. The error carries the original error.
  */
 export async function exportCirclesOfTrust({
   entityProviders = [],
@@ -529,6 +530,12 @@ export async function exportCirclesOfTrust({
       error.httpMessage ===
         'This operation is not available in PingOne Advanced Identity Cloud.'
     ) {
+      // not an error: the deployment does not offer circles of trust, so there are none to export
+      const request = findFailedRequest(error);
+      debugMessage({
+        message: `CirclesOfTrustOps.exportCirclesOfTrust: skipped, circles of trust are not available in PingOne Advanced Identity Cloud${request ? ` [${request}]` : ''}`,
+        state,
+      });
       return exportData;
     } else {
       throw new FrodoError(
