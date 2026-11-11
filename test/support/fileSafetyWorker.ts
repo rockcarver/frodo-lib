@@ -6,7 +6,10 @@
  * one JSON line with what it did.
  *
  *  - `count`: adds one to the number in a file `times` times, each time under
- *    the lock and without any other protection.
+ *    the lock and without any other protection. With `windowsRefusals` the
+ *    process behaves as on Windows (platform `win32`) and two of three creates
+ *    of the lock file are refused with EPERM, EBUSY or EACCES, which is what a
+ *    file that another process is deleting answers there for a moment.
  *  - `profile`: saves a connection profile of its own `times` times into one
  *    shared profiles file.
  *  - `masterKey`: encrypts something with a master key that does not exist yet
@@ -30,9 +33,36 @@ type Args = {
   times: number;
   /** epoch ms: all workers wait for it, so that they start at the same moment */
   startAt?: number;
+  /** `count` only: refuse creating the lock file now and then, as Windows does */
+  windowsRefusals?: boolean;
 };
 
+/**
+ * Make this process a Windows process that is refused creating the lock file
+ * of `file` for a moment: two creates of three fail with EPERM, EBUSY or
+ * EACCES (in turn) before the real create is tried.
+ */
+function refuseLockCreateLikeWindows(file: string) {
+  Object.defineProperty(process, 'platform', { value: 'win32' });
+  const lockFile = `${file}.lock`;
+  const codes = ['EPERM', 'EBUSY', 'EACCES'];
+  const realOpenSync = fs.openSync.bind(fs);
+  let creates = 0;
+  fs.openSync = ((...openArgs: Parameters<typeof fs.openSync>) => {
+    if (openArgs[0] === lockFile && openArgs[1] === 'wx' && creates++ % 3 < 2) {
+      const code = codes[creates % codes.length];
+      throw Object.assign(new Error(`${code}: refused, open '${lockFile}'`), {
+        code,
+        syscall: 'open',
+        path: lockFile,
+      });
+    }
+    return realOpenSync(...openArgs);
+  }) as typeof fs.openSync;
+}
+
 function count(args: Args) {
+  if (args.windowsRefusals) refuseLockCreateLikeWindows(args.file);
   for (let i = 0; i < args.times; i++) {
     withFileLockSync(args.file, () => {
       const value = fs.existsSync(args.file)
