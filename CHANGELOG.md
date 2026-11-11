@@ -10,6 +10,17 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-34] - 2026-11-11
+
+### Added
+- `state.setCurlirizeSecrets(true)` and `state.getCurlirizeSecrets()` print the real credential values in `curlirize` output. The first curl line with a real credential in a process is preceded by one warning line. The setting is never read from the environment or a profile, so the library does not persist it. (#993)
+
+### Fixed
+- `curlirize` output includes the `Authorization` and `Cookie` headers again (since 4.8.0 the credential was put on the request after the curl line was built). The value of a credential header, of a configured header override and of a credential in a request body is replaced by `<redacted>` unless `setCurlirizeSecrets(true)` is set. (#993)
+- `installIdmFeature` and `validateIdmFeature` return `{ status, success, message, failures }` with the outcome stated: an install response without a `success` field is a success, and a validation that cannot install the feature is a result with `success: false` and the reasons in `failures`, not an error. (#989)
+- A progress indicator without an id is ignored instead of failing. (#979)
+- Agent lookups that partly fail no longer fail as a whole, and the cache of agent types is scoped by realm. (#980)
+
 ## [v5.0.0-33] - 2026-11-10
 
 ### Fixed
