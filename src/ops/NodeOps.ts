@@ -37,7 +37,9 @@ import {
 import { getMetadata, getResult } from '../utils/ExportImportUtils';
 import { applyNameCollisionPolicy } from '../utils/ForgeRockUtils';
 import { sleep } from '../utils/FrodoUtils';
+import { cloneDeep } from '../utils/JsonUtils';
 import { eq, gt, lt } from '../utils/SemverUtils';
+import { createStateScopedCache } from '../utils/StateScopedCache';
 import { FrodoError, isNotFoundError } from './FrodoError';
 import { ExportMetaData, ResultCallback } from './OpsTypes';
 
@@ -570,7 +572,13 @@ export async function readNodeType({
   }
 }
 
-const NodeSchemaCache: Record<string, NodeSkeleton> = {};
+/**
+ * The node schemas read so far, kept for each instance and for the tenant it is
+ * pointed at (lib#1048): another instance reads the schema of its own tenant.
+ * A copy goes in and a copy comes out, so a caller that changes the schema it
+ * was handed does not change what the next read returns.
+ */
+const nodeSchemaCache = createStateScopedCache<NodeSkeleton>();
 
 /**
  * Read a node type's configurable-property schema.
@@ -593,15 +601,16 @@ export async function readNodeSchema({
 }): Promise<NodeSkeleton> {
   const cacheKey = `${nodeType}:${nodeTypeVersion}`;
   try {
-    if (!refreshCache && NodeSchemaCache[cacheKey]) {
+    const cached = nodeSchemaCache.get(state, cacheKey);
+    if (!refreshCache && cached) {
       debugMessage({
         message: `NodeOps.readNodeSchema: Using cached schema for node type "${nodeType}" version "${nodeTypeVersion}"`,
         state,
       });
-      return NodeSchemaCache[cacheKey];
+      return cloneDeep(cached);
     }
     const schema = await _getNodeSchema({ nodeType, nodeTypeVersion, state });
-    NodeSchemaCache[cacheKey] = schema;
+    nodeSchemaCache.set(state, cacheKey, cloneDeep(schema));
     return schema;
   } catch (error) {
     throw new FrodoError(
@@ -629,15 +638,16 @@ export async function readCustomNodeSchema({
 }): Promise<NodeSkeleton> {
   const cacheKey = `designer-${serviceName}`;
   try {
-    if (!refreshCache && NodeSchemaCache[cacheKey]) {
+    const cached = nodeSchemaCache.get(state, cacheKey);
+    if (!refreshCache && cached) {
       debugMessage({
         message: `NodeOps.readCustomNodeSchema: Using cached schema for custom node "${serviceName}"`,
         state,
       });
-      return NodeSchemaCache[cacheKey];
+      return cloneDeep(cached);
     }
     const schema = await _getCustomNodeSchema({ serviceName, state });
-    NodeSchemaCache[cacheKey] = schema;
+    nodeSchemaCache.set(state, cacheKey, cloneDeep(schema));
     return schema;
   } catch (error) {
     throw new FrodoError(

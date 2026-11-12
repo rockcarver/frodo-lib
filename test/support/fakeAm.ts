@@ -3,8 +3,8 @@
  * every request, for tests that need the real login code to talk to a server
  * and count what it sends. It answers what a classic username/password login
  * and a service account login touch; everything else answers 404 (the scope
- * catalog, the authorization endpoint and the managed object schemas answer
- * only when asked to, see `StartOptions`).
+ * catalog, the authorization endpoint, the managed object schemas and the node
+ * schemas answer only when asked to, see `StartOptions`).
  */
 import http from 'http';
 import { AddressInfo } from 'net';
@@ -30,6 +30,8 @@ export type FakeAm = {
   bodies(part: string): string[];
   /** Sets the schema that `GET /openidm/schema/managed/<type>` answers from now on; the schema paths then answer even if no `managedSchemas` were given. */
   setManagedSchema(type: string, schema: object): void;
+  /** Sets the schema that `POST .../authenticationtrees/nodes/<type>?_action=schema` answers from now on; the node schema path then answers even if no `nodeSchemas` were given. */
+  setNodeSchema(type: string, schema: object): void;
   close(): Promise<void>;
 };
 
@@ -44,6 +46,11 @@ export type StartOptions = {
    * them `PUT` and `DELETE` of `/openidm/schema/managed/<type>/properties/<name>` answer 200; without it the paths answer 404.
    */
   managedSchemas?: Record<string, object>;
+  /**
+   * The schemas that `POST .../realm-config/authentication/authenticationtrees/nodes/<type>?_action=schema` answers, by node type
+   * (a custom node is `designer-<serviceName>`; a type that is not in the map answers 404); without it the path answers 404.
+   */
+  nodeSchemas?: Record<string, object>;
 };
 
 export async function startFakeAm({
@@ -51,6 +58,7 @@ export async function startFakeAm({
   serviceAccountScopes,
   authorizationCode,
   managedSchemas,
+  nodeSchemas,
 }: StartOptions = {}): Promise<FakeAm> {
   const requests: string[] = [];
   const received: { path: string; body: string }[] = [];
@@ -59,6 +67,7 @@ export async function startFakeAm({
   const loggedOut: string[] = [];
   let rejectEverything = false;
   let schemas = managedSchemas ? { ...managedSchemas } : undefined;
+  let nodeTypeSchemas = nodeSchemas ? { ...nodeSchemas } : undefined;
   // the sessions and access tokens that are valid
   const valid = new Set<string>();
   const server = http.createServer((req, res) => {
@@ -105,6 +114,19 @@ export async function startFakeAm({
         if (property && (req.method === 'PUT' || req.method === 'DELETE')) {
           return send(200, {});
         }
+      }
+      const nodeSchemaPath =
+        nodeTypeSchemas &&
+        req.method === 'POST' &&
+        req.url?.includes('_action=schema') &&
+        /\/realm-config\/authentication\/authenticationtrees\/nodes\/([^/]+)(\/[^/]+)?$/.exec(
+          path
+        );
+      if (nodeSchemaPath) {
+        const [, type] = nodeSchemaPath;
+        return nodeTypeSchemas[type]
+          ? send(200, nodeTypeSchemas[type])
+          : send(404, {});
       }
       if (path.includes('/json/serverinfo')) {
         return send(200, {
@@ -232,6 +254,9 @@ export async function startFakeAm({
     },
     setManagedSchema: (type: string, schema: object) => {
       schemas = { ...schemas, [type]: schema };
+    },
+    setNodeSchema: (type: string, schema: object) => {
+      nodeTypeSchemas = { ...nodeTypeSchemas, [type]: schema };
     },
     count: (part: string) => requests.filter((r) => r.includes(part)).length,
     bodies: (part: string) =>

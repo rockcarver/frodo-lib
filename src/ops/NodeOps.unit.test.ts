@@ -28,6 +28,9 @@ const { readNodeSchema, readCustomNodeSchema } = await import('./NodeOps');
 function mockState() {
   return {
     getDeploymentType: () => 'cloud',
+    // the schema cache is kept for the tenant a state is pointed at (lib#1048), as every state has a host
+    getHost: () => 'https://tenant.example.com/am',
+    getIdmHost: () => undefined,
     getDebugHandler: () => undefined,
     getAuthMode: () => 'noninteractive',
     getUseBearerTokenForAmApis: () => false,
