@@ -49,7 +49,7 @@ const cases: Row[] = [
     message: 'Error deleting config entity sync',
   },
   {
-    // the failed write passes through updateConfigEntity and importConfigEntities, which wrap it first
+    // the failed write passes through updateConfigEntity and importConfigEntities (the entity, then the combined error), which wrap it first
     name: 'importSubConfigEntity',
     call: () =>
       ops.importSubConfigEntity({
@@ -60,7 +60,7 @@ const cases: Row[] = [
       }),
     api: idmConfigApi.putConfigEntity,
     message: 'Error importing sub config sync',
-    wrappers: 3,
+    wrappers: 4,
     arrange: () => {
       idmConfigApi.getConfigEntity.mockResolvedValue({
         _id: 'sync',
@@ -78,7 +78,7 @@ const cases: Row[] = [
       }),
     api: idmConfigApi.putConfigEntity,
     message: 'Error removing sub config sync mapping-1',
-    wrappers: 3,
+    wrappers: 4,
     arrange: () => {
       idmConfigApi.getConfigEntity.mockResolvedValue({
         _id: 'sync',
