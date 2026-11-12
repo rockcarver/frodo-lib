@@ -3542,6 +3542,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'agent.importJavaAgents': { excludeParameters: ['resultCallback'] },
   'agent.importWebAgents': { excludeParameters: ['resultCallback'] },
   'agent.importAIAgents': { excludeParameters: ['resultCallback'] },
+  'user.importUsers': { excludeParameters: ['resultCallback'] },
+  'user.importUserGroups': { excludeParameters: ['resultCallback'] },
   'saml2.entityProvider.exportSaml2Providers': {
     excludeParameters: ['resultCallback'],
   },
