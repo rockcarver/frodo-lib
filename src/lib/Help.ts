@@ -1925,14 +1925,14 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "IdmConfig",
     methodName: "importConfigEntities",
     signature: "importConfigEntities( importData: ConfigEntityExportInterface, entityId?: string, options?: ConfigEntityImportOptions, resultCallback?: ResultCallback<IdObjectSkeletonInterface> ): Promise<IdObjectSkeletonInterface[]>",
-    description: "Import idm config entities.",
+    description: "Import idm config entities. Every entity is tried: an entity that cannot be imported does not stop the others.",
     params: [
       { name: "importData", type: "ConfigEntityExportInterface", description: "idm config entity import data.", required: true },
       { name: "entityId", type: "string", description: "Optional entity id that, when provided, will only import the entity of that id from the importData", required: false },
       { name: "options", type: "ConfigEntityImportOptions", description: "import options", required: false },
-      { name: "resultCallback", type: "ResultCallback", description: "Optional callback to process individual results", required: false },
+      { name: "resultCallback", type: "ResultCallback<IdObjectSkeletonInterface>", description: "Optional callback to process individual results. When given, the outcome of every entity is passed to it as it happens (a failed entity as an error that names it, with the cause nested) and a failed entity does not throw: the entities that could be imported are returned. Without it, the failures are collected and thrown as one error after every entity was tried.", required: false },
     ],
-    returns: "{Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of config entity objects",
+    returns: "{Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of the imported config entity objects",
   },
   {
     typeName: "IdmConfig",

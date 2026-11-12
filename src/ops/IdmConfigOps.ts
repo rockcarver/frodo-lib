@@ -106,12 +106,14 @@ export type IdmConfig = {
     wait?: boolean
   ): Promise<IdObjectSkeletonInterface>;
   /**
-   * Import idm config entities.
+   * Import idm config entities. Every entity is tried: an entity that cannot be imported does not stop the others.
    * @param {ConfigEntityExportInterface} importData idm config entity import data.
    * @param {string} entityId Optional entity id that, when provided, will only import the entity of that id from the importData
    * @param {ConfigEntityImportOptions} options import options
-   * @param {ResultCallback} resultCallback Optional callback to process individual results
-   * @returns {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of config entity objects
+   * @param {ResultCallback<IdObjectSkeletonInterface>} resultCallback Optional callback to process individual results. When given, the outcome of every entity is passed to it as it happens (a failed entity as an error that names it, with the cause nested) and a failed entity does not throw: the entities that could be imported are returned. Without it, the failures are collected and thrown as one error after every entity was tried.
+   * An entity that is protected in PingOne Advanced Identity Cloud (the tenant answers 403) is skipped: it is neither a result nor a failure, and the debug output names it.
+   * @returns {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of the imported config entity objects
+   * @throws {FrodoError} If one or more entities cannot be imported and there is no result callback. The error carries one nested error per failed entity.
    */
   importConfigEntities(
     importData: ConfigEntityExportInterface,
@@ -768,6 +770,16 @@ export async function updateConfigEntity({
   }
 }
 
+/**
+ * Import idm config entities. Every entity is tried: an entity that cannot be imported does not stop the others.
+ * @param {string} entityId Optional entity id that, when provided, will only import the entity of that id from the importData
+ * @param {ConfigEntityExportInterface} importData idm config entity import data.
+ * @param {ConfigEntityImportOptions} options import options
+ * @param {ResultCallback<IdObjectSkeletonInterface>} resultCallback Optional callback to process individual results. When given, the outcome of every entity is passed to it as it happens (a failed entity as an error that names it, with the cause nested) and a failed entity does not throw: the entities that could be imported are returned. Without it, the failures are collected and thrown as one error after every entity was tried.
+ * An entity that is protected in PingOne Advanced Identity Cloud (the tenant answers 403) is skipped: it is neither a result nor a failure, and the debug output names it.
+ * @returns {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of the imported config entity objects
+ * @throws {FrodoError} If one or more entities cannot be imported and there is no result callback. The error carries one nested error per failed entity.
+ */
 export async function importConfigEntities({
   entityId,
   importData,
@@ -790,11 +802,15 @@ export async function importConfigEntities({
   if (options.entitiesToImport && options.entitiesToImport.length > 0) {
     ids = ids.filter((id) => options.entitiesToImport.includes(id));
   }
+  const errors: Error[] = [];
   for (const id of ids) {
+    if (entityId && id !== entityId) {
+      continue;
+    }
+    let imported: IdObjectSkeletonInterface;
+    let failed = false;
+    let failure: unknown;
     try {
-      if (entityId && id !== entityId) {
-        continue;
-      }
       debugMessage({
         message: `IdmConfigOps.importConfigEntities: ${id}`,
         state,
@@ -808,38 +824,53 @@ export async function importConfigEntities({
           `Invalid script hook in the config object '${id}'`
         );
       }
-      const result = await updateConfigEntity({
+      imported = await updateConfigEntity({
         entityId: id,
         entityData,
         wait: options.wait,
         state,
       });
-      response.push(result);
-      if (resultCallback) {
-        resultCallback(undefined, result);
-      }
     } catch (error) {
-      if (
-        // protected entities (e.g. root realm email templates)
-        !(
-          state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY &&
-          AIC_PROTECTED_ENTITIES.includes(id) &&
-          error.httpStatus === 403 &&
-          error.httpCode === 'ERR_BAD_REQUEST'
-        )
-      ) {
-        if (resultCallback) {
-          resultCallback(error, undefined);
-        } else {
-          throw new FrodoError(
-            `Error importing idm config entity ${id}`,
-            error
-          );
-        }
+      failed = true;
+      failure = error;
+    }
+    // the callback is called outside the try: an exception of the callback must
+    // not be taken for a failed import and reported a second time
+    if (!failed) {
+      response.push(imported);
+      if (resultCallback) {
+        resultCallback(undefined, imported);
+      }
+    } else if (
+      // protected entities (e.g. root realm email templates) cannot be written
+      // in the cloud: the answer is skipped without a word for the caller, but
+      // the debug output names the entity and the request
+      state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY &&
+      AIC_PROTECTED_ENTITIES.includes(id) &&
+      (failure as FrodoError)?.httpStatus === 403 &&
+      (failure as FrodoError)?.httpCode === 'ERR_BAD_REQUEST'
+    ) {
+      const request = findFailedRequest(failure);
+      debugMessage({
+        message: `IdmConfigOps.importConfigEntities: skipped config entity ${id}, it is protected in PingOne Advanced Identity Cloud (403)${request ? ` [${request}]` : ''}`,
+        state,
+      });
+    } else {
+      const itemError = new FrodoError(
+        `Error importing idm config entity ${id}`,
+        failure as Error
+      );
+      if (resultCallback) {
+        resultCallback(itemError, undefined);
+      } else {
+        errors.push(itemError);
       }
     }
   }
   debugMessage({ message: `IdmConfigOps.importConfigEntities: end`, state });
+  if (errors.length > 0) {
+    throw new FrodoError('Error importing idm config entities', errors);
+  }
   return response;
 }
 

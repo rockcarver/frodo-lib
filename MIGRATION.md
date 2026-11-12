@@ -53,6 +53,21 @@ releases missed):
   callback and nothing is thrown. A file with such an agent that imported
   without an error before now ends with one: take the agent out of the file, or
   pass a callback and decide what to do with that error.
+- `frodo.idm.config.importConfigEntities` (`src/ops/IdmConfigOps.ts`) now tries
+  every entity. Without a `resultCallback` it used to stop at the first entity
+  that failed, so the entities after it were not written. It now writes the
+  others and, after every entity was tried, throws one `FrodoError` (`Error
+  importing idm config entities`) that carries one nested error per failed
+  entity (`Error importing idm config entity <id>`). The error that a
+  `resultCallback` receives for a failed entity is that same error, with the
+  former one (`Error updating config entity <id>`, or the invalid script hook
+  error) nested in it; a failed entity is still not part of the result. A
+  protected entity that PingOne Advanced Identity Cloud refuses (HTTP 403) is
+  still skipped without a word for the caller; the debug output now names it
+  and the request. A callback that throws for a successful entity is no longer
+  called a second time with its own exception: the exception now propagates.
+  `importSubConfigEntity` and `removeSubConfigEntity` call it, so their error
+  chain has one more nested level.
 - `frodo.utils.saveTextToFile` and `frodo.utils.saveJsonToFile`
   (`src/utils/ExportImportUtils.ts`) now return `void` on success instead of
   `true`. Directory-creation and file-write failures throw a `FrodoError`
