@@ -117,14 +117,16 @@ export type OAuth2Client = {
     options?: OAuth2ClientImportOptions
   ): Promise<OAuth2ClientSkeleton>;
   /**
-   * Import OAuth2 Clients
+   * Import OAuth2 Clients. Every client is tried: a client that cannot be imported does not stop the others.
    * @param {OAuth2ClientExportInterface} importData import data
    * @param {OAuth2ClientImportOptions} options import options
+   * @param {ResultCallback<OAuth2ClientSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every client is passed to it as it happens (a failed client as an error that names it, with the cause nested) and a failed client does not throw: the clients that could be imported are returned. Without it, the failures are collected and thrown as one error after every client was tried.
    * @returns {Promise<OAuth2ClientSkeleton[]>} a promise resolving to an array of oauth2 clients
    */
   importOAuth2Clients(
     importData: OAuth2ClientExportInterface,
-    options?: OAuth2ClientImportOptions
+    options?: OAuth2ClientImportOptions,
+    resultCallback?: ResultCallback<OAuth2ClientSkeleton>
   ): Promise<OAuth2ClientSkeleton[]>;
 };
 
@@ -192,9 +194,15 @@ export default (state: State): OAuth2Client => {
     },
     async importOAuth2Clients(
       importData: OAuth2ClientExportInterface,
-      options: OAuth2ClientImportOptions = { deps: true }
+      options: OAuth2ClientImportOptions = { deps: true },
+      resultCallback: ResultCallback<OAuth2ClientSkeleton> = undefined
     ): Promise<OAuth2ClientSkeleton[]> {
-      return importOAuth2Clients({ importData, options, state });
+      return importOAuth2Clients({
+        importData,
+        options,
+        resultCallback,
+        state,
+      });
     },
   };
 };
@@ -854,23 +862,30 @@ export async function importFirstOAuth2Client({
 }
 
 /**
- * Import OAuth2 Clients
+ * Import OAuth2 Clients. Every client is tried: a client that cannot be imported does not stop the others.
  * @param {OAuth2ClientExportInterface} importData import data
  * @param {OAuth2ClientImportOptions} options import options
+ * @param {ResultCallback<OAuth2ClientSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every client is passed to it as it happens (a failed client as an error that names it, with the cause nested) and a failed client does not throw: the clients that could be imported are returned. Without it, the failures are collected and thrown as one error after every client was tried.
  * @returns {Promise<OAuth2ClientSkeleton[]>} a promise resolving to an array of oauth2 clients
+ * @throws {FrodoError} If one or more clients cannot be imported and there is no result callback. The error carries one nested error per failed client.
  */
 export async function importOAuth2Clients({
   importData,
   options = { deps: true },
+  resultCallback = undefined,
   state,
 }: {
   importData: OAuth2ClientExportInterface;
   options?: OAuth2ClientImportOptions;
+  resultCallback?: ResultCallback<OAuth2ClientSkeleton>;
   state: State;
 }): Promise<OAuth2ClientSkeleton[]> {
   const response = [];
   const errors = [];
   for (const id of Object.keys(importData.application)) {
+    let imported: OAuth2ClientSkeleton;
+    let failed = false;
+    let failure: unknown;
     try {
       const clientData = importData.application[id];
       delete clientData._provider;
@@ -878,11 +893,26 @@ export async function importOAuth2Clients({
       if (options.deps) {
         await importOAuth2ClientDependencies(clientData, importData, state);
       }
-      response.push(
-        await updateOAuth2Client({ clientId: id, clientData, state })
-      );
+      imported = await updateOAuth2Client({ clientId: id, clientData, state });
     } catch (error) {
-      errors.push(error);
+      failed = true;
+      failure = error;
+    }
+    // the callback is called outside the try: an exception of the callback must
+    // not be taken for a failed import and reported a second time
+    if (!failed) {
+      response.push(imported);
+      if (resultCallback) resultCallback(undefined, imported);
+    } else if (resultCallback) {
+      resultCallback(
+        new FrodoError(
+          `Error importing ${getCurrentRealmName(state) + ' realm'} oauth2 client ${id}`,
+          failure as Error
+        ),
+        undefined
+      );
+    } else {
+      errors.push(failure);
     }
   }
   if (errors.length > 0) {

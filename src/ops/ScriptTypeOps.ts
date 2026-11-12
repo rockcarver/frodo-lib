@@ -20,7 +20,7 @@ import {
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { FrodoError } from './FrodoError';
-import { ExportMetaData } from './OpsTypes';
+import { ExportMetaData, type ResultCallback } from './OpsTypes';
 
 export type ScriptType = {
   /**
@@ -62,14 +62,16 @@ export type ScriptType = {
     scriptTypeData: ScriptTypeSkeleton
   ): Promise<ScriptTypeSkeleton>;
   /**
-   * Import script types
+   * Import script types. Every script type is tried: a script type that cannot be imported does not stop the others.
    * @param {ScriptTypeExportInterface} importData script type import data
    * @param {string} scriptTypeId Optional script type id. If supplied, only the script type of that id is imported. Takes priority over scriptTypeUrl if both are provided.
+   * @param {ResultCallback<ScriptTypeExportSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every script type is passed to it as it happens (a failed script type as an error that names it, with the cause nested) and a failed script type does not throw: the script types that could be imported are returned. Without it, the failures are collected and thrown as one error after every script type was tried.
    * @returns {Promise<ScriptTypeSkeleton[]>} the imported script types
    */
   importScriptTypes(
     importData: ScriptTypeExportInterface,
-    scriptTypeId?: string
+    scriptTypeId?: string,
+    resultCallback?: ResultCallback<ScriptTypeExportSkeleton>
   ): Promise<ScriptTypeSkeleton[]>;
 };
 
@@ -98,11 +100,13 @@ export default (state: State): ScriptType => {
     },
     async importScriptTypes(
       importData: ScriptTypeExportInterface,
-      scriptTypeId?: string
+      scriptTypeId?: string,
+      resultCallback: ResultCallback<ScriptTypeExportSkeleton> = undefined
     ): Promise<ScriptTypeSkeleton[]> {
       return importScriptTypes({
         scriptTypeId,
         importData,
+        resultCallback,
         state,
       });
     },
@@ -296,18 +300,22 @@ export async function updateScriptType({
 }
 
 /**
- * Import script types
+ * Import script types. Every script type is tried: a script type that cannot be imported does not stop the others.
  * @param {string} scriptTypeId Optional script type id. If supplied, only the script type of that id is imported. Takes priority over scriptTypeUrl if both are provided.
  * @param {ScriptTypeExportInterface} importData script type import data
+ * @param {ResultCallback<ScriptTypeExportSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every script type is passed to it as it happens (a failed script type as an error that names it, with the cause nested) and a failed script type does not throw: the script types that could be imported are returned. Without it, the failures are collected and thrown as one error after every script type was tried.
  * @returns {Promise<ScriptTypeExportSkeleton[]>} the imported script types
+ * @throws {FrodoError} If one or more script types cannot be imported and there is no result callback. The error carries one nested error per failed script type.
  */
 export async function importScriptTypes({
   scriptTypeId,
   importData,
+  resultCallback = undefined,
   state,
 }: {
   scriptTypeId?: string;
   importData: ScriptTypeExportInterface;
+  resultCallback?: ResultCallback<ScriptTypeExportSkeleton>;
   state: State;
 }): Promise<ScriptTypeExportSkeleton[]> {
   const errors = [];
@@ -315,6 +323,9 @@ export async function importScriptTypes({
     debugMessage({ message: `ScriptTypeOps.importScriptTypes: start`, state });
     const response = [];
     for (const scriptType of Object.values(importData.scripttype)) {
+      let imported: ScriptTypeExportSkeleton;
+      let failed = false;
+      let failure: unknown;
       try {
         if (scriptTypeId && scriptType._id !== scriptTypeId) {
           continue;
@@ -337,9 +348,26 @@ export async function importScriptTypes({
         })) as ScriptTypeExportSkeleton;
         result.context = context;
         result.engineConfiguration = engineConfiguration;
-        response.push(result);
+        imported = result;
       } catch (error) {
-        errors.push(error);
+        failed = true;
+        failure = error;
+      }
+      // the callback is called outside the try: an exception of the callback
+      // must not be taken for a failed import and reported a second time
+      if (!failed) {
+        response.push(imported);
+        if (resultCallback) resultCallback(undefined, imported);
+      } else if (resultCallback) {
+        resultCallback(
+          new FrodoError(
+            `Error importing script type ${scriptType?._id}`,
+            failure as Error
+          ),
+          undefined
+        );
+      } else {
+        errors.push(failure);
       }
     }
     if (errors.length > 0) {

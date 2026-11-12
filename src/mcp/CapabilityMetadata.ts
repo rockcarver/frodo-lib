@@ -3557,6 +3557,12 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'oauth2oidc.client.exportOAuth2Clients': {
     excludeParameters: ['resultCallback'],
   },
+  'oauth2oidc.client.importOAuth2Clients': {
+    excludeParameters: ['resultCallback'],
+  },
+  'oauth2oidc.external.importSocialIdentityProviders': {
+    excludeParameters: ['resultCallback'],
+  },
   'oauth2oidc.cimd.deleteCIMDProfiles': {
     excludeParameters: ['resultCallback'],
   },
@@ -3832,6 +3838,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'script.createScriptExportTemplate': { excluded: true },
   'scriptType.createScriptTypeExportTemplate': { excluded: true },
+  'scriptType.importScriptTypes': { excludeParameters: ['resultCallback'] },
   'secretStore.createSecretStoreExportTemplate': { excluded: true },
   'theme.createThemeExportTemplate': { excluded: true },
   'email.template.createEmailTemplateExportTemplate': { excluded: true },

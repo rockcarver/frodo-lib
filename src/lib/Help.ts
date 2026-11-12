@@ -2329,11 +2329,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Idp",
     methodName: "importSocialIdentityProviders",
-    signature: "importSocialIdentityProviders( importData: SocialProviderExportInterface, options: SocialIdentityProviderImportOptions ): Promise<SocialIdpSkeleton[]>",
-    description: "Import all social identity providers",
+    signature: "importSocialIdentityProviders( importData: SocialProviderExportInterface, options: SocialIdentityProviderImportOptions, resultCallback?: ResultCallback<SocialIdpSkeleton> ): Promise<SocialIdpSkeleton[]>",
+    description: "Import all social identity providers. Every provider is tried: a provider that cannot be imported does not stop the others.",
     params: [
       { name: "importData", type: "SocialProviderExportInterface", description: "import data", required: true },
       { name: "options", type: "SocialIdentityProviderImportOptions", description: "import options", required: true },
+      { name: "resultCallback", type: "ResultCallback<SocialIdpSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every provider is passed to it as it happens (a failed provider as an error that names it, with the reasons nested) and a failed provider does not throw: the providers that could be imported are returned. A provider whose script could not be imported is a failed provider, although the provider itself may have been written. Without it, the failures are collected and thrown as one error after every provider was tried.", required: false },
     ],
     returns: "{Promise<SocialIdpSkeleton[]>} a promise resolving to an array of social identity provider objects",
   },
@@ -4025,11 +4026,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "OAuth2Client",
     methodName: "importOAuth2Clients",
-    signature: "importOAuth2Clients( importData: OAuth2ClientExportInterface, options?: OAuth2ClientImportOptions ): Promise<OAuth2ClientSkeleton[]>",
-    description: "Import OAuth2 Clients",
+    signature: "importOAuth2Clients( importData: OAuth2ClientExportInterface, options?: OAuth2ClientImportOptions, resultCallback?: ResultCallback<OAuth2ClientSkeleton> ): Promise<OAuth2ClientSkeleton[]>",
+    description: "Import OAuth2 Clients. Every client is tried: a client that cannot be imported does not stop the others.",
     params: [
       { name: "importData", type: "OAuth2ClientExportInterface", description: "import data", required: true },
       { name: "options", type: "OAuth2ClientImportOptions", description: "import options", required: false },
+      { name: "resultCallback", type: "ResultCallback<OAuth2ClientSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every client is passed to it as it happens (a failed client as an error that names it, with the cause nested) and a failed client does not throw: the clients that could be imported are returned. Without it, the failures are collected and thrown as one error after every client was tried.", required: false },
     ],
     returns: "{Promise<OAuth2ClientSkeleton[]>} a promise resolving to an array of oauth2 clients",
   },
@@ -5367,11 +5369,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "ScriptType",
     methodName: "importScriptTypes",
-    signature: "importScriptTypes( importData: ScriptTypeExportInterface, scriptTypeId?: string ): Promise<ScriptTypeSkeleton[]>",
-    description: "Import script types",
+    signature: "importScriptTypes( importData: ScriptTypeExportInterface, scriptTypeId?: string, resultCallback?: ResultCallback<ScriptTypeExportSkeleton> ): Promise<ScriptTypeSkeleton[]>",
+    description: "Import script types. Every script type is tried: a script type that cannot be imported does not stop the others.",
     params: [
       { name: "importData", type: "ScriptTypeExportInterface", description: "script type import data", required: true },
       { name: "scriptTypeId", type: "string", description: "Optional script type id. If supplied, only the script type of that id is imported. Takes priority over scriptTypeUrl if both are provided.", required: false },
+      { name: "resultCallback", type: "ResultCallback<ScriptTypeExportSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every script type is passed to it as it happens (a failed script type as an error that names it, with the cause nested) and a failed script type does not throw: the script types that could be imported are returned. Without it, the failures are collected and thrown as one error after every script type was tried.", required: false },
     ],
     returns: "{Promise<ScriptTypeSkeleton[]>} the imported script types",
   },
