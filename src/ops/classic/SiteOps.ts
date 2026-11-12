@@ -13,7 +13,7 @@ import {
 } from '../../utils/Console';
 import { getMetadata } from '../../utils/ExportImportUtils';
 import { FrodoError } from '../FrodoError';
-import { ExportMetaData } from '../OpsTypes';
+import { ExportMetaData, type ResultCallback } from '../OpsTypes';
 
 export type Site = {
   /**
@@ -51,16 +51,18 @@ export type Site = {
    */
   updateSite(siteId: string, siteData: SiteSkeleton): Promise<SiteSkeleton>;
   /**
-   * Import sites
+   * Import sites. Every site is tried: a site that cannot be imported does not stop the others.
    * @param {SiteExportInterface} importData site import data
    * @param {string} siteId Optional site id. If supplied, only the site of that id is imported. Takes priority over siteUrl if both are provided.
    * @param {string} siteUrl Optional site url. If supplied, only the site of that url is imported.
+   * @param {ResultCallback<SiteSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every site is passed to it as it happens (a failed site as an error that names it, with the cause nested) and a failed site does not throw: the sites that could be imported are returned. Without it, the failures are collected and thrown as one error after every site was tried.
    * @returns {Promise<SiteSkeleton[]>} the imported sites
    */
   importSites(
     importData: SiteExportInterface,
     siteId?: string,
-    siteUrl?: string
+    siteUrl?: string,
+    resultCallback?: ResultCallback<SiteSkeleton>
   ): Promise<SiteSkeleton[]>;
 };
 
@@ -90,12 +92,14 @@ export default (state: State): Site => {
     async importSites(
       importData: SiteExportInterface,
       siteId?: string,
-      siteUrl?: string
+      siteUrl?: string,
+      resultCallback?: ResultCallback<SiteSkeleton>
     ): Promise<SiteSkeleton[]> {
       return importSites({
         siteId,
         siteUrl,
         importData,
+        resultCallback,
         state,
       });
     },
@@ -256,21 +260,25 @@ export async function updateSite({
 }
 
 /**
- * Import sites
+ * Import sites. Every site is tried: a site that cannot be imported does not stop the others.
  * @param {string} siteId Optional site id. If supplied, only the site of that id is imported. Takes priority over siteUrl if both are provided.
  * @param {string} siteUrl Optional site url. If supplied, only the site of that url is imported.
  * @param {SiteExportInterface} importData site import data
+ * @param {ResultCallback<SiteSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every site is passed to it as it happens (a failed site as an error that names it, with the cause nested) and a failed site does not throw: the sites that could be imported are returned. Without it, the failures are collected and thrown as one error after every site was tried.
  * @returns {Promise<SiteSkeleton[]>} the imported sites
+ * @throws {FrodoError} If one or more sites cannot be imported and there is no result callback. The error carries one nested error per failed site.
  */
 export async function importSites({
   siteId,
   siteUrl,
   importData,
+  resultCallback = undefined,
   state,
 }: {
   siteId?: string;
   siteUrl?: string;
   importData: SiteExportInterface;
+  resultCallback?: ResultCallback<SiteSkeleton>;
   state: State;
 }): Promise<SiteSkeleton[]> {
   const errors = [];
@@ -278,6 +286,9 @@ export async function importSites({
     debugMessage({ message: `SiteOps.importSites: start`, state });
     const response = [];
     for (const site of Object.values(importData.site)) {
+      let imported: SiteSkeleton;
+      let failed = false;
+      let failure: unknown;
       try {
         if (
           (siteId && site._id !== siteId) ||
@@ -285,14 +296,27 @@ export async function importSites({
         ) {
           continue;
         }
-        const result = await updateSite({
+        imported = await updateSite({
           siteId: site._id,
           siteData: site,
           state,
         });
-        response.push(result);
       } catch (error) {
-        errors.push(error);
+        failed = true;
+        failure = error;
+      }
+      // the callback is called outside the try: an exception of the callback
+      // must not be taken for a failed import and reported a second time
+      if (!failed) {
+        response.push(imported);
+        if (resultCallback) resultCallback(undefined, imported);
+      } else if (resultCallback) {
+        resultCallback(
+          new FrodoError(`Error importing site ${site?._id}`, failure as Error),
+          undefined
+        );
+      } else {
+        errors.push(failure);
       }
     }
     if (errors.length > 0) {
