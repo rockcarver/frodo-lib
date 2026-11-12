@@ -3601,6 +3601,10 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'app.exportApplications': { excludeParameters: ['resultCallback'] },
   'app.importApplications': { excludeParameters: ['resultCallback'] },
   'role.importInternalRoles': { excludeParameters: ['resultCallback'] },
+  'agent.importAgentGroups': { excludeParameters: ['resultCallback'] },
+  'idm.connector.importConnectors': { excludeParameters: ['resultCallback'] },
+  'realm.importRealms': { excludeParameters: ['resultCallback'] },
+  'site.importSites': { excludeParameters: ['resultCallback'] },
 
   'script.getLibraryScriptNames': {
     // Takes a full ScriptSkeleton as input (parses require() calls out of its

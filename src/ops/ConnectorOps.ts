@@ -23,7 +23,7 @@ import {
   readMappings,
   updateMapping,
 } from './MappingOps';
-import { ExportMetaData } from './OpsTypes';
+import { ExportMetaData, type ResultCallback } from './OpsTypes';
 
 export type Connector = {
   /**
@@ -121,14 +121,16 @@ export type Connector = {
     options?: ConnectorImportOptions
   ): Promise<ConnectorSkeleton>;
   /**
-   * Import all connectors
+   * Import all connectors. Every connector is tried: a connector that cannot be imported does not stop the others.
    * @param {ConnectorExportInterface} importData import data
    * @param {ConnectorImportOptions} options import options
+   * @param {ResultCallback<ConnectorSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every connector is passed to it as it happens (a failed connector as an error that names it, with the cause nested) and a failed connector does not throw: the connectors that could be imported are returned. Without it, the failures are collected and thrown as one error after every connector was tried.
    * @returns {Promise<ConnectorSkeleton[]>} a promise resolving to an array of ConnectorSkeleton objects
    */
   importConnectors(
     importData: ConnectorExportInterface,
-    options?: ConnectorImportOptions
+    options?: ConnectorImportOptions,
+    resultCallback?: ResultCallback<ConnectorSkeleton>
   ): Promise<ConnectorSkeleton[]>;
   /**
    * Enable a connector, the way the Admin UI does it, and wait until the connector answers its connection test. A connector that is enabled already is left alone (`changed` is false) but is still waited for. A connector that is enabled but does not answer in time is not an error: `ready` is false and `error` holds the last answer of the test.
@@ -224,9 +226,10 @@ export default (state: State): Connector => {
     },
     async importConnectors(
       importData: ConnectorExportInterface,
-      options?: ConnectorImportOptions
+      options?: ConnectorImportOptions,
+      resultCallback?: ResultCallback<ConnectorSkeleton>
     ): Promise<ConnectorSkeleton[]> {
-      return importConnectors({ importData, options, state });
+      return importConnectors({ importData, options, resultCallback, state });
     },
     async enableConnector(
       connectorId: string,
@@ -812,36 +815,55 @@ export async function importFirstConnector({
 }
 
 /**
- * Import all connectors
+ * Import all connectors. Every connector is tried: a connector that cannot be imported does not stop the others.
  * @param {ConnectorExportInterface} importData import data
  * @param {ConnectorImportOptions} options import options
+ * @param {ResultCallback<ConnectorSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every connector is passed to it as it happens (a failed connector as an error that names it, with the cause nested) and a failed connector does not throw: the connectors that could be imported are returned. Without it, the failures are collected and thrown as one error after every connector was tried.
  * @returns {Promise<ConnectorSkeleton[]>} a promise resolving to an array of ConnectorSkeleton objects
+ * @throws {FrodoError} If one or more connectors cannot be imported and there is no result callback. The error carries one nested error per failed connector.
  */
 export async function importConnectors({
   importData,
   options = { deps: true },
+  resultCallback = undefined,
   state,
 }: {
   importData: ConnectorExportInterface;
   options?: ConnectorImportOptions;
+  resultCallback?: ResultCallback<ConnectorSkeleton>;
   state: State;
 }): Promise<ConnectorSkeleton[]> {
   const response = [];
   const errors = [];
   for (const key of Object.keys(importData.connector)) {
+    let imported: ConnectorSkeleton;
+    let failed = false;
+    let failure: unknown;
     try {
       if (options.deps) {
         //
       }
-      response.push(
-        await updateConnector({
-          connectorId: key,
-          connectorData: importData.connector[key],
-          state,
-        })
-      );
+      imported = await updateConnector({
+        connectorId: key,
+        connectorData: importData.connector[key],
+        state,
+      });
     } catch (error) {
-      errors.push(error);
+      failed = true;
+      failure = error;
+    }
+    // the callback is called outside the try: an exception of the callback
+    // must not be taken for a failed import and reported a second time
+    if (!failed) {
+      response.push(imported);
+      if (resultCallback) resultCallback(undefined, imported);
+    } else if (resultCallback) {
+      resultCallback(
+        new FrodoError(`Error importing connector ${key}`, failure as Error),
+        undefined
+      );
+    } else {
+      errors.push(failure);
     }
   }
   if (errors.length > 0) {

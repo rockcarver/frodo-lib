@@ -453,11 +453,14 @@ export type Agent = {
   exportAgentGroups(): Promise<AgentGroupExportInterface>;
   /**
    * Import agents groups. The import data is usually read from an agent group export file.
+   * Every agent group is tried: an agent group that cannot be imported does not stop the others.
    * @param {AgentExportInterface} importData agent import data.
+   * @param {ResultCallback<AgentGroupSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every agent group is passed to it as it happens (a failed agent group as an error that names the agent group and its type, with the cause nested) and a failed agent group does not throw: the agent groups that could be imported are returned. Without it, the failures are collected and thrown as one error after every agent group was tried. An agent group type that answers HTTP 501 is skipped: it is neither imported nor reported.
    * @returns {Promise<AgentGroupSkeleton[]>} The agent groups that were imported.
    */
   importAgentGroups(
-    importData: AgentGroupExportInterface
+    importData: AgentGroupExportInterface,
+    resultCallback?: ResultCallback<AgentGroupSkeleton>
   ): Promise<AgentGroupSkeleton[]>;
   /**
    * Import agent group. The import data is usually read from an agent group export file.
@@ -673,8 +676,8 @@ export default (state: State): Agent => {
     async exportAgentGroups() {
       return exportAgentGroups({ state });
     },
-    async importAgentGroups(importData) {
-      return importAgentGroups({ importData, state });
+    async importAgentGroups(importData, resultCallback) {
+      return importAgentGroups({ importData, resultCallback, state });
     },
     async importAgentGroup(agentGroupId, importData) {
       return importAgentGroup({ agentGroupId, importData, state });
@@ -3725,14 +3728,19 @@ export async function exportAgentGroups({
 
 /**
  * Import agent groups. The import data is usually read from an agent group export file.
+ * Every agent group is tried: an agent group that cannot be imported does not stop the others.
  * @param {AgentGroupExportInterface} importData agent group import data.
+ * @param {ResultCallback<AgentGroupSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every agent group is passed to it as it happens (a failed agent group as an error that names the agent group and its type, with the cause nested) and a failed agent group does not throw: the agent groups that could be imported are returned. Without it, the failures are collected and thrown as one error after every agent group was tried. An agent group type that answers HTTP 501 is skipped: it is neither imported nor reported.
  * @returns {Promise<AgentGroupSkeleton[]>} The agent groups that were imported.
+ * @throws {FrodoError} If one or more agent groups cannot be imported and there is no result callback. The error carries one nested error per failed agent group.
  */
 export async function importAgentGroups({
   importData,
+  resultCallback = undefined,
   state,
 }: {
   importData: AgentGroupExportInterface;
+  resultCallback?: ResultCallback<AgentGroupSkeleton>;
   state: State;
 }): Promise<AgentGroupSkeleton[]> {
   const response: AgentGroupSkeleton[] = [];
@@ -3741,6 +3749,9 @@ export async function importAgentGroups({
     debugMessage({ message: `AgentOps.importAgentGroups: start`, state });
     for (const agentGroupId of Object.keys(importData.agentGroup)) {
       let agentType: AgentType;
+      let imported: AgentGroupSkeleton;
+      let failure: FrodoError;
+      let skipped = false;
       try {
         agentType = importData.agentGroup[agentGroupId]._type._id as AgentType;
         debugMessage({
@@ -3755,23 +3766,38 @@ export async function importAgentGroups({
             `Can't import ${getCurrentRealmName(state) + ' realm'} Soap STS agent groups for '${state.getDeploymentType()}' deployment type.`
           );
         }
-        response.push(
-          await _putAgentGroupByTypeAndId({
-            agentType,
-            agentGroupId,
-            agentGroupData: importData.agentGroup[agentGroupId],
-            state,
-          })
-        );
+        imported = await _putAgentGroupByTypeAndId({
+          agentType,
+          agentGroupId,
+          agentGroupData: importData.agentGroup[agentGroupId],
+          state,
+        });
       } catch (error) {
         if (error.httpStatus !== 501 && error.response?.status !== 501) {
-          errors.push(
-            new FrodoError(
-              `Error importing ${getCurrentRealmName(state) + ' realm'} agent group ${agentGroupId} of type ${agentType}`,
-              error
-            )
+          failure = new FrodoError(
+            `Error importing ${getCurrentRealmName(state) + ' realm'} agent group ${agentGroupId} of type ${agentType}`,
+            error
           );
+        } else {
+          skipped = true;
         }
+      }
+      // the callback is called outside the try: an exception of the callback
+      // must not be taken for a failed import and reported a second time
+      if (skipped) {
+        debugMessage({
+          message: `AgentOps.importAgentGroups: ${agentGroupId} [${agentType}] skipped, the type answers HTTP 501`,
+          state,
+        });
+      } else if (failure) {
+        if (resultCallback) {
+          resultCallback(failure, undefined);
+        } else {
+          errors.push(failure);
+        }
+      } else {
+        response.push(imported);
+        if (resultCallback) resultCallback(undefined, imported);
       }
     }
     if (errors.length > 0) {

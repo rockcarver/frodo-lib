@@ -16,7 +16,7 @@ import {
 import { getMetadata } from '../utils/ExportImportUtils';
 import { getRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
-import { ExportMetaData } from './OpsTypes';
+import { ExportMetaData, type ResultCallback } from './OpsTypes';
 
 export type Realm = {
   /**
@@ -62,16 +62,18 @@ export type Realm = {
     realmData: RealmSkeleton
   ): Promise<RealmSkeleton>;
   /**
-   * Import realms
+   * Import realms. Every realm is tried: a realm that cannot be imported does not stop the others.
    * @param {RealmExportInterface} importData realm import data
    * @param {string} realmId Optional realm id. If supplied, only the realm of that id is imported. Takes priority over realmName if both are provided.
    * @param {string} realmName Optional realm name. If supplied, only the realm of that name is imported.
+   * @param {ResultCallback<RealmSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every realm is passed to it as it happens (a failed realm as an error that names it, with the cause nested) and a failed realm does not throw: the realms that could be imported are returned. Without it, the failures are collected and thrown as one error after every realm was tried.
    * @returns {Promise<RealmSkeleton[]>} the imported realms
    */
   importRealms(
     importData: RealmExportInterface,
     realmId?: string,
-    realmName?: string
+    realmName?: string,
+    resultCallback?: ResultCallback<RealmSkeleton>
   ): Promise<RealmSkeleton[]>;
   /**
    * Delete realm
@@ -130,9 +132,16 @@ export default (state: State): Realm => {
     importRealms(
       importData: RealmExportInterface,
       realmId?: string,
-      realmName?: string
+      realmName?: string,
+      resultCallback?: ResultCallback<RealmSkeleton>
     ): Promise<RealmSkeleton[]> {
-      return importRealms({ realmId, realmName, importData, state });
+      return importRealms({
+        realmId,
+        realmName,
+        importData,
+        resultCallback,
+        state,
+      });
     },
     deleteRealm(realmId: string): Promise<RealmSkeleton> {
       return deleteRealm({ realmId, state });
@@ -271,21 +280,25 @@ export async function updateRealm({
 }
 
 /**
- * Import realms
+ * Import realms. Every realm is tried: a realm that cannot be imported does not stop the others.
  * @param {string} realmId Optional realm id. If supplied, only the realm of that id is imported. Takes priority over realmName if both are provided.
  * @param {string} realmName Optional realm name. If supplied, only the realm of that name is imported.
  * @param {RealmExportInterface} importData realm import data
+ * @param {ResultCallback<RealmSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every realm is passed to it as it happens (a failed realm as an error that names it, with the cause nested) and a failed realm does not throw: the realms that could be imported are returned. Without it, the failures are collected and thrown as one error after every realm was tried.
  * @returns {Promise<RealmSkeleton[]>} the imported realms
+ * @throws {FrodoError} If one or more realms cannot be imported and there is no result callback. The error carries one nested error per failed realm.
  */
 export async function importRealms({
   realmId,
   realmName,
   importData,
+  resultCallback = undefined,
   state,
 }: {
   realmId?: string;
   realmName?: string;
   importData: RealmExportInterface;
+  resultCallback?: ResultCallback<RealmSkeleton>;
   state: State;
 }): Promise<RealmSkeleton[]> {
   const errors = [];
@@ -293,6 +306,9 @@ export async function importRealms({
     debugMessage({ message: `RealmOps.importRealms: start`, state });
     const response = [];
     for (const realm of Object.values(importData.realm)) {
+      let imported: RealmSkeleton;
+      let failed = false;
+      let failure: unknown;
       try {
         if (
           (realmId && realm._id !== realmId) ||
@@ -300,14 +316,30 @@ export async function importRealms({
         ) {
           continue;
         }
-        const result = await updateRealm({
+        imported = await updateRealm({
           realmId: realm._id,
           realmData: realm,
           state,
         });
-        response.push(result);
       } catch (error) {
-        errors.push(error);
+        failed = true;
+        failure = error;
+      }
+      // the callback is called outside the try: an exception of the callback
+      // must not be taken for a failed import and reported a second time
+      if (!failed) {
+        response.push(imported);
+        if (resultCallback) resultCallback(undefined, imported);
+      } else if (resultCallback) {
+        resultCallback(
+          new FrodoError(
+            `Error importing realm ${realm?.name ?? realm?._id}`,
+            failure as Error
+          ),
+          undefined
+        );
+      } else {
+        errors.push(failure);
       }
     }
     if (errors.length > 0) {

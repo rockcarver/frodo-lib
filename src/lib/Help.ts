@@ -609,10 +609,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Agent",
     methodName: "importAgentGroups",
-    signature: "importAgentGroups( importData: AgentGroupExportInterface ): Promise<AgentGroupSkeleton[]>",
-    description: "Import agents groups. The import data is usually read from an agent group export file.",
+    signature: "importAgentGroups( importData: AgentGroupExportInterface, resultCallback?: ResultCallback<AgentGroupSkeleton> ): Promise<AgentGroupSkeleton[]>",
+    description: "Import agents groups. The import data is usually read from an agent group export file. Every agent group is tried: an agent group that cannot be imported does not stop the others.",
     params: [
       { name: "importData", type: "AgentExportInterface", description: "agent import data.", required: true },
+      { name: "resultCallback", type: "ResultCallback<AgentGroupSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every agent group is passed to it as it happens (a failed agent group as an error that names the agent group and its type, with the cause nested) and a failed agent group does not throw: the agent groups that could be imported are returned. Without it, the failures are collected and thrown as one error after every agent group was tried. An agent group type that answers HTTP 501 is skipped: it is neither imported nor reported.", required: false },
     ],
     returns: "{Promise<AgentGroupSkeleton[]>} The agent groups that were imported.",
   },
@@ -1687,11 +1688,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Connector",
     methodName: "importConnectors",
-    signature: "importConnectors( importData: ConnectorExportInterface, options?: ConnectorImportOptions ): Promise<ConnectorSkeleton[]>",
-    description: "Import all connectors",
+    signature: "importConnectors( importData: ConnectorExportInterface, options?: ConnectorImportOptions, resultCallback?: ResultCallback<ConnectorSkeleton> ): Promise<ConnectorSkeleton[]>",
+    description: "Import all connectors. Every connector is tried: a connector that cannot be imported does not stop the others.",
     params: [
       { name: "importData", type: "ConnectorExportInterface", description: "import data", required: true },
       { name: "options", type: "ConnectorImportOptions", description: "import options", required: false },
+      { name: "resultCallback", type: "ResultCallback<ConnectorSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every connector is passed to it as it happens (a failed connector as an error that names it, with the cause nested) and a failed connector does not throw: the connectors that could be imported are returned. Without it, the failures are collected and thrown as one error after every connector was tried.", required: false },
     ],
     returns: "{Promise<ConnectorSkeleton[]>} a promise resolving to an array of ConnectorSkeleton objects",
   },
@@ -4586,12 +4588,13 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Realm",
     methodName: "importRealms",
-    signature: "importRealms( importData: RealmExportInterface, realmId?: string, realmName?: string ): Promise<RealmSkeleton[]>",
-    description: "Import realms",
+    signature: "importRealms( importData: RealmExportInterface, realmId?: string, realmName?: string, resultCallback?: ResultCallback<RealmSkeleton> ): Promise<RealmSkeleton[]>",
+    description: "Import realms. Every realm is tried: a realm that cannot be imported does not stop the others.",
     params: [
       { name: "importData", type: "RealmExportInterface", description: "realm import data", required: true },
       { name: "realmId", type: "string", description: "Optional realm id. If supplied, only the realm of that id is imported. Takes priority over realmName if both are provided.", required: false },
       { name: "realmName", type: "string", description: "Optional realm name. If supplied, only the realm of that name is imported.", required: false },
+      { name: "resultCallback", type: "ResultCallback<RealmSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every realm is passed to it as it happens (a failed realm as an error that names it, with the cause nested) and a failed realm does not throw: the realms that could be imported are returned. Without it, the failures are collected and thrown as one error after every realm was tried.", required: false },
     ],
     returns: "{Promise<RealmSkeleton[]>} the imported realms",
   },
@@ -6343,12 +6346,13 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Site",
     methodName: "importSites",
-    signature: "importSites( importData: SiteExportInterface, siteId?: string, siteUrl?: string ): Promise<SiteSkeleton[]>",
-    description: "Import sites",
+    signature: "importSites( importData: SiteExportInterface, siteId?: string, siteUrl?: string, resultCallback?: ResultCallback<SiteSkeleton> ): Promise<SiteSkeleton[]>",
+    description: "Import sites. Every site is tried: a site that cannot be imported does not stop the others.",
     params: [
       { name: "importData", type: "SiteExportInterface", description: "site import data", required: true },
       { name: "siteId", type: "string", description: "Optional site id. If supplied, only the site of that id is imported. Takes priority over siteUrl if both are provided.", required: false },
       { name: "siteUrl", type: "string", description: "Optional site url. If supplied, only the site of that url is imported.", required: false },
+      { name: "resultCallback", type: "ResultCallback<SiteSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every site is passed to it as it happens (a failed site as an error that names it, with the cause nested) and a failed site does not throw: the sites that could be imported are returned. Without it, the failures are collected and thrown as one error after every site was tried.", required: false },
     ],
     returns: "{Promise<SiteSkeleton[]>} the imported sites",
   },
