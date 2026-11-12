@@ -6,8 +6,10 @@ import { jest } from '@jest/globals';
  * outcome is reported to it as it happens (a failed agent group as an error
  * that names the group and its type, with the cause nested), a failed group
  * does not throw and is not part of the result, and the groups that were
- * imported are returned. A group type that answers HTTP 501 is skipped as it
- * always was: neither imported nor reported. Mocked unit test: no recordings.
+ * imported are returned. A group type that answers HTTP 501 is a failed group
+ * like any other, as an agent of such a type is in importAgents. A Soap STS group
+ * is refused outside a classic deployment, as a failed group too. Mocked unit
+ * test: no recordings.
  */
 
 const putAgentGroupByTypeAndId = jest.fn(async (args?: any): Promise<any> => ({
@@ -181,23 +183,45 @@ describe('importAgentGroups', () => {
     expect(putAgentGroupByTypeAndId).toHaveBeenCalledTimes(3);
   });
 
-  test('a group type that answers HTTP 501 is skipped: not imported, not reported, not a failure', async () => {
+  test('with a callback a group type that answers HTTP 501 is a failed group: named, with its cause, and the others are imported', async () => {
     const unsupported: any = new Error('HTTP 501');
     unsupported.response = { status: 501 };
     failGroup('group-2', unsupported);
     const outcomes: any[] = [];
 
-    const withCallback = await importAgentGroups({
+    const result = await importAgentGroups({
       importData: importData(),
       resultCallback: (error, group) => outcomes.push([error, group]),
       state,
     });
-    const plain = await importAgentGroups({ importData: importData(), state });
 
-    expect(ids(withCallback)).toEqual(['group-1', 'group-3']);
-    expect(ids(plain)).toEqual(['group-1', 'group-3']);
-    expect(outcomes).toHaveLength(2);
-    expect(outcomes.every(([error]) => error === undefined)).toBe(true);
+    expect(ids(result)).toEqual(['group-1', 'group-3']);
+    expect(outcomes).toHaveLength(3);
+    expect(outcomes[0][0]).toBeUndefined();
+    expect(outcomes[1][0].message).toBe(
+      'Error importing alpha realm agent group group-2 of type J2EEAgentGroup'
+    );
+    expect(outcomes[1][1]).toBeUndefined();
+    expect(rootCause(outcomes[1][0])).toBe(unsupported);
+    expect(outcomes[2][0]).toBeUndefined();
+  });
+
+  test('without a callback a group type that answers HTTP 501 fails the import after every group was tried', async () => {
+    const unsupported: any = new Error('HTTP 501');
+    unsupported.httpStatus = 501;
+    failGroup('group-2', unsupported);
+
+    const error: any = await importAgentGroups({
+      importData: importData(),
+      state,
+    }).catch((e) => e);
+
+    expect(error.message).toBe('Error importing alpha realm agent groups');
+    expect(error.originalErrors.map((e: any) => e.message)).toEqual([
+      'Error importing alpha realm agent group group-2 of type J2EEAgentGroup',
+    ]);
+    expect(rootCause(error.originalErrors[0])).toBe(unsupported);
+    expect(putAgentGroupByTypeAndId).toHaveBeenCalledTimes(3);
   });
 
   test('every group is reported exactly once, in order, also when the callback throws', async () => {
@@ -261,5 +285,75 @@ describe('importAgentGroups on the facade', () => {
 
     expect(error.message).toBe('Error importing alpha realm agent groups');
     expect(putAgentGroupByTypeAndId).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('importAgentGroups: Soap STS agent groups', () => {
+  const stsData = (): any => ({
+    agentGroup: {
+      'group-1': { _id: 'group-1', _type: { _id: 'WebAgent' } },
+      'sts-1': { _id: 'sts-1', _type: { _id: 'SoapSTSAgent' } },
+    },
+  });
+  const stateOf = (deploymentType: string): any => ({
+    ...state,
+    getDeploymentType: () => deploymentType,
+  });
+
+  test.each(['cloud', 'forgeops'])(
+    'with a callback a Soap STS group is a failed group on a %s deployment, nothing is sent for it, the other group is imported',
+    async (deploymentType) => {
+      const outcomes: any[] = [];
+
+      const result = await importAgentGroups({
+        importData: stsData(),
+        resultCallback: (error, group) => outcomes.push([error, group]),
+        state: stateOf(deploymentType),
+      });
+
+      expect(ids(result)).toEqual(['group-1']);
+      expect(outcomes.map(([error]) => error?.message)).toEqual([
+        undefined,
+        'Error importing alpha realm agent group sts-1 of type SoapSTSAgent',
+      ]);
+      expect(rootCause(outcomes[1][0]).message).toBe(
+        `Can't import alpha realm Soap STS agent groups for '${deploymentType}' deployment type.`
+      );
+      expect(putAgentGroupByTypeAndId).toHaveBeenCalledTimes(1);
+      expect(putAgentGroupByTypeAndId.mock.calls[0][0]).toMatchObject({
+        agentType: 'WebAgent',
+        agentGroupId: 'group-1',
+      });
+    }
+  );
+
+  test('without a callback a Soap STS group on a cloud deployment fails the import after the other groups were tried', async () => {
+    const error: any = await importAgentGroups({
+      importData: stsData(),
+      state: stateOf('cloud'),
+    }).catch((e) => e);
+
+    expect(error.message).toBe('Error importing alpha realm agent groups');
+    expect(error.originalErrors.map((e: any) => e.message)).toEqual([
+      'Error importing alpha realm agent group sts-1 of type SoapSTSAgent',
+    ]);
+    expect(rootCause(error.originalErrors[0]).message).toBe(
+      "Can't import alpha realm Soap STS agent groups for 'cloud' deployment type."
+    );
+    expect(putAgentGroupByTypeAndId).toHaveBeenCalledTimes(1);
+  });
+
+  test('a Soap STS group is imported on a classic deployment', async () => {
+    const result = await importAgentGroups({
+      importData: stsData(),
+      state: stateOf('classic'),
+    });
+
+    expect(ids(result)).toEqual(['group-1', 'sts-1']);
+    expect(putAgentGroupByTypeAndId).toHaveBeenCalledTimes(2);
+    expect(putAgentGroupByTypeAndId.mock.calls[1][0]).toMatchObject({
+      agentType: 'SoapSTSAgent',
+      agentGroupId: 'sts-1',
+    });
   });
 });

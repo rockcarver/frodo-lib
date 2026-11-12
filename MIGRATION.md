@@ -53,6 +53,16 @@ releases missed):
   callback and nothing is thrown. A file with such an agent that imported
   without an error before now ends with one: take the agent out of the file, or
   pass a callback and decide what to do with that error.
+- `frodo.agent.importAgentGroups` (`src/ops/AgentOps.ts`) now treats an agent
+  group type that answers HTTP 501 as a failed agent group, like any other
+  failure, as `importAgents` does for agents. It used to skip such a group
+  without a word: it was neither imported nor reported. After every group was
+  tried, the function now throws one `FrodoError` that carries one nested error
+  per failed group, naming the group and its type; with the optional
+  `resultCallback` argument, each failed group is passed to the callback and
+  nothing is thrown. A file with such a group that imported without an error
+  before now ends with one: take the group out of the file, or pass a callback
+  and decide what to do with that error.
 - `frodo.idm.config.importConfigEntities` (`src/ops/IdmConfigOps.ts`) now tries
   every entity. Without a `resultCallback` it used to stop at the first entity
   that failed, so the entities after it were not written. It now writes the
