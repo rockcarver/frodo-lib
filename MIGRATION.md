@@ -229,6 +229,53 @@ releases missed):
   as long as before and leaves the rest to a running tail. The types of the
   results of `tail` and `fetch` are now `LogEventsPage`
   (`PagedResult<LogEventSkeleton>` plus the optional `rateLimit`).
+- `frodo.agent.readAgentTypes`, `readAgents`, `readAgent`, `exportAgents`,
+  `exportAgent`, `deleteAgents` and `deleteAgent` (`src/ops/AgentOps.ts`, realm
+  level) no longer list, return, export, delete or find agents of the types
+  `TrustedJwtIssuer` and `CIMDProfile`, as they never did for `OAuth2Client`.
+  Every agent type that has a module of its own is now handled by that module
+  alone: trusted JWT issuers by `frodo.oauth2oidc.issuer`
+  (`readOAuth2TrustedJwtIssuers`, `exportOAuth2TrustedJwtIssuers`,
+  `deleteOAuth2TrustedJwtIssuers`, `importOAuth2TrustedJwtIssuers` and the
+  single-issuer functions) and CIMD profiles by `frodo.oauth2oidc.cimd`
+  (`readCIMDProfiles`, `exportCIMDProfiles`, `deleteCIMDProfiles`,
+  `importCIMDProfiles` and the single-profile functions).
+  Before, the generic functions handled every agent type that a realm lists
+  except `OAuth2Client`, so an issuer, and a profile of a realm that offers the
+  type, was part of their results. Two consequences: `readAgent(id)` and
+  `exportAgent(id)` of an issuer or a profile now fail with "not found", and
+  `deleteAgents` no longer deletes issuers (they are trust anchors) or profiles;
+  use the module to delete them. `readAgentByTypeAndId`, `importAgent` and
+  `importAgents` still accept both types. The list of types that have a module
+  of their own is the constant `AGENT_TYPES_WITH_OWN_MODULE` in
+  `src/ops/AgentOps.ts`. frodo-cli's `agent list`, `agent describe`, `agent
+  export` and `agent delete -a` are built on these functions: they stop
+  carrying issuers and profiles when the CLI moves to a library version with
+  this change, which it does together with its own commands for the two types
+  and its own migration entry.
+- `frodo.config.exportFullConfiguration` no longer writes trusted JWT issuers
+  to `realm.<realm>.agent` (since 4.0.0 it wrote them there as well as to
+  `realm.<realm>.trustedJwtIssuer`): they are in `realm.<realm>.trustedJwtIssuer`
+  only, the layout of 3.x. It writes CIMD profiles to `realm.<realm>.cimdProfile`
+  instead of `realm.<realm>.agent`, and leaves that key out for a realm that has
+  no profile or does not offer the type, so an export of such a realm is
+  unchanged. `importFullConfiguration` reads both layouts and writes each issuer
+  and each profile once, through the module of its type (the profiles as the
+  last step of the realm): an export made by an earlier version, with the
+  objects in the `agent` section, imports completely, and if both sections hold
+  an object with the same id the copy of the module's own section is the one
+  written. A realm that does not offer CIMD profiles skips them with one
+  warning. An export made by this version is read by an earlier version except
+  for its CIMD profiles: that version does not know the key and skips them
+  without a message.
+- `frodo.agent.readAgentTypes`, `readAgents`, `readAgent`, `exportAgents`,
+  `exportAgent`, `deleteAgents` and `deleteAgent` decide whether to leave out
+  the Soap STS agent (`SoapSTSAgent`, a classic-only type) from the deployment
+  type of the state they are called with, at the time of the call. The facade
+  used to add the type to one list shared by the whole process, once for every
+  facade created for a deployment other than classic, so the answer for a state
+  depended on which other facades existed and when. A classic state now never
+  leaves the type out, a state of any other deployment type always does.
 
 **Deprecation**:
 

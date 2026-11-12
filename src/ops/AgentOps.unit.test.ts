@@ -12,9 +12,12 @@ const getAgents = jest.fn(async (_args?: any): Promise<any> => ({
   result: [],
 }));
 const putAgentByTypeAndId = jest.fn(async (_args?: any): Promise<any> => ({}));
+const deleteAgentByTypeAndId = jest.fn(
+  async (_args?: any): Promise<any> => ({})
+);
 
 jest.unstable_mockModule('../api/AgentApi', () => ({
-  deleteAgentByTypeAndId: jest.fn(),
+  deleteAgentByTypeAndId,
   findAgentByTypeAndId: jest.fn(),
   getAgentByTypeAndId,
   getAgentGroups: jest.fn(),
@@ -42,8 +45,21 @@ jest.unstable_mockModule('./ManagedObjectSchemaOps', () => ({
   readManagedObjectSchema: jest.fn(async () => ({ properties: { _id: {} } })),
 }));
 
-const { createAIAgent, readAgent, readAgents, readAgentTypes } =
-  await import('./AgentOps');
+const { default: State } = await import('../shared/State');
+const {
+  default: AgentOps,
+  AGENT_TYPES_WITH_OWN_MODULE,
+  createAIAgent,
+  deleteAgent,
+  deleteAgents,
+  exportAgent,
+  exportAgents,
+  importAgent,
+  readAgent,
+  readAgentByTypeAndId,
+  readAgents,
+  readAgentTypes,
+} = await import('./AgentOps');
 
 function mockState({
   realm = 'alpha',
@@ -479,5 +495,290 @@ describe('agent type cache', () => {
     ).resolves.toEqual(['SecondAgent']);
     await expect(readAgentTypes({ state })).resolves.toEqual(['SecondAgent']);
     expect(getAgentTypes).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('agent types that have their own module', () => {
+  // the types the generic agent code leaves to their modules, and the key
+  // that each has in a full export (the guard test of ConfigOps checks that
+  // this list and the constant of AgentOps agree)
+  const OWN = ['OAuth2Client', 'TrustedJwtIssuer', 'CIMDProfile'];
+  const typeItem = (_id: string) => ({ _id, name: `${_id} Agents` });
+  const object = (type: string, id = `matrix-${type}`) => ({
+    _id: id,
+    _type: { _id: type, name: `${type} Agents`, collection: true },
+  });
+
+  beforeEach(async () => {
+    getAgentTypes.mockReset();
+    getAgentTypes.mockResolvedValue({
+      result: ['WebAgent', ...OWN].map(typeItem),
+    });
+    getAgentsByType.mockReset();
+    getAgentsByType.mockImplementation(async ({ agentType }: any) => ({
+      result: [object(agentType)],
+    }));
+    getAgents.mockReset();
+    getAgents.mockResolvedValue({ result: OWN.map((t) => object(t)) });
+    deleteAgentByTypeAndId.mockClear();
+    putAgentByTypeAndId.mockReset();
+    putAgentByTypeAndId.mockResolvedValue({});
+    getAgentByTypeAndId.mockReset();
+    getAgentByTypeAndId.mockResolvedValue({});
+    // the type list of the shared state is cached: ask the server again
+    await readAgentTypes({ refreshCache: true, state: mockState() });
+    getAgentTypes.mockClear();
+  });
+
+  // an export writes the metadata of the state: use a real one, on the host,
+  // realm and deployment type of mockState so that it shares the type list
+  const exportState = () => {
+    const state = State({});
+    state.setHost('https://agents.example.com');
+    state.setRealm('alpha');
+    state.setDeploymentType('cloud');
+    return state;
+  };
+
+  test('the constant lists them', () => {
+    expect([...AGENT_TYPES_WITH_OWN_MODULE].sort()).toEqual([...OWN].sort());
+  });
+
+  test('readAgentTypes does not return them', async () => {
+    await expect(readAgentTypes({ state: mockState() })).resolves.toEqual([
+      'WebAgent',
+    ]);
+  });
+
+  test('readAgents asks only for the other types and returns none of their objects', async () => {
+    const agents = await readAgents({ state: mockState() });
+
+    expect(getAgentsByType).toHaveBeenCalledTimes(1);
+    expect(getAgentsByType).toHaveBeenCalledWith({
+      agentType: 'WebAgent',
+      state: expect.anything(),
+    });
+    expect(agents.map((a) => a._id)).toEqual(['matrix-WebAgent']);
+  });
+
+  test.each(OWN)(
+    'readAgent of the id of a %s: not found, no request for its type',
+    async (type) => {
+      await expect(
+        readAgent({ agentId: `matrix-${type}`, state: mockState() })
+      ).rejects.toThrow(`alpha realm agent 'matrix-${type}' not found`);
+      expect(getAgentsByType).not.toHaveBeenCalledWith(
+        expect.objectContaining({ agentType: type })
+      );
+    }
+  );
+
+  test('readAgent still finds the other agents', async () => {
+    await expect(
+      readAgent({ agentId: 'matrix-WebAgent', state: mockState() })
+    ).resolves.toMatchObject({ _id: 'matrix-WebAgent' });
+  });
+
+  test('deleteAgents deletes the other agents only, also when the global read holds an object of such a type', async () => {
+    await deleteAgents({ state: mockState() });
+
+    expect(getAgents).not.toHaveBeenCalled();
+    expect(
+      deleteAgentByTypeAndId.mock.calls.map(([args]: any) => args.agentType)
+    ).toEqual(['WebAgent']);
+  });
+
+  test.each(OWN)(
+    'deleteAgent of the id of a %s: not found, nothing deleted',
+    async (type) => {
+      await expect(
+        deleteAgent({ agentId: `matrix-${type}`, state: mockState() })
+      ).rejects.toMatchObject({
+        message: `Error deleting alpha realm agent matrix-${type}`,
+        originalErrors: [
+          expect.objectContaining({
+            message: `alpha realm agent 'matrix-${type}' not found!`,
+          }),
+        ],
+      });
+      expect(deleteAgentByTypeAndId).not.toHaveBeenCalled();
+    }
+  );
+
+  test('exportAgents holds the other agents only', async () => {
+    const exported = await exportAgents({
+      state: exportState(),
+      globalConfig: false,
+    });
+    expect(Object.keys(exported.agent)).toEqual(['matrix-WebAgent']);
+  });
+
+  test.each(OWN)('exportAgent of the id of a %s: not found', async (type) => {
+    await expect(
+      exportAgent({
+        agentId: `matrix-${type}`,
+        globalConfig: false,
+        state: exportState(),
+      })
+    ).rejects.toMatchObject({
+      message: `Error exporting alpha realm agent matrix-${type}`,
+      originalErrors: [
+        expect.objectContaining({
+          message: `alpha realm agent 'matrix-${type}' not found`,
+        }),
+      ],
+    });
+  });
+
+  test.each(OWN)(
+    'readAgentByTypeAndId of a %s still calls the api',
+    async (type) => {
+      await readAgentByTypeAndId({
+        agentType: type as any,
+        agentId: 'matrix-one',
+        state: mockState(),
+      });
+      expect(getAgentByTypeAndId).toHaveBeenCalledWith(
+        expect.objectContaining({ agentType: type, agentId: 'matrix-one' })
+      );
+    }
+  );
+
+  test.each(OWN)('importAgent of a %s still calls the api', async (type) => {
+    const item = object(type, 'matrix-one');
+    await importAgent({
+      agentId: 'matrix-one',
+      importData: { agent: { 'matrix-one': item } } as any,
+      globalConfig: false,
+      state: mockState(),
+    });
+    expect(putAgentByTypeAndId).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentType: type,
+        agentId: 'matrix-one',
+        agentData: item,
+      })
+    );
+  });
+
+  test('the global agents are not filtered', async () => {
+    await expect(
+      readAgents({ state: mockState(), globalConfig: true })
+    ).resolves.toHaveLength(OWN.length);
+  });
+});
+
+describe('the Soap STS agent is left out per state, not per process', () => {
+  // The Soap STS agent is a classic-only type. Outside classic deployments the
+  // generic agent code does not read it. What each state sees must not depend on
+  // which other states exist in the process, or on the order of the calls.
+  const typeItem = (_id: string) => ({
+    _id,
+    name: `${_id} Agents`,
+    collection: true,
+  });
+  let hostCounter = 0;
+  const hostOf = () =>
+    `https://openam-matrix-${(hostCounter += 1)}.example.com/am`;
+
+  beforeEach(() => {
+    getAgentTypes.mockReset();
+    getAgentTypes.mockResolvedValue({
+      result: ['WebAgent', 'SoapSTSAgent'].map(typeItem),
+    });
+    getAgentsByType.mockReset();
+    getAgentsByType.mockImplementation(async ({ agentType }: any) => ({
+      result: [{ _id: `matrix-${agentType}` }],
+    }));
+  });
+
+  const typesAsked = () =>
+    getAgentsByType.mock.calls.map(([args]: any) => args.agentType).sort();
+
+  test('a cloud and a classic state in one process: each sees its own types, in either order', async () => {
+    const host = hostOf();
+    const cloud = AgentOps(mockState({ host, deployment: 'cloud' }));
+    const classic = AgentOps(mockState({ host, deployment: 'classic' }));
+    const forgeops = AgentOps(mockState({ host, deployment: 'forgeops' }));
+
+    for (const order of [
+      [cloud, classic, forgeops],
+      [classic, forgeops, cloud],
+      [forgeops, cloud, classic],
+    ]) {
+      const seen = new Map<unknown, string[]>();
+      for (const facade of order) {
+        seen.set(facade, await facade.readAgentTypes());
+      }
+      expect(seen.get(cloud)).toEqual(['WebAgent']);
+      expect(seen.get(forgeops)).toEqual(['WebAgent']);
+      expect(seen.get(classic)).toEqual(['WebAgent', 'SoapSTSAgent']);
+    }
+  });
+
+  test('readAgents asks a classic state for the type and a cloud state not, however many facades were created before', async () => {
+    const host = hostOf();
+    // many facades for non-classic states: the old factory pushed the type onto
+    // a shared list once per facade
+    for (let i = 0; i < 5; i++) {
+      AgentOps(mockState({ host, deployment: 'cloud' }));
+    }
+    const classic = AgentOps(mockState({ host, deployment: 'classic' }));
+    const cloud = AgentOps(mockState({ host, deployment: 'cloud' }));
+
+    await expect(classic.readAgents(false)).resolves.toEqual([
+      { _id: 'matrix-SoapSTSAgent' },
+      { _id: 'matrix-WebAgent' },
+    ]);
+    expect(typesAsked()).toEqual(['SoapSTSAgent', 'WebAgent']);
+
+    getAgentsByType.mockClear();
+    await expect(cloud.readAgents(false)).resolves.toEqual([
+      { _id: 'matrix-WebAgent' },
+    ]);
+    expect(typesAsked()).toEqual(['WebAgent']);
+  });
+
+  test('the types a facade hides do not depend on the facades created after it', async () => {
+    const host = hostOf();
+    const classicState = mockState({ host, deployment: 'classic' });
+    const classic = AgentOps(classicState);
+    await expect(classic.readAgentTypes()).resolves.toEqual([
+      'WebAgent',
+      'SoapSTSAgent',
+    ]);
+    AgentOps(mockState({ host, deployment: 'cloud' }));
+    await expect(classic.readAgentTypes()).resolves.toEqual([
+      'WebAgent',
+      'SoapSTSAgent',
+    ]);
+  });
+
+  test('a state whose deployment type is set after its facade was created is filtered by the type it has at the time of the call', async () => {
+    const host = hostOf();
+    const state = mockState({ host, deployment: undefined });
+    let deployment: string | undefined;
+    state.getDeploymentType = () => deployment;
+    const agent = AgentOps(state);
+
+    await expect(agent.readAgentTypes()).resolves.toEqual(['WebAgent']);
+    deployment = 'classic';
+    await expect(agent.readAgentTypes()).resolves.toEqual([
+      'WebAgent',
+      'SoapSTSAgent',
+    ]);
+    deployment = 'cloud';
+    await expect(agent.readAgentTypes()).resolves.toEqual(['WebAgent']);
+  });
+
+  test('the types that have a module of their own are left out for every deployment type', async () => {
+    getAgentTypes.mockResolvedValue({
+      result: ['WebAgent', ...AGENT_TYPES_WITH_OWN_MODULE].map(typeItem),
+    });
+    const host = hostOf();
+    for (const deployment of ['cloud', 'classic', 'forgeops']) {
+      const agent = AgentOps(mockState({ host, deployment }));
+      await expect(agent.readAgentTypes()).resolves.toEqual(['WebAgent']);
+    }
   });
 });

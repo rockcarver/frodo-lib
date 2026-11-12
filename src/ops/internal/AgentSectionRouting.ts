@@ -16,6 +16,7 @@ import { type AgentSkeleton } from '../../api/AgentApi';
  * module's section in a full export (`realm.<realm>.<key>`).
  */
 export const AGENT_SECTION_ROUTES: Record<string, string> = {
+  CIMDProfile: 'cimdProfile',
   TrustedJwtIssuer: 'trustedJwtIssuer',
 };
 

@@ -20,6 +20,21 @@ function issuer(
   };
 }
 
+function cimdProfile(
+  id: string,
+  pattern = `https://${id}.matrix.example.com/*`
+) {
+  return {
+    _id: id,
+    _type: {
+      _id: 'CIMDProfile',
+      name: 'CIMD Profile Agents',
+      collection: true,
+    },
+    cimdConfig: { cimdClientIdUrlPatterns: [pattern] },
+  };
+}
+
 function webAgent(id: string) {
   return {
     _id: id,
@@ -34,6 +49,90 @@ function copy<T>(value: T): T {
 describe('AGENT_SECTION_ROUTES', () => {
   test('the trusted JWT issuer is routed to its own export key', () => {
     expect(AGENT_SECTION_ROUTES.TrustedJwtIssuer).toBe('trustedJwtIssuer');
+  });
+
+  test('the CIMD profile is routed to its own export key', () => {
+    expect(AGENT_SECTION_ROUTES.CIMDProfile).toBe('cimdProfile');
+  });
+});
+
+describe('routeAgentSection with CIMD profiles', () => {
+  test('a profile that only the agent section has is routed to the module', () => {
+    const routing = routeAgentSection({
+      agent: { 'zion-clients': cimdProfile('zion-clients') },
+    });
+
+    expect(routing.routed.cimdProfile).toEqual({
+      'zion-clients': cimdProfile('zion-clients'),
+    });
+    expect(routing.skipped).toEqual([]);
+    expect(routing.agent).toBeUndefined();
+  });
+
+  test('both keys with the same id: the cimdProfile copy wins and the agent copy is listed as skipped', () => {
+    const routing = routeAgentSection({
+      agent: {
+        'zion-clients': cimdProfile(
+          'zion-clients',
+          'https://agent-copy.example.com/*'
+        ),
+      },
+      cimdProfile: {
+        'zion-clients': cimdProfile(
+          'zion-clients',
+          'https://module-copy.example.com/*'
+        ),
+      },
+    });
+
+    expect(
+      routing.routed.cimdProfile['zion-clients'].cimdConfig
+        .cimdClientIdUrlPatterns
+    ).toEqual(['https://module-copy.example.com/*']);
+    expect(routing.skipped).toEqual([
+      { id: 'zion-clients', key: 'cimdProfile' },
+    ]);
+    expect(routing.agent).toBeUndefined();
+  });
+
+  test('an issuer, a profile and a web agent in one agent section go to their own owners', () => {
+    const routing = routeAgentSection({
+      agent: {
+        'zion-web': webAgent('zion-web'),
+        'matrix-one': issuer('matrix-one'),
+        'zion-clients': cimdProfile('zion-clients'),
+      },
+    });
+
+    expect(Object.keys(routing.agent)).toEqual(['zion-web']);
+    expect(Object.keys(routing.routed.trustedJwtIssuer)).toEqual([
+      'matrix-one',
+    ]);
+    expect(Object.keys(routing.routed.cimdProfile)).toEqual(['zion-clients']);
+  });
+
+  test('a realm without profiles gets no cimdProfile entry', () => {
+    const routing = routeAgentSection({
+      agent: { 'zion-web': webAgent('zion-web') },
+    });
+    expect('cimdProfile' in routing.routed).toBe(false);
+  });
+
+  test('the argument is not modified', () => {
+    const realm = {
+      agent: {
+        'zion-web': webAgent('zion-web'),
+        'zion-clients': cimdProfile('zion-clients'),
+      },
+      cimdProfile: { 'matrix-clients': cimdProfile('matrix-clients') },
+    };
+    const before = copy(realm);
+
+    const routing = routeAgentSection(realm);
+    delete routing.routed.cimdProfile['zion-clients'];
+    delete routing.agent['zion-web'];
+
+    expect(realm).toEqual(before);
   });
 });
 

@@ -59,7 +59,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Agent",
     methodName: "readAgentTypes",
     signature: "readAgentTypes(refreshCache?: boolean): Promise<AgentType[]>",
-    description: "Read all agent types. Agent types with their own module (for example OAuth2 clients) are not part of the answer.",
+    description: "Read all agent types. Agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not part of the answer; see `frodo.oauth2oidc`.",
     params: [
       { name: "refreshCache", type: "boolean", description: "true to ask the server again and replace the cached list of the realm. Default: false.", required: false },
     ],
@@ -80,7 +80,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Agent",
     methodName: "readAgents",
     signature: "readAgents(globalConfig: boolean): Promise<AgentSkeleton[]>",
-    description: "Read all agents.",
+    description: "Read all agents. At realm level, agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not included; see `frodo.oauth2oidc`.",
     params: [
       { name: "globalConfig", type: "boolean", description: "true if global agent is the target of the operation, false otherwise. Default: false.", required: true },
     ],
@@ -90,7 +90,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Agent",
     methodName: "readAgent",
     signature: "readAgent(agentId: string, globalConfig: boolean): Promise<AgentSkeleton>",
-    description: "Read agent",
+    description: "Read agent. At realm level, agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not searched: an agent of such a type is not found; see `frodo.oauth2oidc`.",
     params: [
       { name: "agentId", type: "string", description: "agent id/name", required: true },
       { name: "globalConfig", type: "boolean", description: "true if global agent is the target of the operation, false otherwise. Default: false.", required: true },
@@ -101,7 +101,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Agent",
     methodName: "deleteAgents",
     signature: "deleteAgents(resultCallback?: ResultCallback<AgentSkeleton>): Promise<void>",
-    description: "Delete all agents",
+    description: "Delete all agents. Agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not deleted; see `frodo.oauth2oidc`.",
     params: [
       { name: "resultCallback", type: "ResultCallback<AgentSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every delete is passed to it as it happens (a failed delete as an error that names the agent) and a failed delete does not throw. Without it, the failures are collected and thrown as one error after every agent was tried. Failing to read the agents always throws.", required: false },
     ],
@@ -111,7 +111,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Agent",
     methodName: "deleteAgent",
     signature: "deleteAgent(agentId: string): Promise<void>",
-    description: "Delete agent",
+    description: "Delete agent. Agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not searched: an agent of such a type is not found; see `frodo.oauth2oidc`.",
     params: [
       { name: "agentId", type: "", description: "agent id/name", required: true },
     ],
@@ -121,7 +121,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Agent",
     methodName: "exportAgents",
     signature: "exportAgents(globalConfig: boolean): Promise<AgentExportInterface>",
-    description: "Export all agents. The response can be saved to file as is.",
+    description: "Export all agents. The response can be saved to file as is. At realm level, agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not included; see `frodo.oauth2oidc`.",
     params: [
       { name: "globalConfig", type: "boolean", description: "true if global agent is the target of the operation, false otherwise. Default: false.", required: true },
     ],
@@ -131,7 +131,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Agent",
     methodName: "exportAgent",
     signature: "exportAgent( agentId: string, globalConfig: boolean ): Promise<AgentExportInterface>",
-    description: "Export agent. The response can be saved to file as is.",
+    description: "Export agent. The response can be saved to file as is. At realm level, agent types that have their own module (OAuth2 clients, trusted JWT issuers, CIMD profiles) are not searched: an agent of such a type is not found; see `frodo.oauth2oidc`.",
     params: [
       { name: "agentId", type: "", description: "agent id/name", required: true },
       { name: "globalConfig", type: "boolean", description: "true if global agent is the target of the operation, false otherwise. Default: false.", required: true },
