@@ -14,7 +14,6 @@ import { State } from '../shared/State';
 import {
   createProgressIndicator,
   debugMessage,
-  printMessage,
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../utils/Console';
@@ -40,10 +39,13 @@ export type ScriptType = {
    */
   readScriptTypes(): Promise<ScriptTypeSkeleton[]>;
   /**
-   * Export all scriptTypes. The response can be saved to file as is.
+   * Export all scriptTypes. The response can be saved to file as is. Every script type is tried: a script type that cannot be exported does not stop the others.
+   * @param {ResultCallback<ScriptTypeExportSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every script type is passed to it as it happens (a failed script type as an error that names it, with the failed reads nested) and a failed script type does not throw: the script types that could be exported are returned, and a failed one is not part of the export. Without it, the failures are collected and thrown as one error after every script type was tried. Failing to read the list of script types always throws. A script type that has no engine configuration (HTTP 404) is not a failure.
    * @returns {Promise<ScriptTypeExportInterface>} Promise resolving to a ScriptTypeExportInterface object.
    */
-  exportScriptTypes(): Promise<ScriptTypeExportInterface>;
+  exportScriptTypes(
+    resultCallback?: ResultCallback<ScriptTypeExportSkeleton>
+  ): Promise<ScriptTypeExportInterface>;
   /**
    * Read the bindings (available objects/APIs, e.g. httpClient, idRepository)
    * exposed to scripts running in a given scripting context.
@@ -86,8 +88,10 @@ export default (state: State): ScriptType => {
     async readScriptTypes(): Promise<ScriptTypeSkeleton[]> {
       return readScriptTypes({ state });
     },
-    async exportScriptTypes(): Promise<ScriptTypeExportInterface> {
-      return exportScriptTypes({ state });
+    async exportScriptTypes(
+      resultCallback: ResultCallback<ScriptTypeExportSkeleton> = undefined
+    ): Promise<ScriptTypeExportInterface> {
+      return exportScriptTypes({ resultCallback, state });
     },
     async readScriptBindings(context: string): Promise<ScriptBinding[]> {
       return readScriptBindings({ context, state });
@@ -208,18 +212,24 @@ export async function readScriptTypes({
 }
 
 /**
- * Export all scriptTypes. The response can be saved to file as is.
+ * Export all scriptTypes. The response can be saved to file as is. Every script type is tried: a script type that cannot be exported does not stop the others.
+ * @param {ResultCallback<ScriptTypeExportSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every script type is passed to it as it happens (a failed script type as an error that names it, with the failed reads nested) and a failed script type does not throw: the script types that could be exported are returned, and a failed one is not part of the export. Without it, the failures are collected and thrown as one error after every script type was tried. Failing to read the list of script types always throws. A script type that has no engine configuration (HTTP 404) is not a failure.
  * @returns {Promise<ScriptTypeExportInterface>} Promise resolving to a ScriptTypeExportInterface object.
+ * @throws {FrodoError} If the list of script types cannot be read, or if one or more script types cannot be exported and there is no result callback. The error carries one nested error per failed script type.
  */
 export async function exportScriptTypes({
+  resultCallback = undefined,
   state,
 }: {
+  resultCallback?: ResultCallback<ScriptTypeExportSkeleton>;
   state: State;
 }): Promise<ScriptTypeExportInterface> {
   let indicatorId: string;
+  const errors: Error[] = [];
+  let failedCount = 0;
+  const exportData = createScriptTypeExportTemplate({ state });
   try {
     debugMessage({ message: `ScriptTypeOps.exportScriptTypes: start`, state });
-    const exportData = createScriptTypeExportTemplate({ state });
     const scriptTypes = await readScriptTypes({ state });
     indicatorId = createProgressIndicator({
       total: scriptTypes.length,
@@ -232,6 +242,8 @@ export async function exportScriptTypes({
         message: `Exporting scriptType ${scriptType._id}`,
         state,
       });
+      // what went wrong with this script type: the engine configuration, then the context
+      const failures: Error[] = [];
       try {
         scriptType.engineConfiguration = await getScriptingEngineConfiguration({
           scriptTypeId: scriptType._id,
@@ -241,11 +253,12 @@ export async function exportScriptTypes({
         if (e.httpStatus === 404 || e.response?.status === 404) {
           //Ignore this case since not all script types have engine configurations
         } else {
-          printMessage({
-            message: `Unable to get engine configuration for script type '${scriptType._id}': ${e.message}`,
-            type: 'error',
-            state,
-          });
+          failures.push(
+            new FrodoError(
+              `Error reading the engine configuration of script type ${scriptType._id}`,
+              e
+            )
+          );
         }
       }
       try {
@@ -254,22 +267,42 @@ export async function exportScriptTypes({
           state,
         });
       } catch (e) {
-        printMessage({
-          message: `Unable to get context for script type '${scriptType._id}': ${e.message}`,
-          type: 'error',
-          state,
-        });
+        failures.push(
+          new FrodoError(
+            `Error reading the context of script type ${scriptType._id}`,
+            e
+          )
+        );
       }
-      exportData.scripttype[scriptType._id] =
-        scriptType as ScriptTypeExportSkeleton;
+      if (failures.length === 0) {
+        exportData.scripttype[scriptType._id] =
+          scriptType as ScriptTypeExportSkeleton;
+        if (resultCallback) {
+          resultCallback(undefined, scriptType as ScriptTypeExportSkeleton);
+        }
+      } else {
+        failedCount++;
+        const itemError = new FrodoError(
+          `Error exporting script type ${scriptType._id}`,
+          failures
+        );
+        if (resultCallback) {
+          resultCallback(itemError, undefined);
+        } else {
+          errors.push(itemError);
+        }
+      }
     }
     stopProgressIndicator({
       id: indicatorId,
-      message: `Exported ${scriptTypes.length} scriptTypes.`,
+      message:
+        failedCount > 0
+          ? `Exported ${scriptTypes.length - failedCount} of ${scriptTypes.length} scriptTypes.`
+          : `Exported ${scriptTypes.length} scriptTypes.`,
+      status: failedCount > 0 ? 'fail' : 'success',
       state,
     });
     debugMessage({ message: `ScriptTypeOps.exportScriptTypes: end`, state });
-    return exportData;
   } catch (error) {
     stopProgressIndicator({
       id: indicatorId,
@@ -279,6 +312,10 @@ export async function exportScriptTypes({
     });
     throw new FrodoError(`Error reading scriptTypes`, error);
   }
+  if (errors.length > 0) {
+    throw new FrodoError(`Error exporting scriptTypes`, errors);
+  }
+  return exportData;
 }
 
 /**

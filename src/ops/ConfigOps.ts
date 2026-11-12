@@ -682,7 +682,10 @@ export async function exportFullConfiguration({
       scripttype: (
         await exportWithErrorHandling(
           exportScriptTypes,
-          stateObj,
+          // with a callback each failed script type is reported by name and the
+          // others are kept; without one every script type is tried and the
+          // section fails with one combined error
+          { resultCallback: resultCallback ? errorCallback : undefined, state },
           'Script Types',
           resultCallback,
           (includeReadOnly || isFullAmDeployment) && includeStatic

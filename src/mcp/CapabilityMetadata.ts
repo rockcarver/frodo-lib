@@ -3839,6 +3839,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'script.createScriptExportTemplate': { excluded: true },
   'scriptType.createScriptTypeExportTemplate': { excluded: true },
   'scriptType.importScriptTypes': { excludeParameters: ['resultCallback'] },
+  'scriptType.exportScriptTypes': { excludeParameters: ['resultCallback'] },
   'secretStore.createSecretStoreExportTemplate': { excluded: true },
   'theme.createThemeExportTemplate': { excluded: true },
   'email.template.createEmailTemplateExportTemplate': { excluded: true },
