@@ -10,6 +10,13 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-39] - 2026-11-12
+
+### Fixed
+- Resolved an issue where the managed object schema caches were shared across instances, which could lead to incorrect schema data being used. Each instance now maintains its own schema cache. (#1047)
+- Fixed the handling of environment values by ensuring each state instance owns its own environment map. This prevents unintended sharing of environment variables across instances. (#1045)
+- Corrected the handling of service account scopes and admin client IDs by ensuring they are maintained per instance, preventing cross-instance data contamination. (#1044)
+
 ## [v5.0.0-38] - 2026-11-12
 
 ### Added
@@ -2954,6 +2961,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-39]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-38...v5.0.0-39
 [v5.0.0-38]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-37...v5.0.0-38
 [v5.0.0-37]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-36...v5.0.0-37
 [v5.0.0-36]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-35...v5.0.0-36
