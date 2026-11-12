@@ -12,6 +12,7 @@ import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import { titleCase } from '../utils/ExportImportUtils';
 import { cloneDeep } from '../utils/JsonUtils';
+import { createStateScopedCache } from '../utils/StateScopedCache';
 import { FrodoError, isNotFoundError } from './FrodoError';
 import {
   importSubConfigEntity,
@@ -524,7 +525,11 @@ export default (state: State): ManagedObjectSchemaOps => {
   };
 };
 
-const ManagedObjectSchemaCache: Record<string, ManagedObjectSchema> = {};
+/**
+ * The schemas read so far, kept for each instance and for the tenant it is
+ * pointed at (lib#1046): another instance reads the schema of its own tenant.
+ */
+const managedObjectSchemaCache = createStateScopedCache<ManagedObjectSchema>();
 
 export type ManagedObjectSchemaOptions = {
   /**
@@ -567,19 +572,20 @@ export async function readManagedObjectSchema({
       state,
     });
     let schema: ManagedObjectSchema;
-    if (!refreshCache && ManagedObjectSchemaCache[type]) {
+    const cached = managedObjectSchemaCache.get(state, type);
+    if (!refreshCache && cached) {
       debugMessage({
         message: `ManagedObjectSchemaOps.readManagedObjectSchema: Using cached schema for type "${type}"`,
         state,
       });
-      schema = cloneDeep(ManagedObjectSchemaCache[type]);
+      schema = cloneDeep(cached);
     } else {
       debugMessage({
         message: `ManagedObjectSchemaOps.readManagedObjectSchema: Fetching schema for type "${type}" from API`,
         state,
       });
       schema = await _getManagedObjectSchema({ type, state });
-      ManagedObjectSchemaCache[type] = cloneDeep(schema);
+      managedObjectSchemaCache.set(state, type, cloneDeep(schema));
     }
     // Apply schema options
     if (options.excludeVirtual) {
@@ -782,7 +788,7 @@ export async function updateManagedObjectSchemaProperty({
       wait,
       state,
     });
-    delete ManagedObjectSchemaCache[type];
+    managedObjectSchemaCache.delete(state, type);
     return result;
   } catch (error) {
     throw new FrodoError(
@@ -819,7 +825,7 @@ export async function removeManagedObjectSchemaProperty({
       wait,
       state,
     });
-    delete ManagedObjectSchemaCache[type];
+    managedObjectSchemaCache.delete(state, type);
     return result;
   } catch (error) {
     throw new FrodoError(
@@ -1286,7 +1292,7 @@ export async function createManagedObjectSchemaFlatProperty({
       options: { validate: false },
       state,
     });
-    delete ManagedObjectSchemaCache[type];
+    managedObjectSchemaCache.delete(state, type);
     return propertyData;
   } catch (error) {
     throw new FrodoError(
@@ -1363,7 +1369,7 @@ export async function updateManagedObjectSchemaFlatProperty({
       options: { validate: false },
       state,
     });
-    delete ManagedObjectSchemaCache[type];
+    managedObjectSchemaCache.delete(state, type);
     return { current, propertyData };
   } catch (error) {
     throw new FrodoError(
@@ -1419,7 +1425,7 @@ export async function removeManagedObjectSchemaFlatProperty({
       options: { validate: false },
       state,
     });
-    delete ManagedObjectSchemaCache[type];
+    managedObjectSchemaCache.delete(state, type);
     return current;
   } catch (error) {
     throw new FrodoError(
@@ -1623,7 +1629,7 @@ export async function removeManagedObjectType({
       options: { validate: false },
       state,
     });
-    delete ManagedObjectSchemaCache[type];
+    managedObjectSchemaCache.delete(state, type);
   } catch (error) {
     throw new FrodoError(`Error removing managed object type "${type}"`, error);
   }

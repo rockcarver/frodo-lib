@@ -3,8 +3,8 @@
  * every request, for tests that need the real login code to talk to a server
  * and count what it sends. It answers what a classic username/password login
  * and a service account login touch; everything else answers 404 (the scope
- * catalog and the authorization endpoint answer only when asked to, see
- * `StartOptions`).
+ * catalog, the authorization endpoint and the managed object schemas answer
+ * only when asked to, see `StartOptions`).
  */
 import http from 'http';
 import { AddressInfo } from 'net';
@@ -28,6 +28,8 @@ export type FakeAm = {
   count(part: string): number;
   /** The bodies received for paths containing `part`. */
   bodies(part: string): string[];
+  /** Sets the schema that `GET /openidm/schema/managed/<type>` answers from now on; the schema paths then answer even if no `managedSchemas` were given. */
+  setManagedSchema(type: string, schema: object): void;
   close(): Promise<void>;
 };
 
@@ -37,12 +39,18 @@ export type StartOptions = {
   serviceAccountScopes?: { scope: string; childScopes?: unknown[] }[];
   /** Makes the authorization endpoint redirect to the redirect uri with this code; without it the path answers 404. */
   authorizationCode?: string;
+  /**
+   * The schemas that `GET /openidm/schema/managed/<type>` answers, by type (a type that is not in the map answers 404), and with
+   * them `PUT` and `DELETE` of `/openidm/schema/managed/<type>/properties/<name>` answer 200; without it the paths answer 404.
+   */
+  managedSchemas?: Record<string, object>;
 };
 
 export async function startFakeAm({
   sessionLifetimeMs = 30 * 60 * 1000,
   serviceAccountScopes,
   authorizationCode,
+  managedSchemas,
 }: StartOptions = {}): Promise<FakeAm> {
   const requests: string[] = [];
   const received: { path: string; body: string }[] = [];
@@ -50,6 +58,7 @@ export async function startFakeAm({
   let accessTokens = 0;
   const loggedOut: string[] = [];
   let rejectEverything = false;
+  let schemas = managedSchemas ? { ...managedSchemas } : undefined;
   // the sessions and access tokens that are valid
   const valid = new Set<string>();
   const server = http.createServer((req, res) => {
@@ -84,6 +93,18 @@ export async function startFakeAm({
           location: `http://127.0.0.1/callback?code=${authorizationCode}`,
         });
         return void res.end();
+      }
+      const schemaPath =
+        schemas &&
+        /\/openidm\/schema\/managed\/([^/]+)(\/properties\/[^/]+)?$/.exec(path);
+      if (schemaPath) {
+        const [, type, property] = schemaPath;
+        if (!property && req.method === 'GET') {
+          return schemas[type] ? send(200, schemas[type]) : send(404, {});
+        }
+        if (property && (req.method === 'PUT' || req.method === 'DELETE')) {
+          return send(200, {});
+        }
       }
       if (path.includes('/json/serverinfo')) {
         return send(200, {
@@ -208,6 +229,9 @@ export async function startFakeAm({
     revokeAll: () => valid.clear(),
     alwaysReject: () => {
       rejectEverything = true;
+    },
+    setManagedSchema: (type: string, schema: object) => {
+      schemas = { ...schemas, [type]: schema };
     },
     count: (part: string) => requests.filter((r) => r.includes(part)).length,
     bodies: (part: string) =>

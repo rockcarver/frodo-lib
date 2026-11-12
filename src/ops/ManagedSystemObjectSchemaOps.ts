@@ -3,6 +3,7 @@ import { getManagedSystemObjectSchema as _getManagedSystemObjectSchema } from '.
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import { cloneDeep } from '../utils/JsonUtils';
+import { createStateScopedCache } from '../utils/StateScopedCache';
 import { FrodoError } from './FrodoError';
 import { type ManagedObjectSchemaOptions } from './ManagedObjectSchemaOps';
 
@@ -59,7 +60,12 @@ export default (state: State): ManagedSystemObjectSchemaOps => {
   };
 };
 
-const ManagedSystemObjectSchemaCache: Record<string, ManagedObjectSchema> = {};
+/**
+ * The schemas read so far, kept for each instance and for the tenant it is
+ * pointed at (lib#1046): another instance reads the schema of its own tenant.
+ */
+const managedSystemObjectSchemaCache =
+  createStateScopedCache<ManagedObjectSchema>();
 
 export async function readManagedSystemObjectSchema({
   type,
@@ -82,19 +88,20 @@ export async function readManagedSystemObjectSchema({
       state,
     });
     let schema: ManagedObjectSchema;
-    if (!refreshCache && ManagedSystemObjectSchemaCache[type]) {
+    const cached = managedSystemObjectSchemaCache.get(state, type);
+    if (!refreshCache && cached) {
       debugMessage({
         message: `ManagedSystemObjectSchemaOps.readManagedSystemObjectSchema: Using cached schema for type "${type}"`,
         state,
       });
-      schema = cloneDeep(ManagedSystemObjectSchemaCache[type]);
+      schema = cloneDeep(cached);
     } else {
       debugMessage({
         message: `ManagedSystemObjectSchemaOps.readManagedSystemObjectSchema: Fetching schema for type "${type}" from API`,
         state,
       });
       schema = await _getManagedSystemObjectSchema({ type, state });
-      ManagedSystemObjectSchemaCache[type] = cloneDeep(schema);
+      managedSystemObjectSchemaCache.set(state, type, cloneDeep(schema));
     }
     // Apply schema options
     if (options.excludeVirtual) {

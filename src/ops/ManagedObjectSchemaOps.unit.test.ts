@@ -59,6 +59,9 @@ const {
 function mockStateWithDebug(deploymentType: string) {
   return {
     getDeploymentType: () => deploymentType,
+    // the schema cache is kept for the tenant a state is pointed at (lib#1046), as every state has a host
+    getHost: () => 'https://openam-frodo-dev.forgeblocks.com/am',
+    getIdmHost: () => undefined,
     getDebugHandler: () => undefined,
     getBearerTokenMeta: () => undefined,
   } as any;
@@ -70,6 +73,7 @@ function mockConfigState() {
     getDebugHandler: () => undefined,
     getEnvs: () => ({}),
     getHost: () => 'https://openam-frodo-dev.forgeblocks.com/am',
+    getIdmHost: () => undefined,
     getAmVersion: () => '7.3.0',
     getUsername: () => 'frodo-test',
     getFrodoVersion: () => '1.0.0',
