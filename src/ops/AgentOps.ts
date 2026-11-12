@@ -2853,10 +2853,10 @@ export async function readAIAgent({
  * @param {object} params structured and named parameters
  * @param {string} params.agentId AI agent id
  * @param {Object} params.agentData AI agent object
- * @param {boolean} [params.includeAgentIdentity=true] whether to also update agent identity and privileges.
+ * @param {boolean} [params.includeAgentIdentity=true] whether to also update agent identity and privileges. Agent data without an `_aiAgentIdentity` is created without an identity and without privileges.
  * @param {State} params.state state object
  * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an AI agent object. When
- * `includeAgentIdentity` is true, the result also carries a `_provisioningStatus`
+ * `includeAgentIdentity` is true and the agent data carries an `_aiAgentIdentity`, the result also carries a `_provisioningStatus`
  * ({@link AIAgentProvisioningStatus}) reporting the outcome of the identity/privilege/owner
  * provisioning steps performed after the agent object itself was created. Those steps are
  * best-effort and non-fatal: a failure there is reported in `_provisioningStatus`, not thrown --
@@ -2889,9 +2889,12 @@ export async function createAIAgent({
 
   // clone ai agent identity data, then work with a sanitized clone of agent
   // data for the rest of this function -- must not mutate the caller's own
-  // agentData object by deleting _aiAgentIdentity from it directly.
+  // agentData object by deleting _aiAgentIdentity from it directly. Agent data
+  // without an identity (an export taken without it, or from a deployment that
+  // does not return it) is valid: the agent is created and the identity and
+  // privilege steps are skipped. cloneDeep(undefined) would throw.
   let aiAgentIdentity: IdObjectSkeletonInterface | undefined;
-  if (includeAgentIdentity) {
+  if (includeAgentIdentity && agentData._aiAgentIdentity) {
     aiAgentIdentity = cloneDeep(agentData._aiAgentIdentity);
   }
   agentData = sanitizeAIAgentPayload(agentData);
