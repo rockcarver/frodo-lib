@@ -10,6 +10,18 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-41] - 2026-11-12
+
+### Added
+- `importAgentGroups`, `importConnectors`, `importRealms`, `importSites`, `importUsers`, `importUserGroups`, `importOAuth2Clients`, `importSocialIdentityProviders`, `importScriptTypes`, `importApplications`, and `importInternalRoles` now accept an optional `resultCallback` to report the outcome of each item processed. This allows for more granular error handling and logging. (#1051, #1052, #1055, #1056)
+
+### Fixed
+- `importAgentGroups` now treats a group type that responds with HTTP 501 as a failed group, aligning its behavior with other import functions. Previously, such groups were skipped without notification. (#1059)
+- `importFirstApplication` and `importFirstInternalRole` facade methods now correctly import only the first item, as intended, rather than all items. This resolves the inconsistency between the facade and the underlying function behavior. (#1058)
+- `exportScriptTypes` now correctly reports script types whose engine configuration or context cannot be read, preventing incomplete exports from appearing complete. (#1054)
+- `importConfigEntities` now attempts to process every entity and logs skipped protected entities in the debug output, improving transparency and error reporting. (#1053)
+- Fixed an issue in `createAIAgent` where agent data without an identity caused a JSON syntax error, preventing import. The function now handles such data correctly. (#1050)
+
 ## [v5.0.0-40] - 2026-11-12
 
 ### Fixed
@@ -2966,6 +2978,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-41]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-40...v5.0.0-41
 [v5.0.0-40]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-39...v5.0.0-40
 [v5.0.0-39]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-38...v5.0.0-39
 [v5.0.0-38]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-37...v5.0.0-38

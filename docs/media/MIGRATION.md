@@ -53,6 +53,31 @@ releases missed):
   callback and nothing is thrown. A file with such an agent that imported
   without an error before now ends with one: take the agent out of the file, or
   pass a callback and decide what to do with that error.
+- `frodo.agent.importAgentGroups` (`src/ops/AgentOps.ts`) now treats an agent
+  group type that answers HTTP 501 as a failed agent group, like any other
+  failure, as `importAgents` does for agents. It used to skip such a group
+  without a word: it was neither imported nor reported. After every group was
+  tried, the function now throws one `FrodoError` that carries one nested error
+  per failed group, naming the group and its type; with the optional
+  `resultCallback` argument, each failed group is passed to the callback and
+  nothing is thrown. A file with such a group that imported without an error
+  before now ends with one: take the group out of the file, or pass a callback
+  and decide what to do with that error.
+- `frodo.idm.config.importConfigEntities` (`src/ops/IdmConfigOps.ts`) now tries
+  every entity. Without a `resultCallback` it used to stop at the first entity
+  that failed, so the entities after it were not written. It now writes the
+  others and, after every entity was tried, throws one `FrodoError` (`Error
+  importing idm config entities`) that carries one nested error per failed
+  entity (`Error importing idm config entity <id>`). The error that a
+  `resultCallback` receives for a failed entity is that same error, with the
+  former one (`Error updating config entity <id>`, or the invalid script hook
+  error) nested in it; a failed entity is still not part of the result. A
+  protected entity that PingOne Advanced Identity Cloud refuses (HTTP 403) is
+  still skipped without a word for the caller; the debug output now names it
+  and the request. A callback that throws for a successful entity is no longer
+  called a second time with its own exception: the exception now propagates.
+  `importSubConfigEntity` and `removeSubConfigEntity` call it, so their error
+  chain has one more nested level.
 - `frodo.utils.saveTextToFile` and `frodo.utils.saveJsonToFile`
   (`src/utils/ExportImportUtils.ts`) now return `void` on success instead of
   `true`. Directory-creation and file-write failures throw a `FrodoError`
@@ -285,6 +310,36 @@ releases missed):
   empties the map. Code that set the values on one state and relied on another
   instance seeing them sets them on that instance, for example
   `frodo.createInstance({ host, env })`.
+- `frodo.scriptType.exportScriptTypes` (`src/ops/ScriptTypeOps.ts`) now treats
+  a script type whose engine configuration or context cannot be read as a
+  failed script type. A missing engine configuration (HTTP 404) is still not a
+  failure, but a 404 of the context is. It used to print a line (`Unable to get
+  engine configuration for script type '<id>': ...`, or `... context ...`) and
+  export the script type without the part it could not read. After every script
+  type was tried, the function now throws one `FrodoError` (`Error exporting
+  scriptTypes`) that carries one nested error per failed script type (`Error
+  exporting script type <id>`, with the failed reads nested in it); a failed
+  script type is not in the export. With the new optional `resultCallback`
+  argument each failed script type is passed to the callback instead, nothing
+  is thrown, and the script types that could be read are exported. In a full
+  export (`frodo.config.exportFullConfiguration`) with a result callback, the
+  failed script type is reported as an error of its own and the others are
+  kept; without one the script types section fails with one error
+  (`Error Exporting Script Types`). A full export of a tenant whose script
+  type could not be read used to print a line and keep it incomplete.
+- `frodo.app.importFirstApplication` and
+  `frodo.role.importFirstInternalRole` import the first application or
+  role of the import data only, as their names say. The two facade methods
+  called `importApplications` and `importInternalRoles` and so imported every
+  item of the data, although the functions of the same name in
+  `src/ops/ApplicationOps.ts` and `src/ops/InternalRoleOps.ts` always imported
+  the first one. The methods still return an array, now with the one imported
+  item in it. Callers that relied on the old behaviour call
+  `frodo.app.importApplications` or
+  `frodo.role.importInternalRoles`. The commands `frodo app import -f`
+  and `frodo role import -f` of frodo-cli import the first item of their file
+  with these methods, so they import one item once they use a library with this
+  change.
 
 **Deprecation**:
 
