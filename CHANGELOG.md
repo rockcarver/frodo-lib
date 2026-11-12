@@ -10,6 +10,11 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-40] - 2026-11-12
+
+### Fixed
+- Ensured that the node schema cache is maintained per instance, preventing unintended sharing of schema data across instances. This resolves issues where schemas of node types and custom nodes were incorrectly shared, leading to potential data contamination. (#1049, 519067027)
+
 ## [v5.0.0-39] - 2026-11-12
 
 ### Fixed
@@ -2961,6 +2966,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-40]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-39...v5.0.0-40
 [v5.0.0-39]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-38...v5.0.0-39
 [v5.0.0-38]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-37...v5.0.0-38
 [v5.0.0-37]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-36...v5.0.0-37
