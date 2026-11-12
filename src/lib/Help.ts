@@ -6143,22 +6143,24 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "User",
     methodName: "importUsers",
-    signature: "importUsers( importData: UserExportInterface, userId?: string ): Promise<UserExportSkeleton[]>",
-    description: "Import users and their config",
+    signature: "importUsers( importData: UserExportInterface, userId?: string, resultCallback?: ResultCallback<UserExportSkeleton> ): Promise<UserExportSkeleton[]>",
+    description: "Import users and their config. Every user is tried: a user that cannot be imported does not stop the others.",
     params: [
       { name: "importData", type: "UserExportInterface", description: "user import data", required: true },
       { name: "userId", type: "string", description: "Optional user id. If supplied, only the user of that id is imported.", required: false },
+      { name: "resultCallback", type: "ResultCallback<UserExportSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every user is passed to it as it happens (a failed user as an error that names it, with the cause nested) and a failed user does not throw: the users that could be imported are returned. A user whose config could not be written is a failed user, although the user itself may have been written. Without a callback, the failures are collected and thrown as one error after every user was tried.", required: false },
     ],
     returns: "{Promise<UserExportSkeleton[]>} the imported users",
   },
   {
     typeName: "User",
     methodName: "importUserGroups",
-    signature: "importUserGroups( importData: UserGroupExportInterface, groupId?: string ): Promise<UserGroupSkeleton[]>",
-    description: "Import user groups",
+    signature: "importUserGroups( importData: UserGroupExportInterface, groupId?: string, resultCallback?: ResultCallback<UserGroupSkeleton> ): Promise<UserGroupSkeleton[]>",
+    description: "Import user groups. Every user group is tried: a user group that cannot be imported does not stop the others.",
     params: [
       { name: "importData", type: "UserGroupExportInterface", description: "user group import data", required: true },
       { name: "groupId", type: "string", description: "Optional user group id. If supplied, only the group of that id is imported.", required: false },
+      { name: "resultCallback", type: "ResultCallback<UserGroupSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every user group is passed to it as it happens (a failed user group as an error that names it, with the cause nested) and a failed user group does not throw: the user groups that could be imported are returned. Without it, the failures are collected and thrown as one error after every user group was tried.", required: false },
     ],
     returns: "{Promise<UserGroupSkeleton[]>} the imported user groups",
   },

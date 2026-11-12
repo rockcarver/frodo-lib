@@ -21,7 +21,7 @@ import {
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { FrodoError } from './FrodoError';
-import { ExportMetaData } from './OpsTypes';
+import { ExportMetaData, type ResultCallback } from './OpsTypes';
 
 export type User = {
   /**
@@ -87,24 +87,28 @@ export type User = {
    */
   exportUserGroups(): Promise<UserGroupExportInterface>;
   /**
-   * Import users and their config
+   * Import users and their config. Every user is tried: a user that cannot be imported does not stop the others.
    * @param {UserExportInterface} importData user import data
    * @param {string} userId Optional user id. If supplied, only the user of that id is imported.
+   * @param {ResultCallback<UserExportSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every user is passed to it as it happens (a failed user as an error that names it, with the cause nested) and a failed user does not throw: the users that could be imported are returned. A user whose config could not be written is a failed user, although the user itself may have been written. Without a callback, the failures are collected and thrown as one error after every user was tried.
    * @returns {Promise<UserExportSkeleton[]>} the imported users
    */
   importUsers(
     importData: UserExportInterface,
-    userId?: string
+    userId?: string,
+    resultCallback?: ResultCallback<UserExportSkeleton>
   ): Promise<UserExportSkeleton[]>;
   /**
-   * Import user groups
+   * Import user groups. Every user group is tried: a user group that cannot be imported does not stop the others.
    * @param {UserGroupExportInterface} importData user group import data
    * @param {string} groupId Optional user group id. If supplied, only the group of that id is imported.
+   * @param {ResultCallback<UserGroupSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every user group is passed to it as it happens (a failed user group as an error that names it, with the cause nested) and a failed user group does not throw: the user groups that could be imported are returned. Without it, the failures are collected and thrown as one error after every user group was tried.
    * @returns {Promise<UserGroupSkeleton[]>} the imported user groups
    */
   importUserGroups(
     importData: UserGroupExportInterface,
-    groupId?: string
+    groupId?: string,
+    resultCallback?: ResultCallback<UserGroupSkeleton>
   ): Promise<UserGroupSkeleton[]>;
 };
 
@@ -148,21 +152,25 @@ export default (state: State): User => {
     },
     importUsers(
       importData: UserExportInterface,
-      userId?: string
+      userId?: string,
+      resultCallback?: ResultCallback<UserExportSkeleton>
     ): Promise<UserExportSkeleton[]> {
       return importUsers({
         importData,
         userId,
+        resultCallback,
         state,
       });
     },
     importUserGroups(
       importData: UserGroupExportInterface,
-      groupId?: string
+      groupId?: string,
+      resultCallback?: ResultCallback<UserGroupSkeleton>
     ): Promise<UserGroupSkeleton[]> {
       return importUserGroups({
         importData,
         groupId,
+        resultCallback,
         state,
       });
     },
@@ -482,18 +490,22 @@ export async function exportUserGroups({
 }
 
 /**
- * Import users and their config
+ * Import users and their config. Every user is tried: a user that cannot be imported does not stop the others.
  * @param {UserExportInterface} importData user import data
  * @param {string} userId Optional user id. If supplied, only the user of that id is imported.
+ * @param {ResultCallback<UserExportSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every user is passed to it as it happens (a failed user as an error that names it, with the cause nested) and a failed user does not throw: the users that could be imported are returned. A user whose config could not be written is a failed user, although the user itself may have been written. Without a callback, the failures are collected and thrown as one error after every user was tried.
  * @returns {Promise<UserExportSkeleton[]>} the imported users
+ * @throws {FrodoError} If one or more users cannot be imported and there is no result callback. The error carries one nested error per failed user.
  */
 export async function importUsers({
   importData,
   userId,
+  resultCallback = undefined,
   state,
 }: {
   importData: UserExportInterface;
   userId?: string;
+  resultCallback?: ResultCallback<UserExportSkeleton>;
   state: State;
 }): Promise<UserExportSkeleton[]> {
   const errors = [];
@@ -501,6 +513,9 @@ export async function importUsers({
     debugMessage({ message: `UserOps.importUsers: start`, state });
     const response = [];
     for (const user of Object.values(importData.user)) {
+      let imported: UserExportSkeleton;
+      let failed = false;
+      let failure: unknown;
       try {
         if (userId && user._id !== userId) {
           continue;
@@ -516,9 +531,23 @@ export async function importUsers({
           configData: config,
           state,
         });
-        response.push(importedUser);
+        imported = importedUser as UserExportSkeleton;
       } catch (error) {
-        errors.push(error);
+        failed = true;
+        failure = error;
+      }
+      // the callback is called outside the try: an exception of the callback
+      // must not be taken for a failed import and reported a second time
+      if (!failed) {
+        response.push(imported);
+        if (resultCallback) resultCallback(undefined, imported);
+      } else if (resultCallback) {
+        resultCallback(
+          new FrodoError(`Error importing user ${user?._id}`, failure as Error),
+          undefined
+        );
+      } else {
+        errors.push(failure);
       }
     }
     if (errors.length > 0) {
@@ -536,18 +565,22 @@ export async function importUsers({
 }
 
 /**
- * Import user groups
+ * Import user groups. Every user group is tried: a user group that cannot be imported does not stop the others.
  * @param {UserGroupExportInterface} importData user group import data
  * @param {string} groupId Optional user group id. If supplied, only the group of that id is imported.
+ * @param {ResultCallback<UserGroupSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every user group is passed to it as it happens (a failed user group as an error that names it, with the cause nested) and a failed user group does not throw: the user groups that could be imported are returned. Without it, the failures are collected and thrown as one error after every user group was tried.
  * @returns {Promise<UserGroupSkeleton[]>} the imported user groups
+ * @throws {FrodoError} If one or more user groups cannot be imported and there is no result callback. The error carries one nested error per failed user group.
  */
 export async function importUserGroups({
   importData,
   groupId,
+  resultCallback = undefined,
   state,
 }: {
   importData: UserGroupExportInterface;
   groupId?: string;
+  resultCallback?: ResultCallback<UserGroupSkeleton>;
   state: State;
 }): Promise<UserGroupSkeleton[]> {
   const errors = [];
@@ -555,17 +588,36 @@ export async function importUserGroups({
     debugMessage({ message: `UserOps.importUserGroups: start`, state });
     const response = [];
     for (const group of Object.values(importData.userGroup)) {
+      let imported: UserGroupSkeleton;
+      let failed = false;
+      let failure: unknown;
       try {
         if (groupId && group._id !== groupId) {
           continue;
         }
-        const result = await putUserGroup({
+        imported = await putUserGroup({
           groupData: group,
           state,
         });
-        response.push(result);
       } catch (error) {
-        errors.push(error);
+        failed = true;
+        failure = error;
+      }
+      // the callback is called outside the try: an exception of the callback
+      // must not be taken for a failed import and reported a second time
+      if (!failed) {
+        response.push(imported);
+        if (resultCallback) resultCallback(undefined, imported);
+      } else if (resultCallback) {
+        resultCallback(
+          new FrodoError(
+            `Error importing user group ${group?._id}`,
+            failure as Error
+          ),
+          undefined
+        );
+      } else {
+        errors.push(failure);
       }
     }
     if (errors.length > 0) {
