@@ -112,14 +112,16 @@ export type Idp = {
     options: SocialIdentityProviderImportOptions
   ): Promise<SocialIdpSkeleton>;
   /**
-   * Import all social identity providers
+   * Import all social identity providers. Every provider is tried: a provider that cannot be imported does not stop the others.
    * @param {SocialProviderExportInterface} importData import data
    * @param {SocialIdentityProviderImportOptions} options import options
+   * @param {ResultCallback<SocialIdpSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every provider is passed to it as it happens (a failed provider as an error that names it, with the reasons nested) and a failed provider does not throw: the providers that could be imported are returned. A provider whose script could not be imported is a failed provider, although the provider itself may have been written. Without it, the failures are collected and thrown as one error after every provider was tried.
    * @returns {Promise<SocialIdpSkeleton[]>} a promise resolving to an array of social identity provider objects
    */
   importSocialIdentityProviders(
     importData: SocialProviderExportInterface,
-    options: SocialIdentityProviderImportOptions
+    options: SocialIdentityProviderImportOptions,
+    resultCallback?: ResultCallback<SocialIdpSkeleton>
   ): Promise<SocialIdpSkeleton[]>;
 };
 
@@ -197,9 +199,15 @@ export default (state: State): Idp => {
     },
     async importSocialIdentityProviders(
       importData: SocialProviderExportInterface,
-      options: SocialIdentityProviderImportOptions = { deps: true }
+      options: SocialIdentityProviderImportOptions = { deps: true },
+      resultCallback: ResultCallback<SocialIdpSkeleton> = undefined
     ): Promise<SocialIdpSkeleton[]> {
-      return importSocialIdentityProviders({ importData, options, state });
+      return importSocialIdentityProviders({
+        importData,
+        options,
+        resultCallback,
+        state,
+      });
     },
   };
 };
@@ -804,23 +812,30 @@ export async function importFirstSocialIdentityProvider({
 }
 
 /**
- * Import all social identity providers
+ * Import all social identity providers. Every provider is tried: a provider that cannot be imported does not stop the others.
  * @param {SocialProviderExportInterface} importData import data
  * @param {SocialIdentityProviderImportOptions} options import options
+ * @param {ResultCallback<SocialIdpSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every provider is passed to it as it happens (a failed provider as an error that names it, with the reasons nested) and a failed provider does not throw: the providers that could be imported are returned. A provider whose script could not be imported is a failed provider, although the provider itself may have been written. Without it, the failures are collected and thrown as one error after every provider was tried.
  * @returns {Promise<SocialIdpSkeleton[]>} a promise resolving to an array of social identity provider objects
+ * @throws {FrodoError} If one or more providers cannot be imported and there is no result callback. The error carries the nested errors of the failed providers.
  */
 export async function importSocialIdentityProviders({
   importData,
   options = { deps: true },
+  resultCallback = undefined,
   state,
 }: {
   importData: SocialProviderExportInterface;
   options?: SocialIdentityProviderImportOptions;
+  resultCallback?: ResultCallback<SocialIdpSkeleton>;
   state: State;
 }): Promise<SocialIdpSkeleton[]> {
   const response = [];
   const errors = [];
   for (const idpId of Object.keys(importData.idp)) {
+    // what went wrong with this provider: the script, then the provider itself
+    const failures: unknown[] = [];
+    let imported: SocialIdpSkeleton;
     try {
       if (
         options.deps &&
@@ -837,19 +852,33 @@ export async function importSocialIdentityProviders({
             await updateScript({ scriptId, scriptData, state });
           }
         } catch (error) {
-          errors.push(error);
+          failures.push(error);
         }
       }
-      response.push(
-        await updateSocialIdentityProvider({
-          providerType: importData.idp[idpId]._type._id,
-          providerId: idpId,
-          providerData: importData.idp[idpId],
-          state,
-        })
-      );
+      imported = await updateSocialIdentityProvider({
+        providerType: importData.idp[idpId]._type._id,
+        providerId: idpId,
+        providerData: importData.idp[idpId],
+        state,
+      });
     } catch (error) {
-      errors.push(error);
+      failures.push(error);
+    }
+    // the callback is called outside the try: an exception of the callback must
+    // not be taken for a failed import and reported a second time
+    if (failures.length === 0) {
+      response.push(imported);
+      if (resultCallback) resultCallback(undefined, imported);
+    } else if (resultCallback) {
+      resultCallback(
+        new FrodoError(
+          `Error importing ${getCurrentRealmName(state) + ' realm'} provider ${idpId}`,
+          failures as Error[]
+        ),
+        undefined
+      );
+    } else {
+      errors.push(...failures);
     }
   }
   if (errors.length > 0) {
