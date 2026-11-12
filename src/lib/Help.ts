@@ -613,7 +613,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     description: "Import agents groups. The import data is usually read from an agent group export file. Every agent group is tried: an agent group that cannot be imported does not stop the others.",
     params: [
       { name: "importData", type: "AgentExportInterface", description: "agent import data.", required: true },
-      { name: "resultCallback", type: "ResultCallback<AgentGroupSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every agent group is passed to it as it happens (a failed agent group as an error that names the agent group and its type, with the cause nested) and a failed agent group does not throw: the agent groups that could be imported are returned. Without it, the failures are collected and thrown as one error after every agent group was tried. An agent group type that answers HTTP 501 is skipped: it is neither imported nor reported.", required: false },
+      { name: "resultCallback", type: "ResultCallback<AgentGroupSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every agent group is passed to it as it happens (a failed agent group as an error that names the agent group and its type, with the cause nested) and a failed agent group does not throw: the agent groups that could be imported are returned. Without it, the failures are collected and thrown as one error after every agent group was tried. An agent group type that answers HTTP 501 is a failed agent group like any other.", required: false },
     ],
     returns: "{Promise<AgentGroupSkeleton[]>} The agent groups that were imported.",
   },
