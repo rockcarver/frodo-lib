@@ -423,7 +423,19 @@ type MFAResult = {
 // seconds, not after the 30 second default of the HTTP client.
 const PROBE_TIMEOUT_MS = 8000;
 
-let adminClientId = fidcClientId;
+/**
+ * The OAuth2 client id the admin login flows use, per instance. It is set while
+ * the deployment type is determined (a client id the caller configured, else the
+ * default of the deployment type) and read by the authorization code flow, so an
+ * instance that has not determined it yet uses the default of a cloud tenant.
+ * It is not module state: two instances in one process (the MCP server with
+ * several connections, `createInstance` consumers) use their own.
+ */
+const adminClientIds = new WeakMap<State, string>();
+
+function adminClientIdOf(state: State): string {
+  return adminClientIds.get(state) ?? fidcClientId;
+}
 
 /**
  * Helper function to get cookie name
@@ -570,7 +582,7 @@ async function determineDeploymentType(state: State): Promise<string> {
 
   switch (deploymentType) {
     case Constants.CLOUD_DEPLOYMENT_TYPE_KEY:
-      adminClientId = state.getAdminClientId() || fidcClientId;
+      adminClientIds.set(state, state.getAdminClientId() || fidcClientId);
       debugMessage({
         message: `AuthenticateOps.determineDeploymentType: end [type=${deploymentType}]`,
         state,
@@ -578,7 +590,7 @@ async function determineDeploymentType(state: State): Promise<string> {
       return deploymentType;
 
     case Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY:
-      adminClientId = state.getAdminClientId() || forgeopsClientId;
+      adminClientIds.set(state, state.getAdminClientId() || forgeopsClientId);
       debugMessage({
         message: `AuthenticateOps.determineDeploymentType: end [type=${deploymentType}]`,
         state,
@@ -655,7 +667,10 @@ async function determineDeploymentType(state: State): Promise<string> {
               redirect.headers?.location?.indexOf('code=') > -1
             ) {
               // maybe we don't want to run through the auto-detect code if we get a custom admin client id?
-              adminClientId = state.getAdminClientId() || forgeopsClientId;
+              adminClientIds.set(
+                state,
+                state.getAdminClientId() || forgeopsClientId
+              );
               verboseMessage({
                 message:
                   theme(state).emphasis(`ForgeOps deployment`) + ` detected.`,
@@ -971,9 +986,16 @@ async function getUserSessionToken(
 }
 
 /**
- * Cache available service account scopes to avoid multiple calls to the API, which is especially relevant for cloud where the list of scopes can be quite long and deeply nested.
+ * The available service account scopes of an instance's tenant, kept to avoid
+ * multiple calls to the API, which is especially relevant for cloud where the
+ * list of scopes can be quite long and deeply nested. Kept per instance, with
+ * the host it was read from: another instance, or the same instance pointed at
+ * another host, reads its own list.
  */
-let availableServiceAccountScopesCache: ServiceAccountScope[] = null;
+const availableServiceAccountScopesCache = new WeakMap<
+  State,
+  { host: string; scopes: ServiceAccountScope[] }
+>();
 
 /**
  * Get available service account scopes, optionally flattened, and cache the result to avoid multiple API calls
@@ -992,16 +1014,22 @@ async function getAvailableServiceAccountScopes({
     state,
   });
   try {
-    if (availableServiceAccountScopesCache === null) {
-      availableServiceAccountScopesCache = (await readServiceAccountScopes({
-        flatten: false,
-        state,
-      })) as ServiceAccountScope[];
+    const host = state.getHost();
+    let cached = availableServiceAccountScopesCache.get(state);
+    if (!cached || cached.host !== host) {
+      cached = {
+        host,
+        scopes: (await readServiceAccountScopes({
+          flatten: false,
+          state,
+        })) as ServiceAccountScope[],
+      };
+      availableServiceAccountScopesCache.set(state, cached);
     }
     if (flatten) {
-      return flattenScopes(availableServiceAccountScopesCache) as string[];
+      return flattenScopes(cached.scopes) as string[];
     }
-    return availableServiceAccountScopesCache as ServiceAccountScope[];
+    return cached.scopes;
   } catch (error) {
     debugMessage({
       message: `AuthenticateOps.getAvailableServiceAccountScopes: error reading service account scopes: ${error}`,
@@ -1078,7 +1106,7 @@ async function getAuthCode(
     state,
   });
   try {
-    const bodyFormData = `redirect_uri=${redirectUri}&scope=${scope}&response_type=code&client_id=${adminClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}`;
+    const bodyFormData = `redirect_uri=${redirectUri}&scope=${scope}&response_type=code&client_id=${adminClientIdOf(state)}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}`;
     const config = {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -1155,7 +1183,7 @@ async function getFreshUserBearerToken({
     if (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
       const config = {
         auth: {
-          username: adminClientId,
+          username: adminClientIdOf(state),
           password: adminClientPassword,
         },
       };
@@ -1167,7 +1195,7 @@ async function getFreshUserBearerToken({
         state,
       });
     } else {
-      const bodyFormData = `client_id=${adminClientId}&redirect_uri=${redirectUri}&grant_type=authorization_code&code=${authCode}&code_verifier=${verifier}`;
+      const bodyFormData = `client_id=${adminClientIdOf(state)}&redirect_uri=${redirectUri}&grant_type=authorization_code&code=${authCode}&code_verifier=${verifier}`;
       response = await accessToken({
         amBaseUrl: state.getHost(),
         data: bodyFormData,
@@ -1220,7 +1248,7 @@ async function getFreshPfUserBearerToken({
     if (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
       const config = {
         auth: {
-          username: adminClientId,
+          username: adminClientIdOf(state),
           password: adminClientPassword,
         },
       };
@@ -1232,7 +1260,7 @@ async function getFreshPfUserBearerToken({
         state,
       });
     } else {
-      const bodyFormData = `client_id=${adminClientId}&redirect_uri=${redirectUri}&grant_type=authorization_code&code=${authCode}&code_verifier=${verifier}`;
+      const bodyFormData = `client_id=${adminClientIdOf(state)}&redirect_uri=${redirectUri}&grant_type=authorization_code&code=${authCode}&code_verifier=${verifier}`;
       response = await accessToken({
         amBaseUrl: state.getHost(),
         data: bodyFormData,
