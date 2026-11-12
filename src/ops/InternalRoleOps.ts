@@ -135,8 +135,10 @@ export type InternalRole = {
     importData: InternalRoleExportInterface
   ): Promise<InternalRoleSkeleton>;
   /**
-   * Import first internal role. The import data is usually read from an internal role export file.
+   * Import first internal role. The import data is usually read from an internal role export file. Only the first role of the import data is imported.
    * @param {InternalRoleExportInterface} importData internal role import data.
+   * @returns {Promise<InternalRoleSkeleton[]>} a promise resolving to an array that holds the imported internal role
+   * @throws {FrodoError} If the import data holds no internal role, or the first role cannot be imported.
    */
   importFirstInternalRole(
     importData: InternalRoleExportInterface
@@ -242,7 +244,7 @@ export default (state: State): InternalRole => {
     async importFirstInternalRole(
       importData: InternalRoleExportInterface
     ): Promise<InternalRoleSkeleton[]> {
-      return importInternalRoles({ importData, state });
+      return [await importFirstInternalRole({ importData, state })];
     },
     async importInternalRoles(
       importData: InternalRoleExportInterface,
@@ -766,9 +768,10 @@ export async function importInternalRoleByName({
 }
 
 /**
- * Import first internal role
+ * Import first internal role. Only the first role of the import data is imported.
  * @param {InternalRoleExportInterface} importData import data
- * @returns {Promise<InternalRoleSkeleton[]>} a promise resolving to an array of oauth2 clients
+ * @returns {Promise<InternalRoleSkeleton>} a promise resolving to the imported internal role
+ * @throws {FrodoError} If the import data holds no internal role, or the first role cannot be imported.
  */
 export async function importFirstInternalRole({
   importData,

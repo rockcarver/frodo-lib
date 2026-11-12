@@ -964,12 +964,12 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Application",
     methodName: "importFirstApplication",
     signature: "importFirstApplication( importData: ApplicationExportInterface, options: ApplicationImportOptions ): Promise<ApplicationGlossarySkeleton[]>",
-    description: "Import first application. The import data is usually read from an application export file. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.",
+    description: "Import first application. The import data is usually read from an application export file. Only the first application of the import data is imported. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.",
     params: [
       { name: "importData", type: "ApplicationExportInterface", description: "application import data.", required: true },
       { name: "options", type: "ApplicationImportOptions", description: "import options (`deps`: also import the dependencies of the application)", required: true },
     ],
-    returns: "",
+    returns: "{Promise<ApplicationGlossarySkeleton[]>} a promise resolving to an array that holds the imported application",
   },
   {
     typeName: "Application",
@@ -2498,11 +2498,11 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "InternalRole",
     methodName: "importFirstInternalRole",
     signature: "importFirstInternalRole( importData: InternalRoleExportInterface ): Promise<InternalRoleSkeleton[]>",
-    description: "Import first internal role. The import data is usually read from an internal role export file.",
+    description: "Import first internal role. The import data is usually read from an internal role export file. Only the first role of the import data is imported.",
     params: [
       { name: "importData", type: "InternalRoleExportInterface", description: "internal role import data.", required: true },
     ],
-    returns: "",
+    returns: "{Promise<InternalRoleSkeleton[]>} a promise resolving to an array that holds the imported internal role",
   },
   {
     typeName: "InternalRole",

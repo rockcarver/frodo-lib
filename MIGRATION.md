@@ -317,6 +317,19 @@ releases missed):
   kept; without one the script types section fails with one error
   (`Error Exporting Script Types`). A full export of a tenant whose script
   type could not be read used to print a line and keep it incomplete.
+- `frodo.app.importFirstApplication` and
+  `frodo.role.importFirstInternalRole` import the first application or
+  role of the import data only, as their names say. The two facade methods
+  called `importApplications` and `importInternalRoles` and so imported every
+  item of the data, although the functions of the same name in
+  `src/ops/ApplicationOps.ts` and `src/ops/InternalRoleOps.ts` always imported
+  the first one. The methods still return an array, now with the one imported
+  item in it. Callers that relied on the old behaviour call
+  `frodo.app.importApplications` or
+  `frodo.role.importInternalRoles`. The commands `frodo app import -f`
+  and `frodo role import -f` of frodo-cli import the first item of their file
+  with these methods, so they import one item once they use a library with this
+  change.
 
 **Deprecation**:
 

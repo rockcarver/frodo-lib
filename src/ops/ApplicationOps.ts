@@ -279,9 +279,11 @@ export type Application = {
     options: ApplicationImportOptions
   ): Promise<ApplicationGlossarySkeleton>;
   /**
-   * Import first application. The import data is usually read from an application export file. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.
+   * Import first application. The import data is usually read from an application export file. Only the first application of the import data is imported. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.
    * @param {ApplicationExportInterface} importData application import data.
    * @param {ApplicationImportOptions} options import options (`deps`: also import the dependencies of the application)
+   * @returns {Promise<ApplicationGlossarySkeleton[]>} a promise resolving to an array that holds the imported application
+   * @throws {FrodoError} If the import data holds no application, or the first application cannot be imported.
    */
   importFirstApplication(
     importData: ApplicationExportInterface,
@@ -572,7 +574,7 @@ export default (state: State): Application => {
       importData: ApplicationExportInterface,
       options: ApplicationImportOptions
     ): Promise<ApplicationGlossarySkeleton[]> {
-      return importApplications({ importData, options, state });
+      return [await importFirstApplication({ importData, options, state })];
     },
     async importApplications(
       importData: ApplicationExportInterface,
@@ -2497,10 +2499,11 @@ export async function importApplicationByName({
 }
 
 /**
- * Import first application. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.
+ * Import first application. Only the first application of the import data is imported. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.
  * @param {ApplicationExportInterface} importData import data
  * @param {ApplicationImportOptions} options import options
- * @returns {Promise<ApplicationGlossarySkeleton[]>} a promise resolving to an array of application objects
+ * @returns {Promise<ApplicationGlossarySkeleton>} a promise resolving to the imported application
+ * @throws {FrodoError} If the import data holds no application, or the first application cannot be imported.
  */
 export async function importFirstApplication({
   importData,
