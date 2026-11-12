@@ -276,6 +276,15 @@ releases missed):
   facade created for a deployment other than classic, so the answer for a state
   depended on which other facades existed and when. A classic state now never
   leaves the type out, a state of any other deployment type always does.
+- `state.setEnv`, `setEnvs`, `getEnv` and `getEnvs`, the values that replace the
+  `${NAME}` placeholders of the configuration a state reads and writes, belong to
+  the state. States that did not bring a map of their own used to share one, so a
+  value set through one state was seen through every other state, through states
+  created later and through the same state after `reset()`. Each state now has a
+  map of its own: `createInstance` copies the `env` it is given, and `reset()`
+  empties the map. Code that set the values on one state and relied on another
+  instance seeing them sets them on that instance, for example
+  `frodo.createInstance({ host, env })`.
 
 **Deprecation**:
 

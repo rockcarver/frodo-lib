@@ -376,7 +376,7 @@ export type State = {
   setAxiosRetryConfig(axiosRetryConfig: IAxiosRetryConfig): void;
   setAxiosRetryStrategy(strategy: RetryStrategy): void;
   /**
-   * Reset the state to default values
+   * Reset the state to default values. The environment values (`setEnv`, `setEnvs`) are removed.
    */
   reset(): void;
 
@@ -413,7 +413,14 @@ function mergeEnvironmentOverrides(
 }
 
 export default (initialState: StateInterface): State => {
-  const state: StateInterface = { ...globalState, ...initialState };
+  const state: StateInterface = {
+    ...globalState,
+    ...initialState,
+    // The map of environment values belongs to the state: `setEnv` and
+    // `setEnvs` write into it, so it is never the object another state holds or
+    // the object the caller passed in.
+    env: { ...initialState?.env },
+  };
   return {
     getState(): StateInterface {
       // Drop the auto-refresh timer: Node Timeouts are circular and make
@@ -1007,6 +1014,8 @@ export default (initialState: StateInterface): State => {
       for (const key of Object.keys(state)) {
         state[key] = globalState[key];
       }
+      // an empty map of its own again, not a map that other states can reach
+      state.env = {};
     },
 
     // Deprecated
@@ -1130,7 +1139,6 @@ export interface StateInterface {
 const globalState: StateInterface = {
   authenticationHeaderOverrides: {},
   configurationHeaderOverrides: {},
-  env: {},
   printHandler: (message: string | object) => {
     if (!message) return;
     if (typeof message === 'object') {
