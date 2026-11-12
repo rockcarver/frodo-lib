@@ -2,7 +2,9 @@
  * A minimal fake ForgeRock AM that runs inside the test process and records
  * every request, for tests that need the real login code to talk to a server
  * and count what it sends. It answers what a classic username/password login
- * and a service account login touch; everything else answers 404.
+ * and a service account login touch; everything else answers 404 (the scope
+ * catalog and the authorization endpoint answer only when asked to, see
+ * `StartOptions`).
  */
 import http from 'http';
 import { AddressInfo } from 'net';
@@ -29,9 +31,19 @@ export type FakeAm = {
   close(): Promise<void>;
 };
 
+export type StartOptions = {
+  sessionLifetimeMs?: number;
+  /** The list that `GET /environment/scopes/service-accounts` answers; without it the path answers 404. */
+  serviceAccountScopes?: { scope: string; childScopes?: unknown[] }[];
+  /** Makes the authorization endpoint redirect to the redirect uri with this code; without it the path answers 404. */
+  authorizationCode?: string;
+};
+
 export async function startFakeAm({
   sessionLifetimeMs = 30 * 60 * 1000,
-}: { sessionLifetimeMs?: number } = {}): Promise<FakeAm> {
+  serviceAccountScopes,
+  authorizationCode,
+}: StartOptions = {}): Promise<FakeAm> {
   const requests: string[] = [];
   const received: { path: string; body: string }[] = [];
   let logins = 0;
@@ -60,6 +72,18 @@ export async function startFakeAm({
           scope: 'fr:am:* fr:idm:*',
           expires_in: Math.round(sessionLifetimeMs / 1000),
         });
+      }
+      if (
+        serviceAccountScopes &&
+        path.endsWith('/environment/scopes/service-accounts')
+      ) {
+        return send(200, serviceAccountScopes);
+      }
+      if (authorizationCode && path.endsWith('/authorize')) {
+        res.writeHead(302, {
+          location: `http://127.0.0.1/callback?code=${authorizationCode}`,
+        });
+        return void res.end();
       }
       if (path.includes('/json/serverinfo')) {
         return send(200, {
