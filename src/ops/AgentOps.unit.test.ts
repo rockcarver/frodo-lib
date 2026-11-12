@@ -55,6 +55,8 @@ const {
   exportAgent,
   exportAgents,
   importAgent,
+  importAIAgent,
+  importAIAgents,
   readAgent,
   readAgentByTypeAndId,
   readAgents,
@@ -226,6 +228,124 @@ describe('createAIAgent', () => {
       })
     ).rejects.toThrow();
     expect(createManagedObject).not.toHaveBeenCalled();
+  });
+
+  test('creates the agent when the agent data has no _aiAgentIdentity, and makes no identity or privilege call', async () => {
+    getAgentByTypeAndId.mockRejectedValue(errorWithStatus(404));
+
+    const agentData = {
+      _id: 'my-agent',
+      _type: { _id: 'AIAgent' },
+      description: 'an agent without an identity',
+    } as any;
+    const before = JSON.stringify(agentData);
+
+    const result = await createAIAgent({
+      agentId: 'my-agent',
+      agentData,
+      includeAgentIdentity: true,
+      state: mockState(),
+    });
+
+    expect(result._id).toBe('my-agent');
+    expect(result._provisioningStatus).toBeUndefined();
+    expect(putAgentByTypeAndId).toHaveBeenCalledTimes(1);
+    expect(putAgentByTypeAndId.mock.calls[0][0]).toMatchObject({
+      agentType: 'AIAgent',
+      agentId: 'my-agent',
+      agentData: { description: 'an agent without an identity' },
+    });
+    expect(createManagedObject).not.toHaveBeenCalled();
+    expect(replaceRelationship).not.toHaveBeenCalled();
+    // the caller's object is left as it was
+    expect(JSON.stringify(agentData)).toBe(before);
+  });
+
+  test('still provisions the identity and privileges when the agent data carries an _aiAgentIdentity', async () => {
+    getAgentByTypeAndId.mockRejectedValue(errorWithStatus(404));
+
+    const result = await createAIAgent({
+      agentId: 'my-agent',
+      agentData: {
+        _aiAgentIdentity: {
+          _id: 'identity-1',
+          _privileges: [{ _id: 'priv-1' }],
+        },
+      } as any,
+      includeAgentIdentity: true,
+      state: mockState(),
+    });
+
+    expect((result._provisioningStatus as any).agentIdentityId).toBe(
+      'identity-1'
+    );
+    expect(createManagedObject).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('importing AI agents that have no agent identity', () => {
+  const importDataOf = (...agentIds: string[]): any => ({
+    meta: {},
+    agent: Object.fromEntries(
+      agentIds.map((agentId) => [
+        agentId,
+        { _id: agentId, _type: { _id: 'AIAgent' } },
+      ])
+    ),
+  });
+
+  beforeEach(() => {
+    getAgentByTypeAndId.mockReset();
+    getAgentByTypeAndId.mockRejectedValue(errorWithStatus(404));
+    putAgentByTypeAndId.mockReset();
+    putAgentByTypeAndId.mockImplementation(async ({ agentId }: any) => ({
+      _id: agentId,
+    }));
+    createManagedObject.mockReset();
+    createManagedObject.mockResolvedValue({});
+    replaceRelationship.mockReset();
+    replaceRelationship.mockResolvedValue({});
+  });
+
+  test('importAIAgent imports an agent that has no identity', async () => {
+    const result = await importAIAgent({
+      agentId: 'a',
+      importData: importDataOf('a'),
+      includeAgentIdentity: true,
+      state: mockState(),
+    });
+
+    expect(result._id).toBe('a');
+    expect(putAgentByTypeAndId).toHaveBeenCalledTimes(1);
+    expect(createManagedObject).not.toHaveBeenCalled();
+    expect(replaceRelationship).not.toHaveBeenCalled();
+  });
+
+  test('importAIAgents imports every agent of a file whose agents have none, and reports each without an error', async () => {
+    const outcomes: any[] = [];
+
+    await importAIAgents({
+      importData: importDataOf('a', 'b'),
+      includeAgentIdentity: true,
+      resultCallback: (error, agent) => outcomes.push([error, agent]),
+      state: mockState(),
+    });
+
+    expect(outcomes.map(([error]) => error)).toEqual([undefined, undefined]);
+    expect(outcomes.map(([, agent]) => agent._id)).toEqual(['a', 'b']);
+    expect(putAgentByTypeAndId).toHaveBeenCalledTimes(2);
+    expect(createManagedObject).not.toHaveBeenCalled();
+    expect(replaceRelationship).not.toHaveBeenCalled();
+  });
+
+  test('importAIAgents without a result callback does not throw for them', async () => {
+    await expect(
+      importAIAgents({
+        importData: importDataOf('a'),
+        includeAgentIdentity: true,
+        state: mockState(),
+      })
+    ).resolves.toBeUndefined();
   });
 });
 
