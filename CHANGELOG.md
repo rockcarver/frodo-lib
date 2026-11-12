@@ -10,6 +10,15 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-38] - 2026-11-12
+
+### Added
+- Introduced Log API rate limit handling. The library now surfaces the rate limit state, reports a 429 status as `LOG_API_RATE_LIMITED` with the reset time, and paces `searchEvents` requests based on `X-RateLimit-*` headers. This enhancement prevents exceeding the API's throttling limits. (#1038)
+- Added a guard test for trusted JWT issuers to ensure correct migration and prevent issues related to the generic agent code. (#1040)
+
+### Changed
+- CIMD profiles and trusted JWT issuers have been moved out of the generic agent code into their own modules. This change prevents duplicate exports and error reports for these agent types. (#1040)
+
 ## [v5.0.0-37] - 2026-11-11
 
 ### Added
@@ -2945,6 +2954,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-38]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-37...v5.0.0-38
 [v5.0.0-37]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-36...v5.0.0-37
 [v5.0.0-36]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-35...v5.0.0-36
 [v5.0.0-35]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-34...v5.0.0-35
