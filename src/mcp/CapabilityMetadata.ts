@@ -3599,6 +3599,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'agent.deleteWebAgents': { excludeParameters: ['resultCallback'] },
   'agent.deleteAIAgents': { excludeParameters: ['resultCallback'] },
   'app.exportApplications': { excludeParameters: ['resultCallback'] },
+  'app.importApplications': { excludeParameters: ['resultCallback'] },
+  'role.importInternalRoles': { excludeParameters: ['resultCallback'] },
 
   'script.getLibraryScriptNames': {
     // Takes a full ScriptSkeleton as input (parses require() calls out of its

@@ -16,7 +16,7 @@ import {
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { FrodoError } from './FrodoError';
-import { type ExportMetaData } from './OpsTypes';
+import { type ExportMetaData, type ResultCallback } from './OpsTypes';
 
 const defaultFields = [
   'condition',
@@ -142,11 +142,13 @@ export type InternalRole = {
     importData: InternalRoleExportInterface
   ): Promise<InternalRoleSkeleton[]>;
   /**
-   * Import internal roles. The import data is usually read from an internal role export file.
+   * Import internal roles. The import data is usually read from an internal role export file. Every role is tried: a role that cannot be imported does not stop the others.
    * @param {InternalRoleExportInterface} importData internal role import data.
+   * @param {ResultCallback<InternalRoleSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every role is passed to it as it happens (a failed role as an error that names it, with the cause nested) and a failed role does not throw: the roles that could be imported are returned. Without it, the failures are collected and thrown as one error after every role was tried.
    */
   importInternalRoles(
-    importData: InternalRoleExportInterface
+    importData: InternalRoleExportInterface,
+    resultCallback?: ResultCallback<InternalRoleSkeleton>
   ): Promise<InternalRoleSkeleton[]>;
 };
 
@@ -243,9 +245,10 @@ export default (state: State): InternalRole => {
       return importInternalRoles({ importData, state });
     },
     async importInternalRoles(
-      importData: InternalRoleExportInterface
+      importData: InternalRoleExportInterface,
+      resultCallback: ResultCallback<InternalRoleSkeleton> = undefined
     ): Promise<InternalRoleSkeleton[]> {
-      return importInternalRoles({ importData, state });
+      return importInternalRoles({ importData, resultCallback, state });
     },
   };
 };
@@ -813,15 +816,19 @@ export async function importFirstInternalRole({
 }
 
 /**
- * Import internal roles
+ * Import internal roles. Every role is tried: a role that cannot be imported does not stop the others.
  * @param {InternalRoleExportInterface} importData import data
- * @returns {Promise<InternalRoleSkeleton[]>} a promise resolving to an array of oauth2 clients
+ * @param {ResultCallback<InternalRoleSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every role is passed to it as it happens (a failed role as an error that names it, with the cause nested) and a failed role does not throw: the roles that could be imported are returned. Without it, the failures are collected and thrown as one error after every role was tried.
+ * @returns {Promise<InternalRoleSkeleton[]>} a promise resolving to an array of internal roles
+ * @throws {FrodoError} If one or more roles cannot be imported and there is no result callback. The error carries one nested error per failed role.
  */
 export async function importInternalRoles({
   importData,
+  resultCallback = undefined,
   state,
 }: {
   importData: InternalRoleExportInterface;
+  resultCallback?: ResultCallback<InternalRoleSkeleton>;
   state: State;
 }): Promise<InternalRoleSkeleton[]> {
   const response = [];
@@ -831,16 +838,34 @@ export async function importInternalRoles({
       const roleData = importData.internalRole[roleId];
       delete roleData._provider;
       delete roleData._rev;
+      let imported: InternalRoleSkeleton;
+      let failed = false;
+      let failure: unknown;
       try {
-        response.push(
-          await updateInternalRole({
-            roleId,
-            roleData,
-            state,
-          })
-        );
+        imported = await updateInternalRole({
+          roleId,
+          roleData,
+          state,
+        });
       } catch (error) {
-        errors.push(error);
+        failed = true;
+        failure = error;
+      }
+      // the callback is called outside the try: an exception of the callback
+      // must not be taken for a failed import and reported a second time
+      if (!failed) {
+        response.push(imported);
+        if (resultCallback) resultCallback(undefined, imported);
+      } else if (resultCallback) {
+        resultCallback(
+          new FrodoError(
+            `Error importing internal role ${roleData?.name ?? roleId}`,
+            failure as Error
+          ),
+          undefined
+        );
+      } else {
+        errors.push(failure);
       }
     }
     if (errors.length) {

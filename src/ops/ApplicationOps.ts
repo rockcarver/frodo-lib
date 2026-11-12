@@ -288,13 +288,15 @@ export type Application = {
     options: ApplicationImportOptions
   ): Promise<ApplicationGlossarySkeleton[]>;
   /**
-   * Import applications. The import data is usually read from an application export file. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.
+   * Import applications. The import data is usually read from an application export file. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access. Every application is tried: an application that cannot be imported does not stop the others.
    * @param {ApplicationExportInterface} importData application import data.
    * @param {ApplicationImportOptions} options import options (`deps`: also import the dependencies of the application)
+   * @param {ResultCallback<ApplicationGlossarySkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every application is passed to it as it happens (a failed application as an error that names it, with the reasons nested) and a failed application does not throw: the applications that could be imported are returned. An application whose dependencies or glossary could not be imported is a failed application, although the application itself may have been written. Without it, the failures are collected and thrown as one error after every application was tried.
    */
   importApplications(
     importData: ApplicationExportInterface,
-    options: ApplicationImportOptions
+    options: ApplicationImportOptions,
+    resultCallback?: ResultCallback<ApplicationGlossarySkeleton>
   ): Promise<ApplicationGlossarySkeleton[]>;
   /**
    * Read what an application is made of: every object that its record points to, and the scripts, circles of trust and (on Identity Governance tenants) glossary schemas, request forms and request types that those objects use.
@@ -574,9 +576,10 @@ export default (state: State): Application => {
     },
     async importApplications(
       importData: ApplicationExportInterface,
-      options: ApplicationImportOptions
+      options: ApplicationImportOptions,
+      resultCallback?: ResultCallback<ApplicationGlossarySkeleton>
     ): Promise<ApplicationGlossarySkeleton[]> {
-      return importApplications({ importData, options, state });
+      return importApplications({ importData, options, resultCallback, state });
     },
     async readApplicationReferences(
       applicationId: string
@@ -2568,18 +2571,22 @@ export async function importFirstApplication({
 }
 
 /**
- * Import applications. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.
+ * Import applications. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access. Every application is tried: an application that cannot be imported does not stop the others.
  * @param {ApplicationExportInterface} importData import data
  * @param {ApplicationImportOptions} options import options
+ * @param {ResultCallback<ApplicationGlossarySkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every application is passed to it as it happens (a failed application as an error that names it, with the reasons nested) and a failed application does not throw: the applications that could be imported are returned. An application whose dependencies or glossary could not be imported is a failed application, although the application itself may have been written. Without it, the failures are collected and thrown as one error after every application was tried.
  * @returns {Promise<ApplicationGlossarySkeleton[]>} a promise resolving to an array of application objects
+ * @throws {FrodoError} If one or more applications cannot be imported and there is no result callback. The error carries the nested errors of the failed applications.
  */
 export async function importApplications({
   importData,
   options = { deps: true },
+  resultCallback = undefined,
   state,
 }: {
   importData: ApplicationExportInterface;
   options?: ApplicationImportOptions;
+  resultCallback?: ResultCallback<ApplicationGlossarySkeleton>;
   state: State;
 }): Promise<ApplicationGlossarySkeleton[]> {
   const response = [];
@@ -2589,11 +2596,14 @@ export async function importApplications({
       const applicationData = importData.managedApplication[applicationId];
       delete applicationData._provider;
       delete applicationData._rev;
+      // what went wrong with this application: the dependencies, the glossary,
+      // then the application itself
+      const failures: Error[] = [];
       if (options.deps) {
         try {
           await importDependencies({ applicationData, importData, state });
         } catch (error) {
-          errors.push(error);
+          failures.push(error);
         }
       }
       let glossary;
@@ -2605,12 +2615,13 @@ export async function importApplications({
             state,
           });
         } catch (error) {
-          errors.push(error);
+          failures.push(error);
         }
       }
       delete applicationData.glossary;
+      let updatedApplication: ApplicationGlossarySkeleton;
       try {
-        const updatedApplication = await updateApplication({
+        updatedApplication = await updateApplication({
           applicationId,
           applicationData,
           state,
@@ -2618,9 +2629,24 @@ export async function importApplications({
         if (glossary) {
           updatedApplication.glossary = glossary;
         }
-        response.push(updatedApplication);
       } catch (error) {
-        errors.push(error);
+        failures.push(error);
+      }
+      // the callback is called outside the try: an exception of the callback
+      // must not be taken for a failed import and reported a second time
+      if (failures.length === 0) {
+        response.push(updatedApplication);
+        if (resultCallback) resultCallback(undefined, updatedApplication);
+      } else if (resultCallback) {
+        resultCallback(
+          new FrodoError(
+            `Error importing ${getCurrentRealmName(state) + ' realm'} application ${applicationData.name ?? applicationId}`,
+            failures
+          ),
+          undefined
+        );
+      } else {
+        errors.push(...failures);
       }
     }
     if (errors.length) {

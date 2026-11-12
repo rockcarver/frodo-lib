@@ -973,11 +973,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Application",
     methodName: "importApplications",
-    signature: "importApplications( importData: ApplicationExportInterface, options: ApplicationImportOptions ): Promise<ApplicationGlossarySkeleton[]>",
-    description: "Import applications. The import data is usually read from an application export file. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access.",
+    signature: "importApplications( importData: ApplicationExportInterface, options: ApplicationImportOptions, resultCallback?: ResultCallback<ApplicationGlossarySkeleton> ): Promise<ApplicationGlossarySkeleton[]>",
+    description: "Import applications. The import data is usually read from an application export file. The import writes the configuration fields of the application with a PUT. A PUT that does not carry `members`, `owners` and `roles` leaves them as they are, so an import does not remove who has access. Every application is tried: an application that cannot be imported does not stop the others.",
     params: [
       { name: "importData", type: "ApplicationExportInterface", description: "application import data.", required: true },
       { name: "options", type: "ApplicationImportOptions", description: "import options (`deps`: also import the dependencies of the application)", required: true },
+      { name: "resultCallback", type: "ResultCallback<ApplicationGlossarySkeleton>", description: "Optional callback to process individual results. When given, the outcome of every application is passed to it as it happens (a failed application as an error that names it, with the reasons nested) and a failed application does not throw: the applications that could be imported are returned. An application whose dependencies or glossary could not be imported is a failed application, although the application itself may have been written. Without it, the failures are collected and thrown as one error after every application was tried.", required: false },
     ],
     returns: "",
   },
@@ -2503,10 +2504,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "InternalRole",
     methodName: "importInternalRoles",
-    signature: "importInternalRoles( importData: InternalRoleExportInterface ): Promise<InternalRoleSkeleton[]>",
-    description: "Import internal roles. The import data is usually read from an internal role export file.",
+    signature: "importInternalRoles( importData: InternalRoleExportInterface, resultCallback?: ResultCallback<InternalRoleSkeleton> ): Promise<InternalRoleSkeleton[]>",
+    description: "Import internal roles. The import data is usually read from an internal role export file. Every role is tried: a role that cannot be imported does not stop the others.",
     params: [
       { name: "importData", type: "InternalRoleExportInterface", description: "internal role import data.", required: true },
+      { name: "resultCallback", type: "ResultCallback<InternalRoleSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every role is passed to it as it happens (a failed role as an error that names it, with the cause nested) and a failed role does not throw: the roles that could be imported are returned. Without it, the failures are collected and thrown as one error after every role was tried.", required: false },
     ],
     returns: "",
   },
