@@ -285,6 +285,23 @@ releases missed):
   empties the map. Code that set the values on one state and relied on another
   instance seeing them sets them on that instance, for example
   `frodo.createInstance({ host, env })`.
+- `frodo.scriptType.exportScriptTypes` (`src/ops/ScriptTypeOps.ts`) now treats
+  a script type whose engine configuration or context cannot be read as a
+  failed script type. A missing engine configuration (HTTP 404) is still not a
+  failure, but a 404 of the context is. It used to print a line (`Unable to get
+  engine configuration for script type '<id>': ...`, or `... context ...`) and
+  export the script type without the part it could not read. After every script
+  type was tried, the function now throws one `FrodoError` (`Error exporting
+  scriptTypes`) that carries one nested error per failed script type (`Error
+  exporting script type <id>`, with the failed reads nested in it); a failed
+  script type is not in the export. With the new optional `resultCallback`
+  argument each failed script type is passed to the callback instead, nothing
+  is thrown, and the script types that could be read are exported. In a full
+  export (`frodo.config.exportFullConfiguration`) with a result callback, the
+  failed script type is reported as an error of its own and the others are
+  kept; without one the script types section fails with one error
+  (`Error Exporting Script Types`). A full export of a tenant whose script
+  type could not be read used to print a line and keep it incomplete.
 
 **Deprecation**:
 

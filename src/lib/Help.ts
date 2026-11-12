@@ -5340,9 +5340,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "ScriptType",
     methodName: "exportScriptTypes",
-    signature: "exportScriptTypes(): Promise<ScriptTypeExportInterface>",
-    description: "Export all scriptTypes. The response can be saved to file as is.",
-    params: [],
+    signature: "exportScriptTypes( resultCallback?: ResultCallback<ScriptTypeExportSkeleton> ): Promise<ScriptTypeExportInterface>",
+    description: "Export all scriptTypes. The response can be saved to file as is. Every script type is tried: a script type that cannot be exported does not stop the others.",
+    params: [
+      { name: "resultCallback", type: "ResultCallback<ScriptTypeExportSkeleton>", description: "Optional callback to process individual results. When given, the outcome of every script type is passed to it as it happens (a failed script type as an error that names it, with the failed reads nested) and a failed script type does not throw: the script types that could be exported are returned, and a failed one is not part of the export. Without it, the failures are collected and thrown as one error after every script type was tried. Failing to read the list of script types always throws. A script type that has no engine configuration (HTTP 404) is not a failure.", required: false },
+    ],
     returns: "{Promise<ScriptTypeExportInterface>} Promise resolving to a ScriptTypeExportInterface object.",
   },
   {
