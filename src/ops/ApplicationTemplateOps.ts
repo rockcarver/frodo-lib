@@ -15,6 +15,7 @@ import {
   getCatalogCacheFiles,
   readCatalogCacheMeta,
   readLimitedFile,
+  tryRemoveCacheFile,
   tryWriteCacheFile,
   type CatalogCacheMeta,
 } from './internal/ApplicationTemplateCatalogCache';
@@ -379,10 +380,14 @@ export function getTemplateId({
   ).replace(/\./g, '-')}`;
 }
 
-// the catalogs that were downloaded, for each state, by URL
+// the catalogs that were downloaded, for each state, by URL, with the time
+// (ms since the epoch) at which the source last confirmed the copy or, after a
+// failed attempt, was last asked. With the cache in files on, the copy in memory
+// is only used while it is younger than maxAgeMs; without it, for the life of
+// the state.
 const downloaded = new WeakMap<
   State,
-  Map<string, ApplicationTemplateCatalogResult>
+  Map<string, { result: ApplicationTemplateCatalogResult; checkedAt: number }>
 >();
 
 function isGzip(bytes: Buffer): boolean {
@@ -718,11 +723,20 @@ async function loadCatalog({
     downloaded.set(state, kept);
   }
   const earlier = kept.get(source.location);
-  if (earlier && !refresh && !ignoreCache) {
+  if (
+    earlier &&
+    !refresh &&
+    !ignoreCache &&
+    // a state that lives long (a server) asks the source again once the copy is
+    // older than maxAgeMs, like a read that finds the copy in the files
+    (!files ||
+      (Date.now() - earlier.checkedAt >= 0 &&
+        Date.now() - earlier.checkedAt < maxAgeMs))
+  ) {
     return {
       result: {
-        catalog: earlier.catalog,
-        metadata: { ...earlier.metadata, cached: true },
+        catalog: earlier.result.catalog,
+        metadata: { ...earlier.result.metadata, cached: true },
       },
       shared: true,
     };
@@ -739,7 +753,10 @@ async function loadCatalog({
         outcome: 'fresh',
         fetchedAt: entry.meta.fetchedAt,
       });
-      kept.set(source.location, result);
+      kept.set(source.location, {
+        result,
+        checkedAt: Date.parse(entry.meta.fetchedAt),
+      });
       return { result, shared: true };
     }
   }
@@ -774,7 +791,7 @@ async function loadCatalog({
         fetchedAt: entry.meta?.fetchedAt ?? entry.modified,
         cacheError: reason,
       });
-      kept.set(source.location, result);
+      kept.set(source.location, { result, checkedAt: Date.now() });
       return { result, shared: true };
     }
     // axios names the option that it enforced
@@ -792,7 +809,7 @@ async function loadCatalog({
     );
   }
 
-  const fetchedAt = new Date().toISOString();
+  const fetchedAt = new Date(Date.now()).toISOString();
   if (file.notModified) {
     if (!entry || !files) {
       throw new FrodoError(
@@ -819,7 +836,7 @@ async function loadCatalog({
       etag: file.etag,
       lastModified: file.lastModified,
     });
-    kept.set(source.location, result);
+    kept.set(source.location, { result, checkedAt: Date.now() });
     return { result, shared: true };
   }
 
@@ -837,8 +854,15 @@ async function loadCatalog({
     },
   };
   if (files) {
-    // the copy first: the validators are only written for a copy that was
-    if (tryWriteCacheFile({ file: files.catalog, data: parsed.text, state })) {
+    // The old validators go first, then the copy, then the new validators. A
+    // meta file beside a catalog it does not describe could make a later 304
+    // confirm the wrong catalog (the source returns to the version the old
+    // validators belong to); a catalog without validators is only asked about
+    // again. If the old validators cannot be removed, the old pair stays as it is.
+    if (
+      tryRemoveCacheFile({ file: files.meta, state }) &&
+      tryWriteCacheFile({ file: files.catalog, data: parsed.text, state })
+    ) {
       writeCacheMeta({
         files,
         meta: {
@@ -851,7 +875,7 @@ async function loadCatalog({
       });
     }
   }
-  kept.set(source.location, result);
+  kept.set(source.location, { result, checkedAt: Date.now() });
   return { result, shared: true };
 }
 

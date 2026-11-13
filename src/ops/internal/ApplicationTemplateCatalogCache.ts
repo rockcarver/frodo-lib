@@ -1,9 +1,8 @@
-import { randomBytes } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { State } from '../../shared/State';
 import { debugMessage } from '../../utils/Console';
-import { renameWithRetrySync } from '../../utils/ExportImportUtils';
+import { writeFileAtomicSync } from '../../utils/ExportImportUtils';
 import { getFrodoHome } from '../../utils/FrodoUtils';
 import { isSafeHeaderValue } from '../../utils/HeaderValueUtils';
 
@@ -154,31 +153,6 @@ export function readCatalogCacheMeta({
 }
 
 /**
- * Write a file so that no reader ever sees a partial file: the data goes to a
- * uniquely named temporary file in the same directory, which is then renamed
- * over the target. The directory is created if needed. A failed write leaves the
- * old file as it was and no temporary file behind.
- * @param {string} file the target file
- * @param {string} data the content
- */
-export function writeFileAtomicSync(file: string, data: string): void {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  const temporary = `${file}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`;
-  try {
-    fs.writeFileSync(temporary, data, { flag: 'wx' });
-    renameWithRetrySync(temporary, file);
-  } catch (error) {
-    try {
-      fs.unlinkSync(temporary);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (unlinkError) {
-      // nothing left to remove
-    }
-    throw error;
-  }
-}
-
-/**
  * Write a file of the cache. Best effort: a failure is a debug message and
  * never fails the read that wanted the cache.
  * @returns {boolean} true if the file was written
@@ -198,6 +172,33 @@ export function tryWriteCacheFile({
   } catch (error) {
     debugMessage({
       message: `ApplicationTemplateCatalogCache: ${file} could not be written: ${(error as Error).message}`,
+      state,
+    });
+    return false;
+  }
+}
+
+/**
+ * Remove a file of the cache. A file that is not there counts as removed.
+ * Best effort: a failure is a debug message.
+ * @returns {boolean} true if the file is gone
+ */
+export function tryRemoveCacheFile({
+  file,
+  state,
+}: {
+  file: string;
+  state: State;
+}): boolean {
+  try {
+    fs.unlinkSync(file);
+    return true;
+  } catch (error) {
+    // a file that is not there, or whose parent is not a directory, is gone
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === 'ENOENT' || code === 'ENOTDIR') return true;
+    debugMessage({
+      message: `ApplicationTemplateCatalogCache: ${file} could not be removed: ${(error as Error).message}`,
       state,
     });
     return false;

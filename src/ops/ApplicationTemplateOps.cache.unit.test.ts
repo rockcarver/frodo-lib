@@ -517,10 +517,9 @@ describe('the cache of the application template catalog: writes', () => {
     expect(messages.some((m) => m.includes('could not be written'))).toBe(true);
   });
 
-  test('2: a failed write leaves the old file intact and no temporary file, and no validators are written for a copy that was not', async () => {
+  test('2: a failed write of the catalog leaves the old catalog intact and no temporary file, and no validators for a copy that was not written', async () => {
     await readCatalog({ state: cachingState() });
     ageCache(2 * HOUR);
-    const metaBefore = fs.readFileSync(files().meta, 'utf8');
     source.version = 2;
     // the rename of the catalog fails, the rename of the meta file would work
     const real = fs.renameSync;
@@ -540,11 +539,71 @@ describe('the cache of the application template catalog: writes', () => {
     rename.mockRestore();
     // the read still worked, from the new download
     expect(nameIn(result)).toBe('Sample Web v2');
-    // the old copy and its validators are as they were
+    // the old copy is as it was; the old validators were removed first, and no
+    // validators were written for a copy that was not
     expect(fs.readFileSync(files().catalog, 'utf8')).toBe(catalogText(1));
-    expect(fs.readFileSync(files().meta, 'utf8')).toBe(metaBefore);
+    expect(fs.existsSync(files().meta)).toBe(false);
     expect(leftovers()).toEqual([]);
     expect(messages.some((m) => m.includes('disk is full'))).toBe(true);
+  });
+
+  test('2b: a failed write of the validators does not leave the old validators beside the new catalog', async () => {
+    await readCatalog({ state: cachingState() });
+    ageCache(2 * HOUR);
+    source.version = 2;
+    // the catalog is replaced, the meta file cannot be written
+    const real = fs.renameSync;
+    const rename = jest.spyOn(fs, 'renameSync').mockImplementation(((
+      from: any,
+      to: any
+    ) => {
+      if (String(to) === files().meta) {
+        throw Object.assign(new Error('disk is full'), { code: 'ENOSPC' });
+      }
+      return real(from, to);
+    }) as any);
+    const result = await readCatalog({ state: cachingState() });
+    rename.mockRestore();
+    expect(nameIn(result)).toBe('Sample Web v2');
+    expect(fs.readFileSync(files().catalog, 'utf8')).toBe(catalogText(2));
+    expect(fs.existsSync(files().meta)).toBe(false);
+    // the source goes back to the version that the old validators belong to: a
+    // request with the old validators would be answered 304, and the newer
+    // catalog would be served as if it were current
+    source.version = 1;
+    source.seen = [];
+    const again = await readCatalog({ state: cachingState() });
+    expect(source.seen).toHaveLength(1);
+    expect(source.seen[0].ifNoneMatch).toBeUndefined();
+    expect(source.seen[0].ifModifiedSince).toBeUndefined();
+    expect(again.metadata.cache).toBe('refreshed');
+    expect(nameIn(again)).toBe('Sample Web v1');
+    expect(fs.readFileSync(files().catalog, 'utf8')).toBe(catalogText(1));
+    expect(readJson(files().meta).etag).toBe(etagOf(1));
+  });
+
+  test('2c: validators that cannot be removed leave the old pair as it is', async () => {
+    await readCatalog({ state: cachingState() });
+    ageCache(2 * HOUR);
+    const metaBefore = fs.readFileSync(files().meta, 'utf8');
+    source.version = 2;
+    const real = fs.unlinkSync;
+    jest.spyOn(fs, 'unlinkSync').mockImplementation(((target: any) => {
+      if (String(target) === files().meta) {
+        throw Object.assign(new Error('not permitted'), { code: 'EPERM' });
+      }
+      return real(target);
+    }) as any);
+    const messages: string[] = [];
+    const state = cachingState();
+    state.setDebugHandler((message) => messages.push(String(message)));
+    const result = await readCatalog({ state });
+    jest.restoreAllMocks();
+    expect(nameIn(result)).toBe('Sample Web v2');
+    // neither file was changed: the catalog is not replaced without its validators
+    expect(fs.readFileSync(files().catalog, 'utf8')).toBe(catalogText(1));
+    expect(fs.readFileSync(files().meta, 'utf8')).toBe(metaBefore);
+    expect(messages.some((m) => m.includes('could not be removed'))).toBe(true);
   });
 
   test('3: a reader never sees a partial file: the file is replaced by a rename', async () => {
@@ -834,5 +893,107 @@ describe('the cache of the application template catalog: what it does not cover'
     expect(source.seen).toEqual([]);
     expect(found.catalog.cache).toBe('fresh');
     expect(found.found).toBe(true);
+  });
+});
+
+describe('the cache of the application template catalog: the copy in memory', () => {
+  let clock: number;
+
+  beforeEach(() => {
+    clock = Date.now();
+    jest.spyOn(Date, 'now').mockImplementation(() => clock);
+  });
+
+  const advance = (ms: number) => {
+    clock += ms;
+  };
+
+  test('1: with the cache in files, a state that lives long asks the source once the copy is older than maxAgeMs', async () => {
+    const state = cachingState();
+    await readCatalog({ state });
+    expect(source.seen).toHaveLength(1);
+
+    advance(30 * 60_000);
+    const young = await readCatalog({ state });
+    expect(source.seen).toHaveLength(1);
+    expect(young.metadata.cached).toBe(true);
+
+    advance(31 * 60_000);
+    const old = await readCatalog({ state });
+    expect(source.seen).toHaveLength(2);
+    expect(source.seen[1].ifNoneMatch).toBe(etagOf(1));
+    expect(old.metadata).toMatchObject({ cache: 'revalidated', cached: false });
+
+    // and the confirmation starts a new hour
+    advance(10 * 60_000);
+    await readCatalog({ state });
+    expect(source.seen).toHaveLength(2);
+  });
+
+  test('2: the age is the one of the call: maxAgeMs of the call counts for the copy in memory', async () => {
+    const state = cachingState();
+    await readCatalog({ state });
+    advance(60_000);
+    expect(
+      (await readCatalog({ options: { maxAgeMs: 10 * 60_000 }, state }))
+        .metadata.cached
+    ).toBe(true);
+    expect(source.seen).toHaveLength(1);
+    const asked = await readCatalog({ options: { maxAgeMs: 30_000 }, state });
+    expect(source.seen).toHaveLength(2);
+    expect(asked.metadata.cache).toBe('revalidated');
+  });
+
+  test('3: a state that took the copy from the files counts its age from the last confirmation', async () => {
+    await readCatalog({ state: cachingState() });
+    advance(50 * 60_000);
+    const state = cachingState();
+    const fresh = await readCatalog({ state });
+    expect(fresh.metadata.cache).toBe('fresh');
+    expect(source.seen).toHaveLength(1);
+    // ten minutes later the confirmation of the source is an hour old
+    advance(11 * 60_000);
+    await readCatalog({ state });
+    expect(source.seen).toHaveLength(2);
+  });
+
+  test('4: without the cache in files, the copy in memory is kept for the life of the state', async () => {
+    const state = StateImpl({});
+    await readCatalog({ state });
+    advance(48 * HOUR);
+    const again = await readCatalog({ state });
+    expect(source.seen).toHaveLength(1);
+    expect(again.metadata).toMatchObject({ cached: true, cache: 'disabled' });
+  });
+
+  test('5: a url the caller names is not cached in files, so its copy in memory is kept for the life of the state', async () => {
+    const state = cachingState();
+    const options = { url: `${base}/mine/appTemplates.json.gz` };
+    await readCatalog({ options, state });
+    advance(48 * HOUR);
+    const again = await readCatalog({ options, state });
+    expect(source.seen).toHaveLength(1);
+    expect(again.metadata.cached).toBe(true);
+  });
+
+  test('6: after a failed attempt the old copy is used without asking again until the copy is old again', async () => {
+    const state = cachingState();
+    await readCatalog({ state });
+    advance(2 * HOUR);
+    source.mode = 'error500';
+    const stale = await readCatalog({ state });
+    expect(stale.metadata.cache).toBe('stale-after-error');
+    expect(source.seen).toHaveLength(2);
+    // a loop over many applications does not ask a source that failed every time
+    advance(1000);
+    await readCatalog({ state });
+    await readCatalog({ state });
+    expect(source.seen).toHaveLength(2);
+    // an hour later it tries again
+    advance(HOUR);
+    source.mode = 'ok';
+    const back = await readCatalog({ state });
+    expect(source.seen).toHaveLength(3);
+    expect(back.metadata.cache).toBe('revalidated');
   });
 });
