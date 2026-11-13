@@ -3027,6 +3027,18 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Read-only: finds out why an IDM feature reads as not installed or does not work (today the library judges the feature aiagent; any other feature returns supported false and no findings). It reads the registry, runs the dry-run validate, reads the managed and repo.ds configuration and, per realm, the OAuth 2.0 provider, whether AM accepts AI agents, the ESV secret store mappings and the IDM AI agent objects. The result lists findings with an id, a severity (error, warning, info), a message, whether they are repairable and their details. A check that cannot be made is a finding, not an error.',
   },
+  'cloud.idmFeature.planIdmFeatureRepair': {
+    mutating: false,
+    riskClass: 'medium',
+    notes:
+      'Does not write to the tenant: plans the repair of what diagnoseIdmFeature finds wrong with an IDM feature (today only aiagent; any other feature is an error). It diagnoses the feature, lists the writes a repair would make, itemised and in order, and reads what they would overwrite or delete as backup data. The plan therefore holds the raw backup of the tenant configuration -- the whole managed and repo.ds configuration, the OAuth 2.0 providers (settings that are not meant to be shared, among them a hash salt), the IDM AI agent objects and the secret store mappings to be deleted -- and must be handled like the configuration itself: do not log it, share it or keep it where the configuration would not be kept. The library writes no backup file; a caller keeps the backup before it calls repairIdmFeature.',
+  },
+  'cloud.idmFeature.repairIdmFeature': {
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      "Runs a plan of planIdmFeatureRepair: deletes secret store mappings that point to no ESV secret, creates or completes OAuth 2.0 providers, writes the whole managed and repo.ds configuration to align definitions that differ cosmetically from the original, runs the environment action that enables AI agents, and puts the customised definitions back. Every write is read back and compared and a difference stops the run; the enable action runs only if the registry reads the feature installed. Not undoable by the library: the caller keeps the plan's backup data first. With wait it polls for up to timeout milliseconds (default 20 minutes).",
+  },
   'cloud.env.enforceFederationFor': {
     mutating: true,
     destructive: true,

@@ -13,7 +13,7 @@
 import { jest } from '@jest/globals';
 import { AxiosError } from 'axios';
 
-type Request = { method: string; url: string; realm: string };
+type Request = { method: string; url: string; realm: string; body?: any };
 const requests: Request[] = [];
 /** URL part -> status or error: the fake answers this instead of the normal answer */
 const refuse: Record<string, number | Error> = {};
@@ -44,14 +44,30 @@ function httpError(url: string, status: number): AxiosError {
   );
 }
 
-function answer(method: string, url: string) {
-  requests.push({ method, url, realm: currentState.getRealm() });
+function answer(method: string, url: string, body?: any) {
+  requests.push({ method, url, realm: currentState.getRealm(), body });
   for (const [part, how] of Object.entries(refuse)) {
     if (url.includes(part)) {
       if (how instanceof Error) throw how;
       throw httpError(url, how);
     }
   }
+  // the writes of the repair
+  if (method === 'PUT' && /\/openidm\/config\/(managed|repo\.ds)$/.test(url))
+    return { data: body };
+  if (url.includes('/services/oauth-oidc?_action=template'))
+    return {
+      data: {
+        _id: '',
+        _rev: '-1',
+        advancedOAuth2Config: { supportedScopes: [] },
+      },
+    };
+  if (method === 'PUT' && url.includes('/services/oauth-oidc'))
+    return { data: body };
+  if (method === 'DELETE' && url.includes('/mappings/'))
+    return { data: { _id: url.split('/').pop() } };
+  if (url.endsWith('/environment/aiagent?_action=enable')) return { data: {} };
   if (url.endsWith('/openidm/feature/aiagent'))
     return {
       data: { _id: 'aiagent', installedVersion: '1', availableVersions: ['1'] },
@@ -131,9 +147,9 @@ function answer(method: string, url: string) {
 
 const generate = () => ({
   get: async (url: string) => answer('GET', url),
-  post: async (url: string) => answer('POST', url),
-  put: async (url: string) => answer('PUT', url),
-  patch: async (url: string) => answer('PATCH', url),
+  post: async (url: string, body?: unknown) => answer('POST', url, body),
+  put: async (url: string, body?: unknown) => answer('PUT', url, body),
+  patch: async (url: string, body?: unknown) => answer('PATCH', url, body),
   delete: async (url: string) => answer('DELETE', url),
   request: async (config: { method?: string; url: string }) =>
     answer((config.method ?? 'GET').toUpperCase(), config.url),
@@ -155,7 +171,8 @@ jest.unstable_mockModule('../../../api/BaseApi', () => ({
 }));
 
 const { default: State } = await import('../../../shared/State');
-const { createAIAgentFeatureTenant } = await import('./AIAgentFeatureTenant');
+const { createAIAgentFeatureRepairTenant, createAIAgentFeatureTenant } =
+  await import('./AIAgentFeatureTenant');
 
 const HOST = 'https://tenant.example.com/am';
 const CALLER_REALM = '/';
@@ -310,5 +327,116 @@ describe('the reads that belong to a realm', () => {
         request.url.includes('/managed/alpha_aiagent?')
       )
     ).toHaveLength(2);
+  });
+});
+
+describe('the writes of the repair', () => {
+  function newRepairTenant() {
+    const state = State({});
+    state.setHost(HOST);
+    state.setDeploymentType('cloud');
+    state.setRealm(CALLER_REALM);
+    currentState = state;
+    return { state, tenant: createAIAgentFeatureRepairTenant(state) };
+  }
+
+  test('the whole managed and repo.ds configuration is written with PUT', async () => {
+    const { tenant } = newRepairTenant();
+    await tenant.putManagedConfig({ _id: 'managed', objects: [{ name: 'a' }] });
+    await tenant.putRepoDs({ _id: 'repo.ds', resourceMapping: {} });
+    expect(
+      requests.map(
+        (request) =>
+          `${request.method} ${request.url.replace(/^.*\/openidm/, '')}`
+      )
+    ).toEqual(['PUT /config/managed', 'PUT /config/repo.ds']);
+    expect(requests[0].body).toEqual({
+      _id: 'managed',
+      objects: [{ name: 'a' }],
+    });
+  });
+
+  test('a provider is written to its realm without _id and _rev, and the caller realm is back', async () => {
+    const { state, tenant } = newRepairTenant();
+    const input = {
+      _id: '',
+      _rev: '-5',
+      advancedOAuth2Config: { passwordGrantAuthService: 'Login' },
+    } as never;
+    await tenant.putProvider('bravo', input);
+    const put = requests.find((request) => request.method === 'PUT')!;
+    expect(put.url).toContain(
+      '/realms/root/realms/bravo/realm-config/services/oauth-oidc'
+    );
+    expect(put.realm).toBe('bravo');
+    expect(put.body).toEqual({
+      advancedOAuth2Config: { passwordGrantAuthService: 'Login' },
+    });
+    // the object the caller passed in is not changed
+    expect((input as any)._id).toBe('');
+    expect(state.getRealm()).toBe(CALLER_REALM);
+  });
+
+  test('the caller realm is back after a failed write', async () => {
+    const { state, tenant } = newRepairTenant();
+    refuse['/services/oauth-oidc'] = 400;
+    await expect(
+      tenant.putProvider('alpha', {} as never)
+    ).rejects.toMatchObject({ response: { status: 400 } });
+    expect(state.getRealm()).toBe(CALLER_REALM);
+    refuse['/mappings/'] = 500;
+    await expect(
+      tenant.deleteSecretMapping(
+        'bravo',
+        'ESV',
+        'GoogleSecretManagerSecretStoreProvider',
+        'am.x'
+      )
+    ).rejects.toBeDefined();
+    expect(state.getRealm()).toBe(CALLER_REALM);
+  });
+
+  test('the template of a realm is the one the server answers to the template action', async () => {
+    const { tenant } = newRepairTenant();
+    const template = await tenant.readProviderTemplate('bravo');
+    expect(template).toMatchObject({
+      advancedOAuth2Config: { supportedScopes: [] },
+    });
+    const post = requests.find((request) => request.method === 'POST')!;
+    expect(post.url).toContain(
+      '/realms/root/realms/bravo/realm-config/services/oauth-oidc?_action=template'
+    );
+  });
+
+  test('a secret store mapping is deleted from the ESV store of the realm', async () => {
+    const { tenant } = newRepairTenant();
+    await tenant.deleteSecretMapping(
+      'alpha',
+      'ESV',
+      'GoogleSecretManagerSecretStoreProvider',
+      'am.test.one'
+    );
+    const del = requests.find((request) => request.method === 'DELETE')!;
+    expect(del.url).toContain('/realms/root/realms/alpha/');
+    expect(del.url).toContain(
+      '/secrets/stores/GoogleSecretManagerSecretStoreProvider/ESV/mappings/am.test.one'
+    );
+    expect(del.realm).toBe('alpha');
+  });
+
+  test('the enable action is POST /environment/aiagent?_action=enable', async () => {
+    const { tenant } = newRepairTenant();
+    await tenant.enableFeature();
+    expect(requests.find((request) => request.method === 'POST')!.url).toBe(
+      'https://tenant.example.com/environment/aiagent?_action=enable'
+    );
+  });
+
+  test('all IDM objects of a type are read over all pages with every field', async () => {
+    const { tenant } = newRepairTenant();
+    expect(await tenant.readIdmObjects('alpha_aiagent')).toHaveLength(3);
+    expect(requests.some((request) => request.url.includes('_fields=*'))).toBe(
+      true
+    );
   });
 });

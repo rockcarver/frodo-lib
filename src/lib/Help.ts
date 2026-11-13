@@ -7062,6 +7062,28 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<IdmFeatureDiagnosis>} a promise that resolves to the diagnosis",
   },
   {
+    typeName: "IdmFeature",
+    methodName: "planIdmFeatureRepair",
+    signature: "planIdmFeatureRepair( featureId: string, options?: IdmFeatureRepairOptions ): Promise<IdmFeatureRepairPlan>",
+    description: "Plan the repair of what `diagnoseIdmFeature` finds wrong with a feature, without writing anything. The library can repair the feature `aiagent`; for any other feature this throws. The result is a plan: `{ featureId, options, diagnosis, repairable, blockers, steps, backup }`. `steps` are the writes, itemised and in the order they run (delete secret store mappings that point to no ESV secret; create an OAuth 2.0 provider from the server's template or give one the password grant authentication service it lacks; align definitions that differ only cosmetically from the original when the enable action has to run; run the enable action; wait for the AM gate; put the customised definitions back; diagnose again). `backup` holds what the steps would overwrite or delete, as the tenant returns it: managed and repo.ds configuration, the OAuth 2.0 providers, the IDM AI agent and privilege objects and the mappings to be deleted. The plan therefore holds the raw backup of the tenant configuration, including the settings of the OAuth 2.0 providers that are not meant to be shared: handle it like the configuration itself (do not log or share it). The library writes no file: keep the backup before you call `repairIdmFeature`. `repairable` is false, with `blockers`, if something the library does not repair is wrong (structural drift, a feature version it does not know, an authentication service the realm lacks); the plan then has no steps. `repairable` with no steps means there is nothing to repair. Only errors are repaired; a warning (for example a customised title while AI agents work) is left alone. The enable action installs the IDM feature internally, which would add definitions that are present but not equal to the original a second time. The plan therefore aligns them first and puts them back at the end, unless `keepAligned`; the registry then reads \"not installed\" again if they were customised.",
+    params: [
+      { name: "featureId", type: "string", description: "feature id, e.g. 'aiagent'", required: true },
+      { name: "options", type: "IdmFeatureRepairOptions", description: "`keepAligned` (default false) and `authService` (default `Login`)", required: false },
+    ],
+    returns: "{Promise<IdmFeatureRepairPlan>} a promise that resolves to the plan",
+  },
+  {
+    typeName: "IdmFeature",
+    methodName: "repairIdmFeature",
+    signature: "repairIdmFeature( plan: IdmFeatureRepairPlan, options?: IdmFeatureRepairExecutionOptions ): Promise<IdmFeatureRepairResult>",
+    description: "Run a plan of `planIdmFeatureRepair`. Mutating: it writes configuration to the tenant. Every write is read back and compared with what was written, and a difference stops the run with a FrodoError; so does a tenant that no longer looks as it did when the plan was made. The enable action is run only if the registry reads the feature installed (after aligning the definitions if the plan says so). If a step fails after definitions were aligned they are put back before the error is thrown, unless the plan keeps them aligned. With `wait` the repair polls until AM accepts AI agents in the realms it enabled and returns as soon as it does, for at most `timeout` milliseconds (default 1,200,000, 20 minutes): the effect of the enable action can need minutes. Without it the repair returns after the enable action answered. A gate that is still closed when the time is up is a step with status `failed` and `completed: false`, not an error. `resultCallback` is called with the result of each step as soon as it is known. The result has the diagnosis after the repair.",
+    params: [
+      { name: "plan", type: "IdmFeatureRepairPlan", description: "the plan, from `planIdmFeatureRepair`", required: true },
+      { name: "options", type: "IdmFeatureRepairExecutionOptions", description: "`wait`, `timeout` (milliseconds) and `resultCallback`", required: false },
+    ],
+    returns: "{Promise<IdmFeatureRepairResult>} a promise that resolves to what was done",
+  },
+  {
     typeName: "LogTailStream",
     methodName: "poll",
     signature: "poll(): Promise<LogEventSkeleton[]>",
@@ -7927,6 +7949,22 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "authenticationPolicyRequest", type: "WSFedAuthenticationPolicyRequest", description: "authentication policy request object", required: true },
     ],
     returns: "{Promise<WSFedAuthenticationPolicy>} a promise resolving to the updated authentication policy object",
+  },
+  {
+    typeName: "RepairClock",
+    methodName: "now",
+    signature: "now(): number",
+    description: "",
+    params: [],
+    returns: "",
+  },
+  {
+    typeName: "RepairClock",
+    methodName: "sleep",
+    signature: "sleep(ms: number): Promise<void>",
+    description: "",
+    params: [],
+    returns: "",
   },
   {
     typeName: "CertificationTemplate",

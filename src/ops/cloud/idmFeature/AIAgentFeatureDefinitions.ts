@@ -42,6 +42,8 @@ export type AIAgentDefinitionDifference = {
   config: 'managed' | 'repo.ds';
   /** The managed object name (config `managed`) or the mapping key such as `managed/alpha_aiagent` (config `repo.ds`). */
   object: string;
+  /** For config `repo.ds`: which section of `resourceMapping` holds the mapping `object`. */
+  section?: 'explicitMapping' | 'genericMapping';
   /**
    * Where in the object, as a path of property names and array indexes (`schema.properties.name`, a number is an
    * index). Empty for the whole object.
@@ -77,6 +79,35 @@ type Obj = Record<string, unknown>;
 
 const isObject = (value: unknown): value is Obj =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
+
+/**
+ * Deep equality of two JSON values that ignores the order of the keys of an object (the order of an array matters).
+ * Comparing the serialised text would call two objects different only because a server returned their keys in another
+ * order.
+ * @param {unknown} a one value
+ * @param {unknown} b the other value
+ * @returns {boolean} true if both hold the same JSON value
+ */
+export function deepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    return (
+      Array.isArray(a) &&
+      Array.isArray(b) &&
+      a.length === b.length &&
+      a.every((item, index) => deepEqual(item, b[index]))
+    );
+  }
+  if (isObject(a) && isObject(b)) {
+    const keys = Object.keys(a).filter((key) => a[key] !== undefined);
+    const other = Object.keys(b).filter((key) => b[key] !== undefined);
+    return (
+      keys.length === other.length &&
+      keys.every((key) => key in b && deepEqual(a[key], b[key]))
+    );
+  }
+  return false;
+}
 
 /** Render a path of keys and indexes: `a.b[0].c`. */
 export function renderPath(path: (string | number)[]): string {
@@ -170,7 +201,7 @@ function deepDiff(
     );
     return;
   }
-  if (JSON.stringify(expected) !== JSON.stringify(actual)) {
+  if (!deepEqual(expected, actual)) {
     found.push({
       path,
       location: renderPath(path),
@@ -220,10 +251,17 @@ function record(
   config: 'managed' | 'repo.ds',
   object: string,
   found: Omit<AIAgentDefinitionDifference, 'config' | 'object' | 'cosmetic'>[],
-  into: AIAgentDefinitionDifference[]
+  into: AIAgentDefinitionDifference[],
+  section?: 'explicitMapping' | 'genericMapping'
 ): void {
   for (const one of found) {
-    into.push({ config, object, ...one, ...classify(config, one) });
+    into.push({
+      config,
+      object,
+      ...(section ? { section } : {}),
+      ...one,
+      ...classify(config, one),
+    });
   }
 }
 
@@ -342,6 +380,7 @@ export function compareAIAgentDefinitions(
       differences.push({
         config: 'repo.ds',
         object: key,
+        section: 'explicitMapping',
         path: [],
         location: '',
         kind: 'missing',
@@ -355,7 +394,7 @@ export function compareAIAgentDefinitions(
       'config' | 'object' | 'cosmetic'
     >[] = [];
     deepDiff(expected, explicit[key], [], found);
-    record('repo.ds', key, found, differences);
+    record('repo.ds', key, found, differences, 'explicitMapping');
   }
 
   // repo.ds: the property added to generic mappings
@@ -367,6 +406,7 @@ export function compareAIAgentDefinitions(
       differences.push({
         config: 'repo.ds',
         object: addition.mapping,
+        section: 'genericMapping',
         path,
         location: renderPath(path),
         kind: 'missing',
@@ -380,8 +420,150 @@ export function compareAIAgentDefinitions(
       'config' | 'object' | 'cosmetic'
     >[] = [];
     deepDiff(addition.value, actual, path, found);
-    record('repo.ds', addition.mapping, found, differences);
+    record('repo.ds', addition.mapping, found, differences, 'genericMapping');
   }
 
   return { present, realms, differences };
+}
+
+type Direction = 'expected' | 'actual';
+
+/** The object a difference's path is relative to, in the given configuration; undefined if the tenant lacks it. */
+function targetOf(
+  managed: ManagedConfigLike,
+  repoDs: RepoDsConfigLike,
+  difference: AIAgentDefinitionDifference
+): unknown {
+  if (difference.config === 'managed') {
+    return (managed?.objects ?? []).find(
+      (object) => object?.name === difference.object
+    );
+  }
+  const section = difference.section ?? 'explicitMapping';
+  return (
+    repoDs?.resourceMapping?.[section] as Record<string, unknown> | undefined
+  )?.[difference.object];
+}
+
+/**
+ * Which of the differences do not hold the value of `which` in the given configuration. With `expected` a difference
+ * holds when the tenant has the original value (nothing at the path for an `extra` one), with `actual` when it still has
+ * the value that was read when the differences were found.
+ * @param {ManagedConfigLike} managed `config/managed`, as read now
+ * @param {RepoDsConfigLike} repoDs `config/repo.ds`, as read now
+ * @param {AIAgentDefinitionDifference[]} differences differences found earlier
+ * @param {'expected' | 'actual'} which the side every difference is expected to be on
+ * @returns {AIAgentDefinitionDifference[]} the differences that are not on that side; empty if all are
+ */
+export function differencesNotOnSide(
+  managed: ManagedConfigLike,
+  repoDs: RepoDsConfigLike,
+  differences: AIAgentDefinitionDifference[],
+  which: Direction
+): AIAgentDefinitionDifference[] {
+  return differences.filter((difference) => {
+    const target = targetOf(managed, repoDs, difference);
+    if (!target) return true;
+    const want = which === 'expected' ? difference.expected : difference.actual;
+    const have = readPath(target, difference.path);
+    return !deepEqual(have, want);
+  });
+}
+
+/**
+ * Put every difference on the side of `which` in the given configuration, in place: `expected` restores the original
+ * (an `extra` value is removed), `actual` puts back the value that was found.
+ * @param {ManagedConfigLike} managed `config/managed`; changed in place
+ * @param {RepoDsConfigLike} repoDs `config/repo.ds`; changed in place
+ * @param {AIAgentDefinitionDifference[]} differences the differences to apply
+ * @param {'expected' | 'actual'} which the side to put them on
+ */
+export function applyDifferences(
+  managed: ManagedConfigLike,
+  repoDs: RepoDsConfigLike,
+  differences: AIAgentDefinitionDifference[],
+  which: Direction
+): void {
+  for (const difference of differences) {
+    const target = targetOf(managed, repoDs, difference);
+    if (!target) {
+      throw new Error(
+        `The ${difference.config === 'managed' ? 'managed object' : 'mapping'} ${difference.object} is not in the configuration`
+      );
+    }
+    if (!difference.path.length) {
+      throw new Error(
+        `The difference at the top of ${difference.object} cannot be applied`
+      );
+    }
+    const value =
+      which === 'expected' ? difference.expected : difference.actual;
+    writePath(
+      target,
+      difference.path,
+      value === undefined ? undefined : JSON.parse(JSON.stringify(value))
+    );
+  }
+}
+
+/** The place of a difference: the same one in a plan and in a fresh comparison. */
+function differenceKey(difference: AIAgentDefinitionDifference): string {
+  return [
+    difference.config,
+    difference.section ?? '',
+    difference.object,
+    renderPath(difference.path),
+  ].join('|');
+}
+
+/**
+ * Check differences that were recorded in a plan against the tenant and the shipped reference as they are now, and
+ * return the differences to write.
+ *
+ * A plan is plain data that a caller can keep, edit or send back, so what a repair writes must not be what the plan says
+ * but what the reference says. Every planned difference has to be one that a fresh comparison finds now, has to be
+ * cosmetic, and has to carry the same `expected` (the original, which only the reference can say) and the same `actual`
+ * (what the tenant held when the plan was made). The differences returned are the fresh ones: the value written is the
+ * reference's and the value to put back is the one read from the tenant just now.
+ * @param {AIAgentDefinitionDifference[]} planned the differences a plan recorded
+ * @param {ManagedConfigLike} managed `config/managed`, as read now
+ * @param {RepoDsConfigLike} repoDs `config/repo.ds`, as read now
+ * @param {AIAgentFeatureReference} reference the reference to compare with; the shipped one by default
+ * @returns {{ fresh: AIAgentDefinitionDifference[]; problems: string[] }} the differences to write, and why the plan is refused (empty if it is not)
+ */
+export function confirmDifferences(
+  planned: AIAgentDefinitionDifference[],
+  managed: ManagedConfigLike,
+  repoDs: RepoDsConfigLike,
+  reference: AIAgentFeatureReference = AI_AGENT_FEATURE_REFERENCE
+): { fresh: AIAgentDefinitionDifference[]; problems: string[] } {
+  const now = new Map(
+    compareAIAgentDefinitions(managed, repoDs, reference).differences.map(
+      (difference) => [differenceKey(difference), difference]
+    )
+  );
+  const fresh: AIAgentDefinitionDifference[] = [];
+  const problems: string[] = [];
+  for (const one of planned) {
+    const where = `${one?.object ?? '?'} ${one?.location ?? ''}`.trim();
+    const found =
+      one && Array.isArray(one.path) ? now.get(differenceKey(one)) : undefined;
+    if (!found) {
+      problems.push(
+        `${where}: the tenant does not differ from the original there`
+      );
+    } else if (!found.cosmetic) {
+      problems.push(`${where}: the difference is not a cosmetic one`);
+    } else if (
+      found.kind !== one.kind ||
+      !deepEqual(found.expected, one.expected)
+    ) {
+      problems.push(`${where}: the original is not what the plan records`);
+    } else if (!deepEqual(found.actual, one.actual)) {
+      problems.push(`${where}: the tenant changed since the plan was made`);
+    } else {
+      fresh.push(found);
+    }
+  }
+  return { fresh, problems };
 }

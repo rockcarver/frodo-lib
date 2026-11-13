@@ -21,6 +21,8 @@ import {
 import {
   AI_AGENT_FEATURE_OPERATIONS,
   diagnoseAIAgentFeature,
+  MAX_DETAIL_VALUE_LENGTH,
+  previewValue,
 } from './AIAgentFeatureDiagnose';
 import { ESV_SECRET_STORE_TYPE } from './AIAgentFeatureTenant';
 import { IdmFeatureDiagnosis } from './IdmFeatureTypes';
@@ -558,5 +560,62 @@ describe('the fixtures', () => {
     expect(objectOf(state.managed, 'alpha_aiagent').onDelete.source).not.toBe(
       'x'
     );
+  });
+});
+
+describe('the size of the values in the details of a finding', () => {
+  test('a short value is kept as it is', () => {
+    expect(previewValue('Alpha realm - AI Agent')).toBe(
+      'Alpha realm - AI Agent'
+    );
+    const small = { a: 1, b: ['x'] };
+    expect(previewValue(small)).toBe(small);
+    expect(previewValue(undefined)).toBeUndefined();
+    expect(previewValue(null)).toBeNull();
+  });
+
+  test('a long string becomes its length, a short hash and its first characters', () => {
+    const text = `${'a'.repeat(100)}${'b'.repeat(4900)}`;
+    const preview = previewValue(text) as any;
+    expect(preview).toMatchObject({ truncated: true, length: 5000 });
+    expect(preview.sha256).toMatch(/^[0-9a-f]{16}$/);
+    expect(preview.preview).toBe(`${'a'.repeat(80)}…`);
+    expect(JSON.stringify(preview).length).toBeLessThan(
+      MAX_DETAIL_VALUE_LENGTH + 100
+    );
+    expect((previewValue(`${text}!`) as any).sha256).not.toBe(preview.sha256);
+    expect((previewValue(text) as any).sha256).toBe(preview.sha256);
+  });
+
+  test('a long object is described by its JSON', () => {
+    const big = { script: 'z'.repeat(1000) };
+    const preview = previewValue(big) as any;
+    expect(preview.truncated).toBe(true);
+    expect(preview.length).toBe(JSON.stringify(big).length);
+  });
+
+  test('the differences in a finding carry short values: a whole missing object is described, a title is kept', async () => {
+    const { diagnosis } = await diagnose((state) => {
+      state.feature = { installedVersion: null, availableVersions: ['1'] };
+      state.managed.objects = state.managed.objects!.filter(
+        (object) => object.name !== 'bravo_aiagentprivilege'
+      );
+      objectOf(state.managed, 'alpha_aiagent').schema.title = 'AI Agent';
+    });
+    const differences = find(diagnosis, 'definitions-structural-drift')[0]
+      .details.differences as any[];
+    const whole = differences.find(
+      (d) => d.object === 'bravo_aiagentprivilege'
+    );
+    expect(whole.expected.truncated).toBe(true);
+    expect(whole.expected.length).toBeGreaterThan(MAX_DETAIL_VALUE_LENGTH);
+    const title = find(diagnosis, 'definitions-cosmetic-drift')[0].details
+      .differences as any[];
+    expect(title[0]).toMatchObject({
+      location: 'schema.title',
+      expected: 'Alpha realm - AI Agent',
+      actual: 'AI Agent',
+    });
+    expect(JSON.stringify(diagnosis).length).toBeLessThan(5000);
   });
 });
