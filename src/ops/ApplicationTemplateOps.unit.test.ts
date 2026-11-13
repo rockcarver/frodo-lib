@@ -146,6 +146,7 @@ describe('readCatalog: what the caller hands over', () => {
     expect(result.metadata).toEqual({
       source: { kind: 'explicit', location: 'explicit catalog' },
       cached: false,
+      cache: 'disabled',
     });
     expect(getCatalogFile).not.toHaveBeenCalled();
   });
@@ -1263,29 +1264,81 @@ describe('readCatalog: the fields a list item copies', () => {
     ['dateUpdated', {}],
     ['dateUpdated', 20250101],
   ])(
-    '1: a %s that is %j throws and names the source and the entry',
+    '1: a %s that is %j is dropped, the rest of the template and the catalog are kept',
     async (field, value) => {
-      const error = await listTemplates({
-        options: {
-          catalog: withFields({ [field]: value }) as any,
-          includeOverrides: false,
-        },
-        state: newState(),
-      }).catch((e) => e);
-      expect(error).toBeInstanceOf(FrodoError);
-      expect(error.message).toBe(
-        `The application template catalog from explicit catalog is not in the expected format: AppTemplates.consumer.Web.1_0-web has a ${field} that is not text`
-      );
+      const catalog = withFields({ [field]: value }) as any;
+      const before = JSON.stringify(catalog);
+      const messages: string[] = [];
+      const state = newState();
+      state.setDebugHandler((message) => messages.push(String(message)));
+      const result = await readCatalog({ options: { catalog }, state });
+      const template = result.catalog.AppTemplates.consumer.Web['1_0-web'];
+      expect(Object.hasOwn(template, field)).toBe(false);
+      expect(template).toMatchObject({ id: 'web', templateVersion: '1.0' });
+      // the value the caller handed over is not changed
+      expect(JSON.stringify(catalog)).toBe(before);
+      // and it is said, with a count and the source
+      expect(
+        messages.some((m) =>
+          m.includes(
+            'dropped 1 display field(s) that are not text from the catalog from explicit catalog'
+          )
+        )
+      ).toBe(true);
+      const items = await listTemplates({
+        options: { catalog, includeOverrides: false },
+        state,
+      });
+      expect(items[0][field]).toBeUndefined();
     }
   );
 
-  test('2: a download names the url', async () => {
+  test('2: a download with such fields is read, and says how many were dropped', async () => {
     getCatalogFile.mockResolvedValue(
-      fileOf(withFields({ displayName: { en: 'Web' } }))
+      fileOf(
+        withFields({
+          displayName: { en: 'Web' },
+          templateType: 3,
+          dateUpdated: 'ok',
+        })
+      )
     );
-    await expect(readCatalog({ state: newState() })).rejects.toThrow(
-      `The application template catalog from ${CDN.production} is not in the expected format: AppTemplates.consumer.Web.1_0-web has a displayName that is not text`
-    );
+    const messages: string[] = [];
+    const state = newState();
+    state.setDebugHandler((message) => messages.push(String(message)));
+    const result = await readCatalog({ state });
+    const template = result.catalog.AppTemplates.consumer.Web['1_0-web'];
+    expect(template.displayName).toBeUndefined();
+    expect(template.templateType).toBeUndefined();
+    expect(template.dateUpdated).toBe('ok');
+    expect(
+      messages.some((m) =>
+        m.includes(
+          `dropped 2 display field(s) that are not text from the catalog from ${CDN.production}`
+        )
+      )
+    ).toBe(true);
+  });
+
+  test('2b: id and templateVersion stay strict', async () => {
+    for (const entry of [
+      { templateVersion: '1.0', displayName: 'x' },
+      { id: 'web', displayName: 'x' },
+    ]) {
+      await expect(
+        readCatalog({
+          options: {
+            catalog: {
+              AppTemplates: {
+                consumer: { Web: { '1_0-web': entry } },
+                enterprise: {},
+              },
+            } as any,
+          },
+          state: newState(),
+        })
+      ).rejects.toThrow(/has no (id|templateVersion)/);
+    }
   });
 
   test('3: fields that are absent or text are fine', async () => {

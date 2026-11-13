@@ -642,6 +642,52 @@ function renameWithRetrySync(from: string, to: string): void {
 }
 
 /**
+ * Write a file so that no reader, in this or another process, ever sees a
+ * partial file, and so that two writers never interleave: the data goes to a
+ * uniquely named temporary file in the same directory and is then renamed over
+ * the target (see {@link renameWithRetrySync}). The last rename wins. A secure
+ * file is created owner-only (the temporary file too, so it is never readable
+ * by others, not even briefly) in an owner-only directory. Leaves no
+ * temporary file behind when the write fails.
+ */
+function writeFileAtomicWithMode(
+  filename: string,
+  data: string | NodeJS.ArrayBufferView,
+  secure: boolean
+): void {
+  if (secure) {
+    ensureSecureDirectoryForFile(filename);
+  } else {
+    fs.mkdirSync(dirname(filename), { recursive: true });
+  }
+  const temporaryFilename = `${filename}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`;
+  try {
+    fs.writeFileSync(
+      temporaryFilename,
+      data,
+      secure ? { mode: 0o600, flag: 'wx' } : { flag: 'wx' }
+    );
+    if (secure) {
+      try {
+        fs.chmodSync(temporaryFilename, 0o600);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (error) {
+        // best effort
+      }
+    }
+    renameWithRetrySync(temporaryFilename, filename);
+  } catch (error) {
+    try {
+      fs.unlinkSync(temporaryFilename);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (unlinkError) {
+      // nothing left to remove
+    }
+    throw error;
+  }
+}
+
+/**
  * Write a file that holds credentials or other secrets so that no reader, in
  * this or another process, ever sees a partial file, and so that two writers
  * never interleave: the data goes to a uniquely named temporary file in the
@@ -656,26 +702,24 @@ export function writeSecureFileAtomicSync(
   filename: string,
   data: string | NodeJS.ArrayBufferView
 ): void {
-  ensureSecureDirectoryForFile(filename);
-  const temporaryFilename = `${filename}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`;
-  try {
-    fs.writeFileSync(temporaryFilename, data, { mode: 0o600, flag: 'wx' });
-    try {
-      fs.chmodSync(temporaryFilename, 0o600);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      // best effort
-    }
-    renameWithRetrySync(temporaryFilename, filename);
-  } catch (error) {
-    try {
-      fs.unlinkSync(temporaryFilename);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (unlinkError) {
-      // nothing left to remove
-    }
-    throw error;
-  }
+  writeFileAtomicWithMode(filename, data, true);
+}
+
+/**
+ * Write a file that holds no secret so that no reader, in this or another
+ * process, ever sees a partial file: the data goes to a uniquely named
+ * temporary file in the same directory and is then renamed over the target.
+ * Creates the parent directory if needed (with the default permissions, which
+ * are not changed if it exists). Leaves no temporary file behind when the write
+ * fails. For a file that holds a secret use {@link writeSecureFileAtomicSync}.
+ * @param {string} filename file name (absolute or relative path)
+ * @param {string | NodeJS.ArrayBufferView} data data to write
+ */
+export function writeFileAtomicSync(
+  filename: string,
+  data: string | NodeJS.ArrayBufferView
+): void {
+  writeFileAtomicWithMode(filename, data, false);
 }
 
 /**

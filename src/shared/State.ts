@@ -288,6 +288,37 @@ export type State = {
   getUseTokenCache(): boolean;
   setTokenCachePath(path: string): void;
   getTokenCachePath(): string;
+  /**
+   * Turn the cache of the application template catalog on or off. While it is
+   * on, `app.template.readCatalog` (and the functions that read the catalog)
+   * keep the catalog they download from the public source in a directory
+   * (`setTemplateCatalogCachePath`), do not ask the source again while the
+   * kept copy is fresh, ask it with the validators of the kept copy when it is
+   * not, and read the kept copy when air-gapped mode is on. A catalog the
+   * caller hands over and a URL the caller names are never kept. Off by default
+   * and not read from the environment, a profile or a file: the caller decides.
+   * @param {boolean} useTemplateCatalogCache true to turn the cache on
+   */
+  setUseTemplateCatalogCache(useTemplateCatalogCache: boolean): void;
+  /**
+   * Whether the cache of the application template catalog is on.
+   * @returns {boolean} true if `setUseTemplateCatalogCache(true)` was called
+   */
+  getUseTemplateCatalogCache(): boolean;
+  /**
+   * Set the directory of the cache of the application template catalog. When it
+   * is not set, the library uses the folder `AppTemplates` in the Frodo home
+   * directory (`~/.frodo/AppTemplates`), the way the token cache finds its
+   * file.
+   * @param {string} path directory of the cache
+   */
+  setTemplateCatalogCachePath(path: string): void;
+  /**
+   * Get the directory that was set for the cache of the application template
+   * catalog.
+   * @returns {string} the directory that was set, or undefined if none was (the library then uses `~/.frodo/AppTemplates`)
+   */
+  getTemplateCatalogCachePath(): string;
   setMasterKeyPath(path: string): void;
   getMasterKeyPath(): string;
   setOutputFile(file: string): void;
@@ -841,6 +872,19 @@ export default (initialState: StateInterface): State => {
     getUseTokenCache() {
       return process.env.FRODO_NO_CACHE ? false : state.useTokenCache;
     },
+    setUseTemplateCatalogCache(useTemplateCatalogCache: boolean) {
+      state.useTemplateCatalogCache = useTemplateCatalogCache;
+    },
+    getUseTemplateCatalogCache() {
+      return state.useTemplateCatalogCache === true;
+    },
+    setTemplateCatalogCachePath(path: string) {
+      state.templateCatalogCachePath = path;
+    },
+    getTemplateCatalogCachePath() {
+      return state.templateCatalogCachePath;
+    },
+
     setTokenCachePath(path: string) {
       state.tokenCachePath = path;
     },
@@ -1130,6 +1174,8 @@ export interface StateInterface {
   connectionProfilesPath?: string;
   useTokenCache?: boolean;
   tokenCachePath?: string;
+  useTemplateCatalogCache?: boolean;
+  templateCatalogCachePath?: string;
   masterKeyPath?: string;
   outputFile?: string;
   directory?: string;

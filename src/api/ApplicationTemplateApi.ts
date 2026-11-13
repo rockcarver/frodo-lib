@@ -1,4 +1,5 @@
 import { State } from '../shared/State';
+import { isSafeHeaderValue } from '../utils/HeaderValueUtils';
 import { type NoIdObjectSkeletonInterface } from './ApiTypes';
 import { generateReleaseApi } from './BaseApi';
 import { getConfigEntitiesByType } from './IdmConfigApi';
@@ -38,7 +39,12 @@ export const APP_TEMPLATE_OVERRIDE_TYPE = 'appTemplate';
  * these are normally still gzip), and the headers that identify the version.
  */
 export interface ApplicationTemplateCatalogFile {
-  /** The body. */
+  /**
+   * True if the server answered `304 Not Modified` to a conditional request:
+   * the copy the caller holds is current, and `data` is empty.
+   */
+  notModified: boolean;
+  /** The body; empty when `notModified` is true. */
   data: Buffer;
   /** The `ETag` header, if there was one. */
   etag?: string;
@@ -51,17 +57,35 @@ export interface ApplicationTemplateCatalogFile {
  * credential of the tenant: it is made with the same proxy and agent settings
  * as every request of the library, but without a bearer token, a cookie or any
  * header override of the connection, because the host is not the tenant.
+ *
+ * With `ifNoneMatch` (the `ETag` of a copy the caller holds) and/or
+ * `ifModifiedSince` (its `Last-Modified`), the request is conditional: if the
+ * copy is current the server answers `304 Not Modified` with no body, which is
+ * a success here (`notModified: true`), not an error. A validator that is not
+ * safe to send as a header value is left out.
  * @param {string} url absolute http(s) URL of the catalog file
+ * @param {string} ifNoneMatch `ETag` of the copy the caller holds
+ * @param {string} ifModifiedSince `Last-Modified` of the copy the caller holds
  * @returns {Promise<ApplicationTemplateCatalogFile>} a promise that resolves to the body and the version headers
  */
 export async function getApplicationTemplateCatalogFile({
   url,
+  ifNoneMatch,
+  ifModifiedSince,
   state,
 }: {
   url: string;
+  ifNoneMatch?: string;
+  ifModifiedSince?: string;
   state: State;
 }): Promise<ApplicationTemplateCatalogFile> {
   const parsed = new URL(url);
+  const conditional: Record<string, string> = {};
+  if (isSafeHeaderValue(ifNoneMatch))
+    conditional['If-None-Match'] = ifNoneMatch;
+  if (isSafeHeaderValue(ifModifiedSince)) {
+    conditional['If-Modified-Since'] = ifModifiedSince;
+  }
   const response = await generateReleaseApi({
     baseUrl: parsed.origin,
     requestOverride: { responseType: 'arraybuffer' },
@@ -70,17 +94,27 @@ export async function getApplicationTemplateCatalogFile({
     // the file is not JSON from the transport's point of view: it is a gzip
     // stream (stored compressed), so no parsing must happen here
     transformResponse: [(data) => data],
-    headers: { Accept: '*/*' },
+    headers: { Accept: '*/*', ...conditional },
     // a host that is not the tenant can send anything: bound what is read
     maxContentLength: APP_TEMPLATE_CATALOG_MAX_DOWNLOAD_BYTES,
     maxBodyLength: APP_TEMPLATE_CATALOG_MAX_DOWNLOAD_BYTES,
+    // 304 answers a conditional request: the copy of the caller is current
+    validateStatus: (status) =>
+      (status >= 200 && status < 300) || status === 304,
   });
+  if (response.status === 304 && Object.keys(conditional).length === 0) {
+    throw new Error(
+      `The server answered 304 Not Modified to a request that had no validators: ${url}`
+    );
+  }
   const header = (name: string): string | undefined => {
     const value = response.headers?.[name];
     return typeof value === 'string' && value ? value : undefined;
   };
   return {
-    data: Buffer.from(response.data),
+    notModified: response.status === 304,
+    data:
+      response.status === 304 ? Buffer.alloc(0) : Buffer.from(response.data),
     etag: header('etag'),
     lastModified: header('last-modified'),
   };

@@ -26,6 +26,7 @@ import {
   createSecureFileExclusiveSync,
   ensureSecureDirectoryForFile,
   secureExistingFileSync,
+  writeFileAtomicSync,
   writeSecureFile,
   writeSecureFileAtomicSync,
   writeSecureFileSync,
@@ -186,6 +187,45 @@ describe('writeSecureFileAtomicSync', () => {
     // a directory cannot be replaced by a file
     fs.mkdirSync(join(target, 'child'), { recursive: true });
     expect(() => writeSecureFileAtomicSync(target, 'data')).toThrow();
+    expect(fs.readdirSync(dir)).toEqual(['target']);
+  });
+});
+
+describe('writeFileAtomicSync', () => {
+  test('writes content that round-trips and creates missing parent directories', () => {
+    const filename = join(baseTmp, 'plain-atomic', 'deep', 'entry.json');
+    writeFileAtomicSync(filename, JSON.stringify({ key: 'value' }));
+    expect(JSON.parse(fs.readFileSync(filename, 'utf8'))).toEqual({
+      key: 'value',
+    });
+  });
+
+  test('replaces an existing file and leaves no temporary file behind', () => {
+    const dir = join(baseTmp, 'plain-atomic-replace');
+    const filename = join(dir, 'entry.json');
+    writeFileAtomicSync(filename, 'first');
+    writeFileAtomicSync(filename, 'second');
+    expect(fs.readFileSync(filename, 'utf8')).toBe('second');
+    expect(fs.readdirSync(dir)).toEqual(['entry.json']);
+  });
+
+  (isWindows ? test.skip : test)(
+    'does not change the permissions of a directory that exists',
+    () => {
+      const dir = join(baseTmp, 'plain-atomic-dir-mode');
+      fs.mkdirSync(dir, { recursive: true });
+      fs.chmodSync(dir, 0o755);
+      writeFileAtomicSync(join(dir, 'entry.json'), 'public');
+      expect(mode(dir)).toBe(0o755);
+    }
+  );
+
+  test('fails without leaving a temporary file when the target cannot be replaced', () => {
+    const dir = join(baseTmp, 'plain-atomic-failure');
+    const target = join(dir, 'target');
+    // a directory cannot be replaced by a file
+    fs.mkdirSync(join(target, 'child'), { recursive: true });
+    expect(() => writeFileAtomicSync(target, 'data')).toThrow();
     expect(fs.readdirSync(dir)).toEqual(['target']);
   });
 });

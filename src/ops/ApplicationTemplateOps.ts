@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { gunzipSync } from 'zlib';
 import {
   APP_TEMPLATE_CATALOG_MAX_DOWNLOAD_BYTES,
@@ -7,7 +8,17 @@ import {
   type ApplicationTemplateCatalogChannel,
 } from '../api/ApplicationTemplateApi';
 import { State } from '../shared/State';
+import { debugMessage } from '../utils/Console';
 import { FrodoError } from './FrodoError';
+import {
+  getCatalogCacheDirectory,
+  getCatalogCacheFiles,
+  readCatalogCacheMeta,
+  readLimitedFile,
+  tryRemoveCacheFile,
+  tryWriteCacheFile,
+  type CatalogCacheMeta,
+} from './internal/ApplicationTemplateCatalogCache';
 
 /**
  * An application template: the form definition of the Admin UI plus, for a
@@ -73,6 +84,30 @@ export type ApplicationTemplateCatalogSource = {
   channel?: ApplicationTemplateCatalogChannel;
 };
 
+/**
+ * What the cache of the catalog (see `State.setUseTemplateCatalogCache`) did
+ * for a read:
+ *
+ * - `disabled`: not used, because it is off or the catalog was not read from the
+ *   public source;
+ * - `miss`: there was no usable copy; the catalog was downloaded and kept;
+ * - `fresh`: the kept copy is younger than `maxAgeMs`; the source was not asked;
+ * - `revalidated`: the source confirmed (304) that the kept copy is current;
+ * - `refreshed`: the source sent a newer catalog (200) and the copy was replaced;
+ * - `stale-after-error`: the source could not be reached or answered with a
+ *   server error, so the kept copy was used (`cacheError` says why);
+ * - `offline`: air-gapped mode is on, so the kept copy was used without a
+ *   request, whatever its age.
+ */
+export type ApplicationTemplateCacheOutcome =
+  | 'disabled'
+  | 'miss'
+  | 'fresh'
+  | 'revalidated'
+  | 'refreshed'
+  | 'stale-after-error'
+  | 'offline';
+
 /** What is known about a catalog besides its content. */
 export type ApplicationTemplateCatalogMetadata = {
   source: ApplicationTemplateCatalogSource;
@@ -84,6 +119,12 @@ export type ApplicationTemplateCatalogMetadata = {
   fetchedAt?: string;
   /** True if the catalog was kept from an earlier read of the same state. */
   cached: boolean;
+  /** What the cache of the catalog did for this read. */
+  cache: ApplicationTemplateCacheOutcome;
+  /** The file of the cached catalog, if the cache was used. It is the decoded catalog and can be handed to the library as an explicit catalog on another machine. */
+  cachePath?: string;
+  /** Why the source was not used, when `cache` is `stale-after-error`. */
+  cacheError?: string;
 };
 
 /** A catalog together with its metadata. */
@@ -111,8 +152,25 @@ export type ApplicationTemplateCatalogOptions = {
   url?: string;
   /** Which catalog of the CDN to read when neither `catalog` nor `url` is given. Default: `production`. */
   channel?: ApplicationTemplateCatalogChannel;
-  /** Read again instead of using the catalog kept from an earlier read of this state. Default: false. */
+  /**
+   * Check the source now, whatever the age of the copy the cache holds: the
+   * request is still conditional, so a copy that is current costs no download.
+   * Without the cache, read again instead of using the catalog kept from an
+   * earlier read of this state. Default: false.
+   */
   refresh?: boolean;
+  /**
+   * Download the catalog without validators and keep the result, whatever the
+   * cache holds; a failed download is an error, the old copy is not used.
+   * Only for the public source with the cache on. Default: false.
+   */
+  ignoreCache?: boolean;
+  /**
+   * How old a copy in the cache may be, in milliseconds, before the source is
+   * asked about it again. Default: 3,600,000 (one hour), the time the source
+   * allows a copy to be kept. Zero asks every time.
+   */
+  maxAgeMs?: number;
 };
 
 /** Options of {@link ApplicationTemplate.listTemplates}. */
@@ -197,6 +255,9 @@ const MAX_GZIP_LAYERS = 2;
  */
 const MAX_NESTING_LEVELS = 100;
 
+/** How long a copy in the cache is used without asking the source: the `max-age` that the source sends. */
+const DEFAULT_CACHE_MAX_AGE_MS = 3_600_000;
+
 const megabytes = (bytes: number): string => `${bytes / (1024 * 1024)} MB`;
 
 export type ApplicationTemplate = {
@@ -207,12 +268,30 @@ export type ApplicationTemplate = {
    * The paths of the CDN are what the Admin UI happens to use, not a documented
    * interface. A catalog that the caller has (`catalog`) or a URL that the
    * caller names (`url`) is used instead. A catalog that was downloaded is kept
-   * for the state until `refresh` is set. The library writes no file: the
-   * result holds the catalog and what identifies the download (`etag`,
-   * `lastModified`, `fetchedAt`), so that a caller can save it. When air-gapped
-   * mode is on (`state.setAirGapped`), the default source is not used and the
-   * call fails with the error code `AIR_GAPPED`; an explicit catalog and a URL
-   * the caller names still work.
+   * for the state until `refresh` is set. Unless the cache is on, the library
+   * writes no file: the result holds the catalog and what identifies the
+   * download (`etag`, `lastModified`, `fetchedAt`), so that a caller can save it.
+   *
+   * With the cache on (`state.setUseTemplateCatalogCache(true)`), the catalog
+   * of the default source is kept in a directory
+   * (`state.setTemplateCatalogCachePath`, default `~/.frodo/AppTemplates`) as
+   * `<channel>.json` (the decoded catalog, which can be copied to a machine
+   * that cannot reach the source and given there as `catalog`) and
+   * `<channel>.meta.json`. A copy younger than `maxAgeMs` (default one hour) is
+   * used with no request. An older one is asked about with its `ETag` and
+   * `Last-Modified`, so a copy that is current costs no download (304). If the
+   * source cannot be reached or fails on its side, the old copy is used and the
+   * result says so (`cache: 'stale-after-error'`). `refresh` asks the source now
+   * but still conditionally; `ignoreCache` downloads without validators. A
+   * catalog the caller hands over and a URL the caller names are never kept.
+   * The files are not trusted: they go through the same limits and checks as a
+   * download, and one that fails them is replaced. A write that fails never
+   * fails the read.
+   *
+   * When air-gapped mode is on (`state.setAirGapped`), no request is made: the
+   * copy in the cache is used, whatever its age, and without one the call fails
+   * with the error code `AIR_GAPPED`; an explicit catalog and a URL the caller
+   * names still work. `metadata.cache` says what the cache did.
    * @param {ApplicationTemplateCatalogOptions} options which catalog to read
    * @returns {Promise<ApplicationTemplateCatalogResult>} a promise that resolves to the catalog and its metadata
    */
@@ -301,10 +380,14 @@ export function getTemplateId({
   ).replace(/\./g, '-')}`;
 }
 
-// the catalogs that were downloaded, for each state, by URL
+// the catalogs that were downloaded, for each state, by URL, with the time
+// (ms since the epoch) at which the source last confirmed the copy or, after a
+// failed attempt, was last asked. With the cache in files on, the copy in memory
+// is only used while it is younger than maxAgeMs; without it, for the life of
+// the state.
 const downloaded = new WeakMap<
   State,
-  Map<string, ApplicationTemplateCatalogResult>
+  Map<string, { result: ApplicationTemplateCatalogResult; checkedAt: number }>
 >();
 
 function isGzip(bytes: Buffer): boolean {
@@ -374,10 +457,19 @@ function isNestedTooDeep(value: unknown): boolean {
   return false;
 }
 
+/** A cosmetic field of a template that is not text and is dropped. */
+type DroppedField = {
+  tier: string;
+  group: string;
+  key: string;
+  field: string;
+};
+
 function validateGroups(
   tier: string,
   groups: unknown,
-  location: string
+  location: string,
+  dropped: DroppedField[]
 ): ApplicationTemplateGroups {
   const notExpected = (reason: string): FrodoError =>
     new FrodoError(
@@ -408,13 +500,15 @@ function validateGroups(
         throw notExpected(`${at} has no templateVersion`);
       }
       // the fields a list item copies from the template are text, so an item
-      // never shares an object with the catalog that the state keeps
+      // never shares an object with the catalog that the state keeps. They are
+      // for display only, so a value that is not text is dropped, not a reason
+      // to refuse the whole catalog (see validateCatalog)
       for (const field of ['displayName', 'templateType', 'dateUpdated']) {
         if (
           template[field] !== undefined &&
           typeof template[field] !== 'string'
         ) {
-          throw notExpected(`${at} has a ${field} that is not text`);
+          dropped.push({ tier, group, key, field });
         }
       }
     }
@@ -424,11 +518,13 @@ function validateGroups(
 
 /**
  * Check that a value is a catalog and say which source it came from if it is
- * not. The value is not changed.
+ * not. The value is not changed: if a display field has to be dropped, the
+ * result is a copy.
  */
 function validateCatalog(
   value: unknown,
-  location: string
+  location: string,
+  state?: State
 ): ApplicationTemplateCatalog {
   if (isNestedTooDeep(value)) {
     throw new FrodoError(
@@ -440,15 +536,44 @@ function validateCatalog(
       `The application template catalog from ${location} is not in the expected format: AppTemplates is missing`
     );
   }
-  validateGroups('consumer', value.AppTemplates.consumer, location);
-  validateGroups('enterprise', value.AppTemplates.enterprise, location);
-  return value as ApplicationTemplateCatalog;
+  const dropped: DroppedField[] = [];
+  validateGroups('consumer', value.AppTemplates.consumer, location, dropped);
+  validateGroups(
+    'enterprise',
+    value.AppTemplates.enterprise,
+    location,
+    dropped
+  );
+  if (dropped.length === 0) {
+    return value as ApplicationTemplateCatalog;
+  }
+  // a value that is not text in a display field is dropped from a copy: the
+  // value given by the caller is not changed, and the copy is safe (the depth
+  // was checked above)
+  const copy = structuredClone(value) as ApplicationTemplateCatalog;
+  for (const { tier, group, key, field } of dropped) {
+    delete copy.AppTemplates[tier as 'consumer' | 'enterprise'][group][key][
+      field
+    ];
+  }
+  if (state) {
+    debugMessage({
+      message: `ApplicationTemplateOps.validateCatalog: dropped ${dropped.length} display field(s) that are not text from the catalog from ${location}`,
+      state,
+    });
+  }
+  return copy;
 }
 
-function parseCatalog(
+/**
+ * Parse and validate a catalog. When the input is text or bytes, the decoded
+ * JSON text is returned as well, so that it can be kept as it was delivered.
+ */
+function parseCatalogWithText(
   input: ApplicationTemplateCatalog | string | Uint8Array,
-  location: string
-): ApplicationTemplateCatalog {
+  location: string,
+  state?: State
+): { catalog: ApplicationTemplateCatalog; text?: string } {
   if (typeof input === 'string' || input instanceof Uint8Array) {
     if (typeof input === 'string' && input.length > MAX_CATALOG_BYTES) {
       throw catalogTooLarge(location, '');
@@ -464,9 +589,17 @@ function parseCatalog(
         error
       );
     }
-    return validateCatalog(parsed, location);
+    return { catalog: validateCatalog(parsed, location, state), text };
   }
-  return validateCatalog(input, location);
+  return { catalog: validateCatalog(input, location, state) };
+}
+
+function parseCatalog(
+  input: ApplicationTemplateCatalog | string | Uint8Array,
+  location: string,
+  state?: State
+): ApplicationTemplateCatalog {
+  return parseCatalogWithText(input, location, state).catalog;
 }
 
 /**
@@ -498,18 +631,31 @@ async function loadCatalog({
   options?: ApplicationTemplateCatalogOptions;
   state: State;
 }): Promise<{ result: ApplicationTemplateCatalogResult; shared: boolean }> {
-  const { catalog, url, channel = 'production', refresh = false } = options;
+  const {
+    catalog,
+    url,
+    channel = 'production',
+    refresh = false,
+    ignoreCache = false,
+    maxAgeMs = DEFAULT_CACHE_MAX_AGE_MS,
+  } = options;
   if (catalog !== undefined && catalog !== null) {
     return {
       result: {
-        catalog: parseCatalog(catalog, EXPLICIT_LOCATION),
+        catalog: parseCatalog(catalog, EXPLICIT_LOCATION, state),
         metadata: {
           source: { kind: 'explicit', location: EXPLICIT_LOCATION },
           cached: false,
+          cache: 'disabled',
         },
       },
       shared: false,
     };
+  }
+  if (typeof maxAgeMs !== 'number' || !(maxAgeMs >= 0)) {
+    throw new FrodoError(
+      'maxAgeMs must be a number of milliseconds, zero or more'
+    );
   }
   let source: ApplicationTemplateCatalogSource;
   if (url) {
@@ -539,13 +685,36 @@ async function loadCatalog({
       location: APP_TEMPLATE_CATALOG_URLS[channel],
       channel,
     };
-    if (state.getAirGapped()) {
-      throw new FrodoError(
-        `Air-gapped mode is on: the application template catalog is not downloaded from ${source.location}. Give the catalog explicitly`,
-        null,
-        'AIR_GAPPED'
-      );
+  }
+
+  // only the public source is cached in files: a URL the caller names is not
+  const files =
+    source.kind === 'cdn' && state.getUseTemplateCatalogCache()
+      ? getCatalogCacheFiles(getCatalogCacheDirectory({ state }), channel)
+      : undefined;
+
+  if (source.kind === 'cdn' && state.getAirGapped()) {
+    // no request: the kept copy is used, whatever its age, if there is one
+    const entry = files
+      ? readCachedCatalog({ files, source, state })
+      : undefined;
+    if (entry) {
+      return {
+        result: cachedResult({
+          entry,
+          source,
+          files,
+          outcome: 'offline',
+          fetchedAt: entry.meta?.fetchedAt ?? entry.modified,
+        }),
+        shared: true,
+      };
     }
+    throw new FrodoError(
+      `Air-gapped mode is on: the application template catalog is not downloaded from ${source.location}. Give the catalog explicitly`,
+      null,
+      'AIR_GAPPED'
+    );
   }
 
   let kept = downloaded.get(state);
@@ -554,23 +723,77 @@ async function loadCatalog({
     downloaded.set(state, kept);
   }
   const earlier = kept.get(source.location);
-  if (earlier && !refresh) {
+  if (
+    earlier &&
+    !refresh &&
+    !ignoreCache &&
+    // a state that lives long (a server) asks the source again once the copy is
+    // older than maxAgeMs, like a read that finds the copy in the files
+    (!files ||
+      (Date.now() - earlier.checkedAt >= 0 &&
+        Date.now() - earlier.checkedAt < maxAgeMs))
+  ) {
     return {
       result: {
-        catalog: earlier.catalog,
-        metadata: { ...earlier.metadata, cached: true },
+        catalog: earlier.result.catalog,
+        metadata: { ...earlier.result.metadata, cached: true },
       },
       shared: true,
     };
   }
 
+  const entry = files ? readCachedCatalog({ files, source, state }) : undefined;
+  if (entry?.meta && files && !refresh && !ignoreCache) {
+    const age = Date.now() - Date.parse(entry.meta.fetchedAt);
+    if (age >= 0 && age < maxAgeMs) {
+      const result = cachedResult({
+        entry,
+        source,
+        files,
+        outcome: 'fresh',
+        fetchedAt: entry.meta.fetchedAt,
+      });
+      kept.set(source.location, {
+        result,
+        checkedAt: Date.parse(entry.meta.fetchedAt),
+      });
+      return { result, shared: true };
+    }
+  }
+
+  // ask the source, with the validators of the kept copy when there are any
+  const validators =
+    entry?.meta && !ignoreCache
+      ? {
+          ifNoneMatch: entry.meta.etag,
+          ifModifiedSince: entry.meta.lastModified,
+        }
+      : {};
   let file: Awaited<ReturnType<typeof getApplicationTemplateCatalogFile>>;
   try {
     file = await getApplicationTemplateCatalogFile({
       url: source.location,
+      ...validators,
       state,
     });
   } catch (error) {
+    if (entry && files && !ignoreCache && isTransientFailure(error)) {
+      const reason = (error as Error)?.message ?? String(error);
+      debugMessage({
+        message: `ApplicationTemplateOps.readCatalog: ${source.location} did not answer (${reason}), using the copy in ${files.catalog}`,
+        state,
+      });
+      const result = cachedResult({
+        entry,
+        source,
+        files,
+        outcome: 'stale-after-error',
+        fetchedAt: entry.meta?.fetchedAt ?? entry.modified,
+        cacheError: reason,
+      });
+      kept.set(source.location, { result, checkedAt: Date.now() });
+      return { result, shared: true };
+    }
     // axios names the option that it enforced
     if (
       /maxContentLength|maxBodyLength/.test((error as Error)?.message ?? '')
@@ -585,18 +808,197 @@ async function loadCatalog({
       error
     );
   }
+
+  const fetchedAt = new Date(Date.now()).toISOString();
+  if (file.notModified) {
+    if (!entry || !files) {
+      throw new FrodoError(
+        `The application template catalog from ${source.location} was not modified, but there is no copy to use`
+      );
+    }
+    // the copy is current: only the time of the confirmation changes
+    writeCacheMeta({
+      files,
+      meta: {
+        etag: file.etag ?? entry.meta?.etag,
+        lastModified: file.lastModified ?? entry.meta?.lastModified,
+        fetchedAt,
+        url: source.location,
+      },
+      state,
+    });
+    const result = cachedResult({
+      entry,
+      source,
+      files,
+      outcome: 'revalidated',
+      fetchedAt,
+      etag: file.etag,
+      lastModified: file.lastModified,
+    });
+    kept.set(source.location, { result, checkedAt: Date.now() });
+    return { result, shared: true };
+  }
+
+  const parsed = parseCatalogWithText(file.data, source.location, state);
   const result: ApplicationTemplateCatalogResult = {
-    catalog: parseCatalog(file.data, source.location),
+    catalog: parsed.catalog,
     metadata: {
       source,
       etag: file.etag,
       lastModified: file.lastModified,
-      fetchedAt: new Date().toISOString(),
+      fetchedAt,
       cached: false,
+      cache: files ? (entry ? 'refreshed' : 'miss') : 'disabled',
+      ...(files && { cachePath: files.catalog }),
     },
   };
-  kept.set(source.location, result);
+  if (files) {
+    // The old validators go first, then the copy, then the new validators. A
+    // meta file beside a catalog it does not describe could make a later 304
+    // confirm the wrong catalog (the source returns to the version the old
+    // validators belong to); a catalog without validators is only asked about
+    // again. If the old validators cannot be removed, the old pair stays as it is.
+    if (
+      tryRemoveCacheFile({ file: files.meta, state }) &&
+      tryWriteCacheFile({ file: files.catalog, data: parsed.text, state })
+    ) {
+      writeCacheMeta({
+        files,
+        meta: {
+          etag: file.etag,
+          lastModified: file.lastModified,
+          fetchedAt,
+          url: source.location,
+        },
+        state,
+      });
+    }
+  }
+  kept.set(source.location, { result, checkedAt: Date.now() });
   return { result, shared: true };
+}
+
+/** A copy of the catalog that the cache holds. */
+type CachedCatalog = {
+  catalog: ApplicationTemplateCatalog;
+  meta?: CatalogCacheMeta;
+  /** When the file was last changed (ISO 8601), for a copy without meta data. */
+  modified: string;
+};
+
+/**
+ * Read the copy in the cache. The files are not trusted: the catalog goes
+ * through the same limits, depth check and shape validation as a download, and
+ * anything wrong with it is a miss.
+ */
+function readCachedCatalog({
+  files,
+  source,
+  state,
+}: {
+  files: { catalog: string; meta: string };
+  source: ApplicationTemplateCatalogSource;
+  state: State;
+}): CachedCatalog | undefined {
+  const bytes = readLimitedFile({
+    file: files.catalog,
+    maxBytes: MAX_CATALOG_BYTES,
+    state,
+  });
+  if (!bytes) return undefined;
+  let catalog: ApplicationTemplateCatalog;
+  try {
+    catalog = parseCatalog(bytes, files.catalog, state);
+  } catch (error) {
+    debugMessage({
+      message: `ApplicationTemplateOps.readCatalog: the copy in ${files.catalog} is not usable and will be replaced: ${(error as Error).message}`,
+      state,
+    });
+    return undefined;
+  }
+  let modified: string;
+  try {
+    modified = fs.statSync(files.catalog).mtime.toISOString();
+  } catch {
+    modified = new Date(0).toISOString();
+  }
+  return {
+    catalog,
+    meta: readCatalogCacheMeta({
+      file: files.meta,
+      url: source.location,
+      state,
+    }),
+    modified,
+  };
+}
+
+function cachedResult({
+  entry,
+  source,
+  files,
+  outcome,
+  fetchedAt,
+  etag,
+  lastModified,
+  cacheError,
+}: {
+  entry: CachedCatalog;
+  source: ApplicationTemplateCatalogSource;
+  files: { catalog: string; meta: string };
+  outcome: ApplicationTemplateCacheOutcome;
+  fetchedAt: string;
+  etag?: string;
+  lastModified?: string;
+  cacheError?: string;
+}): ApplicationTemplateCatalogResult {
+  return {
+    catalog: entry.catalog,
+    metadata: {
+      source,
+      etag: etag ?? entry.meta?.etag,
+      lastModified: lastModified ?? entry.meta?.lastModified,
+      fetchedAt,
+      cached: false,
+      cache: outcome,
+      cachePath: files.catalog,
+      ...(cacheError !== undefined && { cacheError }),
+    },
+  };
+}
+
+function writeCacheMeta({
+  files,
+  meta,
+  state,
+}: {
+  files: { catalog: string; meta: string };
+  meta: CatalogCacheMeta;
+  state: State;
+}): void {
+  tryWriteCacheFile({
+    file: files.meta,
+    data: JSON.stringify(meta, null, 2),
+    state,
+  });
+}
+
+/**
+ * Whether a failed request says nothing about the copy in the cache: the
+ * source could not be reached, or it failed on its side (5xx). A 4xx answer, a
+ * body over the limit and anything that is not a request error are not.
+ */
+function isTransientFailure(error: unknown): boolean {
+  const e = error as {
+    name?: string;
+    isAxiosError?: boolean;
+    message?: string;
+    response?: { status?: number };
+  };
+  if (!e || (e.name !== 'AxiosError' && !e.isAxiosError)) return false;
+  if (/maxContentLength|maxBodyLength/.test(e.message ?? '')) return false;
+  return !e.response || (e.response.status ?? 0) >= 500;
 }
 
 /**
