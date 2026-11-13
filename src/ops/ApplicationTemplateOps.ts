@@ -189,6 +189,14 @@ const MAX_CATALOG_BYTES = 32 * 1024 * 1024;
 /** The most gzip layers a catalog file may be wrapped in. The real file has two: the stored file and the transport. */
 const MAX_GZIP_LAYERS = 2;
 
+/**
+ * The deepest a catalog may be nested, counting the object of the catalog
+ * itself as level 1. The real catalog has 17 levels. A deeper value cannot be
+ * copied without overflowing the stack, and a result that deep is not usable
+ * by anything that serialises it.
+ */
+const MAX_NESTING_LEVELS = 100;
+
 const megabytes = (bytes: number): string => `${bytes / (1024 * 1024)} MB`;
 
 export type ApplicationTemplate = {
@@ -348,6 +356,24 @@ function decodeBytes(bytes: Uint8Array, location: string): string {
   return buffer.toString('utf8');
 }
 
+/**
+ * True if a value has more than MAX_NESTING_LEVELS levels of objects and lists.
+ * It walks the value with a list of its own instead of calling itself, so the
+ * check cannot overflow the stack on the value it is meant to refuse.
+ */
+function isNestedTooDeep(value: unknown): boolean {
+  const pending: [unknown, number][] = [[value, 1]];
+  while (pending.length > 0) {
+    const [current, level] = pending.pop();
+    if (current === null || typeof current !== 'object') continue;
+    if (level > MAX_NESTING_LEVELS) return true;
+    for (const child of Object.values(current)) {
+      pending.push([child, level + 1]);
+    }
+  }
+  return false;
+}
+
 function validateGroups(
   tier: string,
   groups: unknown,
@@ -381,6 +407,16 @@ function validateGroups(
       ) {
         throw notExpected(`${at} has no templateVersion`);
       }
+      // the fields a list item copies from the template are text, so an item
+      // never shares an object with the catalog that the state keeps
+      for (const field of ['displayName', 'templateType', 'dateUpdated']) {
+        if (
+          template[field] !== undefined &&
+          typeof template[field] !== 'string'
+        ) {
+          throw notExpected(`${at} has a ${field} that is not text`);
+        }
+      }
     }
   }
   return groups as ApplicationTemplateGroups;
@@ -394,6 +430,11 @@ function validateCatalog(
   value: unknown,
   location: string
 ): ApplicationTemplateCatalog {
+  if (isNestedTooDeep(value)) {
+    throw new FrodoError(
+      `The application template catalog from ${location} is nested deeper than ${MAX_NESTING_LEVELS} levels`
+    );
+  }
   if (!isObject(value) || !isObject(value.AppTemplates)) {
     throw new FrodoError(
       `The application template catalog from ${location} is not in the expected format: AppTemplates is missing`
@@ -571,6 +612,11 @@ export async function readOverrides({
     const entities = await getApplicationTemplateOverrides({ state });
     return entities.map((entity) => {
       const configId = entity._id as string;
+      if (isNestedTooDeep(entity)) {
+        throw new FrodoError(
+          `The application template ${configId} of the tenant is nested deeper than ${MAX_NESTING_LEVELS} levels`
+        );
+      }
       return {
         ...entity,
         // the name of a template of the tenant is the id of its entity when the entity says nothing else
@@ -619,6 +665,11 @@ function nameKey(name: string): string {
   return String(name).replace(/\./g, '-');
 }
 
+/** The value if it is text. The fields of a template of the tenant are not checked, so a list item only takes them when they are text. */
+function textOrUndefined(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
 type MergedTemplate = ApplicationTemplateListItem & {
   template: ApplicationTemplateSkeleton;
 };
@@ -663,9 +714,9 @@ function mergeTemplates(
       group: sameName?.group,
       tier: override.templateType === 'Enterprise' ? 'enterprise' : 'consumer',
       templateVersion: override.templateVersion,
-      displayName: override.displayName,
-      templateType: override.templateType,
-      dateUpdated: override.dateUpdated,
+      displayName: textOrUndefined(override.displayName),
+      templateType: textOrUndefined(override.templateType),
+      dateUpdated: textOrUndefined(override.dateUpdated),
       isOverride: true,
       newestInGroup: false,
       template: override,
