@@ -12,6 +12,9 @@
 import { healthyManagedConfig, healthyRepoDs } from './AIAgentFeature.fixtures';
 import {
   compareAIAgentDefinitions,
+  confirmDifferences,
+  deepEqual,
+  differencesNotOnSide,
   readPath,
   renderPath,
   writePath,
@@ -265,5 +268,168 @@ describe('paths', () => {
     writePath(root, path, undefined);
     expect(readPath(root, path)).toBeUndefined();
     expect(readPath(undefined, path)).toBeUndefined();
+  });
+});
+
+describe('deepEqual', () => {
+  test('ignores the order of the keys of an object, at any depth', () => {
+    expect(
+      deepEqual(
+        { a: 1, b: { c: 2, d: [1, { e: 3, f: 4 }] } },
+        { b: { d: [1, { f: 4, e: 3 }], c: 2 }, a: 1 }
+      )
+    ).toBe(true);
+  });
+
+  test('the order of an array matters', () => {
+    expect(deepEqual([1, 2], [2, 1])).toBe(false);
+    expect(deepEqual([{ a: 1 }], [{ a: 1 }, { a: 1 }])).toBe(false);
+  });
+
+  test('different values, types and null are different', () => {
+    expect(deepEqual({ a: 1 }, { a: 2 })).toBe(false);
+    expect(deepEqual({ a: 1 }, { a: 1, b: 2 })).toBe(false);
+    expect(deepEqual({ a: 1 }, { b: 1 })).toBe(false);
+    expect(deepEqual({}, [])).toBe(false);
+    expect(deepEqual(null, {})).toBe(false);
+    expect(deepEqual('1', 1)).toBe(false);
+    expect(deepEqual(undefined, null)).toBe(false);
+    expect(deepEqual(null, null)).toBe(true);
+  });
+
+  test('a key that holds undefined is the same as no key', () => {
+    expect(deepEqual({ a: 1, b: undefined }, { a: 1 })).toBe(true);
+  });
+});
+
+describe('differencesNotOnSide with an object value', () => {
+  const extra = {
+    type: 'simple',
+    ldapAttribute: 'description',
+    isMultiValued: false,
+  };
+  const withExtra = (value: unknown) => {
+    const repoDs = healthyRepoDs();
+    (repoDs.resourceMapping as any).explicitMapping[
+      'managed/alpha_aiagentprivilege'
+    ].properties.leftover = value;
+    return repoDs;
+  };
+
+  test('a value that comes back with its keys in another order is the same value', () => {
+    const { differences } = compareAIAgentDefinitions(
+      healthyManagedConfig(),
+      withExtra(extra)
+    );
+    expect(differences).toHaveLength(1);
+    const reordered = Object.fromEntries(Object.entries(extra).reverse());
+    expect(Object.keys(reordered)).not.toEqual(Object.keys(extra));
+    expect(
+      differencesNotOnSide(
+        healthyManagedConfig(),
+        withExtra(reordered),
+        differences,
+        'actual'
+      )
+    ).toEqual([]);
+  });
+
+  test('a value that is another value is not on the side', () => {
+    const { differences } = compareAIAgentDefinitions(
+      healthyManagedConfig(),
+      withExtra(extra)
+    );
+    expect(
+      differencesNotOnSide(
+        healthyManagedConfig(),
+        withExtra({ ...extra, ldapAttribute: 'x' }),
+        differences,
+        'actual'
+      )
+    ).toHaveLength(1);
+  });
+});
+
+describe('confirmDifferences', () => {
+  const drifted = () => {
+    const managed = healthyManagedConfig();
+    objectOf(managed, 'alpha_aiagent').onDelete.source += '\n';
+    const repoDs = healthyRepoDs();
+    (repoDs.resourceMapping as any).explicitMapping[
+      'managed/bravo_aiagent'
+    ].properties.leftover = { a: 1 };
+    return {
+      managed,
+      repoDs,
+      planned: compareAIAgentDefinitions(managed, repoDs).differences,
+    };
+  };
+
+  test('the differences of a plan that matches are returned as the fresh ones', () => {
+    const { managed, repoDs, planned } = drifted();
+    const { fresh, problems } = confirmDifferences(planned, managed, repoDs);
+    expect(problems).toEqual([]);
+    expect(fresh).toHaveLength(2);
+    expect(fresh).toEqual(planned);
+  });
+
+  test('a plan that was edited to expect another original is refused', () => {
+    const { managed, repoDs, planned } = drifted();
+    const edited = JSON.parse(JSON.stringify(planned));
+    edited[0].expected = 'return evil();';
+    const { fresh, problems } = confirmDifferences(edited, managed, repoDs);
+    expect(fresh).toHaveLength(1);
+    expect(problems).toEqual([
+      'alpha_aiagent onDelete.source: the original is not what the plan records',
+    ]);
+  });
+
+  test('a plan that names something the reference does not differ in is refused', () => {
+    const { managed, repoDs, planned } = drifted();
+    const edited = JSON.parse(JSON.stringify(planned));
+    edited.push({
+      ...edited[0],
+      object: 'alpha_user',
+      path: ['schema', 'title'],
+      location: 'schema.title',
+      expected: 'x',
+      actual: 'y',
+    });
+    const { problems } = confirmDifferences(edited, managed, repoDs);
+    expect(problems).toEqual([
+      'alpha_user schema.title: the tenant does not differ from the original there',
+    ]);
+  });
+
+  test('a structural difference is never one to write', () => {
+    const managed = healthyManagedConfig();
+    objectOf(managed, 'alpha_aiagent').schema.properties.custom = {
+      type: 'string',
+    };
+    const repoDs = healthyRepoDs();
+    const planned = compareAIAgentDefinitions(managed, repoDs).differences;
+    const { fresh, problems } = confirmDifferences(planned, managed, repoDs);
+    expect(fresh).toEqual([]);
+    expect(problems).toEqual([
+      'alpha_aiagent schema.properties.custom: the difference is not a cosmetic one',
+    ]);
+  });
+
+  test('a tenant that changed since the plan is refused', () => {
+    const { managed, repoDs, planned } = drifted();
+    objectOf(managed, 'alpha_aiagent').onDelete.source += '\n';
+    expect(confirmDifferences(planned, managed, repoDs).problems).toEqual([
+      'alpha_aiagent onDelete.source: the tenant changed since the plan was made',
+    ]);
+  });
+
+  test('a difference without a path is refused, not a crash', () => {
+    const { managed, repoDs } = drifted();
+    const { problems } = confirmDifferences(
+      [{} as never, null as never],
+      managed,
+      repoDs
+    );
+    expect(problems).toHaveLength(2);
   });
 });

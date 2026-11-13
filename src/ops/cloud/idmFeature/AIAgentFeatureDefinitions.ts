@@ -80,6 +80,35 @@ type Obj = Record<string, unknown>;
 const isObject = (value: unknown): value is Obj =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
+/**
+ * Deep equality of two JSON values that ignores the order of the keys of an object (the order of an array matters).
+ * Comparing the serialised text would call two objects different only because a server returned their keys in another
+ * order.
+ * @param {unknown} a one value
+ * @param {unknown} b the other value
+ * @returns {boolean} true if both hold the same JSON value
+ */
+export function deepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    return (
+      Array.isArray(a) &&
+      Array.isArray(b) &&
+      a.length === b.length &&
+      a.every((item, index) => deepEqual(item, b[index]))
+    );
+  }
+  if (isObject(a) && isObject(b)) {
+    const keys = Object.keys(a).filter((key) => a[key] !== undefined);
+    const other = Object.keys(b).filter((key) => b[key] !== undefined);
+    return (
+      keys.length === other.length &&
+      keys.every((key) => key in b && deepEqual(a[key], b[key]))
+    );
+  }
+  return false;
+}
+
 /** Render a path of keys and indexes: `a.b[0].c`. */
 export function renderPath(path: (string | number)[]): string {
   return path.reduce<string>(
@@ -172,7 +201,7 @@ function deepDiff(
     );
     return;
   }
-  if (JSON.stringify(expected) !== JSON.stringify(actual)) {
+  if (!deepEqual(expected, actual)) {
     found.push({
       path,
       location: renderPath(path),
@@ -437,7 +466,7 @@ export function differencesNotOnSide(
     if (!target) return true;
     const want = which === 'expected' ? difference.expected : difference.actual;
     const have = readPath(target, difference.path);
-    return JSON.stringify(have) !== JSON.stringify(want);
+    return !deepEqual(have, want);
   });
 }
 
@@ -475,4 +504,66 @@ export function applyDifferences(
       value === undefined ? undefined : JSON.parse(JSON.stringify(value))
     );
   }
+}
+
+/** The place of a difference: the same one in a plan and in a fresh comparison. */
+function differenceKey(difference: AIAgentDefinitionDifference): string {
+  return [
+    difference.config,
+    difference.section ?? '',
+    difference.object,
+    renderPath(difference.path),
+  ].join('|');
+}
+
+/**
+ * Check differences that were recorded in a plan against the tenant and the shipped reference as they are now, and
+ * return the differences to write.
+ *
+ * A plan is plain data that a caller can keep, edit or send back, so what a repair writes must not be what the plan says
+ * but what the reference says. Every planned difference has to be one that a fresh comparison finds now, has to be
+ * cosmetic, and has to carry the same `expected` (the original, which only the reference can say) and the same `actual`
+ * (what the tenant held when the plan was made). The differences returned are the fresh ones: the value written is the
+ * reference's and the value to put back is the one read from the tenant just now.
+ * @param {AIAgentDefinitionDifference[]} planned the differences a plan recorded
+ * @param {ManagedConfigLike} managed `config/managed`, as read now
+ * @param {RepoDsConfigLike} repoDs `config/repo.ds`, as read now
+ * @param {AIAgentFeatureReference} reference the reference to compare with; the shipped one by default
+ * @returns {{ fresh: AIAgentDefinitionDifference[]; problems: string[] }} the differences to write, and why the plan is refused (empty if it is not)
+ */
+export function confirmDifferences(
+  planned: AIAgentDefinitionDifference[],
+  managed: ManagedConfigLike,
+  repoDs: RepoDsConfigLike,
+  reference: AIAgentFeatureReference = AI_AGENT_FEATURE_REFERENCE
+): { fresh: AIAgentDefinitionDifference[]; problems: string[] } {
+  const now = new Map(
+    compareAIAgentDefinitions(managed, repoDs, reference).differences.map(
+      (difference) => [differenceKey(difference), difference]
+    )
+  );
+  const fresh: AIAgentDefinitionDifference[] = [];
+  const problems: string[] = [];
+  for (const one of planned) {
+    const where = `${one?.object ?? '?'} ${one?.location ?? ''}`.trim();
+    const found =
+      one && Array.isArray(one.path) ? now.get(differenceKey(one)) : undefined;
+    if (!found) {
+      problems.push(
+        `${where}: the tenant does not differ from the original there`
+      );
+    } else if (!found.cosmetic) {
+      problems.push(`${where}: the difference is not a cosmetic one`);
+    } else if (
+      found.kind !== one.kind ||
+      !deepEqual(found.expected, one.expected)
+    ) {
+      problems.push(`${where}: the original is not what the plan records`);
+    } else if (!deepEqual(found.actual, one.actual)) {
+      problems.push(`${where}: the tenant changed since the plan was made`);
+    } else {
+      fresh.push(found);
+    }
+  }
+  return { fresh, problems };
 }
