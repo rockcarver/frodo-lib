@@ -3122,9 +3122,10 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'cloud.idmFeature.repairIdmFeature': {
     mutating: true,
-    riskClass: 'high',
+    destructive: true,
+    riskClass: 'critical',
     notes:
-      "Runs a plan of planIdmFeatureRepair: deletes secret store mappings that point to no ESV secret, creates or completes OAuth 2.0 providers, writes the whole managed and repo.ds configuration to align definitions that differ cosmetically from the original, runs the environment action that enables AI agents, and puts the customised definitions back. Every write is read back and compared and a difference stops the run; the enable action runs only if the registry reads the feature installed. Not undoable by the library: the caller keeps the plan's backup data first. With wait it polls for up to timeout milliseconds (default 20 minutes).",
+      'Runs a plan of planIdmFeatureRepair: deletes secret store mappings that point to no ESV secret, creates or completes OAuth 2.0 providers, writes the whole managed and repo.ds configuration (whole-object PUTs) to align definitions that differ cosmetically from the original, runs the environment action that enables AI agents, and puts the customised definitions back. Critical and destructive, so the agentic and standard policies deny it and only the admin preset offers it: it overwrites configuration that the whole tenant depends on and deletes mappings, and the library cannot undo it (the caller keeps the backup data of the plan first). Every write is read back and compared and a difference stops the run; the enable action runs only if the registry reads the feature installed. With wait it polls for up to timeout milliseconds (default 20 minutes).',
   },
   'cloud.env.enforceFederationFor': {
     mutating: true,

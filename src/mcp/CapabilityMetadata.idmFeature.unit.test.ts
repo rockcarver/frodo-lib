@@ -25,10 +25,11 @@ describe('the MCP metadata of the IDM feature diagnosis and repair', () => {
     expect(meta.notes).toContain('handled like the configuration itself');
   });
 
-  test('repairIdmFeature is a high-risk write', () => {
+  test('repairIdmFeature is a critical, destructive write: only the admin preset offers it', () => {
     expect(CAPABILITY_META['cloud.idmFeature.repairIdmFeature']).toMatchObject({
       mutating: true,
-      riskClass: 'high',
+      destructive: true,
+      riskClass: 'critical',
     });
   });
 });
