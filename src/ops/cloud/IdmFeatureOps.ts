@@ -8,7 +8,9 @@ import {
   IdmFeatureInterface,
 } from '../../api/cloud/IdmFeatureApi';
 import { State } from '../../shared/State';
-import { FrodoError } from '../FrodoError';
+import { FrodoError, isNotFoundError } from '../FrodoError';
+import { getIdmFeatureHandler } from './idmFeature/IdmFeatureHandlers';
+import { IdmFeatureDiagnosis } from './idmFeature/IdmFeatureTypes';
 
 /**
  * IDM tenant-configuration feature management (`GET/POST /openidm/feature`).
@@ -82,6 +84,31 @@ export type IdmFeature = {
    * @returns {Promise<IdmFeatureActionResult>} a promise that resolves to the install result: status, success, message and failures
    */
   installIdmFeature(featureId: string): Promise<IdmFeatureActionResult>;
+  /**
+   * Find out why an IDM tenant-configuration feature reads as not installed or does not work. Read-only: it
+   * changes nothing in the tenant. The library has a diagnosis for the feature `aiagent`; for any other feature the
+   * result has `supported: false` and no findings, and only the registry entry is reported.
+   *
+   * The result is `{ featureId, supported, installedVersion, availableVersions, findings }`. A finding has an `id`
+   * that names the condition (`definitions-cosmetic-drift`, `provider-auth-service-not-set`, `gate-closed`,
+   * `secret-mappings-dangling` and so on), a `severity` (`error`: the feature does not work, `warning`: cosmetic or
+   * advisory, `info`: a healthy part), a `message`, whether the condition is `repairable` and its `details`.
+   * A condition that exists per realm is reported once per realm, with `details.realm`. A check that cannot be made
+   * (for example a request that is refused) is a finding `check-failed`, not an error; only a failing read of the
+   * registry throws.
+   *
+   * For `aiagent` the checks are: the registry and the result of `validate`; the definitions the feature writes
+   * (managed object definitions and `repo.ds` mappings) compared with the original of version 1, each difference
+   * classed cosmetic (white space, a title, an extra mapping property) or structural; per realm that has the AI agent
+   * managed objects, the OAuth 2.0 provider (it exists, has a password grant authentication service, has AI agents
+   * enabled with the expected object names), whether AM accepts AI agents (the agent type is listed and listing
+   * them answers 200, not 501), the mappings of the realm's ESV secret store that point to ESV secrets that do not
+   * exist, and IDM AI agent objects that AM does not list. A feature version other than the one the library knows
+   * the definitions of is reported as `version-unsupported`.
+   * @param {string} featureId feature id, e.g. 'aiagent'
+   * @returns {Promise<IdmFeatureDiagnosis>} a promise that resolves to the diagnosis
+   */
+  diagnoseIdmFeature(featureId: string): Promise<IdmFeatureDiagnosis>;
 };
 
 export default (state: State): IdmFeature => {
@@ -104,6 +131,9 @@ export default (state: State): IdmFeature => {
       featureId: string
     ): Promise<IdmFeatureActionResult> {
       return installIdmFeature({ featureId, state });
+    },
+    async diagnoseIdmFeature(featureId: string): Promise<IdmFeatureDiagnosis> {
+      return diagnoseIdmFeature({ featureId, state });
     },
   };
 };
@@ -210,5 +240,38 @@ export async function installIdmFeature({
     };
   } catch (error) {
     throw new FrodoError(`Error installing IDM feature ${featureId}`, error);
+  }
+}
+
+export async function diagnoseIdmFeature({
+  featureId,
+  state,
+}: {
+  featureId: string;
+  state: State;
+}): Promise<IdmFeatureDiagnosis> {
+  try {
+    const handler = getIdmFeatureHandler(featureId);
+    if (handler) return await handler.diagnose(state);
+    // no diagnosis for this feature: report its registry entry, nothing is judged
+    let installedVersion: string | null = null;
+    let availableVersions: string[] = [];
+    try {
+      const feature = await _getIdmFeature({ featureId, state });
+      installedVersion = feature.installedVersion ?? null;
+      availableVersions = feature.availableVersions ?? [];
+    } catch (error) {
+      // an unknown feature id answers 404; any other failure is a real one
+      if (!isNotFoundError(error)) throw error;
+    }
+    return {
+      featureId,
+      supported: false,
+      installedVersion,
+      availableVersions,
+      findings: [],
+    };
+  } catch (error) {
+    throw new FrodoError(`Error diagnosing IDM feature ${featureId}`, error);
   }
 }
