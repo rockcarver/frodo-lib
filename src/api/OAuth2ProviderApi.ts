@@ -12,6 +12,9 @@ const oAuth2ProviderServiceURLTemplate =
 const createOAuth2ProviderServiceURLTemplate =
   '%s/json%s/realm-config/services/oauth-oidc?_action=create';
 
+const templateOAuth2ProviderServiceURLTemplate =
+  '%s/json%s/realm-config/services/oauth-oidc?_action=template';
+
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getApiConfig = () => {
   return {
@@ -182,6 +185,35 @@ export async function getOAuth2Provider({
   }).get(urlString, {
     withCredentials: true,
   });
+  return data;
+}
+
+/**
+ * Get the template of an OAuth2 provider: the settings the server itself creates a new provider of the current realm
+ * with. It does not carry a password grant authentication service.
+ * @returns {Promise<OAuth2ProviderSkeleton>} a promise that resolves to the template of an oauth2 provider
+ */
+export async function getOAuth2ProviderTemplate({
+  state,
+}: {
+  state: State;
+}): Promise<OAuth2ProviderSkeleton> {
+  const urlString = util.format(
+    templateOAuth2ProviderServiceURLTemplate,
+    state.getHost(),
+    getCurrentRealmPath(state)
+  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).post(
+    urlString,
+    {},
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
 

@@ -42,6 +42,8 @@ export type AIAgentDefinitionDifference = {
   config: 'managed' | 'repo.ds';
   /** The managed object name (config `managed`) or the mapping key such as `managed/alpha_aiagent` (config `repo.ds`). */
   object: string;
+  /** For config `repo.ds`: which section of `resourceMapping` holds the mapping `object`. */
+  section?: 'explicitMapping' | 'genericMapping';
   /**
    * Where in the object, as a path of property names and array indexes (`schema.properties.name`, a number is an
    * index). Empty for the whole object.
@@ -220,10 +222,17 @@ function record(
   config: 'managed' | 'repo.ds',
   object: string,
   found: Omit<AIAgentDefinitionDifference, 'config' | 'object' | 'cosmetic'>[],
-  into: AIAgentDefinitionDifference[]
+  into: AIAgentDefinitionDifference[],
+  section?: 'explicitMapping' | 'genericMapping'
 ): void {
   for (const one of found) {
-    into.push({ config, object, ...one, ...classify(config, one) });
+    into.push({
+      config,
+      object,
+      ...(section ? { section } : {}),
+      ...one,
+      ...classify(config, one),
+    });
   }
 }
 
@@ -342,6 +351,7 @@ export function compareAIAgentDefinitions(
       differences.push({
         config: 'repo.ds',
         object: key,
+        section: 'explicitMapping',
         path: [],
         location: '',
         kind: 'missing',
@@ -355,7 +365,7 @@ export function compareAIAgentDefinitions(
       'config' | 'object' | 'cosmetic'
     >[] = [];
     deepDiff(expected, explicit[key], [], found);
-    record('repo.ds', key, found, differences);
+    record('repo.ds', key, found, differences, 'explicitMapping');
   }
 
   // repo.ds: the property added to generic mappings
@@ -367,6 +377,7 @@ export function compareAIAgentDefinitions(
       differences.push({
         config: 'repo.ds',
         object: addition.mapping,
+        section: 'genericMapping',
         path,
         location: renderPath(path),
         kind: 'missing',
@@ -380,8 +391,88 @@ export function compareAIAgentDefinitions(
       'config' | 'object' | 'cosmetic'
     >[] = [];
     deepDiff(addition.value, actual, path, found);
-    record('repo.ds', addition.mapping, found, differences);
+    record('repo.ds', addition.mapping, found, differences, 'genericMapping');
   }
 
   return { present, realms, differences };
+}
+
+type Direction = 'expected' | 'actual';
+
+/** The object a difference's path is relative to, in the given configuration; undefined if the tenant lacks it. */
+function targetOf(
+  managed: ManagedConfigLike,
+  repoDs: RepoDsConfigLike,
+  difference: AIAgentDefinitionDifference
+): unknown {
+  if (difference.config === 'managed') {
+    return (managed?.objects ?? []).find(
+      (object) => object?.name === difference.object
+    );
+  }
+  const section = difference.section ?? 'explicitMapping';
+  return (
+    repoDs?.resourceMapping?.[section] as Record<string, unknown> | undefined
+  )?.[difference.object];
+}
+
+/**
+ * Which of the differences do not hold the value of `which` in the given configuration. With `expected` a difference
+ * holds when the tenant has the original value (nothing at the path for an `extra` one), with `actual` when it still has
+ * the value that was read when the differences were found.
+ * @param {ManagedConfigLike} managed `config/managed`, as read now
+ * @param {RepoDsConfigLike} repoDs `config/repo.ds`, as read now
+ * @param {AIAgentDefinitionDifference[]} differences differences found earlier
+ * @param {'expected' | 'actual'} which the side every difference is expected to be on
+ * @returns {AIAgentDefinitionDifference[]} the differences that are not on that side; empty if all are
+ */
+export function differencesNotOnSide(
+  managed: ManagedConfigLike,
+  repoDs: RepoDsConfigLike,
+  differences: AIAgentDefinitionDifference[],
+  which: Direction
+): AIAgentDefinitionDifference[] {
+  return differences.filter((difference) => {
+    const target = targetOf(managed, repoDs, difference);
+    if (!target) return true;
+    const want = which === 'expected' ? difference.expected : difference.actual;
+    const have = readPath(target, difference.path);
+    return JSON.stringify(have) !== JSON.stringify(want);
+  });
+}
+
+/**
+ * Put every difference on the side of `which` in the given configuration, in place: `expected` restores the original
+ * (an `extra` value is removed), `actual` puts back the value that was found.
+ * @param {ManagedConfigLike} managed `config/managed`; changed in place
+ * @param {RepoDsConfigLike} repoDs `config/repo.ds`; changed in place
+ * @param {AIAgentDefinitionDifference[]} differences the differences to apply
+ * @param {'expected' | 'actual'} which the side to put them on
+ */
+export function applyDifferences(
+  managed: ManagedConfigLike,
+  repoDs: RepoDsConfigLike,
+  differences: AIAgentDefinitionDifference[],
+  which: Direction
+): void {
+  for (const difference of differences) {
+    const target = targetOf(managed, repoDs, difference);
+    if (!target) {
+      throw new Error(
+        `The ${difference.config === 'managed' ? 'managed object' : 'mapping'} ${difference.object} is not in the configuration`
+      );
+    }
+    if (!difference.path.length) {
+      throw new Error(
+        `The difference at the top of ${difference.object} cannot be applied`
+      );
+    }
+    const value =
+      which === 'expected' ? difference.expected : difference.actual;
+    writePath(
+      target,
+      difference.path,
+      value === undefined ? undefined : JSON.parse(JSON.stringify(value))
+    );
+  }
 }
