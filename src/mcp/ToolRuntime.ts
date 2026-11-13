@@ -1414,6 +1414,39 @@ async function resolveScopedFrodoInstance(
     // actionable error below.
   }
 
+  // Three settings belong to the process, not to a request: air-gapped mode,
+  // the switch of the template catalog cache and its directory. The factory
+  // helpers build a scoped instance from the credentials of its auth mode, so
+  // without this it would start with air-gapped mode off (a request could reach
+  // the public catalog host although the process must not) and with the catalog
+  // cache off (every request would download the catalog again). Every auth
+  // mode, and an instance from a custom resolver, takes them from the root
+  // instance. Air-gapped mode only ever goes on: an instance can not turn off
+  // what the root has on. The cache switch is copied the same way, and a
+  // directory that the scoped instance has is kept.
+  if (scopedFrodo?.state && frodoRoot?.state && scopedFrodo !== frodoRoot) {
+    if (
+      frodoRoot.state.getAirGapped?.() === true &&
+      scopedFrodo.state.getAirGapped?.() !== true
+    ) {
+      scopedFrodo.state.setAirGapped(true);
+    }
+    if (
+      frodoRoot.state.getUseTemplateCatalogCache?.() === true &&
+      scopedFrodo.state.getUseTemplateCatalogCache?.() !== true
+    ) {
+      scopedFrodo.state.setUseTemplateCatalogCache(true);
+    }
+    const rootCatalogCachePath =
+      frodoRoot.state.getTemplateCatalogCachePath?.();
+    if (
+      rootCatalogCachePath &&
+      !scopedFrodo.state.getTemplateCatalogCachePath?.()
+    ) {
+      scopedFrodo.state.setTemplateCatalogCachePath(rootCatalogCachePath);
+    }
+  }
+
   // The request-scoped factory helpers of the service account and of the admin
   // account set no token cache option, so such an instance has the cache off
   // and logs in on every realm-overridden request, however the server was
