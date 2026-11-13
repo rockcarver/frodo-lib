@@ -5,6 +5,9 @@ import AgentOps, { Agent } from '../ops/AgentOps';
 import AmConfigOps, { AmConfig } from '../ops/AmConfigOps';
 import ApiOps, { ApiFactory } from '../ops/ApiFactoryOps';
 import ApplicationOps, { Application } from '../ops/ApplicationOps';
+import ApplicationTemplateOps, {
+  ApplicationTemplate,
+} from '../ops/ApplicationTemplateOps';
 import AuthenticateOps, { Authenticate } from '../ops/AuthenticateOps';
 import AuthenticationSettingsOps, {
   AuthenticationSettings,
@@ -155,7 +158,9 @@ export type Frodo = {
     config: AmConfig;
   };
 
-  app: Application;
+  app: Application & {
+    template: ApplicationTemplate;
+  };
 
   authn: {
     journey: Journey;
@@ -514,7 +519,10 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
       config: AmConfigOps(state),
     },
 
-    app: ApplicationOps(state),
+    app: {
+      ...ApplicationOps(state),
+      template: ApplicationTemplateOps(state),
+    },
 
     authn: {
       journey: JourneyOps(state),

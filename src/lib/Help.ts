@@ -1142,6 +1142,45 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<ApplicationStatusChangeResult>} a promise that resolves to the status of the application after the change",
   },
   {
+    typeName: "ApplicationTemplate",
+    methodName: "readCatalog",
+    signature: "readCatalog( options?: ApplicationTemplateCatalogOptions ): Promise<ApplicationTemplateCatalogResult>",
+    description: "Read the application template catalog. The default source is the public catalog that the Admin UI uses on Ping's CDN; it is requested without any credential of the tenant, and through the proxy settings of the library. The paths of the CDN are what the Admin UI happens to use, not a documented interface. A catalog that the caller has (`catalog`) or a URL that the caller names (`url`) is used instead. A catalog that was downloaded is kept for the state until `refresh` is set. The library writes no file: the result holds the catalog and what identifies the download (`etag`, `lastModified`, `fetchedAt`), so that a caller can save it. When air-gapped mode is on (`state.setAirGapped`), the default source is not used and the call fails with the error code `AIR_GAPPED`; an explicit catalog and a URL the caller names still work.",
+    params: [
+      { name: "options", type: "ApplicationTemplateCatalogOptions", description: "which catalog to read", required: false },
+    ],
+    returns: "{Promise<ApplicationTemplateCatalogResult>} a promise that resolves to the catalog and its metadata",
+  },
+  {
+    typeName: "ApplicationTemplate",
+    methodName: "readOverrides",
+    signature: "readOverrides(): Promise<ApplicationTemplateOverrideSkeleton[]>",
+    description: "Read the application templates that the tenant defines itself (the IDM configuration entities `appTemplate/<id>`). The Admin UI merges them over the catalog and marks them as overrides.",
+    params: [],
+    returns: "{Promise<ApplicationTemplateOverrideSkeleton[]>} a promise that resolves to the templates of the tenant, each with its `_id`",
+  },
+  {
+    typeName: "ApplicationTemplate",
+    methodName: "listTemplates",
+    signature: "listTemplates( options?: ApplicationTemplateListOptions ): Promise<ApplicationTemplateListItem[]>",
+    description: "List the template versions of the catalog with the templates of the tenant merged over them (a template of the tenant with the id of a catalog template replaces it), sorted by name and version. A summary of each version is returned, without the form definition. Set `includeOverrides` to false to list the catalog alone, which needs no connection to a tenant.",
+    params: [
+      { name: "options", type: "ApplicationTemplateListOptions", description: "which catalog to read, and whether to merge the templates of the tenant", required: false },
+    ],
+    returns: "{Promise<ApplicationTemplateListItem[]>} a promise that resolves to the template versions",
+  },
+  {
+    typeName: "ApplicationTemplate",
+    methodName: "readTemplate",
+    signature: "readTemplate( application: ApplicationTemplateReference, options?: ApplicationTemplateReadOptions ): Promise<ApplicationTemplateResolution>",
+    description: "Read the template that an application record was made from, and say whether that version exists, whether it is the newest one and whether the tenant defines it itself. Nothing is thrown for a template that does not exist: `found` and `versionExists` say so. Because it is not known whether a record made from a template of the tenant keeps the name with the suffix `-override` that the Admin UI shows, both forms are matched. A template that cannot be read at all (the catalog is unreachable or not a catalog) throws, with the source named in the message.",
+    params: [
+      { name: "application", type: "ApplicationTemplateReference", description: "the application record, or its `templateName` and `templateVersion`", required: true },
+      { name: "options", type: "ApplicationTemplateReadOptions", description: "which catalog to read, and whether to merge the templates of the tenant", required: false },
+    ],
+    returns: "{Promise<ApplicationTemplateResolution>} a promise that resolves to the resolution",
+  },
+  {
     typeName: "Authenticate",
     methodName: "getTokens",
     signature: "getTokens( forceLoginAsUser?: boolean, autoRefresh?: boolean, types?: string[], callbackHandler?: CallbackHandler, useDeviceFlow?: boolean, promptHandler?: BrowserLoginPromptHandler, credentialOverride?: 'user' | 'svcacct' | 'amster' | 'browser' ): Promise<Tokens>",

@@ -427,6 +427,14 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Bulk journey export. In MCP, scope="bulk" defaults to a thin export bundle (deps=false, useStringArrays=true, coords=true). Request deps=true only when a full dependency bundle is required.',
   },
+  'app.template.readCatalog': {
+    // The whole catalog is about 1.5 MB of form definitions, far over what a
+    // tool result should carry, and it is requested from a public host, not the
+    // tenant. app.template.listTemplates and app.template.readTemplate answer
+    // the questions an agent has (which versions exist, which one an
+    // application was made from) from the same catalog.
+    excluded: true,
+  },
   'app.queryApplications': {
     argumentMode: 'named',
     parameterOverrides: {
