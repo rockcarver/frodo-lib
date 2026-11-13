@@ -10,6 +10,21 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-42] - 2026-11-13
+
+### Added
+- Introduced `frodo.app.template`, a module that reads the application template catalog and identifies which template an application was created from. This enhancement aids in better template management and is part of the ongoing improvements to the application template system. (#1064)
+- Added `planIdmFeatureRepair` and `repairIdmFeature` functions to address issues with the AI agents feature. These functions diagnose and repair the `aiagent` IDM feature, providing a comprehensive plan and execution for repairs. (#1062)
+- Implemented `diagnoseIdmFeature` for read-only diagnosis of the AI agents feature. This function checks why the feature reads as not installed or is non-functional, offering insights into potential issues. (#1061)
+- Enabled caching for the application template catalog, reducing unnecessary downloads and improving performance. This feature can be activated via `state.setUseTemplateCatalogCache(true)`. (#1067)
+
+### Changed
+- `frodo.mcp.resolveRequestScopedFrodo` now applies the process settings to its instance, ensuring consistent configuration management across different scopes. (#1069)
+
+### Fixed
+- Catalogs nested over 100 levels are now refused, preventing potential performance issues and ensuring data integrity. Additionally, copied fields of a template must be text, enhancing data consistency. (#1066)
+- The repair process for IDM features now correctly aligns secret store types with tenant configurations, ensuring accurate feature repair and alignment. (#1065)
+
 ## [v5.0.0-41] - 2026-11-12
 
 ### Added
@@ -2978,6 +2993,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-42]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-41...v5.0.0-42
 [v5.0.0-41]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-40...v5.0.0-41
 [v5.0.0-40]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-39...v5.0.0-40
 [v5.0.0-39]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-38...v5.0.0-39
