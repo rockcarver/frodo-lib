@@ -78,6 +78,13 @@ export class FrodoError extends Error {
    * error that wraps this one.
    */
   rateLimit?: LogApiRateLimit;
+  /**
+   * The `x-forgerock-transactionid` header of the response of the request that failed, on the errors of operations
+   * that set it explicitly (for example enabling the AI agent feature), where the platform's own log is the only way to
+   * find the cause of a generic 500. Support asks for it. Declared, not initialised: an error that does not set it
+   * has no such property. Like `code`, it is not copied by an error that wraps this one.
+   */
+  declare httpTransactionId?: string;
   originalErrors: Error[] = [];
   isHttpError: boolean = false;
   httpCode: string;
@@ -230,6 +237,8 @@ export class FrodoError extends Error {
       if (diagnosis?.message)
         combinedMessage += `\n${indent}${diagnosis.message}`;
     });
+    if (this.httpTransactionId)
+      combinedMessage += `\n${indent}Transaction id: ${this.httpTransactionId}`;
     // if (this.originalErrors.slice(-1))
     //   combinedMessage += '\n  ' + this.originalErrors.slice(-1)[0].stack;
     return combinedMessage;
@@ -262,6 +271,25 @@ export function getFailedResponse(error: unknown): AxiosResponse | undefined {
     link = Array.isArray(originalErrors) ? originalErrors[0] : undefined;
   }
   return undefined;
+}
+
+/**
+ * The transaction id of the request that failed: the `x-forgerock-transactionid` header of the response, whether `error`
+ * is the raw `AxiosError` of the api layer or a `FrodoError` that wraps it (see {@link getFailedResponse}). The
+ * platform logs every request under this id, so it is what finds the cause behind a response that says nothing
+ * ("500 Internal Server Error").
+ * @param {unknown} error the error that was caught
+ * @returns {string | undefined} the transaction id, or undefined if the response carries none
+ */
+export function getTransactionId(error: unknown): string | undefined {
+  const headers = getFailedResponse(error)?.headers as
+    { get?: (name: string) => unknown; [name: string]: unknown } | undefined;
+  if (!headers) return undefined;
+  const value =
+    typeof headers.get === 'function'
+      ? headers.get('x-forgerock-transactionid')
+      : headers['x-forgerock-transactionid'];
+  return typeof value === 'string' && value ? value : undefined;
 }
 
 /** True if `error` itself (not any wrapped cause) directly carries a 404 status. */
