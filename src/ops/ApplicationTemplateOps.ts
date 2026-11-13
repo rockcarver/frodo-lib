@@ -15,6 +15,7 @@ import {
   getCatalogCacheFiles,
   readCatalogCacheMeta,
   readLimitedFile,
+  sha256Hex,
   tryRemoveCacheFile,
   tryWriteCacheFile,
   type CatalogCacheMeta,
@@ -824,6 +825,7 @@ async function loadCatalog({
         lastModified: file.lastModified ?? entry.meta?.lastModified,
         fetchedAt,
         url: source.location,
+        sha256: entry.digest,
       },
       state,
     });
@@ -870,6 +872,7 @@ async function loadCatalog({
           lastModified: file.lastModified,
           fetchedAt,
           url: source.location,
+          sha256: sha256Hex(parsed.text),
         },
         state,
       });
@@ -883,6 +886,8 @@ async function loadCatalog({
 type CachedCatalog = {
   catalog: ApplicationTemplateCatalog;
   meta?: CatalogCacheMeta;
+  /** SHA-256 of the catalog file, the one that the meta file has to hold for the pair to count. */
+  digest: string;
   /** When the file was last changed (ISO 8601), for a copy without meta data. */
   modified: string;
 };
@@ -907,6 +912,24 @@ function readCachedCatalog({
     state,
   });
   if (!bytes) return undefined;
+  // The validators in the meta file are only valid for the catalog they were
+  // written with. The digest ties them: a meta file that holds none (an earlier
+  // version wrote them without) or another one belongs to another catalog, for
+  // example when two processes wrote at the same time, and a 304 on it would
+  // confirm the wrong catalog. The pair is not used and is replaced.
+  const digest = sha256Hex(bytes);
+  const meta = readCatalogCacheMeta({
+    file: files.meta,
+    url: source.location,
+    state,
+  });
+  if (meta && meta.sha256 !== digest) {
+    debugMessage({
+      message: `ApplicationTemplateOps.readCatalog: ${files.meta} does not describe the copy in ${files.catalog} and both will be replaced`,
+      state,
+    });
+    return undefined;
+  }
   let catalog: ApplicationTemplateCatalog;
   try {
     catalog = parseCatalog(bytes, files.catalog, state);
@@ -923,15 +946,7 @@ function readCachedCatalog({
   } catch {
     modified = new Date(0).toISOString();
   }
-  return {
-    catalog,
-    meta: readCatalogCacheMeta({
-      file: files.meta,
-      url: source.location,
-      state,
-    }),
-    modified,
-  };
+  return { catalog, meta, digest, modified };
 }
 
 function cachedResult({

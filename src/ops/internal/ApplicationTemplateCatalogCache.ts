@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { State } from '../../shared/State';
@@ -29,7 +30,24 @@ export type CatalogCacheMeta = {
   /** When the source last confirmed the copy (ISO 8601). */
   fetchedAt: string;
   url: string;
+  /**
+   * SHA-256 of the catalog file (hex), written with the validators and checked
+   * on every read: validators are only used for the catalog they describe, so
+   * two processes that interleave their writes cannot leave a catalog beside
+   * the validators of another version. A meta file without one (written by an
+   * earlier version) describes nothing.
+   */
+  sha256?: string;
 };
+
+/**
+ * SHA-256 of the bytes of a catalog file, as a hex string.
+ * @param {Buffer | string} data the content of the catalog file
+ * @returns {string} the digest
+ */
+export function sha256Hex(data: Buffer | string): string {
+  return createHash('sha256').update(data).digest('hex');
+}
 
 /** The most that a meta file may be, in bytes. It holds four short fields. */
 const MAX_META_BYTES = 64 * 1024;
@@ -149,6 +167,8 @@ export function readCatalogCacheMeta({
     }),
     fetchedAt: meta.fetchedAt,
     url,
+    ...(typeof meta.sha256 === 'string' &&
+      /^[0-9a-f]{64}$/.test(meta.sha256) && { sha256: meta.sha256 }),
   };
 }
 
