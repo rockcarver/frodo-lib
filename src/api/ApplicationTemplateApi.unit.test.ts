@@ -222,4 +222,146 @@ describe('getApplicationTemplateCatalogFile', () => {
       }
     );
   });
+
+  test('9: a conditional request carries the validators, and 304 is a success with no body', async () => {
+    await withServer(
+      (_req, res) => {
+        res.writeHead(304, {
+          ETag: '"abc123"',
+          'Last-Modified': 'Thu, 12 Nov 2026 23:34:04 GMT',
+        });
+        res.end();
+      },
+      async (base, received) => {
+        const file = await getApplicationTemplateCatalogFile({
+          url: `${base}/appTemplates.json.gz`,
+          ifNoneMatch: '"abc123"',
+          ifModifiedSince: 'Thu, 12 Nov 2026 23:34:04 GMT',
+          state: loggedInState(),
+        });
+        expect(received[0].headers['if-none-match']).toBe('"abc123"');
+        expect(received[0].headers['if-modified-since']).toBe(
+          'Thu, 12 Nov 2026 23:34:04 GMT'
+        );
+        expect(file.notModified).toBe(true);
+        expect(file.data.length).toBe(0);
+        expect(file.etag).toBe('"abc123"');
+        expect(file.lastModified).toBe('Thu, 12 Nov 2026 23:34:04 GMT');
+        // still no credential of the tenant on a conditional request
+        const headers = received[0].headers;
+        expect(headers.authorization).toBeUndefined();
+        expect(headers.cookie).toBeUndefined();
+        expect(headers['x-tenant-secret']).toBeUndefined();
+        expect(headers['x-tenant-config']).toBeUndefined();
+      }
+    );
+  });
+
+  test('10: one validator alone is sent alone', async () => {
+    await withServer(
+      (_req, res) => {
+        res.writeHead(304);
+        res.end();
+      },
+      async (base, received) => {
+        await getApplicationTemplateCatalogFile({
+          url: `${base}/a`,
+          ifNoneMatch: '"only"',
+          state: StateImpl({}),
+        });
+        await getApplicationTemplateCatalogFile({
+          url: `${base}/b`,
+          ifModifiedSince: 'Thu, 12 Nov 2026 23:34:04 GMT',
+          state: StateImpl({}),
+        });
+        expect(received[0].headers['if-none-match']).toBe('"only"');
+        expect(received[0].headers['if-modified-since']).toBeUndefined();
+        expect(received[1].headers['if-none-match']).toBeUndefined();
+        expect(received[1].headers['if-modified-since']).toBe(
+          'Thu, 12 Nov 2026 23:34:04 GMT'
+        );
+      }
+    );
+  });
+
+  test('11: a 304 to a request that had no validators is an error', async () => {
+    await withServer(
+      (_req, res) => {
+        res.writeHead(304);
+        res.end();
+      },
+      async (base) => {
+        await expect(
+          getApplicationTemplateCatalogFile({
+            url: `${base}/appTemplates.json.gz`,
+            state: StateImpl({}),
+          })
+        ).rejects.toThrow(
+          '304 Not Modified to a request that had no validators'
+        );
+      }
+    );
+  });
+
+  test('12: a validator that is not safe as a header value is left out, so the request is unconditional', async () => {
+    await withServer(
+      (_req, res) => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(catalogJson);
+      },
+      async (base, received) => {
+        const file = await getApplicationTemplateCatalogFile({
+          url: `${base}/appTemplates.json.gz`,
+          ifNoneMatch: '"x"\r\nX-Injected: 1',
+          ifModifiedSince: 'x'.repeat(300),
+          state: StateImpl({}),
+        });
+        expect(file.notModified).toBe(false);
+        expect(file.data.toString('utf8')).toBe(catalogJson);
+        expect(received[0].headers['if-none-match']).toBeUndefined();
+        expect(received[0].headers['if-modified-since']).toBeUndefined();
+        expect(received[0].headers['x-injected']).toBeUndefined();
+      }
+    );
+  });
+
+  test('13: a 200 to a conditional request is a download, not notModified', async () => {
+    await withServer(
+      (_req, res) => {
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          ETag: '"new"',
+        });
+        res.end(catalogJson);
+      },
+      async (base) => {
+        const file = await getApplicationTemplateCatalogFile({
+          url: `${base}/appTemplates.json.gz`,
+          ifNoneMatch: '"old"',
+          state: StateImpl({}),
+        });
+        expect(file.notModified).toBe(false);
+        expect(file.etag).toBe('"new"');
+        expect(file.data.toString('utf8')).toBe(catalogJson);
+      }
+    );
+  });
+
+  test('14: other statuses still reject on a conditional request', async () => {
+    await withServer(
+      (_req, res) => {
+        res.writeHead(412);
+        res.end();
+      },
+      async (base) => {
+        await expect(
+          getApplicationTemplateCatalogFile({
+            url: `${base}/appTemplates.json.gz`,
+            ifNoneMatch: '"old"',
+            state: StateImpl({}),
+          })
+        ).rejects.toMatchObject({ name: 'AxiosError' });
+      }
+    );
+  });
 });
