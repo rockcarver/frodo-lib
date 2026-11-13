@@ -149,7 +149,12 @@ export type IdmFeature = {
    * compared with what was written, and a difference stops the run with a FrodoError; so does a tenant that no longer
    * looks as it did when the plan was made. The enable action is run only if the registry reads the feature installed
    * (after aligning the definitions if the plan says so). If a step fails after definitions were aligned they are put
-   * back before the error is thrown, unless the plan keeps them aligned.
+   * back before the error is thrown, unless the plan keeps them aligned (that is decided by what this run aligned, not by
+   * the steps the plan still has). A plan carries no binding to a tenant; that is safe because every step reads the
+   * tenant again and recomputes against the shipped original definitions, so a plan made for one tenant can only align
+   * the same cosmetic differences, delete a mapping that still points to no ESV secret, create a provider that is still
+   * missing, or set the authentication service of a provider that still has none, and anything else in it is refused. The option
+   * `keepAligned` of the plan is data too: editing it only leaves the definitions aligned, and the result says so.
    *
    * With `wait` the repair polls until AM accepts AI agents in the realms it enabled and returns as soon as it does, for
    * at most `timeout` milliseconds (default 1,200,000, 20 minutes): the effect of the enable action can need minutes.

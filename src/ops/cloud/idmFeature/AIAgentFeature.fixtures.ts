@@ -295,15 +295,21 @@ export function fakeRepairTenant(state: FakeRepairState): {
       write(`putProvider:${realm}`, () => {
         state.providers[realm] = clone(provider) as never;
       }),
-    deleteSecretMapping: (realm, storeId, _typeId, secretId) =>
+    deleteSecretMapping: (realm, storeId, typeId, secretId) =>
       write(`deleteSecretMapping:${realm}:${secretId}`, () => {
-        for (const store of state.secretStores[realm] ?? []) {
-          if (store.storeId === storeId) {
-            store.mappings = store.mappings.filter(
-              (mapping) => mapping.secretId !== secretId
-            );
-          }
+        const store = (state.secretStores[realm] ?? []).find(
+          (one) => one.storeId === storeId
+        );
+        // a store type that is not the store's is another resource path: the platform answers 404
+        if (!store || store.storeTypeId !== typeId) {
+          const error: any = new Error('Request failed with status code 404');
+          error.name = 'AxiosError';
+          error.response = { status: 404, data: { code: 404 } };
+          throw error;
         }
+        store.mappings = store.mappings.filter(
+          (mapping) => mapping.secretId !== secretId
+        );
       }),
     enableFeature: () =>
       write('enableFeature', () => {

@@ -364,7 +364,15 @@ export async function repairAIAgentFeature(
    * the shipped reference: what a restore puts back. Never taken from the plan.
    */
   let alignedDifferences: AIAgentDefinitionDifference[] | undefined;
+  /** The configurations (`managed`, `repo.ds`) that a write of the alignment succeeded for in this run. */
+  const alignedConfigs = new Set<'managed' | 'repo.ds'>();
+  /** The configurations that were put back. */
+  const restoredConfigs = new Set<'managed' | 'repo.ds'>();
+  /** A write of the alignment failed and the tenant could not be read to find out whether it took effect. */
+  let alignmentUncertain = false;
   let restoreTried = false;
+  /** The restore step of the plan ran or was skipped (so nothing is left to settle at the end). */
+  let restoreHandled = false;
   let esvSecretIds: Set<string> | undefined;
 
   const report = (
@@ -389,7 +397,8 @@ export async function repairAIAgentFeature(
   /** Write the managed and repo.ds configuration the differences touch, read both back, check the side. */
   const writeDifferences = async (
     differences: AIAgentDefinitionDifference[],
-    side: 'expected' | 'actual'
+    side: 'expected' | 'actual',
+    written?: Set<'managed' | 'repo.ds'>
   ) => {
     const { managed, repoDs } = await readBoth();
     const newManaged = clone(managed);
@@ -397,9 +406,11 @@ export async function repairAIAgentFeature(
     applyDifferences(newManaged, newRepoDs, differences, side);
     if (differences.some((difference) => difference.config === 'managed')) {
       await tenant.putManagedConfig(newManaged);
+      written?.add('managed');
     }
     if (differences.some((difference) => difference.config === 'repo.ds')) {
       await tenant.putRepoDs(newRepoDs);
+      written?.add('repo.ds');
     }
     const back = await readBoth();
     const off = differencesNotOnSide(
@@ -422,11 +433,140 @@ export async function repairAIAgentFeature(
     }
   };
 
+  /** Why the definitions could not be put back, if that was tried and failed. */
+  let restoreFailure: unknown;
+
+  /** The aligned differences of the configurations the alignment reached: what there is to put back. */
+  const writtenDifferences = () =>
+    (alignedDifferences ?? []).filter((difference) =>
+      alignedConfigs.has(difference.config)
+    );
+
+  /** What the alignment reached and the restore has not put back (yet). */
+  const remainingDifferences = () =>
+    writtenDifferences().filter(
+      (difference) => !restoredConfigs.has(difference.config)
+    );
+
+  /**
+   * After a failed write of the alignment, the tenant says which configurations are aligned, not the answer of the
+   * write: a write can be applied and its answer lost (a timeout, a dropped connection). If the tenant cannot be read
+   * either, both configurations are taken as possibly aligned: putting the original values back is then the safe thing.
+   */
+  const learnWhatWasWritten = async (
+    differences: AIAgentDefinitionDifference[]
+  ) => {
+    try {
+      const { managed, repoDs } = await readBoth();
+      for (const config of ['managed', 'repo.ds'] as const) {
+        const own = differences.filter((one) => one.config === config);
+        if (
+          own.length &&
+          differencesNotOnSide(managed, repoDs, own, 'expected').length <
+            own.length
+        ) {
+          alignedConfigs.add(config);
+        }
+      }
+    } catch {
+      for (const difference of differences)
+        alignedConfigs.add(difference.config);
+      alignmentUncertain = true;
+    }
+  };
+
   const restore = async () => {
     restoreTried = true;
-    if (alignedDifferences) {
-      await writeDifferences(alignedDifferences, 'actual');
+    const toPutBack = writtenDifferences();
+    // nothing was aligned, nothing to put back (and no pointless write of an unchanged configuration)
+    for (const config of ['managed', 'repo.ds'] as const) {
+      const own = toPutBack.filter(
+        (difference) => difference.config === config
+      );
+      if (!own.length) continue;
+      try {
+        await writeDifferences(own, 'actual');
+        restoredConfigs.add(config);
+      } catch (error) {
+        restoreFailure = error;
+        throw error;
+      }
     }
+  };
+
+  const restoreStepOf = (): IdmFeatureRepairStep =>
+    plan.steps.find((one) => one.id === 'restore-definitions') ?? {
+      id: 'restore-definitions',
+      description: 'Put the customised definitions back.',
+      writes: true,
+      details: {},
+    };
+
+  /**
+   * The definitions this run aligned are put back, unless the caller keeps them aligned: decided by what the run did
+   * and by `keepAligned`, not by the steps the plan still has. Reported as a step of the result. Returns why the
+   * definitions could not be put back, if that was tried and failed.
+   */
+  const settleDefinitions = async (
+    after: 'a failure' | 'the last step'
+  ): Promise<unknown> => {
+    if (!aligned || restoreTried || restoreHandled) return undefined;
+    restoreHandled = true;
+    // nothing was aligned: there is nothing to put back and nothing to keep aligned
+    if (!writtenDifferences().length) return undefined;
+    const restoreStep = restoreStepOf();
+    if (keepAligned) {
+      report(
+        restoreStep,
+        'skipped',
+        `The definitions stay aligned with the original, as asked; the registry reads version ${AI_AGENT_FEATURE_REFERENCE_VERSION} installed while they do.`
+      );
+      return undefined;
+    }
+    try {
+      await restore();
+      report(
+        restoreStep,
+        'done',
+        after === 'a failure'
+          ? 'Put the customised definitions back after the failure.'
+          : 'Put the customised definitions back (the plan had no step for it).'
+      );
+    } catch (failure) {
+      report(
+        restoreStep,
+        'failed',
+        `Could not put the customised definitions back: ${describeFailure(failure).message}`
+      );
+      return failure;
+    }
+    return undefined;
+  };
+
+  /** The error for definitions that could not be put back: it says in which state the tenant is, and names them. */
+  const notPutBack = (
+    what: string,
+    cause: unknown,
+    restoreError: unknown
+  ): FrodoError => {
+    const remaining = remainingDifferences();
+    const named = remaining.map((difference) =>
+      `${difference.object} ${difference.location}`.trim()
+    );
+    const all = new Set((alignedDifferences ?? []).map((one) => one.config));
+    const still = new Set(remaining.map((one) => one.config));
+    const state =
+      still.size < all.size
+        ? `partly aligned with the original (${[...still].map((one) => `config/${one}`).join(' and ')} only)`
+        : alignmentUncertain
+          ? 'possibly still aligned with the original (a write of the alignment failed and the configuration could not be read back)'
+          : 'still aligned with the original';
+    return new FrodoError(
+      `Error repairing IDM feature ${AI_AGENT_FEATURE_ID}: ${what} The definitions are ${state} and were not put back (${named.join('; ')}); the backup of the plan holds the customised values.`,
+      restoreError === cause
+        ? (cause as Error)
+        : [cause as Error, restoreError as Error]
+    );
   };
 
   /** A realm of a step is one the feature is installed for: a plan is data that somebody can have edited. */
@@ -471,16 +611,21 @@ export async function repairAIAgentFeature(
       : (step.realm as string);
     switch (step.id) {
       case 'delete-secret-mapping': {
-        const { storeId, storeTypeId, secretId } = step.details as {
+        // the plan names the mapping; the type of the store is read from the tenant, not taken from the plan
+        const { storeId, secretId } = step.details as {
           storeId: string;
-          storeTypeId: string;
           secretId: string;
         };
-        const find = async () =>
-          (await tenant.readSecretStoreMappings(realm))
-            .filter((store) => store.storeId === storeId)
-            .flatMap((store) => store.mappings)
-            .find((mapping) => mapping.secretId === secretId);
+        const find = async () => {
+          for (const store of await tenant.readSecretStoreMappings(realm)) {
+            if (store.storeId !== storeId) continue;
+            const mapping = store.mappings.find(
+              (one) => one.secretId === secretId
+            );
+            if (mapping) return { mapping, storeTypeId: store.storeTypeId };
+          }
+          return undefined;
+        };
         const current = await find();
         if (!current) {
           return {
@@ -490,7 +635,7 @@ export async function repairAIAgentFeature(
         }
         const known = await readEsvSecrets();
         if (
-          current.aliases.some(
+          current.mapping.aliases.some(
             (alias) => known.has(alias) || known.has(`esv-${alias}`)
           )
         ) {
@@ -498,7 +643,12 @@ export async function repairAIAgentFeature(
             `The mapping ${secretId} points to an ESV secret that exists now; the plan is out of date.`
           );
         }
-        await tenant.deleteSecretMapping(realm, storeId, storeTypeId, secretId);
+        await tenant.deleteSecretMapping(
+          realm,
+          storeId,
+          current.storeTypeId,
+          secretId
+        );
         if (await find()) {
           throw new Error(
             `The mapping ${secretId} is still in the secret store ${storeId} after it was deleted.`
@@ -602,7 +752,12 @@ export async function repairAIAgentFeature(
         }
         alignedDifferences = fresh;
         aligned = true; // from the first write on, a failure puts the definitions back
-        await writeDifferences(fresh, 'expected');
+        try {
+          await writeDifferences(fresh, 'expected', alignedConfigs);
+        } catch (error) {
+          await learnWhatWasWritten(fresh);
+          throw error;
+        }
         const feature = await tenant.readFeature();
         if (feature.installedVersion !== AI_AGENT_FEATURE_REFERENCE_VERSION) {
           throw new Error(
@@ -705,12 +860,25 @@ export async function repairAIAgentFeature(
       }
 
       case 'restore-definitions': {
+        restoreHandled = true;
         // the values to put back were read from the tenant when the alignment started in this run, not from the plan
-        if (!alignedDifferences) {
+        if (!writtenDifferences().length) {
           return {
             status: 'skipped',
             message:
               'The definitions were not aligned in this run: there is nothing to put back.',
+          };
+        }
+        if (restoreTried) {
+          return {
+            status: 'skipped',
+            message: 'The customised definitions were put back already.',
+          };
+        }
+        if (keepAligned) {
+          return {
+            status: 'skipped',
+            message: `The definitions stay aligned with the original, as asked; the registry reads version ${AI_AGENT_FEATURE_REFERENCE_VERSION} installed while they do.`,
           };
         }
         await restore();
@@ -744,32 +912,30 @@ export async function repairAIAgentFeature(
       report(step, outcome.status, outcome.message);
     } catch (error) {
       report(step, 'failed', describeFailure(error).message);
-      const restoreStep = plan.steps.find(
-        (one) => one.id === 'restore-definitions'
-      );
-      if (aligned && !keepAligned && !restoreTried && restoreStep) {
-        try {
-          await restore();
-          report(
-            restoreStep,
-            'done',
-            'Put the customised definitions back after the failure.'
-          );
-        } catch (restoreError) {
-          report(
-            restoreStep,
-            'failed',
-            `Could not put the customised definitions back: ${describeFailure(restoreError).message}`
-          );
-        }
-      }
+      // the step that failed was the restore itself, or the definitions are put back now
+      const restoreError =
+        restoreFailure ?? (await settleDefinitions('a failure'));
+      if (restoreError) throw notPutBack(step.description, error, restoreError);
       throw new FrodoError(
-        `Error repairing IDM feature ${AI_AGENT_FEATURE_ID}: ${step.description}`,
+        `Error repairing IDM feature ${AI_AGENT_FEATURE_ID}: ${step.description}${
+          alignedDifferences && alignedConfigs.size === 0
+            ? ' The definitions were not changed: the tenant does not hold what the alignment wrote.'
+            : ''
+        }`,
         error as Error
       );
     }
   }
 
+  // a plan whose restore step was taken out still gets its definitions put back (or reported as kept aligned)
+  const restoredBefore = restoreTried;
+  const restoreError = await settleDefinitions('the last step');
+  if (restoreError) {
+    throw notPutBack(restoreStepOf().description, restoreError, restoreError);
+  }
+  if (restoreTried && !restoredBefore) {
+    diagnosis = await diagnoseAIAgentFeature(tenant);
+  }
   diagnosis ??= await diagnoseAIAgentFeature(tenant);
   return {
     featureId: AI_AGENT_FEATURE_ID,
