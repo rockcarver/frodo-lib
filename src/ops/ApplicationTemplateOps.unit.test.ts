@@ -1120,3 +1120,219 @@ describe('readCatalog: the channel', () => {
     }
   );
 });
+
+describe('readCatalog: nesting', () => {
+  /** A catalog whose one template holds a list nested `levels` deep. Built without recursion. */
+  const nestedText = (levels: number) =>
+    '{"AppTemplates":{"consumer":{"Web":{"1_0-web":{"id":"web","templateVersion":"1.0","deep":' +
+    '['.repeat(levels) +
+    ']'.repeat(levels) +
+    '}}},"enterprise":{}}}';
+  const nestedObject = (levels: number) => {
+    let deep: unknown[] = [];
+    for (let i = 1; i < levels; i++) deep = [deep];
+    return {
+      AppTemplates: {
+        consumer: {
+          Web: { '1_0-web': { id: 'web', templateVersion: '1.0', deep } },
+        },
+        enterprise: {},
+      },
+    };
+  };
+  const tooDeep = (location: string) =>
+    `The application template catalog from ${location} is nested deeper than 100 levels`;
+
+  test('1: 100 levels are read, 101 are refused, naming the source', async () => {
+    // catalog (1), AppTemplates (2), consumer (3), Web (4), template (5), then the lists
+    await expect(
+      readCatalog({
+        options: { catalog: nestedText(95) },
+        state: newState(),
+      })
+    ).resolves.toBeDefined();
+    await expect(
+      readCatalog({
+        options: { catalog: nestedText(96) },
+        state: newState(),
+      })
+    ).rejects.toThrow(tooDeep('explicit catalog'));
+  });
+
+  test.each([
+    ['text', () => nestedText(20000)],
+    ['an object', () => nestedObject(20000)],
+    ['bytes', () => Buffer.from(nestedText(20000))],
+  ])(
+    '2: a catalog of 20,000 levels given as %s is refused with a FrodoError',
+    async (_name, make) => {
+      const state = newState();
+      for (const read of [
+        () => readCatalog({ options: { catalog: make() as any }, state }),
+        () =>
+          listTemplates({
+            options: { catalog: make() as any, includeOverrides: false },
+            state,
+          }),
+        () =>
+          readTemplate({
+            application: { templateName: 'web', templateVersion: '1.0' },
+            options: { catalog: make() as any, includeOverrides: false },
+            state,
+          }),
+      ]) {
+        const error = await read().catch((e) => e);
+        expect(error).toBeInstanceOf(FrodoError);
+        expect(error).not.toBeInstanceOf(RangeError);
+        expect(error.message).toBe(tooDeep('explicit catalog'));
+      }
+    }
+  );
+
+  test('3: a download of 20,000 levels is refused naming the url, and it is not kept', async () => {
+    const state = newState();
+    const url = 'https://mirror.example.com/c.gz';
+    getCatalogFile.mockResolvedValue({
+      data: Buffer.from(nestedText(20000)),
+    });
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const error = await readCatalog({ options: { url }, state }).catch(
+        (e) => e
+      );
+      expect(error).toBeInstanceOf(FrodoError);
+      expect(error).not.toBeInstanceOf(RangeError);
+      expect(error.message).toBe(tooDeep(url));
+      // nothing was kept, so the url is requested again every time
+      expect(getCatalogFile).toHaveBeenCalledTimes(attempt);
+    }
+    // and the state still reads a catalog that is fine
+    getCatalogFile.mockResolvedValue(fileOf(syntheticCatalog()));
+    await expect(
+      readCatalog({ options: { url }, state })
+    ).resolves.toBeDefined();
+    await expect(
+      readTemplate({
+        application: { templateName: 'saml', templateVersion: '1.2' },
+        options: { url, includeOverrides: false },
+        state,
+      })
+    ).resolves.toMatchObject({ found: true });
+  });
+
+  test('4: a template of the tenant that is 20,000 levels deep is refused naming the template', async () => {
+    let deep: unknown[] = [];
+    for (let i = 1; i < 20000; i++) deep = [deep];
+    getOverrides.mockResolvedValue([
+      {
+        _id: 'appTemplate/deep',
+        id: 'deep',
+        templateVersion: '1.0',
+        deep,
+      },
+    ]);
+    const error = await readOverrides({ state: newState() }).catch((e) => e);
+    expect(error).toBeInstanceOf(FrodoError);
+    expect(error.message).toBe(
+      'Error reading the application templates of the tenant'
+    );
+    expect(error.originalErrors[0].message).toBe(
+      'The application template appTemplate/deep of the tenant is nested deeper than 100 levels'
+    );
+  });
+});
+
+describe('readCatalog: the fields a list item copies', () => {
+  const withFields = (fields: object) => ({
+    AppTemplates: {
+      consumer: {
+        Web: {
+          '1_0-web': { id: 'web', templateVersion: '1.0', ...fields },
+        },
+      },
+      enterprise: {},
+    },
+  });
+
+  test.each([
+    ['displayName', { en: 'Web' }],
+    ['displayName', ['Web']],
+    ['displayName', 3],
+    ['displayName', null],
+    ['templateType', { a: 1 }],
+    ['templateType', false],
+    ['dateUpdated', {}],
+    ['dateUpdated', 20250101],
+  ])(
+    '1: a %s that is %j throws and names the source and the entry',
+    async (field, value) => {
+      const error = await listTemplates({
+        options: {
+          catalog: withFields({ [field]: value }) as any,
+          includeOverrides: false,
+        },
+        state: newState(),
+      }).catch((e) => e);
+      expect(error).toBeInstanceOf(FrodoError);
+      expect(error.message).toBe(
+        `The application template catalog from explicit catalog is not in the expected format: AppTemplates.consumer.Web.1_0-web has a ${field} that is not text`
+      );
+    }
+  );
+
+  test('2: a download names the url', async () => {
+    getCatalogFile.mockResolvedValue(
+      fileOf(withFields({ displayName: { en: 'Web' } }))
+    );
+    await expect(readCatalog({ state: newState() })).rejects.toThrow(
+      `The application template catalog from ${CDN.production} is not in the expected format: AppTemplates.consumer.Web.1_0-web has a displayName that is not text`
+    );
+  });
+
+  test('3: fields that are absent or text are fine', async () => {
+    const items = await listTemplates({
+      options: {
+        catalog: withFields({
+          displayName: 'Web',
+          templateType: 'Consumer',
+        }) as any,
+        includeOverrides: false,
+      },
+      state: newState(),
+    });
+    expect(items[0]).toMatchObject({
+      displayName: 'Web',
+      templateType: 'Consumer',
+      dateUpdated: undefined,
+    });
+  });
+
+  test('4: a template of the tenant whose fields are not text is listed without them, and no item holds an object of the tenant data', async () => {
+    const display = { en: 'Mine' };
+    getOverrides.mockResolvedValue([
+      {
+        _id: 'appTemplate/mine',
+        id: 'mine',
+        templateVersion: '1.0',
+        displayName: display,
+        templateType: 3,
+        dateUpdated: ['x'],
+      },
+    ]);
+    const items = await listTemplates({
+      options: { catalog: syntheticCatalog() },
+      state: newState(),
+    });
+    const mine = items.find((i) => i.name === 'mine');
+    expect(mine).toMatchObject({
+      isOverride: true,
+      displayName: undefined,
+      templateType: undefined,
+      dateUpdated: undefined,
+    });
+    for (const item of items) {
+      for (const value of Object.values(item)) {
+        expect(typeof value === 'object' && value !== null).toBe(false);
+      }
+    }
+  });
+});
