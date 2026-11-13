@@ -990,11 +990,19 @@ describe('a plan is data that somebody can have edited', () => {
   });
 
   test('a step for a realm the feature is not installed for is refused', async () => {
-    const { tenant, plan, writes } = await brokenPlan();
+    const { state, tenant, plan, writes } = await brokenPlan();
+    // everything else would succeed in that realm: only the check of the realm stops the step
+    state.authServices.root = ['Login'];
     step(plan, 'create-provider').realm = 'root';
-    await expect(
-      repairAIAgentFeature(tenant, plan, {}, fakeClock().clock)
-    ).rejects.toThrow('Error repairing IDM feature aiagent');
+    const error = await repairAIAgentFeature(
+      tenant,
+      plan,
+      {},
+      fakeClock().clock
+    ).catch((e) => e);
+    expect(error.getCombinedMessage()).toContain(
+      'the realm root, which the feature is not installed for'
+    );
     expect(writes).toEqual([]);
   });
 
