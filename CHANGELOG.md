@@ -10,6 +10,11 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-43] - 2026-11-13
+
+### Changed
+- `repairIdmFeature` is now classified as a critical, destructive MCP capability, restricted to the `admin` policy preset. This change ensures that only users with the highest level of access can execute this potentially disruptive operation. The classification for `planIdmFeatureRepair` and `diagnoseIdmFeature` remains unchanged. (#1070)
+
 ## [v5.0.0-42] - 2026-11-13
 
 ### Added
@@ -2993,6 +2998,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-43]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-42...v5.0.0-43
 [v5.0.0-42]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-41...v5.0.0-42
 [v5.0.0-41]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-40...v5.0.0-41
 [v5.0.0-40]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-39...v5.0.0-40
