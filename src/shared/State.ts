@@ -133,6 +133,24 @@ export type State = {
   getAdminClientRedirectUri(): string;
   setAllowInsecureConnection(allowInsecureConnection: boolean): void;
   getAllowInsecureConnection(): boolean;
+  /**
+   * Turn air-gapped mode on or off. While it is on, the library makes no
+   * request to a host that the caller did not name: the tenant the state is
+   * connected to is not affected, but a function that would download from a
+   * public host on its own (for example the default source of the application
+   * template catalog) fails with an error instead, and says that the data must
+   * be given explicitly. A caller that names a host itself (for example the
+   * URL of a mirror) is not blocked. Off by default and not persisted: the
+   * state does not read it from the environment, a connection profile or a
+   * file, so the caller (frodo-cli, the MCP server) decides every time.
+   * @param {boolean} airGapped true to turn air-gapped mode on
+   */
+  setAirGapped(airGapped: boolean): void;
+  /**
+   * Whether air-gapped mode is on (see `setAirGapped`).
+   * @returns {boolean} true if `setAirGapped(true)` was called
+   */
+  getAirGapped(): boolean;
   setCookieName(name: string): void;
   getCookieName(): string;
   setUserSessionTokenMeta(value: UserSessionMetaType): void;
@@ -532,6 +550,12 @@ export default (initialState: StateInterface): State => {
     },
     getAllowInsecureConnection() {
       return state.allowInsecureConnection;
+    },
+    setAirGapped(airGapped: boolean) {
+      state.airGapped = airGapped;
+    },
+    getAirGapped() {
+      return state.airGapped === true;
     },
 
     setCookieName(name: string) {
@@ -1044,6 +1068,7 @@ export interface StateInterface {
   adminClientId?: string;
   adminClientRedirectUri?: string;
   allowInsecureConnection?: boolean;
+  airGapped?: boolean;
   // customize authentication
   authenticationHeaderOverrides?: Record<string, string>;
   authenticationService?: string;
