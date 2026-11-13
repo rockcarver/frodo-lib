@@ -33,6 +33,7 @@
  * temporary home. A test that must not see this (there is none today) can set
  * its own `os.homedir`.
  */
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -42,11 +43,18 @@ const path = require('path');
 const current = os.homedir;
 const originalHomedir = current.frodoTestOriginal || current;
 
-const testHome = fs.mkdtempSync(
-  path.join(fs.realpathSync(os.tmpdir()), 'frodo-test-home-')
+// The directory is made the first time something asks for the home, not
+// before: a test file that does not run (a skipped suite) never gets to its
+// afterAll, and would leave an empty directory behind.
+const testHome = path.join(
+  fs.realpathSync(os.tmpdir()),
+  `frodo-test-home-${crypto.randomBytes(6).toString('hex')}`
 );
 
-const replacement = () => testHome;
+const replacement = () => {
+  fs.mkdirSync(testHome, { recursive: true });
+  return testHome;
+};
 replacement.frodoTestOriginal = originalHomedir;
 
 const saved = {
