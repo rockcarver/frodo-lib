@@ -1,5 +1,6 @@
 import { gunzipSync } from 'zlib';
 import {
+  APP_TEMPLATE_CATALOG_MAX_DOWNLOAD_BYTES,
   APP_TEMPLATE_CATALOG_URLS,
   getApplicationTemplateCatalogFile,
   getApplicationTemplateOverrides,
@@ -98,7 +99,15 @@ export type ApplicationTemplateCatalogOptions = {
    * bytes of the file (gzip or plain JSON). Nothing is requested.
    */
   catalog?: ApplicationTemplateCatalog | string | Uint8Array;
-  /** An http(s) URL the caller names, for example a mirror. It is requested without any credential of the tenant. */
+  /**
+   * An http(s) URL the caller names, for example a mirror of the catalog. Any
+   * host is accepted, on purpose: it is meant for a location the caller
+   * chooses, such as a mirror on a private network. Redirects are followed. It
+   * is requested without any credential of the tenant, and it is allowed in
+   * air-gapped mode, because the caller named it. A tool that passes arguments
+   * on behalf of someone else (the MCP tools of the library do not offer
+   * `url`, `catalog` or `refresh`) must not let that party choose it.
+   */
   url?: string;
   /** Which catalog of the CDN to read when neither `catalog` nor `url` is given. Default: `production`. */
   channel?: ApplicationTemplateCatalogChannel;
@@ -173,6 +182,14 @@ const OVERRIDE_SUFFIX = '-override';
 
 /** The source name of a catalog that the caller handed over. */
 const EXPLICIT_LOCATION = 'explicit catalog';
+
+/** The most a catalog may be once decompressed. The real catalog is about 1.5 MB. */
+const MAX_CATALOG_BYTES = 32 * 1024 * 1024;
+
+/** The most gzip layers a catalog file may be wrapped in. The real file has two: the stored file and the transport. */
+const MAX_GZIP_LAYERS = 2;
+
+const megabytes = (bytes: number): string => `${bytes / (1024 * 1024)} MB`;
 
 export type ApplicationTemplate = {
   /**
@@ -290,34 +307,80 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
+function catalogTooLarge(location: string, what: string): FrodoError {
+  return new FrodoError(
+    `The application template catalog from ${location} is larger than ${megabytes(MAX_CATALOG_BYTES)}${what}`
+  );
+}
+
 /**
  * Turn the bytes of a catalog file into text. The file is stored compressed on
- * the CDN, and the transport compresses it again, so the body can be gzip more
- * than once; a body that is already plain is taken as it is.
+ * the CDN, and the transport compresses it again, so the body can be gzip
+ * twice; a body that is already plain is taken as it is. The size of the text
+ * and the number of layers are limited, so that a small file cannot expand
+ * into memory without bound.
  */
-function decodeBytes(bytes: Uint8Array): string {
+function decodeBytes(bytes: Uint8Array, location: string): string {
+  if (bytes.length > MAX_CATALOG_BYTES) {
+    throw catalogTooLarge(location, '');
+  }
   let buffer = Buffer.from(bytes);
-  for (let layer = 0; layer < 4 && isGzip(buffer); layer++) {
-    buffer = gunzipSync(buffer);
+  let layers = 0;
+  while (isGzip(buffer)) {
+    if (layers === MAX_GZIP_LAYERS) {
+      throw new FrodoError(
+        `The application template catalog from ${location} is compressed more than ${MAX_GZIP_LAYERS} times`
+      );
+    }
+    try {
+      buffer = gunzipSync(buffer, { maxOutputLength: MAX_CATALOG_BYTES });
+    } catch (error) {
+      if ((error as { code?: string }).code === 'ERR_BUFFER_TOO_LARGE') {
+        throw catalogTooLarge(location, ' when decompressed');
+      }
+      throw new FrodoError(
+        `The application template catalog from ${location} could not be decompressed`,
+        error as Error
+      );
+    }
+    layers++;
   }
   return buffer.toString('utf8');
 }
 
-function describeGroups(
+function validateGroups(
   tier: string,
   groups: unknown,
   location: string
 ): ApplicationTemplateGroups {
-  if (!isObject(groups)) {
-    throw new FrodoError(
-      `The application template catalog from ${location} is not in the expected format: AppTemplates.${tier} is missing`
+  const notExpected = (reason: string): FrodoError =>
+    new FrodoError(
+      `The application template catalog from ${location} is not in the expected format: ${reason}`
     );
+  if (!isObject(groups)) {
+    throw notExpected(`AppTemplates.${tier} is missing`);
   }
   for (const [group, templates] of Object.entries(groups)) {
     if (!isObject(templates)) {
-      throw new FrodoError(
-        `The application template catalog from ${location} is not in the expected format: AppTemplates.${tier}.${group} is not a list of templates`
+      throw notExpected(
+        `AppTemplates.${tier}.${group} is not a list of templates`
       );
+    }
+    for (const [key, template] of Object.entries(templates)) {
+      const at = `AppTemplates.${tier}.${group}.${key}`;
+      if (!isObject(template)) {
+        throw notExpected(`${at} is not a template`);
+      }
+      if (typeof template.id !== 'string' || template.id === '') {
+        throw notExpected(`${at} has no id`);
+      }
+      if (
+        (typeof template.templateVersion !== 'string' &&
+          typeof template.templateVersion !== 'number') ||
+        String(template.templateVersion) === ''
+      ) {
+        throw notExpected(`${at} has no templateVersion`);
+      }
     }
   }
   return groups as ApplicationTemplateGroups;
@@ -336,8 +399,8 @@ function validateCatalog(
       `The application template catalog from ${location} is not in the expected format: AppTemplates is missing`
     );
   }
-  describeGroups('consumer', value.AppTemplates.consumer, location);
-  describeGroups('enterprise', value.AppTemplates.enterprise, location);
+  validateGroups('consumer', value.AppTemplates.consumer, location);
+  validateGroups('enterprise', value.AppTemplates.enterprise, location);
   return value as ApplicationTemplateCatalog;
 }
 
@@ -346,11 +409,14 @@ function parseCatalog(
   location: string
 ): ApplicationTemplateCatalog {
   if (typeof input === 'string' || input instanceof Uint8Array) {
+    if (typeof input === 'string' && input.length > MAX_CATALOG_BYTES) {
+      throw catalogTooLarge(location, '');
+    }
+    const text =
+      typeof input === 'string' ? input : decodeBytes(input, location);
     let parsed: unknown;
     try {
-      parsed = JSON.parse(
-        typeof input === 'string' ? input : decodeBytes(input)
-      );
+      parsed = JSON.parse(text);
     } catch (error) {
       throw new FrodoError(
         `The application template catalog from ${location} could not be read as JSON`,
@@ -374,14 +440,34 @@ export async function readCatalog({
   options?: ApplicationTemplateCatalogOptions;
   state: State;
 }): Promise<ApplicationTemplateCatalogResult> {
+  const { result, shared } = await loadCatalog({ options, state });
+  // a catalog the state keeps is never handed out: the caller may change what
+  // it gets, and the next read must not see that
+  return shared ? structuredClone(result) : result;
+}
+
+/**
+ * Load the catalog. `shared` is true when the result is the object the state
+ * keeps, which the caller must not change or hand out.
+ */
+async function loadCatalog({
+  options = {},
+  state,
+}: {
+  options?: ApplicationTemplateCatalogOptions;
+  state: State;
+}): Promise<{ result: ApplicationTemplateCatalogResult; shared: boolean }> {
   const { catalog, url, channel = 'production', refresh = false } = options;
   if (catalog !== undefined && catalog !== null) {
     return {
-      catalog: parseCatalog(catalog, EXPLICIT_LOCATION),
-      metadata: {
-        source: { kind: 'explicit', location: EXPLICIT_LOCATION },
-        cached: false,
+      result: {
+        catalog: parseCatalog(catalog, EXPLICIT_LOCATION),
+        metadata: {
+          source: { kind: 'explicit', location: EXPLICIT_LOCATION },
+          cached: false,
+        },
       },
+      shared: false,
     };
   }
   let source: ApplicationTemplateCatalogSource;
@@ -402,9 +488,9 @@ export async function readCatalog({
     }
     source = { kind: 'url', location: url };
   } else {
-    if (!(channel in APP_TEMPLATE_CATALOG_URLS)) {
+    if (!Object.hasOwn(APP_TEMPLATE_CATALOG_URLS, channel)) {
       throw new FrodoError(
-        `Unknown application template catalog channel ${String(channel)}`
+        `Unknown application template catalog channel ${JSON.stringify(String(channel))}: expected ${Object.keys(APP_TEMPLATE_CATALOG_URLS).join(' or ')}`
       );
     }
     source = {
@@ -429,8 +515,11 @@ export async function readCatalog({
   const earlier = kept.get(source.location);
   if (earlier && !refresh) {
     return {
-      catalog: earlier.catalog,
-      metadata: { ...earlier.metadata, cached: true },
+      result: {
+        catalog: earlier.catalog,
+        metadata: { ...earlier.metadata, cached: true },
+      },
+      shared: true,
     };
   }
 
@@ -441,6 +530,15 @@ export async function readCatalog({
       state,
     });
   } catch (error) {
+    // axios names the option that it enforced
+    if (
+      /maxContentLength|maxBodyLength/.test((error as Error)?.message ?? '')
+    ) {
+      throw new FrodoError(
+        `The application template catalog from ${source.location} is larger than ${megabytes(APP_TEMPLATE_CATALOG_MAX_DOWNLOAD_BYTES)}`,
+        error as Error
+      );
+    }
     throw new FrodoError(
       `Error reading the application template catalog from ${source.location}`,
       error
@@ -457,7 +555,7 @@ export async function readCatalog({
     },
   };
   kept.set(source.location, result);
-  return result;
+  return { result, shared: true };
 }
 
 /**
@@ -608,7 +706,9 @@ async function readMerged({
   metadata: ApplicationTemplateCatalogMetadata;
 }> {
   const { includeOverrides = true } = options;
-  const { catalog, metadata } = await readCatalog({ options, state });
+  const {
+    result: { catalog, metadata },
+  } = await loadCatalog({ options, state });
   const overrides = includeOverrides ? await readOverrides({ state }) : [];
   return { items: mergeTemplates(catalog, overrides), metadata };
 }
@@ -681,7 +781,8 @@ export async function readTemplate({
     newestVersion: newest,
     isOverride: !!exact && exact.isOverride,
     source: exact ? (exact.isOverride ? 'override' : 'catalog') : undefined,
-    template: exact?.template,
-    catalog: metadata,
+    // copies: the template belongs to the catalog that the state keeps
+    template: exact ? structuredClone(exact.template) : undefined,
+    catalog: structuredClone(metadata),
   };
 }

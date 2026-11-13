@@ -14,6 +14,7 @@ import { AddressInfo } from 'net';
 import { gzipSync } from 'zlib';
 import StateImpl from '../shared/State';
 import {
+  APP_TEMPLATE_CATALOG_MAX_DOWNLOAD_BYTES,
   APP_TEMPLATE_CATALOG_URLS,
   getApplicationTemplateCatalogFile,
 } from './ApplicationTemplateApi';
@@ -162,6 +163,62 @@ describe('getApplicationTemplateCatalogFile', () => {
             state: StateImpl({}),
           })
         ).rejects.toMatchObject({ name: 'AxiosError' });
+      }
+    );
+  });
+
+  test('6: refuses a body over the limit', async () => {
+    expect(APP_TEMPLATE_CATALOG_MAX_DOWNLOAD_BYTES).toBe(16 * 1024 * 1024);
+    await withServer(
+      (_req, res) => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(Buffer.alloc(20 * 1024 * 1024, 0x20));
+      },
+      async (base) => {
+        await expect(
+          getApplicationTemplateCatalogFile({
+            url: `${base}/big.json`,
+            state: StateImpl({}),
+          })
+        ).rejects.toThrow(/maxContentLength/);
+      }
+    );
+  });
+
+  test('7: refuses a small body that the transport expands over the limit', async () => {
+    const bomb = gzipSync(Buffer.alloc(64 * 1024 * 1024));
+    expect(bomb.length).toBeLessThan(1024 * 1024);
+    await withServer(
+      (_req, res) => {
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Content-Encoding': 'gzip',
+        });
+        res.end(bomb);
+      },
+      async (base) => {
+        await expect(
+          getApplicationTemplateCatalogFile({
+            url: `${base}/bomb.json`,
+            state: StateImpl({}),
+          })
+        ).rejects.toThrow(/maxContentLength/);
+      }
+    );
+  });
+
+  test('8: reads a body that is just under the limit', async () => {
+    await withServer(
+      (_req, res) => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(Buffer.alloc(4 * 1024 * 1024, 0x20));
+      },
+      async (base) => {
+        const file = await getApplicationTemplateCatalogFile({
+          url: `${base}/ok.json`,
+          state: StateImpl({}),
+        });
+        expect(file.data.length).toBe(4 * 1024 * 1024);
       }
     );
   });

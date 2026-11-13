@@ -19,6 +19,12 @@ export const APP_TEMPLATE_CATALOG_URLS = {
     'https://cdn.forgerock.com/platform/app-templates-development/appTemplates.json.gz',
 } as const;
 
+/**
+ * The most that a response for the catalog may be, in bytes, once the transport
+ * has decoded it. The real catalog is about 1.5 MB decoded and 95 KB stored.
+ */
+export const APP_TEMPLATE_CATALOG_MAX_DOWNLOAD_BYTES = 16 * 1024 * 1024;
+
 /** The two catalogs of the CDN. */
 export type ApplicationTemplateCatalogChannel =
   keyof typeof APP_TEMPLATE_CATALOG_URLS;
@@ -65,6 +71,9 @@ export async function getApplicationTemplateCatalogFile({
     // stream (stored compressed), so no parsing must happen here
     transformResponse: [(data) => data],
     headers: { Accept: '*/*' },
+    // a host that is not the tenant can send anything: bound what is read
+    maxContentLength: APP_TEMPLATE_CATALOG_MAX_DOWNLOAD_BYTES,
+    maxBodyLength: APP_TEMPLATE_CATALOG_MAX_DOWNLOAD_BYTES,
   });
   const header = (name: string): string | undefined => {
     const value = response.headers?.[name];

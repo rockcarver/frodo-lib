@@ -14,6 +14,7 @@ const getOverrides = jest.fn(async (_args?: any): Promise<any> => []);
 
 jest.unstable_mockModule('../api/ApplicationTemplateApi', () => ({
   APP_TEMPLATE_CATALOG_URLS: CDN,
+  APP_TEMPLATE_CATALOG_MAX_DOWNLOAD_BYTES: 16 * 1024 * 1024,
   APP_TEMPLATE_OVERRIDE_TYPE: 'appTemplate',
   getApplicationTemplateCatalogFile: getCatalogFile,
   getApplicationTemplateOverrides: getOverrides,
@@ -280,7 +281,9 @@ describe('readCatalog: the default source', () => {
   test('3: an unknown channel throws before anything is requested', async () => {
     await expect(
       readCatalog({ options: { channel: 'staging' as any }, state: newState() })
-    ).rejects.toThrow('Unknown application template catalog channel staging');
+    ).rejects.toThrow(
+      'Unknown application template catalog channel "staging": expected production or development'
+    );
     expect(getCatalogFile).not.toHaveBeenCalled();
   });
 
@@ -344,7 +347,9 @@ describe('readCatalog: the catalog kept for a state', () => {
     expect(first.metadata.cached).toBe(false);
     expect(second.metadata.cached).toBe(true);
     expect(second.metadata.fetchedAt).toBe(first.metadata.fetchedAt);
-    expect(second.catalog).toBe(first.catalog);
+    // equal, and not the same object: what the state keeps is not handed out
+    expect(second.catalog).toEqual(first.catalog);
+    expect(second.catalog).not.toBe(first.catalog);
   });
 
   test('2: refresh reads again and replaces what was kept', async () => {
@@ -859,4 +864,259 @@ describe('the facade', () => {
       code: 'AIR_GAPPED',
     });
   });
+});
+
+describe('readCatalog: size limits', () => {
+  const MB = 1024 * 1024;
+
+  test('1: a small file that expands into memory without bound is refused, naming the source, with bounded memory', async () => {
+    const bomb = gzipSync(Buffer.alloc(192 * MB));
+    expect(bomb.length).toBeLessThan(1 * MB);
+    const before = process.memoryUsage().rss;
+    const error = await readCatalog({
+      options: { catalog: bomb },
+      state: newState(),
+    }).catch((e) => e);
+    const growth = process.memoryUsage().rss - before;
+    expect(error).toBeInstanceOf(FrodoError);
+    expect(error.message).toBe(
+      'The application template catalog from explicit catalog is larger than 32 MB when decompressed'
+    );
+    // 192 MB were not allocated: the limit is 32 MB
+    expect(growth).toBeLessThan(160 * MB);
+  });
+
+  test('2: the same bomb from a url names the url', async () => {
+    getCatalogFile.mockResolvedValue({
+      data: gzipSync(Buffer.alloc(64 * MB)),
+    });
+    await expect(
+      readCatalog({
+        options: { url: 'https://mirror.example.com/c.gz' },
+        state: newState(),
+      })
+    ).rejects.toThrow(
+      'The application template catalog from https://mirror.example.com/c.gz is larger than 32 MB when decompressed'
+    );
+  });
+
+  test('3: a bomb inside a second gzip layer is stopped as well', async () => {
+    const inner = gzipSync(Buffer.alloc(64 * MB));
+    const error = await readCatalog({
+      options: { catalog: gzipSync(inner) },
+      state: newState(),
+    }).catch((e) => e);
+    expect(error).toBeInstanceOf(FrodoError);
+    expect(error.message).toBe(
+      'The application template catalog from explicit catalog is larger than 32 MB when decompressed'
+    );
+  });
+
+  test('4: more than two gzip layers are refused, naming the source', async () => {
+    const plain = Buffer.from(JSON.stringify(syntheticCatalog()));
+    const twice = gzipSync(gzipSync(plain));
+    await expect(
+      readCatalog({ options: { catalog: twice }, state: newState() })
+    ).resolves.toBeDefined();
+    const error = await readCatalog({
+      options: { catalog: gzipSync(twice) },
+      state: newState(),
+    }).catch((e) => e);
+    expect(error).toBeInstanceOf(FrodoError);
+    expect(error.message).toBe(
+      'The application template catalog from explicit catalog is compressed more than 2 times'
+    );
+  });
+
+  test('5: bytes or text over the limit are refused before they are parsed', async () => {
+    const big = Buffer.alloc(33 * MB, 0x20);
+    for (const catalog of [big, ' '.repeat(33 * MB)]) {
+      const error = await readCatalog({
+        options: { catalog },
+        state: newState(),
+      }).catch((e) => e);
+      expect(error.message).toBe(
+        'The application template catalog from explicit catalog is larger than 32 MB'
+      );
+    }
+  });
+
+  test('6: a truncated gzip file is refused, naming the source and keeping the cause', async () => {
+    const whole = gzipSync(Buffer.from(JSON.stringify(syntheticCatalog())));
+    const error = await readCatalog({
+      options: { catalog: whole.subarray(0, whole.length - 8) },
+      state: newState(),
+    }).catch((e) => e);
+    expect(error).toBeInstanceOf(FrodoError);
+    expect(error.message).toBe(
+      'The application template catalog from explicit catalog could not be decompressed'
+    );
+    expect(error.originalErrors).toHaveLength(1);
+  });
+
+  test('7: a download over the limit is reported with the source named', async () => {
+    getCatalogFile.mockRejectedValue(
+      Object.assign(new Error('maxContentLength size of 16777216 exceeded'), {
+        name: 'AxiosError',
+      })
+    );
+    const error = await readCatalog({ state: newState() }).catch((e) => e);
+    expect(error).toBeInstanceOf(FrodoError);
+    expect(error.message).toBe(
+      `The application template catalog from ${CDN.production} is larger than 16 MB`
+    );
+    expect(error.originalErrors[0].message).toContain('maxContentLength');
+  });
+});
+
+describe('readCatalog: what the state keeps is never handed out', () => {
+  const urlOptions = (refresh = false) => ({
+    url: 'https://mirror.example.com/c.gz',
+    includeOverrides: false,
+    refresh,
+  });
+  const nameOf = (result: any) =>
+    result.catalog.AppTemplates.consumer.Web['1_0-web'].displayName;
+
+  test('1: changing a catalog or its metadata that was read does not change the next read', async () => {
+    const state = newState();
+    const first = await readCatalog({ options: urlOptions(), state });
+    const original = nameOf(first);
+    first.catalog.AppTemplates.consumer.Web['1_0-web'].displayName = 'CHANGED';
+    first.metadata.etag = 'FORGED';
+    first.metadata.source.location = 'https://elsewhere.example.com/';
+    const second = await readCatalog({ options: urlOptions(), state });
+    expect(nameOf(second)).toBe(original);
+    expect(second.metadata.etag).toBe('"etag-1"');
+    expect(second.metadata.source.location).toBe(
+      'https://mirror.example.com/c.gz'
+    );
+    expect(second.metadata.cached).toBe(true);
+    // and the second result is no more shared than the first
+    second.catalog.AppTemplates.consumer.Web['1_0-web'].displayName =
+      'CHANGED2';
+    const third = await readCatalog({ options: urlOptions(), state });
+    expect(nameOf(third)).toBe(original);
+    expect(getCatalogFile).toHaveBeenCalledTimes(1);
+  });
+
+  test('2: changing the template or the catalog that readTemplate returns does not change what is listed next', async () => {
+    const state = newState();
+    const found = await readTemplate({
+      application: { templateName: 'web', templateVersion: '1.0' },
+      options: urlOptions(),
+      state,
+    });
+    found.template.displayName = 'CHANGED';
+    found.catalog.etag = 'FORGED';
+    found.catalog.source.location = 'https://elsewhere.example.com/';
+    const again = await readTemplate({
+      application: { templateName: 'web', templateVersion: '1.0' },
+      options: urlOptions(),
+      state,
+    });
+    expect(again.template.displayName).toBe('Sample Web');
+    expect(again.catalog.etag).toBe('"etag-1"');
+    expect(again.catalog.source.location).toBe(
+      'https://mirror.example.com/c.gz'
+    );
+    const listed = await listTemplates({ options: urlOptions(), state });
+    expect(listed.find((i) => i.templateId === '1_0-web').displayName).toBe(
+      'Sample Web'
+    );
+  });
+
+  test('3: a catalog the caller hands over is theirs: it is not copied', async () => {
+    const catalog = syntheticCatalog();
+    const result = await readCatalog({
+      options: { catalog },
+      state: newState(),
+    });
+    expect(result.catalog).toBe(catalog);
+  });
+});
+
+describe('readCatalog: entries that are not templates', () => {
+  const withEntry = (entry: unknown) => ({
+    AppTemplates: {
+      consumer: { Web: { '1_0-web': entry } },
+      enterprise: {},
+    },
+  });
+
+  test.each([
+    ['null', null, 'is not a template'],
+    ['a string', 'oops', 'is not a template'],
+    ['a number', 3, 'is not a template'],
+    ['a list', [], 'is not a template'],
+    ['an object without an id', { templateVersion: '1.0' }, 'has no id'],
+    ['an empty id', { id: '', templateVersion: '1.0' }, 'has no id'],
+    ['an id that is no string', { id: 3, templateVersion: '1.0' }, 'has no id'],
+    ['an object without a version', { id: 'web' }, 'has no templateVersion'],
+    [
+      'an empty version',
+      { id: 'web', templateVersion: '' },
+      'has no templateVersion',
+    ],
+    [
+      'a version that is an object',
+      { id: 'web', templateVersion: {} },
+      'has no templateVersion',
+    ],
+  ])(
+    '1: %s throws and names the source and the entry',
+    async (_name, entry, reason) => {
+      const error = await listTemplates({
+        options: { catalog: withEntry(entry) as any, includeOverrides: false },
+        state: newState(),
+      }).catch((e) => e);
+      expect(error).toBeInstanceOf(FrodoError);
+      expect(error).not.toBeInstanceOf(TypeError);
+      expect(error.message).toBe(
+        `The application template catalog from explicit catalog is not in the expected format: AppTemplates.consumer.Web.1_0-web ${reason}`
+      );
+    }
+  );
+
+  test('2: a download names the url and the tier of the entry', async () => {
+    getCatalogFile.mockResolvedValue(
+      fileOf({
+        AppTemplates: {
+          consumer: {},
+          enterprise: { Sample: { '1_0-sample': null } },
+        },
+      })
+    );
+    await expect(readCatalog({ state: newState() })).rejects.toThrow(
+      `The application template catalog from ${CDN.production} is not in the expected format: AppTemplates.enterprise.Sample.1_0-sample is not a template`
+    );
+  });
+
+  test('3: a version that is a number is accepted and listed as text', async () => {
+    const items = await listTemplates({
+      options: {
+        catalog: withEntry({ id: 'web', templateVersion: 2 }) as any,
+        includeOverrides: false,
+      },
+      state: newState(),
+    });
+    expect(items[0].templateVersion).toBe('2');
+  });
+});
+
+describe('readCatalog: the channel', () => {
+  test.each(['constructor', 'toString', '__proto__', 'hasOwnProperty', ''])(
+    '1: the name %j is no channel and nothing is requested',
+    async (channel) => {
+      const error = await readCatalog({
+        options: { channel: channel as any },
+        state: newState(),
+      }).catch((e) => e);
+      expect(error).toBeInstanceOf(FrodoError);
+      expect(error.message).toBe(
+        `Unknown application template catalog channel ${JSON.stringify(channel)}: expected production or development`
+      );
+      expect(getCatalogFile).not.toHaveBeenCalled();
+    }
+  );
 });
