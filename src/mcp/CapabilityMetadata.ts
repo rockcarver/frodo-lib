@@ -435,6 +435,85 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     // application was made from) from the same catalog.
     excluded: true,
   },
+  // The library takes a catalog, a url and a refresh flag in `options`. Those
+  // are for a caller that is the user: through MCP they would let a model
+  // choose a host that the machine contacts (in air-gapped mode too) and what
+  // it asks for. So the MCP-facing contract offers only the channel and the
+  // flag that leaves the tenant out, the schema is closed (the runtime refuses
+  // any other field), and only named arguments are accepted, so that the
+  // schema cannot be bypassed with a positional argument.
+  'app.template.listTemplates': {
+    argumentMode: 'named',
+    parameterOverrides: {
+      options: {
+        description:
+          'Optional. channel: which public catalog to read, production (default) or development. includeOverrides: false lists the catalog alone and does not read the templates of the tenant (default true).',
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            channel: {
+              type: 'string',
+              enum: ['production', 'development'],
+              description: 'Which public catalog to read. Default: production.',
+            },
+            includeOverrides: {
+              type: 'boolean',
+              description:
+                'Merge the templates the tenant defines itself over the catalog. Default: true.',
+            },
+          },
+        },
+        examples: [{}, { includeOverrides: false }, { channel: 'development' }],
+      },
+    },
+    supportsRealm: false,
+    notes:
+      'Lists every template version (name, version, group, tier, type, whether the tenant defines it, whether it is the newest of its template), without the form definitions. The catalog is the public template catalog of the Admin UI, requested from a public host without any credential, and kept for the session. There is no way to name another catalog or URL here.',
+  },
+  'app.template.readTemplate': {
+    argumentMode: 'named',
+    parameterOverrides: {
+      application: {
+        description:
+          'The templateName and templateVersion of an application record, for example from app.readApplication.',
+        schema: {
+          type: 'object',
+          required: ['templateName', 'templateVersion'],
+          additionalProperties: true,
+          properties: {
+            templateName: { type: 'string' },
+            templateVersion: { type: 'string' },
+          },
+        },
+        examples: [{ templateName: 'azure.ad', templateVersion: '3.3' }],
+      },
+      options: {
+        description:
+          'Optional. channel: which public catalog to read, production (default) or development. includeOverrides: false uses the catalog alone and does not read the templates of the tenant (default true).',
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            channel: {
+              type: 'string',
+              enum: ['production', 'development'],
+              description: 'Which public catalog to read. Default: production.',
+            },
+            includeOverrides: {
+              type: 'boolean',
+              description:
+                'Merge the templates the tenant defines itself over the catalog. Default: true.',
+            },
+          },
+        },
+        examples: [{}, { includeOverrides: false }],
+      },
+    },
+    supportsRealm: false,
+    notes:
+      'Tells which template an application record was made from: whether the template and that exact version exist, the newest version, and whether the tenant defines it itself. A template that does not exist is a result (found: false), not an error. There is no way to name another catalog or URL here.',
+  },
   'app.queryApplications': {
     argumentMode: 'named',
     parameterOverrides: {
