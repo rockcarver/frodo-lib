@@ -522,9 +522,17 @@ describe('the cache of the application template catalog: writes', () => {
     ageCache(2 * HOUR);
     const metaBefore = fs.readFileSync(files().meta, 'utf8');
     source.version = 2;
-    const rename = jest.spyOn(fs, 'renameSync').mockImplementation(() => {
-      throw Object.assign(new Error('disk is full'), { code: 'ENOSPC' });
-    });
+    // the rename of the catalog fails, the rename of the meta file would work
+    const real = fs.renameSync;
+    const rename = jest.spyOn(fs, 'renameSync').mockImplementation(((
+      from: any,
+      to: any
+    ) => {
+      if (String(to) === files().catalog) {
+        throw Object.assign(new Error('disk is full'), { code: 'ENOSPC' });
+      }
+      return real(from, to);
+    }) as any);
     const messages: string[] = [];
     const state = cachingState();
     state.setDebugHandler((message) => messages.push(String(message)));
