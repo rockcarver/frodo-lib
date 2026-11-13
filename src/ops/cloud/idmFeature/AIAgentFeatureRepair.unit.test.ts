@@ -1361,3 +1361,270 @@ describe('what the plan must not decide: the type of a secret store, and whether
     expect(state.enableRuns).toBe(1);
   });
 });
+
+describe('the definitions are put back by what the run did, not by the steps of the plan', () => {
+  async function planned(state: FakeRepairState, options = {}) {
+    const fake = fakeRepairTenant(state);
+    const plan = JSON.parse(
+      JSON.stringify(await planAIAgentFeatureRepair(fake.tenant, options))
+    ) as IdmFeatureRepairPlan;
+    fake.writes.length = 0;
+    return { state, ...fake, plan };
+  }
+  const without = (plan: IdmFeatureRepairPlan, id: string) => {
+    plan.steps = plan.steps.filter((one) => one.id !== id);
+  };
+  /** Count the writes of the two configurations; `failing` says which write (1 = the first) of a configuration throws. */
+  function countWrites(
+    tenant: any,
+    failing: { managed?: number[]; repoDs?: number[] } = {}
+  ) {
+    const counts = { managed: 0, repoDs: 0 };
+    const putManaged = tenant.putManagedConfig;
+    const putRepo = tenant.putRepoDs;
+    tenant.putManagedConfig = async (config: any) => {
+      counts.managed += 1;
+      if (failing.managed?.includes(counts.managed)) throw httpError(503);
+      return putManaged(config);
+    };
+    tenant.putRepoDs = async (config: any) => {
+      counts.repoDs += 1;
+      if (failing.repoDs?.includes(counts.repoDs)) throw httpError(503);
+      return putRepo(config);
+    };
+    return counts;
+  }
+  const customised = (state: FakeRepairState) =>
+    objectOf(state.managed, 'alpha_aiagent').onDelete.source.endsWith('\n');
+
+  describe('on success', () => {
+    test('a plan whose restore step was taken out still gets its definitions put back, and the result says so', async () => {
+      const { state, tenant, plan } = await planned(brokenState());
+      without(plan, 'restore-definitions');
+      const counts = countWrites(tenant);
+      const result = await repairAIAgentFeature(
+        tenant,
+        plan,
+        {},
+        fakeClock().clock
+      );
+      expect(result.completed).toBe(true);
+      expect(customised(state)).toBe(true);
+      expect(counts.managed).toBe(2); // the alignment and the restore
+      const restoreResult = result.results.find(
+        (r) => r.step.id === 'restore-definitions'
+      )!;
+      expect(restoreResult.status).toBe('done');
+      expect(restoreResult.message).toContain('the plan had no step for it');
+      // the diagnosis in the result is the one after the definitions were put back: the registry reads not installed again
+      expect(result.diagnosis.findings.map((f) => f.id)).toContain(
+        'registry-not-installed'
+      );
+      expect(result.diagnosis.installedVersion).toBeNull();
+    });
+
+    test('keepAligned leaves them aligned and the result says so', async () => {
+      const { state, tenant, plan } = await planned(brokenState(), {
+        keepAligned: true,
+      });
+      expect(plan.steps.map((s) => s.id)).not.toContain('restore-definitions');
+      const counts = countWrites(tenant);
+      const result = await repairAIAgentFeature(
+        tenant,
+        plan,
+        {},
+        fakeClock().clock
+      );
+      expect(result.completed).toBe(true);
+      expect(customised(state)).toBe(false);
+      expect(counts.managed).toBe(1);
+      const restoreResult = result.results.find(
+        (r) => r.step.id === 'restore-definitions'
+      )!;
+      expect(restoreResult.status).toBe('skipped');
+      expect(restoreResult.message).toContain('stay aligned');
+      expect(result.diagnosis.installedVersion).toBe('1');
+    });
+
+    test('a plan that still has its restore step but keeps the definitions aligned does not restore them', async () => {
+      const { state, tenant, plan } = await planned(brokenState());
+      plan.options.keepAligned = true;
+      const counts = countWrites(tenant);
+      const result = await repairAIAgentFeature(
+        tenant,
+        plan,
+        {},
+        fakeClock().clock
+      );
+      expect(customised(state)).toBe(false);
+      expect(counts.managed).toBe(1);
+      expect(outcome(result)).toContain('restore-definitions=skipped');
+      expect(outcome(result)).not.toContain('restore-definitions=done');
+    });
+
+    test('a restore that fails at the end is an error that says the definitions are still aligned and names them', async () => {
+      const { state, tenant, plan } = await planned(brokenState());
+      without(plan, 'restore-definitions');
+      countWrites(tenant, { managed: [2] });
+      const error = await repairAIAgentFeature(
+        tenant,
+        plan,
+        {},
+        fakeClock().clock
+      ).catch((e) => e);
+      expect(error.name).toBe('FrodoError');
+      expect(error.message).toContain(
+        'The definitions are still aligned with the original and were not put back (alpha_aiagent onDelete.source; bravo_aiagent onDelete.source)'
+      );
+      expect(customised(state)).toBe(false);
+    });
+  });
+
+  describe('after a failed step', () => {
+    test('keepAligned: the result says the definitions stay aligned', async () => {
+      const state = brokenState();
+      state.fail.enableFeature = httpError(500);
+      const { tenant, plan } = await planned(state, { keepAligned: true });
+      const seen: string[] = [];
+      await expect(
+        repairAIAgentFeature(
+          tenant,
+          plan,
+          { resultCallback: (r) => seen.push(`${r.step.id}=${r.status}`) },
+          fakeClock().clock
+        )
+      ).rejects.toThrow();
+      expect(seen.slice(-2)).toEqual([
+        'enable=failed',
+        'restore-definitions=skipped',
+      ]);
+    });
+
+    test('the alignment write itself fails: nothing was aligned, nothing is written to put back, and the error says the definitions are unchanged', async () => {
+      const { state, tenant, plan } = await planned(brokenState());
+      const counts = countWrites(tenant, { managed: [1, 2] });
+      const seen: string[] = [];
+      const error = await repairAIAgentFeature(
+        tenant,
+        plan,
+        { resultCallback: (r) => seen.push(`${r.step.id}=${r.status}`) },
+        fakeClock().clock
+      ).catch((e) => e);
+      expect(error.name).toBe('FrodoError');
+      expect(error.message).toContain(
+        'The definitions were not changed: no write of the alignment succeeded.'
+      );
+      expect(error.message).not.toContain('still aligned');
+      expect(error.httpStatus).toBe(503);
+      expect(counts.managed).toBe(1); // no restore write of a configuration that was never changed
+      expect(seen.slice(-1)).toEqual(['align-definitions=failed']);
+      expect(seen).not.toContain('restore-definitions=failed');
+      expect(customised(state)).toBe(true);
+      expect(state.enableRuns).toBe(0);
+    });
+
+    describe('the alignment is written to the managed configuration and not to repo.ds', () => {
+      const withRepoDrift = () => {
+        const state = brokenState();
+        (state.repoDs.resourceMapping as any).explicitMapping[
+          'managed/alpha_aiagentprivilege'
+        ].properties.leftover = { type: 'simple' };
+        return state;
+      };
+      const leftover = (state: FakeRepairState) =>
+        (state.repoDs.resourceMapping as any).explicitMapping[
+          'managed/alpha_aiagentprivilege'
+        ].properties.leftover;
+
+      test('only what was written is put back', async () => {
+        const { state, tenant, plan } = await planned(withRepoDrift());
+        const counts = countWrites(tenant, { repoDs: [1] });
+        const error = await repairAIAgentFeature(
+          tenant,
+          plan,
+          {},
+          fakeClock().clock
+        ).catch((e) => e);
+        expect(error.name).toBe('FrodoError');
+        expect(error.message).not.toContain('still aligned');
+        expect(error.message).not.toContain('partly');
+        expect(counts.managed).toBe(2); // alignment and restore
+        expect(counts.repoDs).toBe(1); // the failed alignment write, no restore write
+        expect(customised(state)).toBe(true);
+        expect(leftover(state)).toEqual({ type: 'simple' });
+      });
+
+      test('and if that cannot be put back either, the error says the definitions are partly aligned and names only those', async () => {
+        const { state, tenant, plan } = await planned(withRepoDrift());
+        countWrites(tenant, { repoDs: [1], managed: [2] });
+        const error = await repairAIAgentFeature(
+          tenant,
+          plan,
+          {},
+          fakeClock().clock
+        ).catch((e) => e);
+        expect(error.message).toContain(
+          'The definitions are partly aligned with the original (the alignment was written to config/managed only) and were not put back (alpha_aiagent onDelete.source; bravo_aiagent onDelete.source)'
+        );
+        // the names after "were not put back" are the written ones; the step's own description names all three
+        expect(error.message.match(/were not put back \(([^)]*)\)/)[1]).toBe(
+          'alpha_aiagent onDelete.source; bravo_aiagent onDelete.source'
+        );
+        expect(customised(state)).toBe(false);
+      });
+    });
+  });
+
+  describe('exactly once', () => {
+    test('a restore step moved before the enable action: the guard refuses the enable action and the definitions are written twice, not three times', async () => {
+      const state = brokenState();
+      const { tenant, plan } = await planned(state);
+      const restoreStep = plan.steps.find(
+        (one) => one.id === 'restore-definitions'
+      )!;
+      plan.steps = plan.steps.filter((one) => one.id !== 'restore-definitions');
+      plan.steps.splice(
+        plan.steps.findIndex((one) => one.id === 'enable'),
+        0,
+        restoreStep
+      );
+      const counts = countWrites(tenant);
+      const error = await repairAIAgentFeature(
+        tenant,
+        plan,
+        {},
+        fakeClock().clock
+      ).catch((e) => e);
+      expect(error.getCombinedMessage()).toContain(
+        'The enable action is not run'
+      );
+      expect(state.enableRuns).toBe(0);
+      expect(counts.managed).toBe(2); // the alignment and one restore
+      expect(customised(state)).toBe(true);
+    });
+
+    test('a plan with two restore steps puts the definitions back once', async () => {
+      const state = brokenState();
+      const { tenant, plan } = await planned(state);
+      const restoreStep = plan.steps.find(
+        (one) => one.id === 'restore-definitions'
+      )!;
+      plan.steps.splice(
+        plan.steps.indexOf(restoreStep),
+        0,
+        JSON.parse(JSON.stringify(restoreStep))
+      );
+      const counts = countWrites(tenant);
+      const result = await repairAIAgentFeature(
+        tenant,
+        plan,
+        {},
+        fakeClock().clock
+      );
+      expect(counts.managed).toBe(2);
+      expect(
+        outcome(result).filter((one) => one.startsWith('restore-definitions'))
+      ).toEqual(['restore-definitions=done', 'restore-definitions=skipped']);
+    });
+  });
+});
