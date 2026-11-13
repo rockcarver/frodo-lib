@@ -6479,7 +6479,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "EnvAIAgent",
     methodName: "enableAIAgentFeature",
     signature: "enableAIAgentFeature(): Promise<any>",
-    description: "Enable AI agent feature",
+    description: "Enable the AI agent feature of the environment (`POST /environment/aiagent?_action=enable`), the action behind the \"enable\" button of the Admin UI. What it does, as far as it was observed on Advanced Identity Cloud tenants (frodo-lib#1060): the platform installs the IDM feature `aiagent` internally, then writes the OAuth 2.0 provider of every realm (alpha and bravo) with the AI agent settings. AM validates that write, so the action fails with a generic HTTP 500, which says nothing about the reason, if a realm has no OAuth 2.0 provider or a provider has no password grant authentication service. The effect on AM (the agent type `AIAgent`, until then answering `501 OAuth 2.0 for AI Agents is not enabled`) can take minutes after the action answered 200: poll before judging the result. Do not call it on a tenant whose definitions of the feature are present but not equal to the original (the registry reads `installedVersion: null` although the feature was installed before): the internal install would add them a second time. `diagnoseIdmFeature('aiagent')` finds out whether that is the case, and `repairIdmFeature` runs this action when it is safe. On failure the error is a `FrodoError` that keeps the HTTP status (`httpStatus`) and the `x-forgerock-transactionid` of the response (`httpTransactionId`), which finds the request in the platform's logs.",
     params: [],
     returns: "{Promise<any>} a promise that resolves to an empty result object if successful",
   },
@@ -7050,6 +7050,16 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "featureId", type: "string", description: "feature id, e.g. 'aiagent'", required: true },
     ],
     returns: "{Promise<IdmFeatureActionResult>} a promise that resolves to the install result: status, success, message and failures",
+  },
+  {
+    typeName: "IdmFeature",
+    methodName: "diagnoseIdmFeature",
+    signature: "diagnoseIdmFeature(featureId: string): Promise<IdmFeatureDiagnosis>",
+    description: "Find out why an IDM tenant-configuration feature reads as not installed or does not work. Read-only: it changes nothing in the tenant. The library has a diagnosis for the feature `aiagent`; for any other feature the result has `supported: false` and no findings, and only the registry entry is reported. The result is `{ featureId, supported, installedVersion, availableVersions, findings }`. A finding has an `id` that names the condition (`definitions-cosmetic-drift`, `provider-auth-service-not-set`, `gate-closed`, `secret-mappings-dangling` and so on), a `severity` (`error`: the feature does not work, `warning`: cosmetic or advisory, `info`: a healthy part), a `message`, whether the condition is `repairable` and its `details`. A condition that exists per realm is reported once per realm, with `details.realm`. A check that cannot be made (for example a request that is refused) is a finding `check-failed`, not an error; only a failing read of the registry throws. For `aiagent` the checks are: the registry and the result of `validate`; the definitions the feature writes (managed object definitions and `repo.ds` mappings) compared with the original of version 1, each difference classed cosmetic (white space, a title, an extra mapping property) or structural; per realm that has the AI agent managed objects, the OAuth 2.0 provider (it exists, has a password grant authentication service, has AI agents enabled with the expected object names), whether AM accepts AI agents (the agent type is listed and listing them answers 200, not 501), the mappings of the realm's ESV secret store that point to ESV secrets that do not exist, and IDM AI agent objects that AM does not list. A feature version other than the one the library knows the definitions of is reported as `version-unsupported`.",
+    params: [
+      { name: "featureId", type: "string", description: "feature id, e.g. 'aiagent'", required: true },
+    ],
+    returns: "{Promise<IdmFeatureDiagnosis>} a promise that resolves to the diagnosis",
   },
   {
     typeName: "LogTailStream",

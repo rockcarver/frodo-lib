@@ -3003,7 +3003,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     mutating: true,
     riskClass: 'medium',
     notes:
-      "Toggles the environment-level AI Agent capability (POST /environment/aiagent?_action=enable) -- a different, higher-level gate than idmFeature.installIdmFeature('aiagent') (POST /openidm/feature/aiagent?_action=install), which installs the IDM-side AI-agent managed-object types/schema. Confirmed live these are two distinct REST resources; whether one implies or requires the other was not established -- treat them as two separate, not-yet-fully-understood prerequisites for AI Agent functionality rather than assuming either alone is sufficient.",
+      "Toggles the environment-level AI Agent capability (POST /environment/aiagent?_action=enable) -- a different, higher-level gate than idmFeature.installIdmFeature('aiagent') (POST /openidm/feature/aiagent?_action=install), which installs the IDM-side AI-agent managed-object types/schema. Confirmed live these are two distinct REST resources; the action installs the IDM feature internally and rewrites the OAuth 2.0 provider of every realm (a failed provider write is a generic 500, and the effect on AM can take minutes), so it must not be called on definitions that are present but not equal to the original -- diagnoseIdmFeature('aiagent') says whether they are.",
   },
   'cloud.idmFeature.readIdmFeatures': { mutating: false, riskClass: 'low' },
   'cloud.idmFeature.readIdmFeature': { mutating: false, riskClass: 'low' },
@@ -3020,6 +3020,12 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     irreversible: true,
     notes:
       "Installs an IDM tenant-configuration feature (e.g. groups, aiagent, am/2fa/profiles) -- a one-way operation. Per Ping's own documentation, uninstalling or disabling a feature once installed requires contacting Ping support and rolling back the tenant; there is no self-service undo. The result states the outcome: success is false when the response reports a failure (success false or a non-empty failures list, which is kept); a request that fails throws. The install makes no second request: read the feature again to confirm its installedVersion. Distinct from cloud.env.enableAIAgentFeature -- see that entry's notes.",
+  },
+  'cloud.idmFeature.diagnoseIdmFeature': {
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Read-only: finds out why an IDM feature reads as not installed or does not work (today the library judges the feature aiagent; any other feature returns supported false and no findings). It reads the registry, runs the dry-run validate, reads the managed and repo.ds configuration and, per realm, the OAuth 2.0 provider, whether AM accepts AI agents, the ESV secret store mappings and the IDM AI agent objects. The result lists findings with an id, a severity (error, warning, info), a message, whether they are repairable and their details. A check that cannot be made is a finding, not an error.',
   },
   'cloud.env.enforceFederationFor': {
     mutating: true,
