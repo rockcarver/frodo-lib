@@ -153,7 +153,8 @@ export type IdmFeature = {
    * the steps the plan still has). A plan carries no binding to a tenant; that is safe because every step reads the
    * tenant again and recomputes against the shipped original definitions, so a plan made for one tenant can only align
    * the same cosmetic differences, delete a mapping that still points to no ESV secret, create a provider that is still
-   * missing, or set the authentication service of a provider that still has none, and anything else in it is refused.
+   * missing, or set the authentication service of a provider that still has none, and anything else in it is refused. The option
+   * `keepAligned` of the plan is data too: editing it only leaves the definitions aligned, and the result says so.
    *
    * With `wait` the repair polls until AM accepts AI agents in the realms it enabled and returns as soon as it does, for
    * at most `timeout` milliseconds (default 1,200,000, 20 minutes): the effect of the enable action can need minutes.
