@@ -1136,14 +1136,72 @@ function normalizeDeploymentType(
 }
 
 /**
+ * Three settings belong to the process, not to a request: air-gapped mode, the
+ * switch of the template catalog cache and its directory. The factory helpers
+ * build a scoped instance from the credentials of its auth mode, so without
+ * this it would start with air-gapped mode off (a request could reach the
+ * public catalog host although the process must not) and with the catalog cache
+ * off (every request would download the catalog again). The scoped instance
+ * takes the three settings from the root instance, whatever the auth mode.
+ * Nothing a request or a scoped instance does can loosen them: air-gapped mode
+ * and the cache switch only ever go on, and the directory of the root, if it
+ * has one, wins over a directory that the scoped instance has of its own.
+ *
+ * @param scopedFrodo Instance built for a request.
+ * @param frodoRoot Root frodo instance of the process.
+ * @returns The scoped instance.
+ */
+function inheritProcessSettings(scopedFrodo: Frodo, frodoRoot: Frodo): Frodo {
+  if (scopedFrodo?.state && frodoRoot?.state && scopedFrodo !== frodoRoot) {
+    if (
+      frodoRoot.state.getAirGapped?.() === true &&
+      scopedFrodo.state.getAirGapped?.() !== true
+    ) {
+      scopedFrodo.state.setAirGapped(true);
+    }
+    if (
+      frodoRoot.state.getUseTemplateCatalogCache?.() === true &&
+      scopedFrodo.state.getUseTemplateCatalogCache?.() !== true
+    ) {
+      scopedFrodo.state.setUseTemplateCatalogCache(true);
+    }
+    const rootCatalogCachePath =
+      frodoRoot.state.getTemplateCatalogCachePath?.();
+    if (
+      rootCatalogCachePath &&
+      scopedFrodo.state.getTemplateCatalogCachePath?.() !== rootCatalogCachePath
+    ) {
+      scopedFrodo.state.setTemplateCatalogCachePath(rootCatalogCachePath);
+    }
+  }
+  return scopedFrodo;
+}
+
+/**
  * Creates a request-scoped Frodo instance using standard factory helpers and
- * the provided auth mode.
+ * the provided auth mode. The instance takes the settings that belong to the
+ * process from the root instance: air-gapped mode, the switch of the template
+ * catalog cache and the directory of that cache (a scoped instance can not
+ * turn off or redirect what the root has set).
  *
  * @param context Request-scoped runtime context.
  * @param frodoRoot Root frodo instance exposing `createInstance*` helpers.
  * @returns New request-scoped Frodo instance.
  */
 export function resolveRequestScopedFrodo(
+  context: McpRuntimeRequestContext,
+  frodoRoot: Frodo
+): Frodo {
+  return inheritProcessSettings(
+    createRequestScopedFrodo(context, frodoRoot),
+    frodoRoot
+  );
+}
+
+/**
+ * Builds the instance for the auth mode of a request, from its credentials only.
+ */
+function createRequestScopedFrodo(
   context: McpRuntimeRequestContext,
   frodoRoot: Frodo
 ): Frodo {
@@ -1385,8 +1443,13 @@ async function resolveScopedFrodoInstance(
   ) => Frodo | Promise<Frodo>,
   browserLoginPromptHandler?: BrowserLoginPromptHandler
 ): Promise<Frodo> {
+  // resolveRequestScopedFrodo gives its instance the settings of the process; an
+  // instance that a custom resolver builds in another way gets them here
   const scopedFrodo = customResolver
-    ? await customResolver(context, frodoRoot)
+    ? inheritProcessSettings(
+        await customResolver(context, frodoRoot),
+        frodoRoot
+      )
     : resolveRequestScopedFrodo(context, frodoRoot);
 
   // The request-scoped factory helpers seed state from only the credential
@@ -1412,39 +1475,6 @@ async function resolveScopedFrodoInstance(
     // Best-effort inheritance — when the credentials genuinely aren't
     // available anywhere, assertRequiredCredential raises its own clean,
     // actionable error below.
-  }
-
-  // Three settings belong to the process, not to a request: air-gapped mode,
-  // the switch of the template catalog cache and its directory. The factory
-  // helpers build a scoped instance from the credentials of its auth mode, so
-  // without this it would start with air-gapped mode off (a request could reach
-  // the public catalog host although the process must not) and with the catalog
-  // cache off (every request would download the catalog again). Every auth
-  // mode, and an instance from a custom resolver, takes them from the root
-  // instance. Air-gapped mode only ever goes on: an instance can not turn off
-  // what the root has on. The cache switch is copied the same way, and a
-  // directory that the scoped instance has is kept.
-  if (scopedFrodo?.state && frodoRoot?.state && scopedFrodo !== frodoRoot) {
-    if (
-      frodoRoot.state.getAirGapped?.() === true &&
-      scopedFrodo.state.getAirGapped?.() !== true
-    ) {
-      scopedFrodo.state.setAirGapped(true);
-    }
-    if (
-      frodoRoot.state.getUseTemplateCatalogCache?.() === true &&
-      scopedFrodo.state.getUseTemplateCatalogCache?.() !== true
-    ) {
-      scopedFrodo.state.setUseTemplateCatalogCache(true);
-    }
-    const rootCatalogCachePath =
-      frodoRoot.state.getTemplateCatalogCachePath?.();
-    if (
-      rootCatalogCachePath &&
-      !scopedFrodo.state.getTemplateCatalogCachePath?.()
-    ) {
-      scopedFrodo.state.setTemplateCatalogCachePath(rootCatalogCachePath);
-    }
   }
 
   // The request-scoped factory helpers of the service account and of the admin

@@ -9,6 +9,7 @@
  *
  *        npm run test:only ApplicationTemplateOps.cache
  */
+import { createHash } from 'crypto';
 import fs from 'fs';
 import http from 'http';
 import { AddressInfo } from 'net';
@@ -147,6 +148,19 @@ const files = (dir = directory, channel = 'production') => ({
   meta: path.join(dir, `${channel}.meta.json`),
 });
 const readJson = (file: string) => JSON.parse(fs.readFileSync(file, 'utf8'));
+const sha256Of = (data: string | Buffer) =>
+  createHash('sha256').update(data).digest('hex');
+/** Write a meta file the way the library does, for the catalog file that is there now. */
+function writeMeta(fields: Record<string, unknown>, dir = directory) {
+  fs.writeFileSync(
+    files(dir).meta,
+    JSON.stringify({
+      url: APP_TEMPLATE_CATALOG_URLS.production,
+      sha256: sha256Of(fs.readFileSync(files(dir).catalog)),
+      ...fields,
+    })
+  );
+}
 const nameIn = (result: any) =>
   result.catalog.AppTemplates.consumer.Web['1_0-web'].displayName;
 const leftovers = (dir = directory) =>
@@ -182,6 +196,8 @@ describe('the cache of the application template catalog', () => {
       lastModified: lastModifiedOf(1),
       fetchedAt: result.metadata.fetchedAt,
       url: APP_TEMPLATE_CATALOG_URLS.production,
+      // ties the validators to this catalog
+      sha256: sha256Of(catalogText(1)),
     });
     expect(leftovers()).toEqual([]);
     const explicit = await readCatalog({
@@ -271,13 +287,7 @@ describe('the cache of the application template catalog', () => {
 
   test('6: a copy without validators is asked about unconditionally', async () => {
     await readCatalog({ state: cachingState() });
-    fs.writeFileSync(
-      files().meta,
-      JSON.stringify({
-        fetchedAt: new Date(Date.now() - 2 * HOUR).toISOString(),
-        url: APP_TEMPLATE_CATALOG_URLS.production,
-      })
-    );
+    writeMeta({ fetchedAt: new Date(Date.now() - 2 * HOUR).toISOString() });
     source.seen = [];
     const result = await readCatalog({ state: cachingState() });
     expect(source.seen).toHaveLength(1);
@@ -495,11 +505,151 @@ describe('the cache of the application template catalog: files that are not trus
         },
       })
     );
+    // the pair is consistent: the meta file describes this catalog file
+    writeMeta({
+      etag: etagOf(1),
+      lastModified: lastModifiedOf(1),
+      fetchedAt: new Date().toISOString(),
+    });
     source.seen = [];
     const result = await readCatalog({ state: cachingState() });
     expect(source.seen).toEqual([]);
     expect(result.metadata.cache).toBe('fresh');
     expect(nameIn(result)).toBeUndefined();
+  });
+});
+
+describe('the cache of the application template catalog: the digest ties the validators to the catalog', () => {
+  const sourceAt = (version: number) => {
+    source.version = version;
+  };
+
+  test('1: a catalog beside the validators of another version is not used, however fresh they are: a 304 must not confirm the wrong catalog', async () => {
+    // the end state of two processes that interleaved their writes: the catalog
+    // of version 2 beside the meta file (validators and digest) of version 1
+    await readCatalog({ state: cachingState() });
+    const metaOfV1 = fs.readFileSync(files().meta, 'utf8');
+    sourceAt(2);
+    await readCatalog({ state: cachingState(), options: { refresh: true } });
+    expect(fs.readFileSync(files().catalog, 'utf8')).toBe(catalogText(2));
+    fs.writeFileSync(files().meta, metaOfV1);
+    // the source goes back to version 1, whose validators the meta file holds
+    sourceAt(1);
+    source.seen = [];
+    const messages: string[] = [];
+    const state = cachingState();
+    state.setDebugHandler((message) => messages.push(String(message)));
+    const result = await readCatalog({ state });
+    // asked without validators, so it can not answer 304; the catalog is version 1
+    expect(source.seen).toHaveLength(1);
+    expect(source.seen[0].ifNoneMatch).toBeUndefined();
+    expect(source.seen[0].ifModifiedSince).toBeUndefined();
+    expect(result.metadata.cache).toBe('miss');
+    expect(nameIn(result)).toBe('Sample Web v1');
+    expect(fs.readFileSync(files().catalog, 'utf8')).toBe(catalogText(1));
+    expect(readJson(files().meta).sha256).toBe(sha256Of(catalogText(1)));
+    expect(messages.some((m) => m.includes('does not describe the copy'))).toBe(
+      true
+    );
+  });
+
+  test('2: a catalog that was changed beside its own meta file is not used', async () => {
+    await readCatalog({ state: cachingState() });
+    fs.writeFileSync(files().catalog, catalogText(2));
+    source.seen = [];
+    const result = await readCatalog({ state: cachingState() });
+    // fresh by the clock, but the digest does not match: downloaded again
+    expect(source.seen).toHaveLength(1);
+    expect(result.metadata.cache).toBe('miss');
+    expect(nameIn(result)).toBe('Sample Web v1');
+    expect(fs.readFileSync(files().catalog, 'utf8')).toBe(catalogText(1));
+  });
+
+  test('3: a meta file without a digest, as an earlier version wrote it, is replaced: asked without validators, written again with a digest', async () => {
+    await readCatalog({ state: cachingState() });
+    const meta = readJson(files().meta);
+    delete meta.sha256;
+    fs.writeFileSync(files().meta, JSON.stringify(meta));
+    source.seen = [];
+    const result = await readCatalog({ state: cachingState() });
+    expect(source.seen).toHaveLength(1);
+    expect(source.seen[0].ifNoneMatch).toBeUndefined();
+    expect(source.seen[0].ifModifiedSince).toBeUndefined();
+    expect(result.metadata.cache).toBe('miss');
+    expect(readJson(files().meta).sha256).toBe(sha256Of(catalogText(1)));
+    // and from now on it is a pair that is used
+    source.seen = [];
+    const next = await readCatalog({ state: cachingState() });
+    expect(source.seen).toEqual([]);
+    expect(next.metadata.cache).toBe('fresh');
+  });
+
+  test.each([
+    ['too short', 'abc123'],
+    ['not hex', 'z'.repeat(64)],
+    ['a number', 12345],
+    ['null', null],
+  ])('4: a digest that is %s counts as none', async (_name, value) => {
+    await readCatalog({ state: cachingState() });
+    const meta = readJson(files().meta);
+    meta.sha256 = value;
+    fs.writeFileSync(files().meta, JSON.stringify(meta));
+    source.seen = [];
+    const result = await readCatalog({ state: cachingState() });
+    expect(source.seen).toHaveLength(1);
+    expect(source.seen[0].ifNoneMatch).toBeUndefined();
+    expect(result.metadata.cache).toBe('miss');
+  });
+
+  test('5: a 304 keeps the digest of the catalog that was confirmed', async () => {
+    await readCatalog({ state: cachingState() });
+    ageCache(2 * HOUR);
+    const result = await readCatalog({ state: cachingState() });
+    expect(result.metadata.cache).toBe('revalidated');
+    expect(readJson(files().meta).sha256).toBe(sha256Of(catalogText(1)));
+    source.seen = [];
+    const next = await readCatalog({ state: cachingState() });
+    expect(source.seen).toEqual([]);
+    expect(next.metadata.cache).toBe('fresh');
+  });
+
+  test('6: the digest is of the catalog as it was written, so a copy carried to another machine with its meta file is used there', async () => {
+    await readCatalog({ state: cachingState() });
+    const other = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'frodo-template-cache-')
+    );
+    try {
+      fs.copyFileSync(files().catalog, files(other).catalog);
+      fs.copyFileSync(files().meta, files(other).meta);
+      source.seen = [];
+      const state = cachingState(other);
+      state.setAirGapped(true);
+      const result = await readCatalog({ state });
+      expect(source.seen).toEqual([]);
+      expect(result.metadata.cache).toBe('offline');
+    } finally {
+      fs.rmSync(other, { recursive: true, force: true });
+    }
+  });
+
+  test('7: air-gapped, a catalog beside a meta file that does not describe it is not used', async () => {
+    await readCatalog({ state: cachingState() });
+    fs.writeFileSync(files().catalog, catalogText(2));
+    const state = cachingState();
+    state.setAirGapped(true);
+    await expect(readCatalog({ state })).rejects.toMatchObject({
+      code: 'AIR_GAPPED',
+    });
+    expect(source.seen).toHaveLength(1);
+  });
+
+  test('8: a catalog file with no meta file at all is still used offline (a file carried over by hand)', async () => {
+    await readCatalog({ state: cachingState() });
+    fs.rmSync(files().meta);
+    const state = cachingState();
+    state.setAirGapped(true);
+    const result = await readCatalog({ state });
+    expect(result.metadata.cache).toBe('offline');
   });
 });
 

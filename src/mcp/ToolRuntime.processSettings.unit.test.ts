@@ -155,61 +155,94 @@ async function call(root: any, context: any, resolveFrodoForRequest?: any) {
   }
 }
 
+/** How a scoped instance is made: by the runtime of a tool call, and by the public helper that hosts use as their resolver. */
+const paths: [
+  string,
+  (root: any, scoped: any[], context: any) => Promise<any>,
+][] = [
+  [
+    'the runtime',
+    async (root, scoped, context) => {
+      await call(root, context);
+      return scoped[0];
+    },
+  ],
+  [
+    'frodo.mcp.resolveRequestScopedFrodo',
+    async (root, _scoped, context) => resolveRequestScopedFrodo(context, root),
+  ],
+];
+
 describe('the settings of the process on a request-scoped instance', () => {
   test('0: Method is implemented', () => {
     expect(resolveRequestScopedFrodo).toBeDefined();
   });
 
-  describe.each(Object.keys(contexts))('auth mode %s', (name) => {
-    const contextOf = (root: any) =>
-      contexts[name].auth
-        ? contexts[name]
-        : {
-            auth: {
-              mode: 'state-config',
-              config: { ...root.state.getState() },
-            },
-          };
+  describe.each(paths)('through %s', (_label, scopedFor) => {
+    describe.each(Object.keys(contexts))('auth mode %s', (name) => {
+      const contextOf = (root: any) =>
+        contexts[name].auth
+          ? contexts[name]
+          : {
+              auth: {
+                mode: 'state-config',
+                config: { ...root.state.getState() },
+              },
+            };
 
-    test('1: takes air-gapped mode, the cache switch and the directory from the root instance', async () => {
-      const { root, scoped } = server({
-        airGapped: true,
-        cache: true,
-        cachePath: '/tmp/frodo-catalog-cache',
+      test('1: takes air-gapped mode, the cache switch and the directory from the root instance', async () => {
+        const { root, scoped } = server({
+          airGapped: true,
+          cache: true,
+          cachePath: '/tmp/frodo-catalog-cache',
+        });
+        const instance = await scopedFor(root, scoped, contextOf(root));
+        expect(instance.state.getAirGapped()).toBe(true);
+        expect(instance.state.getUseTemplateCatalogCache()).toBe(true);
+        expect(instance.state.getTemplateCatalogCachePath()).toBe(
+          '/tmp/frodo-catalog-cache'
+        );
       });
-      await call(root, contextOf(root));
-      expect(scoped).toHaveLength(1);
-      expect(scoped[0].state.getAirGapped()).toBe(true);
-      expect(scoped[0].state.getUseTemplateCatalogCache()).toBe(true);
-      expect(scoped[0].state.getTemplateCatalogCachePath()).toBe(
-        '/tmp/frodo-catalog-cache'
-      );
-    });
 
-    test('2: stays as it is when the root instance has none of them on', async () => {
-      const { root, scoped } = server({});
-      await call(root, contextOf(root));
-      expect(scoped).toHaveLength(1);
-      expect(scoped[0].state.getAirGapped()).toBe(false);
-      expect(scoped[0].state.getUseTemplateCatalogCache()).toBe(false);
-      expect(scoped[0].state.getTemplateCatalogCachePath()).toBeUndefined();
-    });
+      test('2: stays as it is when the root instance has none of them on', async () => {
+        const { root, scoped } = server({});
+        const instance = await scopedFor(root, scoped, contextOf(root));
+        expect(instance.state.getAirGapped()).toBe(false);
+        expect(instance.state.getUseTemplateCatalogCache()).toBe(false);
+        expect(instance.state.getTemplateCatalogCachePath()).toBeUndefined();
+      });
 
-    test('3: takes the cache but not air-gapped mode, and the other way round', async () => {
-      const cacheOnly = server({ cache: true });
-      await call(cacheOnly.root, contextOf(cacheOnly.root));
-      expect(cacheOnly.scoped[0].state.getAirGapped()).toBe(false);
-      expect(cacheOnly.scoped[0].state.getUseTemplateCatalogCache()).toBe(true);
-      const airGappedOnly = server({ airGapped: true });
-      await call(airGappedOnly.root, contextOf(airGappedOnly.root));
-      expect(airGappedOnly.scoped[0].state.getAirGapped()).toBe(true);
-      expect(airGappedOnly.scoped[0].state.getUseTemplateCatalogCache()).toBe(
-        false
-      );
+      test('3: takes the cache but not air-gapped mode, and the other way round', async () => {
+        const cacheOnly = server({ cache: true });
+        const a = await scopedFor(
+          cacheOnly.root,
+          cacheOnly.scoped,
+          contextOf(cacheOnly.root)
+        );
+        expect(a.state.getAirGapped()).toBe(false);
+        expect(a.state.getUseTemplateCatalogCache()).toBe(true);
+        const airGappedOnly = server({ airGapped: true });
+        const b = await scopedFor(
+          airGappedOnly.root,
+          airGappedOnly.scoped,
+          contextOf(airGappedOnly.root)
+        );
+        expect(b.state.getAirGapped()).toBe(true);
+        expect(b.state.getUseTemplateCatalogCache()).toBe(false);
+      });
+
+      test('4: the root instance is not changed by what the scoped instance does', async () => {
+        const { root, scoped } = server({ airGapped: true, cache: true });
+        const instance = await scopedFor(root, scoped, contextOf(root));
+        instance.state.setAirGapped(false);
+        instance.state.setUseTemplateCatalogCache(false);
+        expect(root.state.getAirGapped()).toBe(true);
+        expect(root.state.getUseTemplateCatalogCache()).toBe(true);
+      });
     });
   });
 
-  test('4: air-gapped mode only ever goes on: a scoped instance that a custom resolver builds can not turn it off, one that has it on keeps it', async () => {
+  test('5: air-gapped mode only ever goes on: a scoped instance that a custom resolver builds can not turn it off, one that has it on keeps it', async () => {
     const { root } = server({ airGapped: true });
     let scoped: any;
     await call(
@@ -239,7 +272,23 @@ describe('the settings of the process on a request-scoped instance', () => {
     expect(open.root.state.getAirGapped()).toBe(false);
   });
 
-  test('5: a directory that the scoped instance has of its own is kept', async () => {
+  test('6: a custom resolver that builds an instance without the helper gets the settings too', async () => {
+    const { root } = server({
+      airGapped: true,
+      cache: true,
+      cachePath: '/tmp/root-dir',
+    });
+    let built: any;
+    await call(root, contexts['admin-account'], () => {
+      built = FrodoLib({ host: HOST, deploymentType: 'classic' });
+      return built;
+    });
+    expect(built.state.getAirGapped()).toBe(true);
+    expect(built.state.getUseTemplateCatalogCache()).toBe(true);
+    expect(built.state.getTemplateCatalogCachePath()).toBe('/tmp/root-dir');
+  });
+
+  test('7: the directory of the root wins: a scoped instance can neither turn the cache off nor redirect it', async () => {
     const { root } = server({ cache: true, cachePath: '/tmp/root-dir' });
     let scoped: any;
     await call(
@@ -248,20 +297,54 @@ describe('the settings of the process on a request-scoped instance', () => {
       (context: any, frodoRoot: any) => {
         scoped = resolveRequestScopedFrodo(context, frodoRoot);
         scoped.state.setTemplateCatalogCachePath('/tmp/own-dir');
+        scoped.state.setUseTemplateCatalogCache(false);
         return scoped;
       }
     );
-    expect(scoped.state.getTemplateCatalogCachePath()).toBe('/tmp/own-dir');
+    expect(scoped.state.getTemplateCatalogCachePath()).toBe('/tmp/root-dir');
     expect(scoped.state.getUseTemplateCatalogCache()).toBe(true);
+    // the helper alone does the same for a config that names another directory
+    const direct = resolveRequestScopedFrodo(
+      {
+        auth: {
+          mode: 'state-config',
+          config: {
+            host: HOST,
+            useTemplateCatalogCache: false,
+            templateCatalogCachePath: '/tmp/own-dir',
+          },
+        },
+      } as any,
+      root
+    );
+    expect(direct.state.getTemplateCatalogCachePath()).toBe('/tmp/root-dir');
+    expect(direct.state.getUseTemplateCatalogCache()).toBe(true);
   });
 
-  test('6: the root instance is not changed by what a scoped instance does', async () => {
-    const { root, scoped } = server({ airGapped: true, cache: true });
-    await call(root, contexts['admin-account']);
-    scoped[0].state.setAirGapped(false);
-    scoped[0].state.setUseTemplateCatalogCache(false);
+  test('8: a root without a directory leaves the directory of the scoped instance alone', async () => {
+    const { root } = server({});
+    const direct = resolveRequestScopedFrodo(
+      {
+        auth: {
+          mode: 'state-config',
+          config: {
+            host: HOST,
+            useTemplateCatalogCache: true,
+            templateCatalogCachePath: '/tmp/own-dir',
+          },
+        },
+      } as any,
+      root
+    );
+    expect(direct.state.getTemplateCatalogCachePath()).toBe('/tmp/own-dir');
+    expect(direct.state.getUseTemplateCatalogCache()).toBe(true);
+  });
+
+  test('9: a resolver that returns the root itself, or an object without a state, is left alone', async () => {
+    const { root } = server({ airGapped: true, cache: true });
+    await call(root, contexts['admin-account'], () => root);
     expect(root.state.getAirGapped()).toBe(true);
-    expect(root.state.getUseTemplateCatalogCache()).toBe(true);
+    await call(root, contexts['admin-account'], () => ({}));
   });
 });
 
