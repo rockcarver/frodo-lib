@@ -132,6 +132,11 @@ export type IdmFeatureRepairBlocker = {
 
 /**
  * The result of `planIdmFeatureRepair`: what a repair would do. Nothing has been written.
+ *
+ * The plan holds the raw backup of the tenant configuration (see {@link IdmFeatureRepairBackup}); handle it like the
+ * configuration itself. A plan is plain data and `repairIdmFeature` does not trust it: what it writes is taken from the
+ * shipped original definitions and from the tenant as it is read at that moment, and a plan that does not match them is
+ * refused.
  */
 export type IdmFeatureRepairPlan = {
   featureId: string;

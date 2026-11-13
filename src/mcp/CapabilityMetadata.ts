@@ -3029,9 +3029,9 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'cloud.idmFeature.planIdmFeatureRepair': {
     mutating: false,
-    riskClass: 'low',
+    riskClass: 'medium',
     notes:
-      'Read-only: plans the repair of what diagnoseIdmFeature finds wrong with an IDM feature (today only aiagent; any other feature is an error). It diagnoses the feature, lists the writes a repair would make, itemised and in order, and reads what they would overwrite or delete (managed and repo.ds configuration, the OAuth 2.0 providers, the IDM AI agent objects, the secret store mappings) as backup data. It writes nothing; the library writes no backup file either, so a caller keeps the backup before it calls repairIdmFeature.',
+      'Does not write to the tenant: plans the repair of what diagnoseIdmFeature finds wrong with an IDM feature (today only aiagent; any other feature is an error). It diagnoses the feature, lists the writes a repair would make, itemised and in order, and reads what they would overwrite or delete as backup data. The plan therefore holds the raw backup of the tenant configuration -- the whole managed and repo.ds configuration, the OAuth 2.0 providers (settings that are not meant to be shared, among them a hash salt), the IDM AI agent objects and the secret store mappings to be deleted -- and must be handled like the configuration itself: do not log it, share it or keep it where the configuration would not be kept. The library writes no backup file; a caller keeps the backup before it calls repairIdmFeature.',
   },
   'cloud.idmFeature.repairIdmFeature': {
     mutating: true,

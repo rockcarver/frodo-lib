@@ -125,8 +125,10 @@ export type IdmFeature = {
    * definitions that differ only cosmetically from the original when the enable action has to run; run the enable
    * action; wait for the AM gate; put the customised definitions back; diagnose again). `backup` holds what the steps
    * would overwrite or delete, as the tenant returns it: managed and repo.ds configuration, the OAuth 2.0 providers, the
-   * IDM AI agent and privilege objects and the mappings to be deleted. The library writes no file: keep the backup before
-   * you call `repairIdmFeature`. `repairable` is false, with `blockers`, if something the library does not repair is
+   * IDM AI agent and privilege objects and the mappings to be deleted. The plan therefore holds the raw backup of the
+   * tenant configuration, including the settings of the OAuth 2.0 providers that are not meant to be shared: handle it like
+   * the configuration itself (do not log or share it). The library writes no file: keep the backup before you call
+   * `repairIdmFeature`. `repairable` is false, with `blockers`, if something the library does not repair is
    * wrong (structural drift, a feature version it does not know, an authentication service the realm lacks); the plan
    * then has no steps. `repairable` with no steps means there is nothing to repair. Only errors are repaired; a warning
    * (for example a customised title while AI agents work) is left alone.

@@ -15,6 +15,7 @@
  *   in the realm's ESV secret store that points to an ESV secret that does not exist stops AM from loading the realm's
  *   secrets: AI agents then are not listed and every create answers `500 AI Agent: Failed to create agent identity`.
  */
+import { createHash } from 'crypto';
 import { getFailedResponse } from '../../FrodoError';
 import {
   AIAgentDefinitionComparison,
@@ -73,6 +74,34 @@ export function isUnset(value: unknown): boolean {
   );
 }
 
+/** A value longer than this (serialised) is replaced by a short description in the details of a finding. */
+export const MAX_DETAIL_VALUE_LENGTH = 200;
+
+/** How much of a long value the short description shows. */
+const DETAIL_PREVIEW_LENGTH = 80;
+
+/**
+ * A value for the details of a finding. A short value is kept as it is. A long one (a script, a whole property
+ * definition) becomes `{ truncated, length, sha256, preview }`: its length, the first 16 hex digits of its SHA-256 and its
+ * first characters, so a reader can tell two long values apart and see what they are. The full values are in the plan's
+ * backup and in the plan's steps.
+ * @param {unknown} value a value of a definition
+ * @returns {unknown} the value, or a short description of it
+ */
+export function previewValue(value: unknown): unknown {
+  const json = JSON.stringify(value);
+  if (json === undefined || json.length <= MAX_DETAIL_VALUE_LENGTH) {
+    return value;
+  }
+  const text = typeof value === 'string' ? value : json;
+  return {
+    truncated: true,
+    length: text.length,
+    sha256: createHash('sha256').update(text).digest('hex').slice(0, 16),
+    preview: `${text.slice(0, DETAIL_PREVIEW_LENGTH)}…`,
+  };
+}
+
 /** A reduced view of the differences for the details of a finding. */
 function summarise(differences: AIAgentDefinitionDifference[]) {
   return differences.map((difference) => ({
@@ -84,8 +113,12 @@ function summarise(differences: AIAgentDefinitionDifference[]) {
     ...(difference.cosmeticClass
       ? { cosmeticClass: difference.cosmeticClass }
       : {}),
-    ...('expected' in difference ? { expected: difference.expected } : {}),
-    ...('actual' in difference ? { actual: difference.actual } : {}),
+    ...('expected' in difference
+      ? { expected: previewValue(difference.expected) }
+      : {}),
+    ...('actual' in difference
+      ? { actual: previewValue(difference.actual) }
+      : {}),
   }));
 }
 
