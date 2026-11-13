@@ -861,6 +861,13 @@ export async function exportFullConfiguration({
         // generic agent export above does not carry them. The key is left out
         // when the realm has none or does not offer the type, which keeps
         // every export of a realm without profiles as it always was.
+        //
+        // CIMD profiles are dynamic configuration, so this step runs with
+        // includeDynamic. Checked 2026-11-13 with a real promotion between the
+        // development and production tenant of a promotion pair: the profile was
+        // not carried and the promotion report never listed it
+        // (https://github.com/rockcarver/frodo-lib/issues/1021). Repeat the
+        // check when Ping publishes promotion documentation for PingAM 9.0.
         const cimdProfile = (
           await exportWithErrorHandling(
             exportCIMDProfiles,
@@ -1755,6 +1762,12 @@ export async function importFullConfiguration({
       // Last: a profile names scripts, journeys and policy sets of the realm
       // and the server refuses to write one that names a missing script or
       // journey.
+      //
+      // CIMD profiles are dynamic configuration, so this step runs with
+      // includeDynamic (see the export step: a real promotion on 2026-11-13 did
+      // not carry a profile and its report never listed it,
+      // https://github.com/rockcarver/frodo-lib/issues/1021). Repeat the check
+      // when Ping publishes promotion documentation for PingAM 9.0.
       response.push(
         await importWithErrorHandling(
           importCIMDProfiles,
