@@ -81,7 +81,8 @@ const isObject = (value: unknown): value is Obj =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
 /**
- * Deep equality of two JSON values that ignores the order of the keys of an object (the order of an array matters).
+ * Deep equality of two JSON values that ignores the order of the keys of an object (the order of an array matters). For
+ * JSON only: values such as dates, which have no enumerable keys, would compare equal to each other.
  * Comparing the serialised text would call two objects different only because a server returned their keys in another
  * order.
  * @param {unknown} a one value
