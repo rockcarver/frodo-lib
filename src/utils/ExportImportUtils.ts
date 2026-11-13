@@ -628,7 +628,7 @@ export function sleepSync(ms: number): void {
  * @param {string} from existing file
  * @param {string} to target file, replaced if it exists
  */
-function renameWithRetrySync(from: string, to: string): void {
+export function renameWithRetrySync(from: string, to: string): void {
   const retryable = ['EPERM', 'EACCES', 'EBUSY'];
   for (let attempt = 0; ; attempt++) {
     try {
