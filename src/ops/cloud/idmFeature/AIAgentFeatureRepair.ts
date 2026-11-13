@@ -422,10 +422,18 @@ export async function repairAIAgentFeature(
     }
   };
 
+  /** Why the definitions could not be put back, if that was tried and failed. */
+  let restoreFailure: unknown;
+
   const restore = async () => {
     restoreTried = true;
     if (alignedDifferences) {
-      await writeDifferences(alignedDifferences, 'actual');
+      try {
+        await writeDifferences(alignedDifferences, 'actual');
+      } catch (error) {
+        restoreFailure = error;
+        throw error;
+      }
     }
   };
 
@@ -471,16 +479,21 @@ export async function repairAIAgentFeature(
       : (step.realm as string);
     switch (step.id) {
       case 'delete-secret-mapping': {
-        const { storeId, storeTypeId, secretId } = step.details as {
+        // the plan names the mapping; the type of the store is read from the tenant, not taken from the plan
+        const { storeId, secretId } = step.details as {
           storeId: string;
-          storeTypeId: string;
           secretId: string;
         };
-        const find = async () =>
-          (await tenant.readSecretStoreMappings(realm))
-            .filter((store) => store.storeId === storeId)
-            .flatMap((store) => store.mappings)
-            .find((mapping) => mapping.secretId === secretId);
+        const find = async () => {
+          for (const store of await tenant.readSecretStoreMappings(realm)) {
+            if (store.storeId !== storeId) continue;
+            const mapping = store.mappings.find(
+              (one) => one.secretId === secretId
+            );
+            if (mapping) return { mapping, storeTypeId: store.storeTypeId };
+          }
+          return undefined;
+        };
         const current = await find();
         if (!current) {
           return {
@@ -490,7 +503,7 @@ export async function repairAIAgentFeature(
         }
         const known = await readEsvSecrets();
         if (
-          current.aliases.some(
+          current.mapping.aliases.some(
             (alias) => known.has(alias) || known.has(`esv-${alias}`)
           )
         ) {
@@ -498,7 +511,12 @@ export async function repairAIAgentFeature(
             `The mapping ${secretId} points to an ESV secret that exists now; the plan is out of date.`
           );
         }
-        await tenant.deleteSecretMapping(realm, storeId, storeTypeId, secretId);
+        await tenant.deleteSecretMapping(
+          realm,
+          storeId,
+          current.storeTypeId,
+          secretId
+        );
         if (await find()) {
           throw new Error(
             `The mapping ${secretId} is still in the secret store ${storeId} after it was deleted.`
@@ -744,10 +762,18 @@ export async function repairAIAgentFeature(
       report(step, outcome.status, outcome.message);
     } catch (error) {
       report(step, 'failed', describeFailure(error).message);
-      const restoreStep = plan.steps.find(
-        (one) => one.id === 'restore-definitions'
-      );
-      if (aligned && !keepAligned && !restoreTried && restoreStep) {
+      // The definitions are put back because this run aligned them and the caller does not keep them aligned: not
+      // because the plan still has a step that says so.
+      let restoreError: unknown;
+      if (aligned && !keepAligned && !restoreTried) {
+        const restoreStep: IdmFeatureRepairStep = plan.steps.find(
+          (one) => one.id === 'restore-definitions'
+        ) ?? {
+          id: 'restore-definitions',
+          description: 'Put the customised definitions back.',
+          writes: true,
+          details: {},
+        };
         try {
           await restore();
           report(
@@ -755,13 +781,28 @@ export async function repairAIAgentFeature(
             'done',
             'Put the customised definitions back after the failure.'
           );
-        } catch (restoreError) {
+        } catch (failure) {
+          restoreError = failure;
           report(
             restoreStep,
             'failed',
-            `Could not put the customised definitions back: ${describeFailure(restoreError).message}`
+            `Could not put the customised definitions back: ${describeFailure(failure).message}`
           );
         }
+      } else if (restoreFailure) {
+        // the step that failed was the restore itself
+        restoreError = restoreFailure;
+      }
+      if (restoreError) {
+        const named = (alignedDifferences ?? []).map((difference) =>
+          `${difference.object} ${difference.location}`.trim()
+        );
+        throw new FrodoError(
+          `Error repairing IDM feature ${AI_AGENT_FEATURE_ID}: ${step.description} The definitions are still aligned with the original and were not put back (${named.join('; ')}); the backup of the plan holds the customised values.`,
+          restoreError === error
+            ? (error as Error)
+            : [error as Error, restoreError as Error]
+        );
       }
       throw new FrodoError(
         `Error repairing IDM feature ${AI_AGENT_FEATURE_ID}: ${step.description}`,
