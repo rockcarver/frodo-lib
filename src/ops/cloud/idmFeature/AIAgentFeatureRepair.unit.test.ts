@@ -18,6 +18,7 @@ import {
   healthyRepairState,
 } from './AIAgentFeature.fixtures';
 import { applyDifferences } from './AIAgentFeatureDefinitions';
+import { AI_AGENT_FEATURE_REFERENCE } from './AIAgentFeatureReference';
 import {
   DEFAULT_GATE_TIMEOUT,
   GATE_POLL_INTERVAL,
@@ -836,5 +837,372 @@ describe('the fake platform', () => {
     const copy = clone(state.managed);
     applyDifferences(copy, state.repoDs, [], 'expected');
     expect(copy).toEqual(state.managed);
+  });
+});
+
+describe('a plan is data that somebody can have edited', () => {
+  async function brokenPlan(change?: (state: FakeRepairState) => void) {
+    const state = brokenState();
+    change?.(state);
+    const fake = fakeRepairTenant(state);
+    const plan = JSON.parse(
+      JSON.stringify(await planAIAgentFeatureRepair(fake.tenant))
+    ) as IdmFeatureRepairPlan;
+    fake.writes.length = 0;
+    return { state, ...fake, plan };
+  }
+  const step = (plan: IdmFeatureRepairPlan, id: string) =>
+    plan.steps.find((s) => s.id === id)!;
+  const configWrites = (writes: string[]) =>
+    writes.filter((w) => w === 'putManagedConfig' || w === 'putRepoDs');
+
+  test('an align step whose expected value was edited is refused: nothing is written to the configuration, the enable action does not run', async () => {
+    const { state, tenant, plan, writes } = await brokenPlan();
+    (step(plan, 'align-definitions').details.differences as any[])[0].expected =
+      'return evil();';
+    const error = await repairAIAgentFeature(
+      tenant,
+      plan,
+      {},
+      fakeClock().clock
+    ).catch((e) => e);
+    expect(error.name).toBe('FrodoError');
+    expect(error.getCombinedMessage()).toContain('is refused');
+    expect(error.getCombinedMessage()).toContain(
+      'the original is not what the plan records'
+    );
+    expect(configWrites(writes)).toEqual([]);
+    expect(state.enableRuns).toBe(0);
+    expect(
+      objectOf(state.managed, 'alpha_aiagent').onDelete.source
+    ).not.toContain('evil');
+  });
+
+  test('what is written is the reference value, taken from a fresh comparison, not from the plan', async () => {
+    const { state, tenant, plan } = await brokenPlan();
+    const written: any[] = [];
+    const put = tenant.putManagedConfig;
+    tenant.putManagedConfig = async (config) => {
+      written.push(clone(config));
+      return put(config);
+    };
+    await repairAIAgentFeature(tenant, plan, {}, fakeClock().clock);
+    // the first write is the alignment: it holds the shipped original, whatever the plan says
+    expect(
+      objectOf(written[0], 'alpha_aiagent').onDelete.source.endsWith('\n')
+    ).toBe(false);
+    expect(objectOf(written[0], 'alpha_aiagent').onDelete.source).toBe(
+      AI_AGENT_FEATURE_REFERENCE.managedObjects.alpha_aiagent.onDelete
+        ? (
+            AI_AGENT_FEATURE_REFERENCE.managedObjects.alpha_aiagent
+              .onDelete as any
+          ).source
+        : ''
+    );
+    expect(state.enableRuns).toBe(1);
+  });
+
+  test('an align step that names a definition the reference does not differ in is refused', async () => {
+    const { state, tenant, plan, writes } = await brokenPlan();
+    (step(plan, 'align-definitions').details.differences as any[]).push({
+      config: 'managed',
+      object: 'alpha_user',
+      path: ['schema', 'title'],
+      location: 'schema.title',
+      kind: 'changed',
+      expected: 'Evil',
+      actual: 'User',
+      cosmetic: true,
+      cosmeticClass: 'title',
+    });
+    await expect(
+      repairAIAgentFeature(tenant, plan, {}, fakeClock().clock)
+    ).rejects.toThrow('Error repairing IDM feature aiagent');
+    expect(configWrites(writes)).toEqual([]);
+    expect(state.enableRuns).toBe(0);
+  });
+
+  test('an align step that passes a structural difference off as a cosmetic one is refused', async () => {
+    const { state, tenant, plan, writes } = await brokenPlan();
+    // after the plan was made the tenant gained an extra property in a managed object: structural
+    objectOf(state.managed, 'bravo_aiagentprivilege').schema.properties.custom =
+      { type: 'string' };
+    (step(plan, 'align-definitions').details.differences as any[]).push({
+      config: 'managed',
+      object: 'bravo_aiagentprivilege',
+      path: ['schema', 'properties', 'custom'],
+      location: 'schema.properties.custom',
+      kind: 'extra',
+      actual: { type: 'string' },
+      cosmetic: true,
+      cosmeticClass: 'extra-mapping-property',
+    });
+    const error = await repairAIAgentFeature(
+      tenant,
+      plan,
+      {},
+      fakeClock().clock
+    ).catch((e) => e);
+    expect(error.getCombinedMessage()).toContain(
+      'the difference is not a cosmetic one'
+    );
+    expect(configWrites(writes)).toEqual([]);
+    expect(state.enableRuns).toBe(0);
+  });
+
+  test('the values to put back are read from the tenant when the definitions are aligned, not taken from the restore step of the plan', async () => {
+    const { state, tenant, plan } = await brokenPlan();
+    for (const difference of step(plan, 'restore-definitions').details
+      .differences as any[]) {
+      difference.actual = 'return evil();';
+    }
+    const result = await repairAIAgentFeature(
+      tenant,
+      plan,
+      {},
+      fakeClock().clock
+    );
+    expect(result.completed).toBe(true);
+    // the customised definition is back, as the tenant had it
+    expect(
+      objectOf(state.managed, 'alpha_aiagent').onDelete.source.endsWith('\n')
+    ).toBe(true);
+    expect(JSON.stringify(state.managed)).not.toContain('evil');
+  });
+
+  test('a restore step without an alignment in the run puts nothing back', async () => {
+    const { state, tenant, plan, writes } = await brokenPlan();
+    const hand: IdmFeatureRepairPlan = {
+      ...plan,
+      steps: [step(plan, 'restore-definitions')],
+    };
+    const result = await repairAIAgentFeature(
+      tenant,
+      hand,
+      {},
+      fakeClock().clock
+    );
+    expect(outcome(result)).toContain('restore-definitions=skipped');
+    expect(configWrites(writes)).toEqual([]);
+    expect(
+      objectOf(state.managed, 'alpha_aiagent').onDelete.source.endsWith('\n')
+    ).toBe(true);
+  });
+
+  test('a step for a realm the feature is not installed for is refused', async () => {
+    const { tenant, plan, writes } = await brokenPlan();
+    step(plan, 'create-provider').realm = 'root';
+    await expect(
+      repairAIAgentFeature(tenant, plan, {}, fakeClock().clock)
+    ).rejects.toThrow('Error repairing IDM feature aiagent');
+    expect(writes).toEqual([]);
+  });
+
+  test('an authentication service the realm lacks is not written, whatever the plan says', async () => {
+    const { tenant, plan, writes } = await brokenPlan();
+    plan.options.authService = 'NoSuchTree';
+    const error = await repairAIAgentFeature(
+      tenant,
+      plan,
+      {},
+      fakeClock().clock
+    ).catch((e) => e);
+    expect(error.getCombinedMessage()).toContain(
+      'no authentication tree named NoSuchTree'
+    );
+    expect(writes).toEqual([]);
+  });
+});
+
+describe('the value that is put back comes back in whatever key order the server returns', () => {
+  const reverseKeys = (value: any): any =>
+    Array.isArray(value)
+      ? value.map(reverseKeys)
+      : value && typeof value === 'object'
+        ? Object.fromEntries(
+            Object.entries(value)
+              .reverse()
+              .map(([k, v]) => [k, reverseKeys(v)])
+          )
+        : value;
+
+  test('an object-valued extra mapping property is restored and read back although its keys are reordered', async () => {
+    const state = brokenState();
+    const extra = {
+      type: 'simple',
+      ldapAttribute: 'description',
+      isMultiValued: false,
+    };
+    (state.repoDs.resourceMapping as any).explicitMapping[
+      'managed/alpha_aiagentprivilege'
+    ].properties.leftover = extra;
+    const fake = fakeRepairTenant(state);
+    // the server stores what it is sent with the keys of every object reversed
+    fake.tenant.putRepoDs = async (config) => {
+      state.repoDs = reverseKeys(clone(config));
+    };
+    const plan = await planAIAgentFeatureRepair(fake.tenant);
+    expect(
+      (
+        plan.steps.find((s) => s.id === 'align-definitions')!.details
+          .differences as any[]
+      ).map((d) => d.cosmeticClass)
+    ).toContain('extra-mapping-property');
+    const result = await repairAIAgentFeature(
+      fake.tenant,
+      plan,
+      {},
+      fakeClock().clock
+    );
+    expect(result.completed).toBe(true);
+    const back = (state.repoDs.resourceMapping as any).explicitMapping[
+      'managed/alpha_aiagentprivilege'
+    ].properties.leftover;
+    expect(back).toEqual(extra);
+    expect(Object.keys(back)).not.toEqual(Object.keys(extra));
+  });
+});
+
+describe('waiting for the gate: what goes wrong while looking', () => {
+  async function brokenPlan() {
+    const state = brokenState();
+    const fake = fakeRepairTenant(state);
+    const plan = await planAIAgentFeatureRepair(fake.tenant);
+    return { state, ...fake, plan };
+  }
+
+  test('a look that fails keeps the wait going, and the repair completes when the gate opens', async () => {
+    const { tenant, plan } = await brokenPlan();
+    const read = tenant.readGate;
+    let calls = 0;
+    tenant.readGate = async (realm) => {
+      calls += 1;
+      if (calls <= 2) throw httpError(503);
+      return read(realm);
+    };
+    const { clock, sleeps } = fakeClock();
+    const result = await repairAIAgentFeature(
+      tenant,
+      plan,
+      { wait: true },
+      clock
+    );
+    expect(outcome(result)).toContain('wait-for-gate=done');
+    expect(sleeps).toEqual([GATE_POLL_INTERVAL]);
+    expect(result.completed).toBe(true);
+  });
+
+  test('a look that keeps failing is named in the failed step when the time is up', async () => {
+    const { tenant, plan } = await brokenPlan();
+    const read = tenant.readGate;
+    tenant.readGate = async (realm) => {
+      if (realm === 'alpha') throw httpError(503);
+      return read(realm);
+    };
+    const result = await repairAIAgentFeature(
+      tenant,
+      plan,
+      { wait: true, timeout: 25000 },
+      fakeClock().clock
+    );
+    const wait = result.results.find((r) => r.step.id === 'wait-for-gate')!;
+    expect(wait.status).toBe('failed');
+    expect(wait.message).toContain(
+      'AM does not accept AI agents in alpha after 25 seconds'
+    );
+    expect(wait.message).toContain(
+      'The last error while looking: alpha: HTTP 503'
+    );
+    expect(result.completed).toBe(false);
+  });
+
+  test('a look that works again clears the error', async () => {
+    const { tenant, plan } = await brokenPlan();
+    const read = tenant.readGate;
+    let calls = 0;
+    tenant.readGate = async (realm) => {
+      calls += 1;
+      if (calls === 1 && realm === 'alpha') throw httpError(503);
+      if (realm === 'alpha')
+        return { typeListed: false, listStatus: 501, agentCount: null };
+      return read(realm);
+    };
+    const result = await repairAIAgentFeature(
+      tenant,
+      plan,
+      { wait: true, timeout: 15000 },
+      fakeClock().clock
+    );
+    const wait = result.results.find((r) => r.step.id === 'wait-for-gate')!;
+    expect(wait.status).toBe('failed');
+    expect(wait.message).not.toContain('The last error');
+  });
+
+  test.each([401, 403])(
+    'a look that is refused with %s stops the wait with a FrodoError, and the definitions are put back',
+    async (status) => {
+      const { state, tenant, plan } = await brokenPlan();
+      tenant.readGate = async () => {
+        throw httpError(status);
+      };
+      const { clock, sleeps } = fakeClock();
+      const seen: string[] = [];
+      const error = await repairAIAgentFeature(
+        tenant,
+        plan,
+        {
+          wait: true,
+          resultCallback: (r) => seen.push(`${r.step.id}=${r.status}`),
+        },
+        clock
+      ).catch((e) => e);
+      expect(error.name).toBe('FrodoError');
+      expect(error.originalErrors[0].message).toContain(
+        `is refused (HTTP ${status}`
+      );
+      expect(sleeps).toEqual([]);
+      expect(seen.slice(-2)).toEqual([
+        'wait-for-gate=failed',
+        'restore-definitions=done',
+      ]);
+      expect(
+        objectOf(state.managed, 'alpha_aiagent').onDelete.source.endsWith('\n')
+      ).toBe(true);
+    }
+  );
+
+  test('a list that answers 403 (an answer, not an exception) stops the wait too', async () => {
+    const { tenant, plan } = await brokenPlan();
+    tenant.readGate = async () => ({
+      typeListed: true,
+      listStatus: 403,
+      agentCount: null,
+    });
+    const error = await repairAIAgentFeature(
+      tenant,
+      plan,
+      { wait: true },
+      fakeClock().clock
+    ).catch((e) => e);
+    expect(error.name).toBe('FrodoError');
+    expect(error.originalErrors[0].message).toContain('is refused (HTTP 403');
+  });
+
+  test('a list that answers 500 is named if the gate never opens', async () => {
+    const { tenant, plan } = await brokenPlan();
+    tenant.readGate = async () => ({
+      typeListed: true,
+      listStatus: 500,
+      agentCount: null,
+    });
+    const result = await repairAIAgentFeature(
+      tenant,
+      plan,
+      { wait: true, timeout: 5000 },
+      fakeClock().clock
+    );
+    expect(
+      result.results.find((r) => r.step.id === 'wait-for-gate')!.message
+    ).toContain('listing AI agents answered 500');
   });
 });

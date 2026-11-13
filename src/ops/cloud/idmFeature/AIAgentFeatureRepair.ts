@@ -24,6 +24,7 @@ import {
   AIAgentDefinitionDifference,
   applyDifferences,
   compareAIAgentDefinitions,
+  confirmDifferences,
   differencesNotOnSide,
   ManagedConfigLike,
   RepoDsConfigLike,
@@ -36,6 +37,7 @@ import {
 } from './AIAgentFeatureDiagnose';
 import {
   AI_AGENT_FEATURE_ID,
+  AI_AGENT_FEATURE_REALMS,
   AI_AGENT_FEATURE_REFERENCE_VERSION,
 } from './AIAgentFeatureReference';
 import { AIAgentFeatureRepairTenant } from './AIAgentFeatureTenant';
@@ -308,8 +310,17 @@ export async function planAIAgentFeatureRepair(
   return { ...base, repairable: true, blockers: [], steps, backup };
 }
 
-/** A tenant that no longer looks as it did when the plan was made. */
+/** A tenant that no longer looks as it did when the plan was made, or a plan that does not match the reference. */
 class StalePlanError extends Error {}
+
+/** A look at the AM gate that the tenant refuses (HTTP 401 or 403): waiting longer will not help. */
+class GateRefusedError extends Error {
+  constructor(realm: string, status: number, what: string) {
+    super(
+      `Looking at whether AM accepts AI agents in the realm ${realm} is refused (HTTP ${status}: ${what}); the wait is stopped.`
+    );
+  }
+}
 
 function sameKeys(sent: Json, back: Json | undefined): boolean {
   return (
@@ -348,6 +359,11 @@ export async function repairAIAgentFeature(
   const results: IdmFeatureRepairStepResult[] = [];
   let diagnosis: IdmFeatureDiagnosis | undefined;
   let aligned = false;
+  /**
+   * The differences as the tenant held them when the definitions were aligned in this run, with the original taken from
+   * the shipped reference: what a restore puts back. Never taken from the plan.
+   */
+  let alignedDifferences: AIAgentDefinitionDifference[] | undefined;
   let restoreTried = false;
   let esvSecretIds: Set<string> | undefined;
 
@@ -406,25 +422,39 @@ export async function repairAIAgentFeature(
     }
   };
 
-  const restore = async (step: IdmFeatureRepairStep) => {
+  const restore = async () => {
     restoreTried = true;
-    await writeDifferences(
-      step.details.differences as AIAgentDefinitionDifference[],
-      'actual'
-    );
+    if (alignedDifferences) {
+      await writeDifferences(alignedDifferences, 'actual');
+    }
+  };
+
+  /** A realm of a step is one the feature is installed for: a plan is data that somebody can have edited. */
+  const assertRealm = (realm: unknown): string => {
+    if (typeof realm !== 'string' || !AI_AGENT_FEATURE_REALMS.includes(realm)) {
+      throw new StalePlanError(
+        `The plan names the realm ${String(realm)}, which the feature is not installed for; it is refused.`
+      );
+    }
+    return realm;
+  };
+
+  /** The authentication service a provider is given exists in the realm: it is not taken on the plan's word. */
+  const assertAuthService = async (realm: string) => {
+    if (typeof authService !== 'string' || !authService) {
+      throw new StalePlanError(
+        'The plan names no authentication service; it is refused.'
+      );
+    }
+    if (!(await tenant.authServiceExists(realm, authService))) {
+      throw new Error(
+        `The realm ${realm} has no authentication tree named ${authService}; the provider is not written.`
+      );
+    }
   };
 
   const readEsvSecrets = async () =>
     (esvSecretIds ??= new Set(await tenant.readEsvSecretIds()));
-
-  const gateOpen = async (realm: string) => {
-    try {
-      const gate = await tenant.readGate(realm);
-      return gate.typeListed && gate.listStatus === 200;
-    } catch {
-      return false;
-    }
-  };
 
   const run = async (
     step: IdmFeatureRepairStep
@@ -432,7 +462,13 @@ export async function repairAIAgentFeature(
     status: IdmFeatureRepairStepResult['status'];
     message: string;
   }> => {
-    const realm = step.realm as string;
+    const realm = [
+      'delete-secret-mapping',
+      'create-provider',
+      'set-auth-service',
+    ].includes(step.id)
+      ? assertRealm(step.realm)
+      : (step.realm as string);
     switch (step.id) {
       case 'delete-secret-mapping': {
         const { storeId, storeTypeId, secretId } = step.details as {
@@ -480,6 +516,7 @@ export async function repairAIAgentFeature(
             `The realm ${realm} has an OAuth 2.0 provider now; the plan is out of date.`
           );
         }
+        await assertAuthService(realm);
         const body = clone(await tenant.readProviderTemplate(realm)) as Json;
         delete body._id;
         delete body._rev;
@@ -519,6 +556,7 @@ export async function repairAIAgentFeature(
             message: `The OAuth 2.0 provider of the realm ${realm} has the password grant authentication service ${String(have)} already.`,
           };
         }
+        await assertAuthService(realm);
         const body = clone(current);
         delete body._id;
         delete body._rev;
@@ -544,22 +582,27 @@ export async function repairAIAgentFeature(
       }
 
       case 'align-definitions': {
-        const differences = step.details
-          .differences as AIAgentDefinitionDifference[];
-        const { managed, repoDs } = await readBoth();
-        const changed = differencesNotOnSide(
-          managed,
-          repoDs,
-          differences,
-          'actual'
-        );
-        if (changed.length) {
+        const planned = step.details.differences;
+        if (!Array.isArray(planned) || !planned.length) {
           throw new StalePlanError(
-            `The definitions changed since the plan was made (${changed.map((difference) => `${difference.object} ${difference.location}`.trim()).join('; ')}); the plan is out of date.`
+            'The plan names no definition to align; it is refused.'
           );
         }
+        const { managed, repoDs } = await readBoth();
+        // what is written is what the shipped reference says, found by a fresh comparison; the plan only says where
+        const { fresh, problems } = confirmDifferences(
+          planned as AIAgentDefinitionDifference[],
+          managed,
+          repoDs
+        );
+        if (problems.length) {
+          throw new StalePlanError(
+            `The plan does not match the tenant and the original definitions and is refused (${problems.join('; ')}).`
+          );
+        }
+        alignedDifferences = fresh;
         aligned = true; // from the first write on, a failure puts the definitions back
-        await writeDifferences(differences, 'expected');
+        await writeDifferences(fresh, 'expected');
         const feature = await tenant.readFeature();
         if (feature.installedVersion !== AI_AGENT_FEATURE_REFERENCE_VERSION) {
           throw new Error(
@@ -568,7 +611,7 @@ export async function repairAIAgentFeature(
         }
         return {
           status: 'done',
-          message: `Aligned ${differences.length} definition(s); the registry reads version ${AI_AGENT_FEATURE_REFERENCE_VERSION} installed.`,
+          message: `Aligned ${fresh.length} definition(s); the registry reads version ${AI_AGENT_FEATURE_REFERENCE_VERSION} installed.`,
         };
       }
 
@@ -596,13 +639,49 @@ export async function repairAIAgentFeature(
               'Not waiting for AM to accept AI agents; it can need minutes. Diagnose the feature again later.',
           };
         }
-        const realms = step.details.realms as string[];
+        const realms = (step.details.realms as unknown[]).map(assertRealm);
         const start = clock.now();
         let pending = [...realms];
+        // the last thing that went wrong while looking, per realm; a look that works clears it
+        const lastError: Record<string, string> = {};
         for (;;) {
           const stillClosed: string[] = [];
           for (const one of pending) {
-            if (!(await gateOpen(one))) stillClosed.push(one);
+            try {
+              const gate = await tenant.readGate(one);
+              delete lastError[one];
+              if (gate.listStatus === 401 || gate.listStatus === 403) {
+                throw new GateRefusedError(
+                  one,
+                  gate.listStatus,
+                  'listing AI agents'
+                );
+              }
+              if (gate.typeListed && gate.listStatus === 200) continue;
+              // an answer that is neither open nor the closed gate (501, 404) is a problem to report if it lasts
+              if (
+                typeof gate.listStatus === 'number' &&
+                ![200, 404, 501].includes(gate.listStatus)
+              ) {
+                lastError[one] =
+                  `listing AI agents answered ${gate.listStatus}`;
+              }
+              stillClosed.push(one);
+            } catch (error) {
+              if (error instanceof GateRefusedError) throw error;
+              const failure = describeFailure(error);
+              if (failure.httpStatus === 401 || failure.httpStatus === 403) {
+                throw new GateRefusedError(
+                  one,
+                  failure.httpStatus,
+                  failure.message
+                );
+              }
+              // anything else can pass: keep looking, and say what went wrong if the time runs out
+              lastError[one] =
+                `${failure.httpStatus ? `HTTP ${failure.httpStatus}: ` : ''}${failure.message}`;
+              stillClosed.push(one);
+            }
           }
           pending = stillClosed;
           if (!pending.length) {
@@ -613,9 +692,12 @@ export async function repairAIAgentFeature(
           }
           const left = timeout - (clock.now() - start);
           if (left <= 0) {
+            const errors = Object.entries(lastError).map(
+              ([one, message]) => `${one}: ${message}`
+            );
             return {
               status: 'failed',
-              message: `AM does not accept AI agents in ${pending.join(', ')} after ${Math.round(timeout / 1000)} seconds. It can need more time; diagnose the feature again later.`,
+              message: `AM does not accept AI agents in ${pending.join(', ')} after ${Math.round(timeout / 1000)} seconds. It can need more time; diagnose the feature again later.${errors.length ? ` The last error while looking: ${errors.join('; ')}.` : ''}`,
             };
           }
           await clock.sleep(Math.min(GATE_POLL_INTERVAL, left));
@@ -623,7 +705,15 @@ export async function repairAIAgentFeature(
       }
 
       case 'restore-definitions': {
-        await restore(step);
+        // the values to put back were read from the tenant when the alignment started in this run, not from the plan
+        if (!alignedDifferences) {
+          return {
+            status: 'skipped',
+            message:
+              'The definitions were not aligned in this run: there is nothing to put back.',
+          };
+        }
+        await restore();
         return {
           status: 'done',
           message: 'Put the customised definitions back.',
@@ -659,7 +749,7 @@ export async function repairAIAgentFeature(
       );
       if (aligned && !keepAligned && !restoreTried && restoreStep) {
         try {
-          await restore(restoreStep);
+          await restore();
           report(
             restoreStep,
             'done',
