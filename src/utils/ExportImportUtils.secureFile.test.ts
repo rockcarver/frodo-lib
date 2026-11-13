@@ -20,6 +20,7 @@
 import fs from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { jest } from '@jest/globals';
 import { state } from '../index';
 import { initConnectionProfiles } from '../ops/ConnectionProfileOps';
 import {
@@ -181,6 +182,30 @@ describe('writeSecureFileAtomicSync', () => {
     }
   );
 
+  test('creates the temporary file owner-only in the call that creates it (the later chmod must not be what makes it so)', () => {
+    const filename = join(baseTmp, 'write-atomic-create-mode', 'entry.json');
+    const calls: unknown[][] = [];
+    const real = fs.writeFileSync;
+    jest.spyOn(fs, 'writeFileSync').mockImplementation(((
+      ...args: unknown[]
+    ) => {
+      calls.push(args);
+      return (real as (...a: unknown[]) => void)(...args);
+    }) as typeof fs.writeFileSync);
+    try {
+      writeSecureFileAtomicSync(filename, 'secret');
+    } finally {
+      jest.restoreAllMocks();
+    }
+    const temporary = calls.filter(([target]) =>
+      String(target).endsWith('.tmp')
+    );
+    expect(temporary).toHaveLength(1);
+    // exclusive, and 0600 from the first moment: nobody else can read it, not
+    // even between the creation and a chmod
+    expect(temporary[0][2]).toEqual({ mode: OWNER_ONLY_FILE, flag: 'wx' });
+  });
+
   test('fails without leaving a temporary file when the target cannot be replaced', () => {
     const dir = join(baseTmp, 'write-atomic-failure');
     const target = join(dir, 'target');
@@ -219,6 +244,28 @@ describe('writeFileAtomicSync', () => {
       expect(mode(dir)).toBe(0o755);
     }
   );
+
+  test('creates the temporary file exclusively and without the owner-only mode: the file holds no secret', () => {
+    const filename = join(baseTmp, 'plain-atomic-create-mode', 'entry.json');
+    const calls: unknown[][] = [];
+    const real = fs.writeFileSync;
+    jest.spyOn(fs, 'writeFileSync').mockImplementation(((
+      ...args: unknown[]
+    ) => {
+      calls.push(args);
+      return (real as (...a: unknown[]) => void)(...args);
+    }) as typeof fs.writeFileSync);
+    try {
+      writeFileAtomicSync(filename, 'public');
+    } finally {
+      jest.restoreAllMocks();
+    }
+    const temporary = calls.filter(([target]) =>
+      String(target).endsWith('.tmp')
+    );
+    expect(temporary).toHaveLength(1);
+    expect(temporary[0][2]).toEqual({ flag: 'wx' });
+  });
 
   test('fails without leaving a temporary file when the target cannot be replaced', () => {
     const dir = join(baseTmp, 'plain-atomic-failure');
