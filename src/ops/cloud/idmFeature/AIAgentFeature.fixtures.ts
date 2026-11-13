@@ -3,6 +3,7 @@
  * state a test changes. Used by the unit tests next to it; not part of the library.
  */
 import {
+  compareAIAgentDefinitions,
   ManagedConfigLike,
   RepoDsConfigLike,
   writePath,
@@ -12,6 +13,7 @@ import {
   AI_AGENT_FEATURE_REFERENCE,
 } from './AIAgentFeatureReference';
 import {
+  AIAgentFeatureRepairTenant,
   AIAgentFeatureTenant,
   AIAgentGateState,
   AIAgentSecretStoreMappings,
@@ -200,4 +202,147 @@ export function fakeTenant(state: FakeTenantState): {
       run(`countIdmAgents:${realm}`, () => state.idmAgents[realm] ?? 0),
   };
   return { tenant, calls };
+}
+
+/** What the fake platform does after the enable action, and what was done to it. */
+export type FakeRepairState = FakeTenantState & {
+  /** IDM objects by managed object type (backup data) */
+  idmObjectsByType: Record<string, unknown[]>;
+  /** after the enable action each realm's gate answers closed this many more times before it opens */
+  closedReadsAfterEnable: number;
+  /** realm -> closed reads left (set by the enable action) */
+  closedReadsLeft: Record<string, number>;
+  /** the enable action was run this many times */
+  enableRuns: number;
+};
+
+export function healthyRepairState(): FakeRepairState {
+  return {
+    ...healthyTenantState(),
+    idmObjectsByType: {},
+    closedReadsAfterEnable: 0,
+    closedReadsLeft: {},
+    enableRuns: 0,
+  };
+}
+
+/**
+ * A fake tenant with the writes of the repair. It models the platform where it matters to the repair:
+ * - the registry is derived: `installedVersion` is "1" exactly when every definition equals the original (so aligning a
+ *   definition flips it, and a tenant whose definitions are present but drifted reads null);
+ * - the enable action installs the feature internally: on drifted definitions it adds the managed object definitions a
+ *   second time; it writes the provider of every realm and answers 500 if one has none or has no password grant
+ *   authentication service; after it the gate opens once `closedReadsAfterEnable` reads have answered closed.
+ */
+export function fakeRepairTenant(state: FakeRepairState): {
+  tenant: AIAgentFeatureRepairTenant;
+  calls: string[];
+  writes: string[];
+} {
+  const { tenant: reads, calls } = fakeTenant(state);
+  const writes: string[] = [];
+  const derive = () => {
+    const { present, differences } = compareAIAgentDefinitions(
+      state.managed,
+      state.repoDs
+    );
+    state.feature.installedVersion =
+      present && differences.length === 0 ? '1' : null;
+  };
+  const write = async <T>(name: string, change: () => T): Promise<T> => {
+    calls.push(name);
+    writes.push(name);
+    if (name in state.fail) throw state.fail[name];
+    return change();
+  };
+  const tenant: AIAgentFeatureRepairTenant = {
+    ...reads,
+    // the registry follows the definitions, also when a test changed them directly
+    readFeature: async () => {
+      derive();
+      return reads.readFeature();
+    },
+    readGate: async (realm) => {
+      const gate = await reads.readGate(realm);
+      if ((state.closedReadsLeft[realm] ?? 0) > 0) {
+        state.closedReadsLeft[realm] -= 1;
+        return { typeListed: false, listStatus: 501, agentCount: null };
+      }
+      return gate;
+    },
+    readIdmObjects: async (type) => {
+      calls.push(`readIdmObjects:${type}`);
+      return clone(state.idmObjectsByType[type] ?? []) as never;
+    },
+    putManagedConfig: (config) =>
+      write('putManagedConfig', () => {
+        state.managed = clone(config);
+      }),
+    putRepoDs: (config) =>
+      write('putRepoDs', () => {
+        state.repoDs = clone(config);
+      }),
+    readProviderTemplate: async (realm) => {
+      calls.push(`readProviderTemplate:${realm}`);
+      return {
+        _id: '',
+        _rev: '1',
+        advancedOAuth2Config: { supportedScopes: [] },
+        aiAgentsConfig: { aiAgentsEnabled: false },
+      } as never;
+    },
+    putProvider: (realm, provider) =>
+      write(`putProvider:${realm}`, () => {
+        state.providers[realm] = clone(provider) as never;
+      }),
+    deleteSecretMapping: (realm, storeId, _typeId, secretId) =>
+      write(`deleteSecretMapping:${realm}:${secretId}`, () => {
+        for (const store of state.secretStores[realm] ?? []) {
+          if (store.storeId === storeId) {
+            store.mappings = store.mappings.filter(
+              (mapping) => mapping.secretId !== secretId
+            );
+          }
+        }
+      }),
+    enableFeature: () =>
+      write('enableFeature', () => {
+        state.enableRuns += 1;
+        derive();
+        if (state.feature.installedVersion !== '1') {
+          // the install the action does internally adds what is present but not equal a second time
+          for (const definition of AI_AGENT_FEATURE_REFERENCE.managedObjects
+            ? Object.values(AI_AGENT_FEATURE_REFERENCE.managedObjects)
+            : []) {
+            state.managed.objects?.push(clone(definition));
+          }
+        }
+        for (const realm of AI_AGENT_FEATURE_REALMS) {
+          const provider = state.providers[realm] as any;
+          if (
+            !provider ||
+            !provider.advancedOAuth2Config?.passwordGrantAuthService
+          ) {
+            const error: any = new Error('Request failed with status code 500');
+            error.name = 'AxiosError';
+            error.response = { status: 500, data: { code: 500 } };
+            throw error;
+          }
+        }
+        for (const realm of AI_AGENT_FEATURE_REALMS) {
+          Object.assign(
+            (state.providers[realm] as any).aiAgentsConfig ?? {},
+            healthyProvider(realm).aiAgentsConfig
+          );
+          state.gates[realm] = {
+            typeListed: true,
+            listStatus: 200,
+            agentCount: 0,
+          };
+          state.closedReadsLeft[realm] = state.closedReadsAfterEnable;
+        }
+        return {};
+      }),
+  };
+  return { tenant, calls, writes };
 }

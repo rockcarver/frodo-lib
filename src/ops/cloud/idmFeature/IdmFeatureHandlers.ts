@@ -8,8 +8,21 @@
 import { State } from '../../../shared/State';
 import { diagnoseAIAgentFeature } from './AIAgentFeatureDiagnose';
 import { AI_AGENT_FEATURE_ID } from './AIAgentFeatureReference';
-import { createAIAgentFeatureTenant } from './AIAgentFeatureTenant';
-import { IdmFeatureDiagnosis } from './IdmFeatureTypes';
+import {
+  planAIAgentFeatureRepair,
+  repairAIAgentFeature,
+} from './AIAgentFeatureRepair';
+import {
+  createAIAgentFeatureRepairTenant,
+  createAIAgentFeatureTenant,
+} from './AIAgentFeatureTenant';
+import {
+  IdmFeatureDiagnosis,
+  IdmFeatureRepairExecutionOptions,
+  IdmFeatureRepairOptions,
+  IdmFeatureRepairPlan,
+  IdmFeatureRepairResult,
+} from './IdmFeatureTypes';
 
 /**
  * What the library can do for one feature. An interface, not a type alias: the help generator lists the methods of
@@ -18,12 +31,34 @@ import { IdmFeatureDiagnosis } from './IdmFeatureTypes';
 export interface IdmFeatureHandler {
   /** Read-only diagnosis of the feature in the tenant behind `state`. */
   diagnose(state: State): Promise<IdmFeatureDiagnosis>;
+  /** Plan the repair of the feature: diagnoses it and reads what would be overwritten. Writes nothing. */
+  plan(
+    state: State,
+    options?: IdmFeatureRepairOptions
+  ): Promise<IdmFeatureRepairPlan>;
+  /** Run a plan of `plan`. */
+  repair(
+    state: State,
+    plan: IdmFeatureRepairPlan,
+    options?: IdmFeatureRepairExecutionOptions
+  ): Promise<IdmFeatureRepairResult>;
 }
 
 const handlers: Record<string, IdmFeatureHandler> = {
   [AI_AGENT_FEATURE_ID]: {
     diagnose: (state) =>
       diagnoseAIAgentFeature(createAIAgentFeatureTenant(state)),
+    plan: (state, options) =>
+      planAIAgentFeatureRepair(
+        createAIAgentFeatureRepairTenant(state),
+        options
+      ),
+    repair: (state, plan, options) =>
+      repairAIAgentFeature(
+        createAIAgentFeatureRepairTenant(state),
+        plan,
+        options
+      ),
   },
 };
 

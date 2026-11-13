@@ -10,7 +10,13 @@ import {
 import { State } from '../../shared/State';
 import { FrodoError, isNotFoundError } from '../FrodoError';
 import { getIdmFeatureHandler } from './idmFeature/IdmFeatureHandlers';
-import { IdmFeatureDiagnosis } from './idmFeature/IdmFeatureTypes';
+import {
+  IdmFeatureDiagnosis,
+  IdmFeatureRepairExecutionOptions,
+  IdmFeatureRepairOptions,
+  IdmFeatureRepairPlan,
+  IdmFeatureRepairResult,
+} from './idmFeature/IdmFeatureTypes';
 
 /**
  * IDM tenant-configuration feature management (`GET/POST /openidm/feature`).
@@ -109,6 +115,53 @@ export type IdmFeature = {
    * @returns {Promise<IdmFeatureDiagnosis>} a promise that resolves to the diagnosis
    */
   diagnoseIdmFeature(featureId: string): Promise<IdmFeatureDiagnosis>;
+  /**
+   * Plan the repair of what `diagnoseIdmFeature` finds wrong with a feature, without writing anything. The library can
+   * repair the feature `aiagent`; for any other feature this throws.
+   *
+   * The result is a plan: `{ featureId, options, diagnosis, repairable, blockers, steps, backup }`. `steps` are the
+   * writes, itemised and in the order they run (delete secret store mappings that point to no ESV secret; create an
+   * OAuth 2.0 provider from the server's template or give one the password grant authentication service it lacks; align
+   * definitions that differ only cosmetically from the original when the enable action has to run; run the enable
+   * action; wait for the AM gate; put the customised definitions back; diagnose again). `backup` holds what the steps
+   * would overwrite or delete, as the tenant returns it: managed and repo.ds configuration, the OAuth 2.0 providers, the
+   * IDM AI agent and privilege objects and the mappings to be deleted. The library writes no file: keep the backup before
+   * you call `repairIdmFeature`. `repairable` is false, with `blockers`, if something the library does not repair is
+   * wrong (structural drift, a feature version it does not know, an authentication service the realm lacks); the plan
+   * then has no steps. `repairable` with no steps means there is nothing to repair. Only errors are repaired; a warning
+   * (for example a customised title while AI agents work) is left alone.
+   *
+   * The enable action installs the IDM feature internally, which would add definitions that are present but not equal to
+   * the original a second time. The plan therefore aligns them first and puts them back at the end, unless
+   * `keepAligned`; the registry then reads "not installed" again if they were customised.
+   * @param {string} featureId feature id, e.g. 'aiagent'
+   * @param {IdmFeatureRepairOptions} options `keepAligned` (default false) and `authService` (default `Login`)
+   * @returns {Promise<IdmFeatureRepairPlan>} a promise that resolves to the plan
+   */
+  planIdmFeatureRepair(
+    featureId: string,
+    options?: IdmFeatureRepairOptions
+  ): Promise<IdmFeatureRepairPlan>;
+  /**
+   * Run a plan of `planIdmFeatureRepair`. Mutating: it writes configuration to the tenant. Every write is read back and
+   * compared with what was written, and a difference stops the run with a FrodoError; so does a tenant that no longer
+   * looks as it did when the plan was made. The enable action is run only if the registry reads the feature installed
+   * (after aligning the definitions if the plan says so). If a step fails after definitions were aligned they are put
+   * back before the error is thrown, unless the plan keeps them aligned.
+   *
+   * With `wait` the repair polls until AM accepts AI agents in the realms it enabled and returns as soon as it does, for
+   * at most `timeout` milliseconds (default 1,200,000, 20 minutes): the effect of the enable action can need minutes.
+   * Without it the repair returns after the enable action answered. A gate that is still closed when the time is up is
+   * a step with status `failed` and `completed: false`, not an error. `resultCallback` is called with the result of each
+   * step as soon as it is known. The result has the diagnosis after the repair.
+   * @param {IdmFeatureRepairPlan} plan the plan, from `planIdmFeatureRepair`
+   * @param {IdmFeatureRepairExecutionOptions} options `wait`, `timeout` (milliseconds) and `resultCallback`
+   * @returns {Promise<IdmFeatureRepairResult>} a promise that resolves to what was done
+   */
+  repairIdmFeature(
+    plan: IdmFeatureRepairPlan,
+    options?: IdmFeatureRepairExecutionOptions
+  ): Promise<IdmFeatureRepairResult>;
 };
 
 export default (state: State): IdmFeature => {
@@ -134,6 +187,18 @@ export default (state: State): IdmFeature => {
     },
     async diagnoseIdmFeature(featureId: string): Promise<IdmFeatureDiagnosis> {
       return diagnoseIdmFeature({ featureId, state });
+    },
+    async planIdmFeatureRepair(
+      featureId: string,
+      options?: IdmFeatureRepairOptions
+    ): Promise<IdmFeatureRepairPlan> {
+      return planIdmFeatureRepair({ featureId, options, state });
+    },
+    async repairIdmFeature(
+      plan: IdmFeatureRepairPlan,
+      options?: IdmFeatureRepairExecutionOptions
+    ): Promise<IdmFeatureRepairResult> {
+      return repairIdmFeature({ plan, options, state });
     },
   };
 };
@@ -273,5 +338,55 @@ export async function diagnoseIdmFeature({
     };
   } catch (error) {
     throw new FrodoError(`Error diagnosing IDM feature ${featureId}`, error);
+  }
+}
+
+export async function planIdmFeatureRepair({
+  featureId,
+  options,
+  state,
+}: {
+  featureId: string;
+  options?: IdmFeatureRepairOptions;
+  state: State;
+}): Promise<IdmFeatureRepairPlan> {
+  const handler = getIdmFeatureHandler(featureId);
+  if (!handler) {
+    throw new FrodoError(
+      `Error planning the repair of IDM feature ${featureId}: the library has no repair for this feature`
+    );
+  }
+  try {
+    return await handler.plan(state, options);
+  } catch (error) {
+    throw new FrodoError(
+      `Error planning the repair of IDM feature ${featureId}`,
+      error
+    );
+  }
+}
+
+export async function repairIdmFeature({
+  plan,
+  options,
+  state,
+}: {
+  plan: IdmFeatureRepairPlan;
+  options?: IdmFeatureRepairExecutionOptions;
+  state: State;
+}): Promise<IdmFeatureRepairResult> {
+  const featureId = plan?.featureId;
+  const handler = getIdmFeatureHandler(featureId);
+  if (!handler) {
+    throw new FrodoError(
+      `Error repairing IDM feature ${featureId}: the library has no repair for this feature`
+    );
+  }
+  try {
+    return await handler.repair(state, plan, options);
+  } catch (error) {
+    // a failed step is already a FrodoError that names the step: do not wrap it a second time
+    if (error instanceof FrodoError) throw error;
+    throw new FrodoError(`Error repairing IDM feature ${featureId}`, error);
   }
 }
