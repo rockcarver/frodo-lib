@@ -51,6 +51,11 @@ export const FRODO_ERROR_CODES = [
    * error holds them as `rateLimit`, and `rateLimit.resetAt` is when the window resets.
    */
   'LOG_API_RATE_LIMITED',
+  /**
+   * A request to a host that the caller did not name (for example the default download source of the application
+   * template catalog) was refused because air-gapped mode is on (`state.setAirGapped(true)`). Nothing was sent.
+   */
+  'AIR_GAPPED',
 ] as const;
 
 /** The identity of an error condition, see {@link FRODO_ERROR_CODES}. */
