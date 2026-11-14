@@ -13,6 +13,7 @@
 import { spawn } from 'child_process';
 import fs from 'fs';
 import { resolve } from 'path';
+import { isolatedChildEnv } from '../../test/support/runWorkers';
 import StateImpl from '../shared/State';
 import { getTokenCacheDir, listCachedSessions } from './TokenCacheOps';
 
@@ -32,6 +33,7 @@ function runWorker(args: object): {
     {
       cwd: resolve('.'),
       stdio: ['ignore', 'pipe', 'pipe'],
+      env: isolatedChildEnv(),
     }
   );
   let stdout = '';

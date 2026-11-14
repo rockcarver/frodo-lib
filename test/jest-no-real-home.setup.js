@@ -26,7 +26,13 @@
  *   that nothing reaches it (src/utils/NoRealHome.guard.unit.test.ts), and the
  *   temporary one in FRODO_TEST_HOME.
  *
- * After the test file it puts everything back and removes the directory.
+ * After the test file it puts everything back and removes the directory
+ * (src/utils/NoRealHome.cleanup.unit.test.ts checks that it is gone).
+ *
+ * What it does not cover: a process that a test starts (it gets the environment of
+ * the test runner's own process unless the test passes an `env`; see
+ * isolatedChildEnv in test/support/runWorkers.ts) and `os.userInfo()`, which reads the
+ * real home from the operating system (no code of the library uses it).
  *
  * A test that needs files under the home writes them under `os.homedir()`; a
  * test of a default path asserts on the path it gets, which is inside the
