@@ -15,7 +15,8 @@
 // order of the entry
 import '../index';
 import fs from 'fs';
-import { resolve } from 'path';
+import { homedir } from 'os';
+import { join, resolve } from 'path';
 import { jest } from '@jest/globals';
 import StateImpl from '../shared/State';
 import DataProtection from '../utils/DataProtection';
@@ -315,5 +316,20 @@ describe('connection profiles file: safe writes', () => {
     } finally {
       spy.mockRestore();
     }
+  });
+
+  test('10: initializing a profiles file of its own creates nothing in the Frodo home (frodo-lib#1076)', async () => {
+    const home = join(homedir(), '.frodo');
+    fs.rmSync(home, { recursive: true, force: true });
+    fs.mkdirSync(home, { recursive: true });
+    const file = newFile();
+    await initConnectionProfiles({
+      state: stateFor(file, 'https://openam-init.example.com/am'),
+    });
+    expect(fs.existsSync(file)).toBe(true);
+    await initConnectionProfiles({
+      state: stateFor(file, 'https://openam-init.example.com/am'),
+    });
+    expect(fs.readdirSync(home)).toEqual([]);
   });
 });

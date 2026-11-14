@@ -349,6 +349,17 @@ releases missed):
   `isServiceAccountsFeatureAvailable`) is unchanged: it still answers `false`
   when the list cannot be read. A caller that wants the old behaviour catches
   the error and uses an empty list.
+- `frodo.conn.initConnectionProfiles` (`src/ops/ConnectionProfileOps.ts`) no
+  longer contains the migration of the legacy profiles file `~/.frodo/.frodorc`.
+  Frodo versions before 0.16.2-11 kept their connection profiles in that file;
+  the migration copied it to `Connections.json` and renamed it to
+  `.frodorc.deprecated`. Since 2.0.0-30 it checked for `Connections.json` first
+  and so could never act for the default profiles file: connection profiles
+  that exist only in a `.frodorc` file have not been migrated since then, and
+  the code that looked as if it did is removed. A `.frodorc` file is left alone.
+  Re-add such connection profiles (`frodo.conn.saveConnectionProfile`, or
+  `frodo conn save` of frodo-cli), or copy the file to `Connections.json`
+  yourself.
 
 **Deprecation**:
 
