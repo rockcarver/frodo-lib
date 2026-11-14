@@ -15,7 +15,7 @@ described in the job sections that follow.)
 flowchart TD
     PR["PR to main<br/>or push to main"] --> CH["Detect code changes<br/>(classify-changes.sh)"]
     PR --> B["Build<br/>(version bump, build.zip)<br/>required check"]
-    CH --> G["Validate guidance<br/>(records, skills, AGENTS.md)"]
+    CH --> G["Validate guidance<br/>(records, skills, AGENTS.md,<br/>Dependabot policy)"]
     B --> T["Test (22 / 24 / 26)<br/>+ squid proxy leg<br/>(skipped when no code changed)"]
     B --> CP["Cross-Platform Tests<br/>(credential file permissions)"]
     T --> TG["Test gate<br/>required check"]
@@ -129,8 +129,12 @@ which prints two results:
 - `guidance=true` when a file changed that a validation test reads (see
   [Validate guidance](#validate-guidance)): `decisions/`, `.claude/skills/`,
   `.github/instructions/`, the core records drift check
-  (`.github/scripts/check-core-records-drift.mjs`) and its workflow, or any
-  Markdown file in the repository root. It is independent of `code`.
+  (`.github/scripts/check-core-records-drift.mjs`) and its workflow, the
+  Dependabot policy files (`.github/dependabot.yml`,
+  `.github/workflows/dependabot-auto-merge.yml` and
+  `scripts/dependabot-auto-merge.mjs`), or any Markdown file in the repository
+  root. It is independent of `code`: the config and the workflow are not code,
+  the script is (its pull request runs the long matrix as well).
 
 The script is read from the commit the pull request **targets**, never from
 the pull request itself: a change to the classifier is classified by the
@@ -170,7 +174,7 @@ non-code:
 
 Most of these are guidance files that a test reads (`decisions/`, the Markdown
 files of the root, `.claude/skills/`, `.github/instructions/`, the drift
-check). A pull request that changes them runs the fast `Validate guidance` job;
+check, `dependabot.yml` and the auto-merge workflow). A pull request that changes them runs the fast `Validate guidance` job;
 the push after the merge does not repeat it. `pipeline.yml` is on the list too,
 although the classifier counts it as code: a pull request that changes it runs
 everything, and the push after its merge does not. The classifier itself
@@ -193,6 +197,13 @@ only the tests that validate files the filter treats as non-code:
   `decisions/core/` (the core records, with their index), the weekly core
   records drift check and its workflow (`core-records-drift.yml`, which only
   reads and compares `decisions/core/` with frodo-cli's);
+- `src/dependabotAutoMerge.unit.test.ts` and `src/dependabotPolicy.unit.test.ts`:
+  the Dependabot policy of [core 0023](decisions/core/0023-dependency-updates-arrive-late-and-only-tooling-merges-without-a-person.md):
+  the decision script, the auto-merge workflow, and the group `tooling` and the
+  cooldown of `dependabot.yml` against the packages that shipped code imports.
+  The second one also compares the group with the sourcemap of `dist/` when a
+  build exists; this job has none, so that case is skipped here and runs in
+  the full suite;
 - `src/index.test.ts`: the contributor guide the export guard points at.
 
 A code change runs the same tests again in the full suite, so this job only

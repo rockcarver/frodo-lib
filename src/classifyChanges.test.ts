@@ -71,6 +71,10 @@ describe('classify-changes.sh', () => {
       ['a workflow definition', '.github/workflows/plan-worker.md'],
       ['CODEOWNERS', '.github/CODEOWNERS'],
       ['the dependabot config', '.github/dependabot.yml'],
+      [
+        'the dependabot auto-merge workflow',
+        '.github/workflows/dependabot-auto-merge.yml',
+      ],
       ['the Copilot instructions', '.github/copilot-instructions.md'],
     ];
     test.each(nonCode)('%s is not code', (_what, file) => {
@@ -99,6 +103,7 @@ describe('classify-changes.sh', () => {
       ['the lockfile', 'package-lock.json'],
       ['a build script', 'scripts/generate-help.mjs'],
       ['the record validator', 'scripts/validate-decision-records.mjs'],
+      ['the dependabot auto-merge script', 'scripts/dependabot-auto-merge.mjs'],
       ['a build config', 'tsdown.config.mts'],
       ['the pipeline', '.github/workflows/pipeline.yml'],
       ['the classifier itself', '.github/scripts/classify-changes.sh'],
@@ -195,6 +200,12 @@ describe('classify-changes.sh', () => {
         'the core records drift workflow',
         '.github/workflows/core-records-drift.yml',
       ],
+      ['the dependabot config', '.github/dependabot.yml'],
+      [
+        'the dependabot auto-merge workflow',
+        '.github/workflows/dependabot-auto-merge.yml',
+      ],
+      ['the dependabot auto-merge script', 'scripts/dependabot-auto-merge.mjs'],
       ['a skill', '.claude/skills/build-the-lib/SKILL.md'],
       ['an instruction file', '.github/instructions/tests.instructions.md'],
       ['AGENTS.md', 'AGENTS.md'],
@@ -212,6 +223,29 @@ describe('classify-changes.sh', () => {
       ['the pipeline', '.github/workflows/pipeline.yml'],
       ['a concierge workflow', '.github/workflows/janitor.yml'],
       ['another concierge script', '.github/scripts/janitor.mjs'],
+      ['another build script', 'scripts/generate-help.mjs'],
+      ['a look-alike of the dependabot config', '.github/dependabot.yaml'],
+      ['a dependabot config in a nested folder', 'x/.github/dependabot.yml'],
+      [
+        'another dependabot workflow',
+        '.github/workflows/dependabot-auto-merge-extra.yml',
+      ],
+      [
+        'a look-alike of the auto-merge workflow',
+        '.github/workflows/dependabot-auto-merge.yml.bak',
+      ],
+      [
+        'a look-alike of the auto-merge script',
+        'scripts/dependabot-auto-merge.mjs.bak',
+      ],
+      [
+        'the auto-merge script in a nested folder',
+        'src/scripts/dependabot-auto-merge.mjs',
+      ],
+      [
+        'a test of the auto-merge script (code, and not itself a policy file)',
+        'src/dependabotAutoMerge.unit.test.ts',
+      ],
       ['the concierge pin', '.github/issue-concierge.yml'],
       ['generated docs', 'docs/classes/Foo.html'],
       ['the licence', 'LICENSE'],
@@ -241,6 +275,32 @@ describe('classify-changes.sh', () => {
         guidance: false,
       });
     });
+
+    bashTest(
+      'the Dependabot policy files start the guidance job and keep their code result',
+      () => {
+        // the config and the workflow are not code: only the guidance job runs for them
+        expect(classify(['.github/dependabot.yml'])).toMatchObject({
+          code: false,
+          guidance: true,
+        });
+        expect(
+          classify(['.github/workflows/dependabot-auto-merge.yml'])
+        ).toMatchObject({ code: false, guidance: true });
+        // the script is not on the non-code list: the long matrix runs as well
+        expect(classify(['scripts/dependabot-auto-merge.mjs'])).toMatchObject({
+          code: true,
+          guidance: true,
+        });
+        // the three together, as the pull request that changes the policy has them
+        expect(
+          classify([
+            '.github/dependabot.yml',
+            '.github/workflows/dependabot-auto-merge.yml',
+          ])
+        ).toMatchObject({ code: false, guidance: true });
+      }
+    );
 
     bashTest('one guidance file among others is enough', () => {
       expect(

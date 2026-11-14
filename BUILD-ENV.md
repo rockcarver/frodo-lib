@@ -308,15 +308,30 @@ update pull request that skipped it.
 
 ## 8. Dependency automation
 
-- `dependabot.yml`: weekly npm + github-actions; grouped dev minor/patch;
-  prettier/typescript/eslint excluded (Prettier minors reformat code; TS/
-  ESLint majors need coordinated config work); TS majors ignored.
-  `github/gh-aw-actions/setup` is ignored: it is pinned inside the Issue
-  Concierge's generated `*.lock.yml` files, which a Concierge release moves by
-  recompiling them.
-- `dependabot-auto-merge.yml`: arms `gh pr merge --auto --squash` on
-  patch/minor Dependabot PRs once checks pass; majors and tooling stay
-  manual. (Dependabot "rules" in settings only triage alerts.)
+- Policy: [core 0023](decisions/core/0023-dependency-updates-arrive-late-and-only-tooling-merges-without-a-person.md)
+  (supersedes core 0011). A version update is proposed only 7 days after its
+  release; packages that shipped code imports (bundled into `dist/`) and the
+  bundler (`tsdown`) arrive one pull request each and a person merges them;
+  only the named tooling list merges without a person, and only when every
+  lockfile version it adds is 7 days old. GitHub Actions updates are never
+  auto-merged.
+- `dependabot.yml`: weekly npm + github-actions; `cooldown` of 7 days (security
+  updates are not delayed; our own `gearsnlevers/*` actions are excluded); the
+  npm group `tooling` is a named list of packages that do not end up in what we
+  ship (minor and patch); every other package, the manual set
+  (prettier/typescript/eslint and their plugins: Prettier minors reformat code,
+  TS/ESLint majors need coordinated config work) and anything not listed is a
+  pull request of its own; TS majors ignored. `github/gh-aw-actions/setup` is
+  ignored: it is pinned inside the Issue Concierge's generated `*.lock.yml`
+  files, which a Concierge release moves by recompiling them.
+- `dependabot-auto-merge.yml` runs `scripts/dependabot-auto-merge.mjs` for
+  Dependabot pull requests and in a daily sweep: it arms
+  `gh pr merge --auto --squash` only for patch/minor updates of the group
+  `tooling` whose every lockfile version is at least 7 days old (npm
+  registry); majors, the manual set, bundled packages and GitHub Actions stay
+  manual. (Dependabot "rules" in settings only triage alerts.) The tests
+  `src/dependabotAutoMerge.unit.test.ts` and `src/dependabotPolicy.unit.test.ts`
+  run in `Validate guidance` whenever one of these three files changes.
 - Known GitHub quirk (hit 3× on 2026-10-03): mergeability lags behind green
   check-runs — combined commit status `pending` with 0 statuses,
   `mergeStateStatus` BLOCKED/UNKNOWN despite all-success check-runs. Wait
@@ -353,4 +368,5 @@ update pull request that skipped it.
 | 2026-11-01 | `workflow_dispatch` of `pipeline.yml` gets the release type `ci-only`, the new default: the validation of a push to `main` (build, tests, cross-platform tests) without the version bump, the preflight or any release job, so a full CI run can be started by hand for a change the classifier skipped or for `main`, and a dispatch that names no type publishes nothing. Every dispatch-only job and step skips on `ci-only`; the release skill passes its type explicitly. | — |
 | 2026-11-01 | The `push` trigger of `pipeline.yml` ignores the rest of what the classifier calls non-code (the Markdown files of the root such as `AGENTS.md` and `CLAUDE.md`, `LICENSE`, `decisions/`, `.claude/skills/`, `.github/instructions/`, `.github/ISSUE_TEMPLATE/`, `CODEOWNERS`, `dependabot.yml`, `copilot-instructions.md`): a merge of a pull request that changed only these started the whole pipeline for files no test builds. Guidance files are in it too, as `PIPELINE.md` and `CONTRIBUTE.md` already were; their pull request ran `Validate guidance`. `src/pipelineWorkflow.test.ts` pins the list against the classifier | — |
 | 2026-11-10 | The `Proxy Tests` step of the `Test` job runs `npm run test:proxy` (the named proxy tests and a live probe through the squid container, `FRODO_PROXY_LIVE=1`, which warns and skips the request through the proxy while the tenant does not answer 2xx without it) instead of the whole suite a second time; a jest setup file hides the proxy variables of the machine from every test file, which fixes 11 suites that failed behind a dead proxy; `src/pipelineWorkflow.test.ts` pins the step; decision `0017` | #982            |
+| 2026-11-14 | Dependabot policy (core `0023`): 7-day cooldown, bundled packages and the bundler one pull request each, only the named `tooling` group auto-merges and only for lockfile versions 7 days old, GitHub Actions never; the three policy files (`.github/dependabot.yml`, `.github/workflows/dependabot-auto-merge.yml`, `scripts/dependabot-auto-merge.mjs`) count as guidance and their two tests run in `Validate guidance` | #1091, #1092, this PR |
 | planned    | Polly→nock — DEFERRED (deep record-harness coupling; revisit on Node 28 or real breakage)                                                                                                                                                                           | —               |
