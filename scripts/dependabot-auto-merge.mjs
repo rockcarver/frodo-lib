@@ -10,6 +10,8 @@
  *  - every commit of it is by Dependabot, and the commit message carries the Dependabot metadata that says what was
  *    updated (no metadata, no arming);
  *  - every update is a patch or a minor update, and no updated package belongs to the manual set (isManualName);
+ *  - it is not a GitHub Actions pull request: Actions are never armed, a person merges them (the pinned SHA and the
+ *    release notes need a human look; the cooldown of dependabot.yml only delays their proposal);
  *  - for an npm pull request: every package version that it adds or changes in package-lock.json, direct or
  *    transitive, was published at least MIN_AGE_DAYS days ago according to the npm registry. A registry that cannot be
  *    read, a missing publish time, or a lockfile change that cannot be found means: not armed.
@@ -255,7 +257,7 @@ export function tooYoung(changes, times, now, minDays = MIN_AGE_DAYS) {
  * @param {object} input what is known about the pull request
  * @param {{name:string,updateType?:string,group?:string}[] | null} input.metadata Dependabot metadata, null if none
  * @param {string[]} input.commitAuthors login of the author of each commit of the pull request
- * @param {boolean} input.isActions true for a GitHub Actions pull request (no lockfile involved)
+ * @param {boolean} input.isActions true for a GitHub Actions pull request (never armed)
  * @param {{name:string,version:string}[] | null} input.changes lockfile versions added or changed, null if unknown
  * @param {Map<string,string>} input.times `name@version` to the ISO publish time
  * @param {number} input.now milliseconds since the epoch
@@ -286,6 +288,10 @@ export function decide({
       `commits not made by Dependabot: ${others.join(', ') || 'none found'}`
     );
   }
+  if (isActions) {
+    // never armed, whatever the update type: a person merges GitHub Actions updates
+    reasons.push('GitHub Actions update: a person merges it');
+  }
   for (const dep of metadata) {
     if (!UPDATE_TYPES_ALLOWED.includes(dep.updateType)) {
       reasons.push(
@@ -297,10 +303,6 @@ export function decide({
     }
   }
   if (reasons.length > 0) return { arm: false, retryLater: false, reasons };
-  if (isActions) {
-    // no lockfile: the cooldown of dependabot.yml is the delay for GitHub Actions
-    return { arm: true, retryLater: false, reasons: ['GitHub Actions update'] };
-  }
   if (!changes || changes.length === 0) {
     return {
       arm: false,

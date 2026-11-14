@@ -477,23 +477,28 @@ describe('decide: a Dependabot pull request is armed only under the policy', () 
     expect(v.arm).toBe(false);
     expect(v.reasons[0]).toMatch(/no change of package-lock.json/);
   });
-  test('a GitHub Actions pull request has no lockfile: the cooldown of dependabot.yml is its delay', () => {
-    expect(
-      verdict({
-        metadata: [minor('actions/checkout')],
-        isActions: true,
-        changes: null,
-      })
-    ).toMatchObject({ arm: true });
-  });
-  test('a GitHub Actions major update is not armed either', () => {
-    expect(
-      verdict({
-        metadata: [major('actions/checkout')],
-        isActions: true,
-        changes: null,
-      }).arm
-    ).toBe(false);
+  test.each([
+    ['patch', patch('actions/checkout')],
+    ['minor', minor('actions/checkout')],
+    ['major', major('actions/checkout')],
+  ])(
+    'a GitHub Actions %s update is never armed: a person merges it',
+    (_label, dep) => {
+      const v = verdict({ metadata: [dep], isActions: true, changes: null });
+      expect(v.arm).toBe(false);
+      expect(v.retryLater).toBe(false);
+      expect(v.reasons).toContain('GitHub Actions update: a person merges it');
+    }
+  );
+  test('a GitHub Actions update is not armed even when everything else would pass', () => {
+    const v = verdict({
+      metadata: [patch('actions/setup-node')],
+      isActions: true,
+      changes: [{ name: 'axios', version: '1.21.1' }],
+      times: { 'axios@1.21.1': ago(30) },
+    });
+    expect(v.arm).toBe(false);
+    expect(v.retryLater).toBe(false);
   });
   test('reasons of a permanent refusal win over the age: it is not retried', () => {
     const v = verdict({
