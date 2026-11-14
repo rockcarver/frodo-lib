@@ -26,7 +26,7 @@ import {
   listAccessAreas,
   type AccessAreaDescriptor,
   type AccessProfile,
-  type LoginInfo,
+  type AccessProfileAdaptationCode,
 } from './AccessProfileOps';
 import {
   BrowserLoginPromptHandler,
@@ -439,6 +439,37 @@ const CLOUD_DEVICE_ADMIN_SCOPES: string[] = CLOUD_BROWSER_ADMIN_SCOPES.filter(
   (scope) => scope !== s.AmFullScope
 );
 const cloudDeviceAdminScopes = CLOUD_DEVICE_ADMIN_SCOPES.join(' ');
+/**
+ * What a device login falls back to when the client of a tenant refuses the
+ * defaults above (invalid_scope): Identity Management only.
+ */
+const cloudDeviceFallbackScopes = s.IdmFullScope;
+
+/**
+ * Whether a failed login request was refused because the client does not offer
+ * a requested scope (OAuth error invalid_scope): in the answer of the token or
+ * device endpoint, or in the error of the loopback redirect of a browser login.
+ * @param {unknown} error the error of the request
+ * @returns {boolean} true for invalid_scope
+ */
+function isInvalidScopeError(error: unknown): boolean {
+  const queue: unknown[] = [error];
+  while (queue.length > 0) {
+    const current = queue.shift() as any;
+    if (!current) continue;
+    if (current.response?.data?.error === 'invalid_scope') return true;
+    if (
+      current instanceof FrodoError &&
+      /^Browser login failed: invalid_scope\b/.test(current.message)
+    ) {
+      return true;
+    }
+    if (Array.isArray(current.originalErrors)) {
+      queue.push(...current.originalErrors);
+    }
+  }
+  return false;
+}
 /**
  * `CLOUD_BROWSER_LOGIN_CLIENT_ID`'s one registered redirect URI, confirmed
  * (2026-09-07, empirically against a real AIC tenant by probing
@@ -3813,15 +3844,11 @@ export async function getTokensInteractive({
           : useDeviceFlow
             ? cloudDeviceAdminScopes
             : cloudBrowserAdminScopes;
-        const scope = loginScope || defaultScope;
-        const login: LoginInfo = {
-          flow: useDeviceFlow ? 'device' : 'browser',
-          requestedScope: scope,
-          adaptations:
-            !loginScope && usingBuiltInClient && useDeviceFlow
-              ? ['DEVICE_LOGIN_AM_SCOPE_NOT_REQUESTED']
-              : [],
-        };
+        let scope = loginScope || defaultScope;
+        const adaptations: AccessProfileAdaptationCode[] =
+          !loginScope && usingBuiltInClient && useDeviceFlow
+            ? ['DEVICE_LOGIN_AM_SCOPE_NOT_REQUESTED']
+            : [];
         // Shared with the non-interactive synthetic flow's own
         // --login-redirect-uri (state.getAdminClientRedirectUri()) — same
         // fallback pattern loginClientId already uses against
@@ -3850,23 +3877,53 @@ export async function getTokensInteractive({
         const effectiveRedirectUri = usingBuiltInClient
           ? CLOUD_BROWSER_LOGIN_REDIRECT_URI
           : resolvedRedirectUri;
-        token = useDeviceFlow
-          ? await startDeviceAuthorizationFlow({
-              clientId,
-              scope,
-              promptHandler,
-              timeoutMs,
-              state,
-            })
-          : await runInteractiveAuthorizationCodeFlow({
-              clientId,
-              scope,
-              redirectUri: effectiveRedirectUri,
-              promptHandler,
-              timeoutMs,
-              state,
-            });
-        token.login = login;
+        const runCloudFlow = (requestedScope: string) =>
+          useDeviceFlow
+            ? startDeviceAuthorizationFlow({
+                clientId,
+                scope: requestedScope,
+                promptHandler,
+                timeoutMs,
+                state,
+              })
+            : runInteractiveAuthorizationCodeFlow({
+                clientId,
+                scope: requestedScope,
+                redirectUri: effectiveRedirectUri,
+                promptHandler,
+                timeoutMs,
+                state,
+              });
+        try {
+          token = await runCloudFlow(scope);
+        } catch (error) {
+          // The defaults are measured on the tenants that were measured. A
+          // tenant whose built-in client does not offer one of them refuses
+          // the request with invalid_scope before anything is approved: ask
+          // again, once, for the scopes this login always asked for. A scope
+          // that the caller named is never changed.
+          if (
+            loginScope ||
+            !usingBuiltInClient ||
+            !isInvalidScopeError(error)
+          ) {
+            throw error;
+          }
+          scope = useDeviceFlow
+            ? cloudDeviceFallbackScopes
+            : cloudLegacyBrowserAdminScopes;
+          adaptations.push('DEFAULT_SCOPES_REDUCED');
+          debugMessage({
+            message: `AuthenticateOps.getTokensInteractive: the client refused the default scopes (invalid_scope), asking again for [${scope}]`,
+            state,
+          });
+          token = await runCloudFlow(scope);
+        }
+        token.login = {
+          flow: useDeviceFlow ? 'device' : 'browser',
+          requestedScope: scope,
+          adaptations,
+        };
         state.setAuthMode('interactive');
         state.setBrowserLoginClientId(clientId);
         state.setBrowserLoginScope(scope);

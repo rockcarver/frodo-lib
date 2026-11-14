@@ -78,6 +78,7 @@ const {
   default: AuthenticateImpl,
 } = await import('./AuthenticateOps');
 const { default: StateImpl } = await import('../shared/State');
+const { FrodoError } = await import('./FrodoError');
 
 const TMP_DIR = resolve('.', 'test', 'fs_tmp', 'AuthenticateOps.accessProfile');
 
@@ -377,5 +378,124 @@ describe('Cloud interactive login: the requested scope per flow', () => {
       adaptations: [],
     });
     expect(AuthenticateImpl(state).getAccessProfile().flow).toBe('browser');
+  });
+
+  // A tenant whose built-in client does not offer one of the default scopes refuses the request
+  // with invalid_scope before anything is approved: the browser login sees it as the error of the
+  // loopback redirect, the device login as the error answer of the device endpoint.
+  const browserInvalidScope = () =>
+    new FrodoError('Browser login failed: invalid_scope (unknown scope)');
+  const deviceInvalidScope = () =>
+    new FrodoError(
+      'Error requesting a device code',
+      Object.assign(new Error('Request failed with status code 400'), {
+        name: 'AxiosError',
+        response: {
+          status: 400,
+          data: { error: 'invalid_scope' },
+          headers: {},
+        },
+      })
+    );
+
+  test('9: a browser login whose client refuses the default scopes asks again, once, for the two it always asked for, and says so', async () => {
+    runInteractiveAuthorizationCodeFlow
+      .mockRejectedValueOnce(browserInvalidScope())
+      .mockResolvedValueOnce(
+        tokenResponse({ scope: 'fr:am:* fr:idm:*', session: true })
+      );
+    const state = freshState();
+    const tokens = await getTokensInteractive({
+      deploymentType: 'cloud',
+      promptHandler,
+      state,
+    });
+    expect(runInteractiveAuthorizationCodeFlow).toHaveBeenCalledTimes(2);
+    expect(
+      runInteractiveAuthorizationCodeFlow.mock.calls.map((c: any) => c[0].scope)
+    ).toEqual([FIVE, 'fr:am:* fr:idm:*']);
+    expect(state.getBrowserLoginScope()).toBe('fr:am:* fr:idm:*');
+    expect(tokens.accessProfile.requestedScope).toBe('fr:am:* fr:idm:*');
+    expect(tokens.accessProfile.adaptations.map((a: any) => a.code)).toEqual([
+      'DEFAULT_SCOPES_REDUCED',
+    ]);
+    expect(area(tokens.accessProfile, 'am').reachable).toBe('yes');
+  });
+
+  test('10: a device login whose client refuses the default scopes asks again for Identity Management only, with both adaptations reported', async () => {
+    startDeviceAuthorizationFlow
+      .mockRejectedValueOnce(deviceInvalidScope())
+      .mockResolvedValueOnce(
+        tokenResponse({ scope: 'fr:idm:*', session: false })
+      );
+    const tokens = await getTokensInteractive({
+      deploymentType: 'cloud',
+      useDeviceFlow: true,
+      promptHandler,
+      state: freshState(),
+    });
+    expect(
+      startDeviceAuthorizationFlow.mock.calls.map((c: any) => c[0].scope)
+    ).toEqual([DEVICE_FOUR, 'fr:idm:*']);
+    expect(tokens.accessProfile.adaptations.map((a: any) => a.code)).toEqual([
+      'DEVICE_LOGIN_AM_SCOPE_NOT_REQUESTED',
+      'DEFAULT_SCOPES_REDUCED',
+    ]);
+    expect(area(tokens.accessProfile, 'idm').reachable).toBe('yes');
+  });
+
+  test('11: a scope the caller named is never reduced, a customer client is never retried, other errors are not retried, and a second refusal ends it', async () => {
+    runInteractiveAuthorizationCodeFlow.mockRejectedValueOnce(
+      browserInvalidScope()
+    );
+    await expect(
+      getTokensInteractive({
+        deploymentType: 'cloud',
+        loginScope: 'fr:idm:*',
+        promptHandler,
+        state: freshState(),
+      })
+    ).rejects.toThrow();
+    expect(runInteractiveAuthorizationCodeFlow).toHaveBeenCalledTimes(1);
+
+    runInteractiveAuthorizationCodeFlow.mockReset();
+    runInteractiveAuthorizationCodeFlow.mockRejectedValueOnce(
+      browserInvalidScope()
+    );
+    await expect(
+      getTokensInteractive({
+        deploymentType: 'cloud',
+        loginClientId: 'my-own-client',
+        promptHandler,
+        state: freshState(),
+      })
+    ).rejects.toThrow();
+    expect(runInteractiveAuthorizationCodeFlow).toHaveBeenCalledTimes(1);
+
+    runInteractiveAuthorizationCodeFlow.mockReset();
+    runInteractiveAuthorizationCodeFlow.mockRejectedValueOnce(
+      new FrodoError('Browser login failed: access_denied (no)')
+    );
+    await expect(
+      getTokensInteractive({
+        deploymentType: 'cloud',
+        promptHandler,
+        state: freshState(),
+      })
+    ).rejects.toThrow();
+    expect(runInteractiveAuthorizationCodeFlow).toHaveBeenCalledTimes(1);
+
+    runInteractiveAuthorizationCodeFlow.mockReset();
+    runInteractiveAuthorizationCodeFlow
+      .mockRejectedValueOnce(browserInvalidScope())
+      .mockRejectedValueOnce(browserInvalidScope());
+    await expect(
+      getTokensInteractive({
+        deploymentType: 'cloud',
+        promptHandler,
+        state: freshState(),
+      })
+    ).rejects.toThrow();
+    expect(runInteractiveAuthorizationCodeFlow).toHaveBeenCalledTimes(2);
   });
 });

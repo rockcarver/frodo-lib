@@ -113,10 +113,14 @@ export type AccessProfileAdaptation = {
 };
 
 /**
- * A device authorization login on the built-in client did not request the scope `fr:am:*`: a device
- * login that requests it ends in a server error after the approval on tenants where it was measured.
+ * What the library did differently from its defaults to make the login succeed.
+ * `DEVICE_LOGIN_AM_SCOPE_NOT_REQUESTED`: a device authorization login on the built-in client did not request
+ * the scope `fr:am:*` (a device login that requests it ends in a server error after the approval on tenants
+ * where it was measured). `DEFAULT_SCOPES_REDUCED`: the client of the tenant refused the default scopes
+ * (`invalid_scope`), and the login asked again for fewer.
  */
-export type AccessProfileAdaptationCode = 'DEVICE_LOGIN_AM_SCOPE_NOT_REQUESTED';
+export type AccessProfileAdaptationCode =
+  'DEVICE_LOGIN_AM_SCOPE_NOT_REQUESTED' | 'DEFAULT_SCOPES_REDUCED';
 
 /**
  * What the library remembers of how an interactive access token was obtained. Stored with the token
@@ -434,6 +438,8 @@ function adaptationMessage(code: AccessProfileAdaptationCode): string {
   switch (code) {
     case 'DEVICE_LOGIN_AM_SCOPE_NOT_REQUESTED':
       return `The scope ${s.AmFullScope} was not requested: a device login that requests it fails after the approval on the tenants where this was measured, and its token cannot reach Access Management anyway.`;
+    case 'DEFAULT_SCOPES_REDUCED':
+      return 'The client of this tenant refused the default scopes of the login (invalid_scope), so the login asked again for fewer.';
   }
 }
 
