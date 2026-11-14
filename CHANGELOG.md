@@ -10,6 +10,20 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-44] - 2026-11-14
+
+### Added
+- Introduced `validateCIMDProfile`, a function for offline validation of CIMD profiles. It reads a profile and returns findings with details on errors that the server would refuse on a write. This feature enhances profile validation capabilities. (#1084)
+
+### Changed
+- Adapted interactive login scopes to align with the flow and report an access profile. Browser logins now request all available scopes, including environment secrets and variables, which were previously refused. Device logins follow the same pattern with additional monitoring scopes. This change ensures comprehensive access requests for different login flows. (#1075)
+
+### Fixed
+- Resolved an issue where the migration of legacy connection profiles was unreachable. The migration process has been removed to prevent unnecessary file operations. (#1087)
+- Addressed a problem in `readFeatures` where a refused read operation returned an empty list. Now, it throws a `FrodoError`, providing clearer feedback when feature lists cannot be accessed. (#1086)
+- Corrected the secret store check for IDM feature diagnosis on Cloud environments, ensuring compatibility with Ping Advanced Identity Cloud. (#1079)
+- Fixed the repair process to correctly delete a dangling secret mapping by its `_id`, addressing failures when mappings were created without an `_id`. (#1088)
+
 ## [v5.0.0-43] - 2026-11-13
 
 ### Changed
@@ -2998,6 +3012,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-44]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-43...v5.0.0-44
 [v5.0.0-43]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-42...v5.0.0-43
 [v5.0.0-42]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-41...v5.0.0-42
 [v5.0.0-41]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-40...v5.0.0-41
