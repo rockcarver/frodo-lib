@@ -36,20 +36,22 @@ const ago = (days: number) => new Date(NOW - days * DAY).toISOString();
 const patch = (name: string): Meta => ({
   name,
   updateType: 'version-update:semver-patch',
+  group: 'tooling',
 });
 const minor = (name: string): Meta => ({
   name,
   updateType: 'version-update:semver-minor',
+  group: 'tooling',
 });
 const major = (name: string): Meta => ({
   name,
   updateType: 'version-update:semver-major',
+  group: 'tooling',
 });
 
 function verdict(over: {
   metadata?: Meta[] | null;
   commitAuthors?: string[];
-  isActions?: boolean;
   changes?: Change[] | null;
   times?: Record<string, string>;
 }) {
@@ -58,7 +60,6 @@ function verdict(over: {
   return mod.decide({
     metadata: 'metadata' in over ? over.metadata : [patch('axios')],
     commitAuthors: over.commitAuthors ?? ['dependabot[bot]'],
-    isActions: over.isActions ?? false,
     changes:
       changes === undefined
         ? undefined
@@ -477,21 +478,31 @@ describe('decide: a Dependabot pull request is armed only under the policy', () 
     expect(v.arm).toBe(false);
     expect(v.reasons[0]).toMatch(/no change of package-lock.json/);
   });
-  test('a GitHub Actions pull request has no lockfile: the cooldown of dependabot.yml is its delay', () => {
-    expect(
-      verdict({
-        metadata: [minor('actions/checkout')],
-        isActions: true,
-        changes: null,
-      })
-    ).toMatchObject({ arm: true });
+  test('a bundled package, in a pull request of its own, is never armed: a person merges it', () => {
+    const v = verdict({
+      metadata: [{ ...patch('axios'), group: undefined }],
+    });
+    expect(v).toMatchObject({ arm: false, retryLater: false });
+    expect(v.reasons[0]).toMatch(/not in the tooling group/);
   });
-  test('a GitHub Actions major update is not armed either', () => {
+  test('a GitHub Action is never armed either (no group, no lockfile)', () => {
+    const v = verdict({
+      metadata: [{ ...minor('actions/checkout'), group: undefined }],
+      changes: null,
+    });
+    expect(v).toMatchObject({ arm: false, retryLater: false });
+    expect(v.reasons[0]).toMatch(/not in the tooling group/);
+  });
+  test('another Dependabot group is not the tooling group', () => {
+    expect(
+      verdict({ metadata: [{ ...patch('axios'), group: 'dev-minor-patch' }] })
+        .arm
+    ).toBe(false);
+  });
+  test('one package outside the group keeps a whole group manual', () => {
     expect(
       verdict({
-        metadata: [major('actions/checkout')],
-        isActions: true,
-        changes: null,
+        metadata: [patch('rimraf'), { ...patch('axios'), group: undefined }],
       }).arm
     ).toBe(false);
   });
@@ -501,6 +512,31 @@ describe('decide: a Dependabot pull request is armed only under the policy', () 
       times: {},
     });
     expect(v.retryLater).toBe(false);
+  });
+});
+
+describe('permanentRefusals: what no later look can change', () => {
+  const ok = {
+    metadata: [patch('rimraf')],
+    commitAuthors: ['dependabot[bot]'],
+  };
+  test('a tooling patch update by Dependabot has none', () => {
+    expect(mod.permanentRefusals(ok)).toEqual([]);
+  });
+  test('every reason is listed, not only the first', () => {
+    const reasons = mod.permanentRefusals({
+      metadata: [
+        {
+          name: 'eslint-plugin-import-x',
+          updateType: 'version-update:semver-major',
+        },
+      ],
+      commitAuthors: ['dependabot[bot]', 'someone'],
+    });
+    expect(reasons).toHaveLength(4);
+  });
+  test('the name of the tooling group is the one of dependabot.yml', () => {
+    expect(mod.TOOLING_GROUP).toBe('tooling');
   });
 });
 

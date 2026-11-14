@@ -9,10 +9,13 @@
  * A pull request is armed (`gh pr merge --auto --squash`) only when ALL of these hold:
  *  - every commit of it is by Dependabot, and the commit message carries the Dependabot metadata that says what was
  *    updated (no metadata, no arming);
+ *  - every update belongs to the Dependabot group TOOLING_GROUP of dependabot.yml (the named list of packages that do
+ *    not end up in what we ship). A bundled package, a GitHub Action and a package that is listed nowhere come as a
+ *    pull request of their own, which a person merges;
  *  - every update is a patch or a minor update, and no updated package belongs to the manual set (isManualName);
- *  - for an npm pull request: every package version that it adds or changes in package-lock.json, direct or
- *    transitive, was published at least MIN_AGE_DAYS days ago according to the npm registry. A registry that cannot be
- *    read, a missing publish time, or a lockfile change that cannot be found means: not armed.
+ *  - every package version that the pull request adds or changes in package-lock.json, direct or transitive, was
+ *    published at least MIN_AGE_DAYS days ago according to the npm registry. A registry that cannot be read, a
+ *    missing publish time, or a lockfile change that cannot be found means: not armed.
  * A pull request that fails only the age test is looked at again by the next sweep (the workflow runs it daily).
  *
  * The script is a plain Node program with no dependency: `gh` for GitHub, `fetch` for the registry. The decision
@@ -26,6 +29,9 @@ const execFileAsync = promisify(execFile);
 
 /** A published version must be at least this old (days) before a pull request that brings it is armed. */
 export const MIN_AGE_DAYS = 7;
+
+/** The Dependabot group of dependabot.yml whose pull requests may be armed. */
+export const TOOLING_GROUP = 'tooling';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const UPDATE_TYPES_ALLOWED = [
@@ -251,11 +257,44 @@ export function tooYoung(changes, times, now, minDays = MIN_AGE_DAYS) {
 }
 
 /**
+ * The reasons why a pull request is never armed, however old its versions are (what a later look cannot change).
+ * @param {object} input what is known about the pull request
+ * @param {{name:string,updateType?:string,group?:string}[] | null} input.metadata Dependabot metadata, null if none
+ * @param {string[]} input.commitAuthors login of the author of each commit of the pull request
+ * @returns {string[]} the reasons, empty when none applies
+ */
+export function permanentRefusals({ metadata, commitAuthors }) {
+  if (!metadata) return ['no Dependabot metadata in the commit message'];
+  const reasons = [];
+  const others = (commitAuthors ?? []).filter((a) => a !== DEPENDABOT);
+  if (!commitAuthors?.length || others.length > 0) {
+    reasons.push(
+      `commits not made by Dependabot: ${others.join(', ') || 'none found'}`
+    );
+  }
+  for (const dep of metadata) {
+    if (dep.group !== TOOLING_GROUP) {
+      reasons.push(
+        `${dep.name}: not in the ${TOOLING_GROUP} group (a bundled package, a GitHub Action or a package that is not listed): a person merges it`
+      );
+    }
+    if (!UPDATE_TYPES_ALLOWED.includes(dep.updateType)) {
+      reasons.push(
+        `${dep.name}: ${dep.updateType ?? 'unknown update type'} is not a patch or minor update`
+      );
+    }
+    if (isManualName(dep.name)) {
+      reasons.push(`${dep.name}: belongs to the manual set`);
+    }
+  }
+  return reasons;
+}
+
+/**
  * Decide whether a Dependabot pull request may be armed. Pure: everything it needs is passed in.
  * @param {object} input what is known about the pull request
  * @param {{name:string,updateType?:string,group?:string}[] | null} input.metadata Dependabot metadata, null if none
  * @param {string[]} input.commitAuthors login of the author of each commit of the pull request
- * @param {boolean} input.isActions true for a GitHub Actions pull request (no lockfile involved)
  * @param {{name:string,version:string}[] | null} input.changes lockfile versions added or changed, null if unknown
  * @param {Map<string,string>} input.times `name@version` to the ISO publish time
  * @param {number} input.now milliseconds since the epoch
@@ -266,40 +305,14 @@ export function tooYoung(changes, times, now, minDays = MIN_AGE_DAYS) {
 export function decide({
   metadata,
   commitAuthors,
-  isActions,
   changes,
   times,
   now,
   minDays = MIN_AGE_DAYS,
 }) {
-  const reasons = [];
-  if (!metadata) {
-    return {
-      arm: false,
-      retryLater: false,
-      reasons: ['no Dependabot metadata in the commit message'],
-    };
-  }
-  const others = (commitAuthors ?? []).filter((a) => a !== DEPENDABOT);
-  if (!commitAuthors?.length || others.length > 0) {
-    reasons.push(
-      `commits not made by Dependabot: ${others.join(', ') || 'none found'}`
-    );
-  }
-  for (const dep of metadata) {
-    if (!UPDATE_TYPES_ALLOWED.includes(dep.updateType)) {
-      reasons.push(
-        `${dep.name}: ${dep.updateType ?? 'unknown update type'} is not a patch or minor update`
-      );
-    }
-    if (isManualName(dep.name)) {
-      reasons.push(`${dep.name}: belongs to the manual set`);
-    }
-  }
-  if (reasons.length > 0) return { arm: false, retryLater: false, reasons };
-  if (isActions) {
-    // no lockfile: the cooldown of dependabot.yml is the delay for GitHub Actions
-    return { arm: true, retryLater: false, reasons: ['GitHub Actions update'] };
+  const refusals = permanentRefusals({ metadata, commitAuthors });
+  if (refusals.length > 0) {
+    return { arm: false, retryLater: false, reasons: refusals };
   }
   if (!changes || changes.length === 0) {
     return {
@@ -366,7 +379,7 @@ export async function evaluatePullRequest(repo, pr, options = {}) {
     '-R',
     repo,
     '--json',
-    'title,state,baseRefName,headRefOid,labels,autoMergeRequest',
+    'title,state,baseRefName,headRefOid,autoMergeRequest',
   ]);
   const commits = await ghJson([
     'api',
@@ -379,35 +392,42 @@ export async function evaluatePullRequest(repo, pr, options = {}) {
     info.title
   );
   const commitAuthors = commits.map((c) => c.author?.login ?? '');
-  const isActions = info.labels.some((l) => l.name === 'github_actions');
+  const refusals = permanentRefusals({ metadata, commitAuthors });
+  if (refusals.length > 0) {
+    // no need to read the lockfile or the registry for a pull request that a person merges anyway
+    return {
+      pr,
+      title: info.title,
+      alreadyArmed: !!info.autoMergeRequest,
+      verdict: { arm: false, retryLater: false, reasons: refusals },
+    };
+  }
   let changes = null;
   let times = new Map();
-  if (!isActions) {
-    try {
-      const compare = await ghJson([
-        'api',
-        `repos/${repo}/compare/${info.baseRefName}...${info.headRefOid}`,
-      ]);
-      const [baseLock, headLock] = await Promise.all([
-        lockAt(repo, compare.merge_base_commit.sha),
-        lockAt(repo, info.headRefOid),
-      ]);
-      changes = lockChanges(baseLock, headLock);
-      times = await fetchPublishTimes(changes);
-    } catch (error) {
-      return {
-        pr,
-        title: info.title,
-        alreadyArmed: !!info.autoMergeRequest,
-        verdict: {
-          arm: false,
-          retryLater: true,
-          reasons: [
-            `could not read the lockfile or the registry: ${String(error.message ?? error).split('\n')[0]}`,
-          ],
-        },
-      };
-    }
+  try {
+    const compare = await ghJson([
+      'api',
+      `repos/${repo}/compare/${info.baseRefName}...${info.headRefOid}`,
+    ]);
+    const [baseLock, headLock] = await Promise.all([
+      lockAt(repo, compare.merge_base_commit.sha),
+      lockAt(repo, info.headRefOid),
+    ]);
+    changes = lockChanges(baseLock, headLock);
+    times = await fetchPublishTimes(changes);
+  } catch (error) {
+    return {
+      pr,
+      title: info.title,
+      alreadyArmed: !!info.autoMergeRequest,
+      verdict: {
+        arm: false,
+        retryLater: true,
+        reasons: [
+          `could not read the lockfile or the registry: ${String(error.message ?? error).split('\n')[0]}`,
+        ],
+      },
+    };
   }
   return {
     pr,
@@ -416,7 +436,6 @@ export async function evaluatePullRequest(repo, pr, options = {}) {
     verdict: decide({
       metadata,
       commitAuthors,
-      isActions,
       changes,
       times,
       now: options.asOf ?? Date.now(),
