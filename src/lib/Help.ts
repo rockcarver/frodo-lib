@@ -5621,7 +5621,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     params: [
       { name: "secretStoreId", type: "string", description: "Secret store id", required: true },
       { name: "secretStoreTypeId", type: "string | undefined", description: "Secret store type id (optional)", required: true },
-      { name: "secretId", type: "string", description: "Secret store mapping label", required: true },
+      { name: "secretId", type: "string", description: "Secret store mapping label. It is the last segment of the URL of the mapping, that is the `_id` of the mapping: it equals the label for a mapping that this library or the admin console created, but not for one created without an `_id` (the server then generates one and answers 404 to the label)", required: true },
       { name: "globalConfig", type: "boolean", description: "true if the secret store mapping is global, false otherwise. Default: false.", required: true },
     ],
     returns: "{Promise<SecretStoreMappingSkeleton>} a promise that resolves to a secret store mapping object",

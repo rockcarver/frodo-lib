@@ -410,6 +410,7 @@ export async function diagnoseAIAgentFeature(
           storeId: string;
           storeTypeId: string;
           secretId: string;
+          _id?: string;
           aliases: string[];
         }[] = [];
         for (const store of await tenant.readSecretStoreMappings(realm)) {
@@ -423,6 +424,7 @@ export async function diagnoseAIAgentFeature(
                 storeId: store.storeId,
                 storeTypeId: store.storeTypeId,
                 secretId: mapping.secretId,
+                ...(mapping._id !== undefined ? { _id: mapping._id } : {}),
                 aliases: mapping.aliases,
               });
             }

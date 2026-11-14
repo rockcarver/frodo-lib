@@ -119,6 +119,8 @@ export type IdmFeatureRepairBackup = {
     storeId: string;
     storeTypeId: string;
     secretId: string;
+    /** The `_id` of the mapping as the read returned it (the id it has in the URL); absent when the read returned none. */
+    _id?: string;
     aliases: string[];
   }[];
 };
