@@ -663,6 +663,7 @@ describe('the secret stores of a realm on Cloud (frodo-lib#1078)', () => {
       tenantMappings = [
         ...mixedMappings(),
         { secretId: 'am.no.id', aliases: ['esv-one'] } as never,
+        { _id: '', secretId: 'am.empty.id', aliases: ['esv-one'] },
       ];
       const [store] = await tenant.readSecretStoreMappings('alpha');
       expect(store.mappings).toEqual([
@@ -674,8 +675,11 @@ describe('the secret stores of a realm on Cloud (frodo-lib#1078)', () => {
         },
         { secretId: 'am.keep.generated', _id: UUID_TWO, aliases: ['esv-one'] },
         { secretId: 'am.no.id', aliases: ['esv-one'] },
+        // an empty _id names nothing in the URL: it is left out as well, so the delete falls back to the secret id
+        { secretId: 'am.empty.id', aliases: ['esv-one'] },
       ]);
       expect(Object.keys(store.mappings[3])).not.toContain('_id');
+      expect(Object.keys(store.mappings[4])).not.toContain('_id');
     });
 
     test('the diagnosis names the _id of each dangling mapping, and only of those', async () => {
