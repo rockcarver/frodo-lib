@@ -1,13 +1,20 @@
 # Dependabot version updates.
 # Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 #
-# - One grouped weekly PR for development-dependency minor/patch updates.
-#   Prettier, TypeScript and ESLint are excluded from the group (and TS majors
-#   ignored entirely): Prettier minors reformat code, and the TypeScript/ESLint
-#   majors need coordinated config work - those arrive as individual PRs for
-#   human review.
+# - Tooling (the named list in the group `tooling` below: packages that do not end up
+#   in what we ship) is grouped into one weekly PR for minor and patch updates, and
+#   that PR can auto-merge (dependabot-auto-merge.yml). Every other package, that is
+#   every package that shipped code imports (it is bundled into dist/), the bundler
+#   (tsdown: it writes the file that we ship, so it is treated like a bundled package),
+#   the manual set (Prettier, TypeScript, ESLint and their plugins, whose majors need
+#   coordinated config work and whose minors can reformat code) and anything that is not
+#   listed, arrives as a PR of its own that a person merges. TS majors are ignored
+#   entirely. A test (src/dependabotPolicy.unit.test.ts) fails when a pattern of the
+#   group matches a bundled package or the bundler. A new tooling package is a PR of its
+#   own until it is listed here.
 # - Weekly updates for the GitHub Actions used by the workflows, except
-#   github/gh-aw-actions/setup (see the ignore below).
+#   github/gh-aw-actions/setup (see the ignore below). Each is a PR of its own that a
+#   person merges: an action runs in our workflows with their tokens.
 # - A version update is proposed only once its release is 7 days old
 #   (cooldown). Packages that are bundled into what we ship, and the
 #   auto-merge of Dependabot pull requests (dependabot-auto-merge.yml, which
@@ -28,18 +35,25 @@ updates:
       default-days: 7
     open-pull-requests-limit: 10
     groups:
-      dev-minor-patch:
-        dependency-type: "development"
+      tooling:
+        patterns:
+          - "@jest/*"
+          - "@peculiar/x509"
+          - "@types/*"
+          - "agentkeepalive"
+          - "axios-mock-adapter"
+          - "jest"
+          - "jest-jasmine2"
+          - "mock-fs"
+          - "reflect-metadata"
+          - "rimraf"
+          - "ts-jest"
+          - "typedoc"
+          - "typedoc-plugin-missing-exports"
+          - "winston"
         update-types:
           - "minor"
           - "patch"
-        exclude-patterns:
-          - "prettier"
-          - "typescript"
-          - "eslint"
-          - "@eslint/*"
-          - "typescript-eslint"
-          - "@typescript-eslint/*"
     ignore:
       - dependency-name: "typescript"
         update-types:

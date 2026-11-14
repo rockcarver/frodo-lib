@@ -9,17 +9,21 @@ name: 'Dependabot Auto-Merge'
 # src/dependabotAutoMerge.unit.test.ts). A pull request is armed only when
 # - all its commits are by Dependabot and its commit message carries the Dependabot
 #   metadata (no metadata, no arming);
-# - every update is a patch or a minor update (security updates included);
+# - every update is in the Dependabot group `tooling` of dependabot.yml (the named list
+#   of packages that do not end up in what we ship). A bundled package, a GitHub Action
+#   and a package that is listed nowhere come as a pull request of their own, which a
+#   person merges, security updates of such packages included;
+# - every update is a patch or a minor update;
 # - no updated package belongs to the manual set: a package name with a segment
 #   `prettier`, `typescript` or `eslint` (Prettier, TypeScript, ESLint, and their plugins,
 #   configs and typings, for example eslint-plugin-import-x or @typescript-eslint/parser),
 #   which a person updates (Prettier minors reformat code, the TypeScript and ESLint
 #   majors need coordinated config work);
-# - for an npm update: every package version that the pull request adds or changes in
-#   package-lock.json, direct or transitive, was published at least 7 days ago
-#   (npm registry). Dependabot's cooldown (dependabot.yml) delays the proposal of a direct
-#   update; this test also covers what a bump pulls into the lockfile. If the registry
-#   cannot be read, the pull request is not armed.
+# - every package version that the pull request adds or changes in package-lock.json,
+#   direct or transitive, was published at least 7 days ago (npm registry). Dependabot's
+#   cooldown (dependabot.yml) delays the proposal of a direct update; this test also
+#   covers what a bump pulls into the lockfile. If the registry cannot be read, the pull
+#   request is not armed.
 # A pull request that only fails the age test is looked at again by the daily sweep.
 #
 # Major updates are never armed. GitHub Actions updates (label `github_actions`) are never
