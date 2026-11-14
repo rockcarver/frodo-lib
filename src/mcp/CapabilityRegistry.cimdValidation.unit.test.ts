@@ -73,4 +73,39 @@ describe('the capability oauth2oidc.cimd.validateCIMDProfile', () => {
       })
     ).toEqual([]);
   });
+
+  test('5: the facade method passes the other profiles and the schema on', () => {
+    const mine = {
+      cimdConfig: { cimdClientIdUrlPatterns: ['https://a.invalid/x/*'] },
+      coreOAuth2ClientConfig: { status: 'Suspended' },
+    };
+    const others = [
+      {
+        _id: 'other',
+        cimdConfig: { cimdClientIdUrlPatterns: ['https://a.invalid/*'] },
+      },
+    ];
+    const schema = {
+      type: 'object' as const,
+      properties: {
+        coreOAuth2ClientConfig: {
+          properties: { status: { enum: ['Active', 'Suspended'] } },
+        },
+        cimdConfig: {
+          properties: { cimdClientIdUrlPatterns: {} },
+        },
+      },
+    };
+    const codes = (findings: { code: string }[]) =>
+      findings.map((finding) => finding.code);
+    expect(codes(frodo.oauth2oidc.cimd.validateCIMDProfile(mine))).toEqual([
+      'ENUM_VALUE',
+    ]);
+    expect(
+      codes(frodo.oauth2oidc.cimd.validateCIMDProfile(mine, others))
+    ).toEqual(['PATTERN_OVERLAPS_PROFILE', 'ENUM_VALUE']);
+    expect(
+      codes(frodo.oauth2oidc.cimd.validateCIMDProfile(mine, undefined, schema))
+    ).toEqual([]);
+  });
 });
