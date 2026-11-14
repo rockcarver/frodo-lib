@@ -7056,7 +7056,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Feature",
     methodName: "readFeatures",
     signature: "readFeatures(): Promise<FeatureInterface[]>",
-    description: "Read all features",
+    description: "Read all features. Fails with a FrodoError when the list cannot be read, for example when the credential lacks the scope fr:idc:feature:* (the platform answers 403): an empty list means that the tenant has no features. The list is read once per state and kept; a failed read is not kept, the next call asks again.",
     params: [],
     returns: "{Promise<FeatureInterface[]>} a promise that resolves to an array of feature objects",
   },
@@ -7064,11 +7064,11 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Feature",
     methodName: "hasFeature",
     signature: "hasFeature(featureId: string): Promise<boolean>",
-    description: "Check if feature is available",
+    description: "Check if feature is available. Unlike readFeatures, it does not fail when the list cannot be read: it answers false, because it is used to decide whether to offer a function, and a credential that may not read the list must not lose functions that it may use. The failure is written to the debug output and the list is not requested again for the same host.",
     params: [
       { name: "featureId", type: "string", description: "feature id (e.g. 'service-accounts')", required: true },
     ],
-    returns: "{Promise<boolean>} a promise that resolves to true if the feature is available and to false otherwise",
+    returns: "{Promise<boolean>} a promise that resolves to true if the feature is available and to false otherwise (also when the list cannot be read)",
   },
   {
     typeName: "IdmFeature",
