@@ -52,6 +52,7 @@ const major = (name: string): Meta => ({
 function verdict(over: {
   metadata?: Meta[] | null;
   commitAuthors?: string[];
+  isActions?: boolean;
   changes?: Change[] | null;
   times?: Record<string, string>;
 }) {
@@ -60,6 +61,7 @@ function verdict(over: {
   return mod.decide({
     metadata: 'metadata' in over ? over.metadata : [patch('axios')],
     commitAuthors: over.commitAuthors ?? ['dependabot[bot]'],
+    isActions: over.isActions ?? false,
     changes:
       changes === undefined
         ? undefined
@@ -93,7 +95,7 @@ describe('isManualName: the manual set (Prettier, TypeScript, ESLint and what be
     'axios',
     'jose',
     'rimraf',
-    'tsdown',
+    'jest',
     'ts-jest',
     '@jest/globals',
     '@types/node',
@@ -505,6 +507,29 @@ describe('decide: a Dependabot pull request is armed only under the policy', () 
         metadata: [patch('rimraf'), { ...patch('axios'), group: undefined }],
       }).arm
     ).toBe(false);
+  });
+  test.each([
+    ['patch', patch('actions/checkout')],
+    ['minor', minor('actions/checkout')],
+    ['major', major('actions/checkout')],
+  ])(
+    'a GitHub Actions %s update is never armed: a person merges it',
+    (_label, dep) => {
+      const v = verdict({ metadata: [dep], isActions: true, changes: null });
+      expect(v.arm).toBe(false);
+      expect(v.retryLater).toBe(false);
+      expect(v.reasons).toContain('GitHub Actions update: a person merges it');
+    }
+  );
+  test('a GitHub Actions update is not armed even when everything else would pass', () => {
+    const v = verdict({
+      metadata: [patch('actions/setup-node')],
+      isActions: true,
+      changes: [{ name: 'axios', version: '1.21.1' }],
+      times: { 'axios@1.21.1': ago(30) },
+    });
+    expect(v.arm).toBe(false);
+    expect(v.retryLater).toBe(false);
   });
   test('reasons of a permanent refusal win over the age: it is not retried', () => {
     const v = verdict({

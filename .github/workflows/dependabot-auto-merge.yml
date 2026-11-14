@@ -26,8 +26,9 @@ name: 'Dependabot Auto-Merge'
 #   request is not armed.
 # A pull request that only fails the age test is looked at again by the daily sweep.
 #
-# Major updates are never armed. Dependabot "rules" in repo settings only triage alerts -
-# they cannot auto-merge PRs. That is why this workflow exists.
+# Major updates are never armed. GitHub Actions updates (label `github_actions`) are never
+# armed either, whatever the update type: a person merges them. Dependabot "rules" in repo
+# settings only triage alerts - they cannot auto-merge PRs. That is why this workflow exists.
 #
 # The script is taken from the default branch, not from the pull request, and the token
 # is handed only to the step that runs it.

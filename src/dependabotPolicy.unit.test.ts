@@ -4,8 +4,9 @@ import { pathToFileURL } from 'node:url';
 
 /*
  * Pins the shape of .github/dependabot.yml that core record 0023 relies on: the Dependabot group `tooling` is a
- * named list of packages that do not end up in what we ship, and nothing that shipped code imports may match one of
- * its patterns (a bundled package must arrive as a pull request of its own, which a person merges). Also pins the
+ * named list of packages that do not end up in what we ship, and nothing that shipped code imports, nor the bundler
+ * that writes it (tsdown), may match one of its patterns (such a package must arrive as a pull request of its own,
+ * which a person merges). Also pins the
  * cooldown. dependabot.yml is read with a few lines of text parsing because the repository has no YAML parser among
  * its dependencies; the parts read are the ones that are written in a fixed layout.
  */
@@ -63,6 +64,9 @@ const toolingPatterns = items(
 const toolingUpdateTypes = items(
   block(tooling?.body ?? [], 8, 'update-types')?.body ?? []
 );
+
+/** The packages that write what we ship: they are treated like bundled packages (core record 0023). */
+const BUNDLERS = ['tsdown'];
 
 const glob = (pattern: string) =>
   new RegExp(
@@ -146,6 +150,11 @@ describe('the Dependabot group `tooling`', () => {
       expect(bundled.filter(matchesTooling)).toEqual([]);
     }
   );
+  test('matches no bundler: tsdown writes what we ship, so a person merges its pull request', () => {
+    // the name must exist, or this test would pass for a package that was renamed
+    expect(devDependencies).toContain('tsdown');
+    expect(BUNDLERS.filter(matchesTooling)).toEqual([]);
+  });
   test('matches no package of the manual set (Prettier, TypeScript, ESLint and what belongs to them)', () => {
     expect(devDependencies.filter(isManualName).filter(matchesTooling)).toEqual(
       []
