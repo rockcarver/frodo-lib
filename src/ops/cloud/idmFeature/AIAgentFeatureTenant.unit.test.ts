@@ -9,6 +9,11 @@
  * a realm switches the realm of the state; the caller's realm has to be the same afterwards, also when a request
  * fails. The tests replace the HTTP layer (`BaseApi`) with a fake tenant that answers by URL and records the realm the
  * state was on when each request went out. No recording and no tenant is needed.
+ *
+ * Origin of the secret store tests: frodo-lib#1078. The fake behaves like a Cloud tenant: listing the secret stores
+ * (`POST .../secrets/stores?_action=nextdescendents`) is refused with 403 "not available in PingOne Advanced Identity
+ * Cloud", the one store Cloud has (`ESV`) is read directly. A fake that listed the stores on a Cloud state is why the
+ * defect was not seen by the tests.
  */
 import { jest } from '@jest/globals';
 import { AxiosError } from 'axios';
@@ -17,7 +22,24 @@ type Request = { method: string; url: string; realm: string; body?: any };
 const requests: Request[] = [];
 /** URL part -> status or error: the fake answers this instead of the normal answer */
 const refuse: Record<string, number | Error> = {};
-let currentState: { getRealm(): string };
+let currentState: { getRealm(): string; getDeploymentType(): string };
+
+const CLOUD_REFUSAL =
+  'This operation is not available in PingOne Advanced Identity Cloud.';
+const ESV_STORE = {
+  _id: 'ESV',
+  _type: { _id: 'GoogleSecretManagerSecretStoreProvider' },
+};
+const defaultMappings = () => [
+  { _id: 'am.x', secretId: 'am.x', aliases: ['esv-x'] },
+  { _id: 'am.y', secretId: 'am.y' } as {
+    _id: string;
+    secretId: string;
+    aliases?: string[];
+  },
+];
+/** the mappings of the ESV store of the fake tenant; a DELETE removes one */
+let tenantMappings = defaultMappings();
 
 const empty = {
   result: [],
@@ -28,7 +50,7 @@ const empty = {
   remainingPagedResults: 0,
 };
 
-function httpError(url: string, status: number): AxiosError {
+function httpError(url: string, status: number, message = 'x'): AxiosError {
   return new AxiosError(
     `Request failed with status code ${status}`,
     'ERR_BAD_REQUEST',
@@ -39,7 +61,7 @@ function httpError(url: string, status: number): AxiosError {
       statusText: '',
       headers: {},
       config: {} as never,
-      data: { code: status, message: 'x' },
+      data: { code: status, message },
     }
   );
 }
@@ -65,8 +87,11 @@ function answer(method: string, url: string, body?: any) {
     };
   if (method === 'PUT' && url.includes('/services/oauth-oidc'))
     return { data: body };
-  if (method === 'DELETE' && url.includes('/mappings/'))
-    return { data: { _id: url.split('/').pop() } };
+  if (method === 'DELETE' && url.includes('/mappings/')) {
+    const id = url.split('/').pop();
+    tenantMappings = tenantMappings.filter((mapping) => mapping._id !== id);
+    return { data: { _id: id } };
+  }
   if (url.endsWith('/environment/aiagent?_action=enable')) return { data: {} };
   if (url.endsWith('/openidm/feature/aiagent'))
     return {
@@ -102,19 +127,20 @@ function answer(method: string, url: string, body?: any) {
     return {
       data: { ...empty, result: [{ _id: 'a' }, { _id: 'b' }], resultCount: 2 },
     };
-  if (url.includes('/secrets/stores?_action=nextdescendents'))
+  if (url.includes('/secrets/stores?_action=nextdescendents')) {
+    // Cloud refuses the listing; the other deployment types answer it
+    if (currentState.getDeploymentType() === 'cloud')
+      throw httpError(url, 403, CLOUD_REFUSAL);
     return {
       data: {
         ...empty,
         result: [
-          {
-            _id: 'ESV',
-            _type: { _id: 'GoogleSecretManagerSecretStoreProvider' },
-          },
+          ESV_STORE,
           { _id: 'default-keystore', _type: { _id: 'KeyStoreSecretStore' } },
         ],
       },
     };
+  }
   if (
     url.includes(
       '/secrets/stores/GoogleSecretManagerSecretStoreProvider/ESV/mappings'
@@ -123,12 +149,14 @@ function answer(method: string, url: string, body?: any) {
     return {
       data: {
         ...empty,
-        result: [
-          { _id: 'am.x', secretId: 'am.x', aliases: ['esv-x'] },
-          { _id: 'am.y', secretId: 'am.y' },
-        ],
+        result: tenantMappings,
+        resultCount: tenantMappings.length,
       },
     };
+  if (
+    url.endsWith('/secrets/stores/GoogleSecretManagerSecretStoreProvider/ESV')
+  )
+    return { data: ESV_STORE };
   if (url.endsWith('/environment/secrets'))
     return { data: { ...empty, result: [{ _id: 'esv-x' }, { _id: 'esv-y' }] } };
   if (url.includes('/openidm/managed/alpha_aiagent?')) {
@@ -173,14 +201,19 @@ jest.unstable_mockModule('../../../api/BaseApi', () => ({
 const { default: State } = await import('../../../shared/State');
 const { createAIAgentFeatureRepairTenant, createAIAgentFeatureTenant } =
   await import('./AIAgentFeatureTenant');
+const { fakeRepairTenant, healthyRepairState } =
+  await import('./AIAgentFeature.fixtures');
+const { diagnoseAIAgentFeature } = await import('./AIAgentFeatureDiagnose');
+const { planAIAgentFeatureRepair, repairAIAgentFeature } =
+  await import('./AIAgentFeatureRepair');
 
 const HOST = 'https://tenant.example.com/am';
 const CALLER_REALM = '/';
 
-function newTenant() {
+function newTenant(deploymentType = 'cloud') {
   const state = State({});
   state.setHost(HOST);
-  state.setDeploymentType('cloud');
+  state.setDeploymentType(deploymentType);
   state.setRealm(CALLER_REALM);
   currentState = state;
   return { state, tenant: createAIAgentFeatureTenant(state) };
@@ -188,6 +221,7 @@ function newTenant() {
 
 beforeEach(() => {
   requests.length = 0;
+  tenantMappings = defaultMappings();
   for (const key of Object.keys(refuse)) delete refuse[key];
 });
 
@@ -302,7 +336,8 @@ describe('the reads that belong to a realm', () => {
   });
 
   test('only secret stores backed by ESV secrets are read, and a mapping without aliases has an empty list', async () => {
-    const { tenant } = newTenant();
+    // a deployment that lists its stores (ForgeOps): the store of another type is not read
+    const { tenant } = newTenant('forgeops');
     const stores = await tenant.readSecretStoreMappings('alpha');
     expect(stores).toEqual([
       {
@@ -317,6 +352,11 @@ describe('the reads that belong to a realm', () => {
     expect(
       requests.some((request) => request.url.includes('default-keystore'))
     ).toBe(false);
+    expect(
+      requests.some((request) =>
+        request.url.includes('/secrets/stores?_action=nextdescendents')
+      )
+    ).toBe(true);
   });
 
   test('the IDM agents are counted over all pages', async () => {
@@ -438,5 +478,156 @@ describe('the writes of the repair', () => {
     expect(requests.some((request) => request.url.includes('_fields=*'))).toBe(
       true
     );
+  });
+});
+
+describe('the secret stores of a realm on Cloud (frodo-lib#1078)', () => {
+  const listings = () =>
+    requests.filter((request) =>
+      request.url.includes('/secrets/stores?_action=nextdescendents')
+    );
+
+  test('Cloud: the one store it has is read directly, the listing it refuses is never asked for', async () => {
+    const { tenant } = newTenant('cloud');
+    const stores = await tenant.readSecretStoreMappings('alpha');
+    expect(stores).toEqual([
+      {
+        storeId: 'ESV',
+        storeTypeId: 'GoogleSecretManagerSecretStoreProvider',
+        mappings: [
+          { secretId: 'am.x', aliases: ['esv-x'] },
+          { secretId: 'am.y', aliases: [] },
+        ],
+      },
+    ]);
+    expect(listings()).toEqual([]);
+    expect(
+      requests.map((request) => `${request.method} ${request.realm}`)
+    ).toEqual(['GET alpha', 'GET alpha']);
+  });
+
+  test('Cloud: a tenant that answers "not available" for the store itself has no stores to check', async () => {
+    const { tenant } = newTenant('cloud');
+    refuse['/secrets/stores/GoogleSecretManagerSecretStoreProvider/ESV'] =
+      httpError('x', 403, CLOUD_REFUSAL);
+    expect(await tenant.readSecretStoreMappings('alpha')).toEqual([]);
+  });
+
+  test('Cloud: a 403 for another reason is a failure, not "no stores"', async () => {
+    const { tenant } = newTenant('cloud');
+    refuse['/secrets/stores/GoogleSecretManagerSecretStoreProvider/ESV'] =
+      httpError('x', 403, 'The credential is not allowed to read this.');
+    await expect(tenant.readSecretStoreMappings('alpha')).rejects.toThrow();
+  });
+
+  test('a deployment that lists its stores still does (the store of another type is not read)', async () => {
+    const { tenant } = newTenant('forgeops');
+    await tenant.readSecretStoreMappings('bravo');
+    expect(listings()).toHaveLength(1);
+    expect(
+      requests.some((request) => request.url.includes('KeyStoreSecretStore'))
+    ).toBe(false);
+  });
+
+  // the mappings of the fake Cloud tenant: two point to ESV secrets that do not exist, two to ESV secrets that do
+  // (with and without the prefix esv-)
+  const danglingTenantMappings = () => [
+    { _id: 'am.test.one', secretId: 'am.test.one', aliases: ['test'] },
+    { _id: 'am.test.two', secretId: 'am.test.two', aliases: ['esv-missing'] },
+    { _id: 'am.keep', secretId: 'am.keep', aliases: ['esv-one'] },
+    { _id: 'am.keep.bare', secretId: 'am.keep.bare', aliases: ['one'] },
+  ];
+  /** the interface-level fake tenant for everything but the secret stores, which go through the real adapter on Cloud */
+  function hybrid() {
+    const state = healthyRepairState();
+    state.esvSecretIds = ['esv-one'];
+    // the symptom that makes the dangling mappings an error the repair fixes
+    state.gates.alpha = { typeListed: true, listStatus: 200, agentCount: 0 };
+    state.idmAgents.alpha = 4;
+    tenantMappings = danglingTenantMappings();
+    const { state: libState, tenant: real } = newTenant('cloud');
+    const realRepair = createAIAgentFeatureRepairTenant(libState);
+    const fake = fakeRepairTenant(state);
+    return {
+      state,
+      tenant: {
+        ...fake.tenant,
+        readSecretStoreMappings: real.readSecretStoreMappings,
+        deleteSecretMapping: realRepair.deleteSecretMapping,
+      },
+    };
+  }
+
+  test('the diagnosis of a Cloud tenant reports the dangling mappings, and only those', async () => {
+    const { tenant } = hybrid();
+    const diagnosis = await diagnoseAIAgentFeature(tenant);
+    expect(
+      diagnosis.findings.filter((finding) => finding.id === 'check-failed')
+    ).toEqual([]);
+    const finding = diagnosis.findings.find(
+      (one) =>
+        one.id === 'secret-mappings-dangling' && one.details.realm === 'alpha'
+    );
+    expect(finding).toMatchObject({ severity: 'error', repairable: true });
+    expect((finding?.details.mappings as any[]).map((m) => m.secretId)).toEqual(
+      ['am.test.one', 'am.test.two']
+    );
+    expect(listings()).toEqual([]);
+  });
+
+  test('a failed read of the stores is a check-failed finding, not a silent pass', async () => {
+    const { tenant } = hybrid();
+    refuse['/secrets/stores/GoogleSecretManagerSecretStoreProvider/ESV'] =
+      httpError('x', 403, 'The credential is not allowed to read this.');
+    const diagnosis = await diagnoseAIAgentFeature(tenant);
+    expect(
+      diagnosis.findings.filter(
+        (finding) =>
+          finding.id === 'check-failed' &&
+          finding.details.check === 'secret store mappings'
+      )
+    ).toHaveLength(2);
+    expect(
+      diagnosis.findings.some((finding) => finding.id.startsWith('secret-'))
+    ).toBe(false);
+  });
+
+  test('the plan deletes them and the repair reads and deletes them through the same Cloud rule', async () => {
+    const { tenant } = hybrid();
+    const plan = await planAIAgentFeatureRepair(tenant);
+    expect(plan.steps.map((step) => step.id)).toEqual([
+      'delete-secret-mapping',
+      'delete-secret-mapping',
+      'diagnose',
+    ]);
+    const result = await repairAIAgentFeature(
+      tenant,
+      plan,
+      {},
+      {
+        now: () => 0,
+        sleep: async () => undefined,
+      }
+    );
+    expect(result.completed).toBe(true);
+    expect(
+      requests
+        .filter((request) => request.method === 'DELETE')
+        .map((request) => request.url.split('/mappings/')[1])
+    ).toEqual(['am.test.one', 'am.test.two']);
+    expect(
+      requests
+        .filter((request) => request.method === 'DELETE')
+        .every((request) =>
+          request.url.includes(
+            '/secrets/stores/GoogleSecretManagerSecretStoreProvider/ESV/mappings/'
+          )
+        )
+    ).toBe(true);
+    expect(tenantMappings.map((mapping) => mapping._id)).toEqual([
+      'am.keep',
+      'am.keep.bare',
+    ]);
+    expect(listings()).toEqual([]);
   });
 });
