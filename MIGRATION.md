@@ -340,6 +340,15 @@ releases missed):
   and `frodo role import -f` of frodo-cli import the first item of their file
   with these methods, so they import one item once they use a library with this
   change.
+- `frodo.cloud.feature.readFeatures` (`src/ops/cloud/FeatureOps.ts`) now throws
+  a `FrodoError` when the list of features cannot be read, for example HTTP 403
+  for a credential without the scope `fr:idc:feature:*`. Before, it returned an
+  empty list, so a caller could not tell a tenant without features from a
+  credential that may not read them; a failed read is not kept, the next call
+  asks again. `frodo.cloud.feature.hasFeature` (and so
+  `isServiceAccountsFeatureAvailable`) is unchanged: it still answers `false`
+  when the list cannot be read. A caller that wants the old behaviour catches
+  the error and uses an empty list.
 
 **Deprecation**:
 
