@@ -3509,6 +3509,18 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Drives a real interactive browser (or device-code) login and returns the resulting live bearer/session tokens — same credential-exposure shape as login.getTokens, just for a freshly-established browser-mode identity rather than the one already on state. Kept in the inventory at critical risk rather than excluded; only reachable under policies that do not deny critical risk (e.g. admin).',
   },
+  'login.getAccessProfile': {
+    mutating: false,
+    riskClass: 'low',
+    semanticAliases: [
+      'what can this login do',
+      'session access profile',
+      'granted scopes',
+      'which areas can I reach',
+    ],
+    notes:
+      'Reports what the credential of the current session can do on a Cloud tenant: the scopes granted, whether the session can be refreshed, whether the access token carries an Access Management session, which areas of the API are reachable and why not. Computed locally from the token claims and the library state: no network call, nothing written, and no token or claim value is returned (only whether the session claim is present).',
+  },
   'login.applyAccessToken': {
     // Internal wiring primitive for a host resolving its own per-request
     // caller identity from an already-verified external token (e.g. an MCP

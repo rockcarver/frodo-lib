@@ -1207,6 +1207,22 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Authenticate",
+    methodName: "getAccessProfile",
+    signature: "getAccessProfile(): AccessProfile | undefined",
+    description: "Get the access profile of the current session: what the credential the library holds can do on a Cloud tenant. For an interactive login (a browser login with authorization code, or a device authorization login) and for a service account it says which scopes the token carries, whether the session can be refreshed, whether the token carries an Access Management session, which areas of the API are reachable and which are not and why (for example \"the login did not request a scope that the client offers\", \"the access token of a device authorization login carries no Access Management session\"), and what the library did differently from its defaults to make the login succeed. Every statement names its basis: what the token says, or a measured constant of the library with the date it was measured. The profile is computed from the token and the state, with no network call, so a session reused from the session cache has one too. What the profile says for the three interactive sessions of the built-in client (measured on a Cloud development tenant on 2026-11-14, one read call per area; \"scope not requested\": the client offers the scope, the login did not ask for it): | Area | Browser login, default scopes (`fr:am:* fr:idm:*`) | Browser login, all five scopes | Device login, without `fr:am:*` | | --- | --- | --- | --- | | Access Management | reachable | reachable | not reachable: no Access Management session | | Identity Management | reachable | reachable | reachable | | Environment secrets and variables | no: scope not requested | reachable | reachable | | Governance, configuration promotion, release information, certificates, custom domains, content security policy, cookie domains, SSO cookie, direct configuration session, telemetry | no: the client does not offer the scope | no: same | no: same | | Admin federation | no: the exchange client refuses the scope | no: same | no: same | | PingFederate administration | no: an interactive login gets no PingFederate token | no: same | no: same | The five scopes are `fr:am:* fr:idm:* fr:idc:esv:read fr:idc:esv:update fr:idc:monitoring:*`. None of these sessions has a refresh token; the access token lives 30 minutes.",
+    params: [],
+    returns: "{AccessProfile | undefined} the profile, or undefined if the session is not a Cloud session with an access token (a user session, Amster, ForgeOps, classic, no login yet)",
+  },
+  {
+    typeName: "Authenticate",
+    methodName: "listAccessAreas",
+    signature: "listAccessAreas(): AccessAreaDescriptor[]",
+    description: "List the areas of the API that the access profile covers, with the scopes the API calls of each declare. Static: the same list for every session. A caller that keeps its own table of what needs what (for example a command line that says which commands a login cannot run) checks it against this list.",
+    params: [],
+    returns: "{AccessAreaDescriptor[]} the areas, in the order the profile lists them",
+  },
+  {
+    typeName: "Authenticate",
     methodName: "applyAccessToken",
     signature: "applyAccessToken(token: AccessTokenMetaType): Promise<Tokens>",
     description: "Applies an already-obtained, externally-issued OAuth2 access token to `state`, ready for immediate use. Unlike `getTokens()`/ `getTokensInteractive()`, this never talks to an authorization endpoint itself — the token was already minted (and, by the caller's own contract, already verified) elsewhere; this only wires it onto `state` using the exact same deployment-type-specific handling a real browser login uses. Intended for hosts that resolve their own caller identity per request (e.g. an MCP server acting as an OAuth2 resource server) rather than performing a login themselves.",

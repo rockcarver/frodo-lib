@@ -11,6 +11,7 @@ import {
 } from '../api/OAuth2OIDCApi';
 import { State } from '../shared/State';
 import { mergeDeep } from '../utils/JsonUtils';
+import { type LoginInfo } from './AccessProfileOps';
 import { FrodoError } from './FrodoError';
 
 export type AccessTokenMetaType = AccessTokenResponseType & {
@@ -36,6 +37,13 @@ export type AccessTokenMetaType = AccessTokenResponseType & {
   // scope — together, the full privilege picture a scope-only view misses.
   roles?: string[];
   isMemberOf?: string[];
+  // What the library remembers of how this token was obtained (the kind of
+  // login, the scope it requested, the adaptations it made). Set at fresh
+  // interactive-login time and carried over on refresh; stored with the
+  // token in the session cache. Optional: a token without it (an entry of an
+  // earlier version, or a token from elsewhere) is an interactive login of
+  // unknown kind. See ops/AccessProfileOps.ts.
+  login?: LoginInfo;
 };
 
 export type OAuth2Oidc = {

@@ -43,6 +43,17 @@ export const FRODO_ERROR_CODES = [
    * operation that failed for this reason; in a nested error it is found through `originalErrors`.
    */
   'INSUFFICIENT_SCOPE',
+  /**
+   * A cloud session that reaches Access Management through the token exchange cannot do it: it was
+   * obtained by a device authorization login, and its access token carries no Access Management session.
+   * Raised before the request is sent.
+   */
+  'NO_AM_SESSION',
+  /**
+   * A device authorization login was approved, and the token endpoint then answered with a server error
+   * instead of a token. The error names the client, the requested scope and the transaction id.
+   */
+  'DEVICE_LOGIN_TOKEN_NOT_ISSUED',
   /** CIMD profiles were asked for in a realm of a deployment that does not offer the agent type `CIMDProfile`. */
   'CIMD_PROFILES_NOT_AVAILABLE',
   /**

@@ -17,6 +17,7 @@ import type { CurlRedactor } from '../ext/axios-curlirize/lib/CurlHelper';
 import { FrodoError } from '../ops/FrodoError';
 import {
   assertHasRequiredScope,
+  assertPingFederateAvailable,
   InsufficientScopeError,
 } from '../ops/RequiredScopesOps';
 import Constants from '../shared/Constants';
@@ -408,6 +409,9 @@ async function resolvePfBearerRequestCredential(
   state: State,
   requiredScopes: string[]
 ): Promise<AmCredentialOverride | null> {
+  // An interactive login never gets a PingFederate token: refuse before the
+  // request goes out without a credential and comes back as a bare 401.
+  assertPingFederateAvailable({ state });
   const meta = state.getPfBearerTokenMeta();
 
   if (isStale(meta)) {

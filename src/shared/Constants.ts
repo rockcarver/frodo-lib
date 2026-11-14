@@ -20,6 +20,8 @@ export type Constants = {
   GLOSSARY_ROLE_OBJECT_TYPE: GlossaryObjectType;
   AVAILABLE_SCOPES: Record<string, string>;
   CLOUD_BROWSER_MODE_AVAILABLE_SCOPES: string[];
+  CLOUD_INTERACTIVE_CLIENT_SCOPES: string[];
+  CLOUD_INTERACTIVE_MEASURED_ON: string;
   TOKEN_FRESHNESS_BUFFER_MS: number;
   CREDENTIAL_RENEWAL_MIN_INTERVAL_MS: number;
   RETRY_NOTHING_KEY: string;
@@ -121,6 +123,8 @@ const AVAILABLE_SCOPES = {
   SSOCookieFullScope: 'fr:idc:sso-cookie:*', //                             All SSO cookie APIs
   SSOCookieReadScope: 'fr:idc:sso-cookie:read', //                          Read SSO cookie configuration
 
+  MonitoringFullScope: 'fr:idc:monitoring:*', //                            All monitoring APIs (accepted by the built-in interactive client and its exchange client; no API module of the library requires it yet)
+
   WSFedAdminScope: 'fr:idc:ws:admin', //                                    All PingFederate APIs
 
   IdmFullScope: 'fr:idm:*', //                                              All Identity Management APIs
@@ -128,10 +132,17 @@ const AVAILABLE_SCOPES = {
   IGAFullScope: 'fr:iga:*', //                                              All Governance APIs
 };
 
-// Confirmed empirically (2026-09-06) against a real AIC tenant: `AICMCPExchangeClient`
-// (the client cloud browser-mode exchanges an AM-domain token through, per RFC 8693 —
-// see frodo-lib/src/ops/BrowserAuthenticateOps.ts's exchangeTokenForScope) rejects any
-// scope outside this exact list with `400 invalid_request — "Invalid token exchange."`.
+// Confirmed empirically (2026-09-06, re-measured 2026-11-14 on a Cloud development tenant):
+// `AICMCPExchangeClient` (the client cloud browser-mode exchanges an AM-domain token through,
+// per RFC 8693 — see frodo-lib/src/ops/BrowserAuthenticateOps.ts's exchangeTokenForScope)
+// accepts the scopes in this list and rejected every other scope tried with
+// `400 invalid_request — "Invalid token exchange."`. The 2026-11-14 measurement tried 23 scopes:
+// accepted `fr:am:*`, `fr:idm:*`, `fr:idc:esv:read`, `fr:idc:esv:update` and `fr:idc:monitoring:*`;
+// refused `fr:idc:esv:*`, `fr:idc:esv:restart`, `fr:idc:promotion:*`, `fr:idc:release:*`,
+// `fr:idc:certificate:*`, `fr:idc:custom-domain:*`, `fr:idc:content-security-policy:*`,
+// `fr:idc:cookie-domain:*`, `fr:idc:sso-cookie:*`, `fr:idc:direct-configuration:session:*`,
+// `fr:idc:federation:*`, `fr:idc:telemetry:*`, `fr:idc:analytics:*`, `fr:idc:dataset:*`,
+// `fr:idc:proxy-connect:*`, `fr:autoaccess:*`, `fr:iga:*` and `fr:idc:ws:admin`.
 // This is a hard ceiling imposed by that client's own configuration, not a Frodo
 // limitation — every ops module's required scope must be checked against this list
 // before cloud browser-mode can reach it; modules requiring anything else are
@@ -142,7 +153,26 @@ const CLOUD_BROWSER_MODE_AVAILABLE_SCOPES = [
   AVAILABLE_SCOPES.IdmFullScope,
   AVAILABLE_SCOPES.ESVReadScope,
   AVAILABLE_SCOPES.ESVUpdateScope,
+  AVAILABLE_SCOPES.MonitoringFullScope,
 ];
+
+// The scopes the built-in interactive client `AICMCPClient` accepts at authorization (an
+// authorization code or device authorization request for any other scope is refused with
+// `invalid_scope`): 5 of the 54 scopes tried on 2026-11-13, confirmed again by a login with
+// all five on 2026-11-14. Same five as the exchange ceiling above. A session that did not
+// ask for one of them can have it by logging in again; a scope outside this list can
+// not be had from an interactive login at all.
+const CLOUD_INTERACTIVE_CLIENT_SCOPES = [
+  AVAILABLE_SCOPES.AmFullScope,
+  AVAILABLE_SCOPES.IdmFullScope,
+  AVAILABLE_SCOPES.ESVReadScope,
+  AVAILABLE_SCOPES.ESVUpdateScope,
+  AVAILABLE_SCOPES.MonitoringFullScope,
+];
+
+// The date the facts about the built-in interactive clients above (and the
+// access profile in `ops/AccessProfileOps.ts`) were last measured.
+const CLOUD_INTERACTIVE_MEASURED_ON = '2026-11-14';
 
 // The single source of truth for "how close to its recorded expiry is a
 // cached token allowed to get before it's treated as unusable." Consulted
@@ -187,6 +217,8 @@ export default {
   GLOSSARY_ROLE_OBJECT_TYPE,
   AVAILABLE_SCOPES,
   CLOUD_BROWSER_MODE_AVAILABLE_SCOPES,
+  CLOUD_INTERACTIVE_CLIENT_SCOPES,
+  CLOUD_INTERACTIVE_MEASURED_ON,
   TOKEN_FRESHNESS_BUFFER_MS,
   CREDENTIAL_RENEWAL_MIN_INTERVAL_MS,
   RETRY_NOTHING_KEY,

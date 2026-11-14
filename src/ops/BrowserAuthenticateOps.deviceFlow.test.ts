@@ -133,4 +133,124 @@ describe('BrowserAuthenticateOps device-authorization flow', () => {
     ).rejects.toBe(accessDenied);
     expect(accessToken).toHaveBeenCalledTimes(1);
   });
+
+  // The server error after the approval, as measured on Cloud development tenants (2026-11-13 and
+  // 2026-11-14): `POST .../access_token` answers `500 server_error: Failed to issue access token`.
+  function serverError(headers: Record<string, unknown> = {}) {
+    return new FrodoError(
+      'Error getting oauth2 access token',
+      Object.assign(new Error('Request failed with status code 500'), {
+        name: 'AxiosError',
+        response: {
+          status: 500,
+          data: {
+            error: 'server_error',
+            error_description: 'Failed to issue access token',
+          },
+          headers,
+        },
+      })
+    );
+  }
+
+  test('4: A 500 server_error after the approval is explained, with client, scope, transaction id and the original error attached', async () => {
+    const original = serverError({
+      'x-forgerock-transactionid': 'frodo-test-tx-1',
+    });
+    accessToken.mockRejectedValueOnce(original);
+
+    const error = await startDeviceAuthorizationFlow({
+      clientId: 'AICMCPClient',
+      scope: 'fr:am:* fr:idm:*',
+      promptHandler: noopPromptHandler,
+      state,
+    }).then(
+      () => {
+        throw new Error('Expected the flow to fail');
+      },
+      (e: unknown) => e as InstanceType<typeof FrodoError>
+    );
+
+    expect(error).toBeInstanceOf(FrodoError);
+    expect(error.code).toBe('DEVICE_LOGIN_TOKEN_NOT_ISSUED');
+    expect(error.originalErrors[0]).toBe(original);
+    expect(error.message).toContain('approved');
+    expect(error.message).toContain('HTTP 500 server_error');
+    expect(error.message).toContain('Failed to issue access token');
+    expect(error.message).toContain('Client: AICMCPClient');
+    expect(error.message).toContain('Requested scope: [fr:am:* fr:idm:*]');
+    expect(error.message).toContain('Transaction id: frodo-test-tx-1');
+    // asked for fr:am:*: says what was measured and what works instead
+    expect(error.message).toContain('did not complete');
+    expect(error.message).toContain('without fr:am:*');
+    expect(error.message).toContain(
+      'browser (authorization code) login or a service account'
+    );
+    // the library names no interface of a caller
+    expect(error.message).not.toMatch(/--[a-z]|frodo |conn save|FRODO_/);
+    expect(accessToken).toHaveBeenCalledTimes(1);
+  });
+
+  test('5: A 500 server_error for a request without fr:am:* is explained too, without the advice about that scope', async () => {
+    accessToken.mockRejectedValueOnce(serverError());
+
+    const error = await startDeviceAuthorizationFlow({
+      clientId: 'AICMCPClient',
+      scope: 'fr:idm:* fr:idc:esv:read',
+      promptHandler: noopPromptHandler,
+      state,
+    }).then(
+      () => {
+        throw new Error('Expected the flow to fail');
+      },
+      (e: unknown) => e as InstanceType<typeof FrodoError>
+    );
+
+    expect(error.code).toBe('DEVICE_LOGIN_TOKEN_NOT_ISSUED');
+    expect(error.message).toContain(
+      'Requested scope: [fr:idm:* fr:idc:esv:read]'
+    );
+    expect(error.message).not.toContain('Transaction id');
+    expect(error.message).not.toContain('did not complete');
+  });
+
+  test('6: A 500 that is not an OAuth server_error, and other statuses, pass through unchanged', async () => {
+    const htmlError = new FrodoError(
+      'Error getting oauth2 access token',
+      Object.assign(new Error('Request failed with status code 500'), {
+        name: 'AxiosError',
+        response: { status: 500, data: '<html>boom</html>', headers: {} },
+      })
+    );
+    accessToken.mockRejectedValueOnce(htmlError);
+    await expect(
+      startDeviceAuthorizationFlow({
+        clientId: 'AICMCPClient',
+        scope: 'fr:am:* fr:idm:*',
+        promptHandler: noopPromptHandler,
+        state,
+      })
+    ).rejects.toBe(htmlError);
+
+    const badGateway = new FrodoError(
+      'Error getting oauth2 access token',
+      Object.assign(new Error('Request failed with status code 502'), {
+        name: 'AxiosError',
+        response: {
+          status: 502,
+          data: { error: 'server_error' },
+          headers: {},
+        },
+      })
+    );
+    accessToken.mockRejectedValueOnce(badGateway);
+    await expect(
+      startDeviceAuthorizationFlow({
+        clientId: 'AICMCPClient',
+        scope: 'fr:am:* fr:idm:*',
+        promptHandler: noopPromptHandler,
+        state,
+      })
+    ).rejects.toBe(badGateway);
+  });
 });

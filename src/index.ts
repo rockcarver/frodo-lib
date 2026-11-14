@@ -180,6 +180,19 @@ export type {
 
 export type { McpProfileName } from './mcp/ProfileRegistry';
 
+export type {
+  AccessAreaDescriptor,
+  AccessAreaId,
+  AccessAreaReason,
+  AccessProfile,
+  AccessProfileAdaptation,
+  AccessProfileAdaptationCode,
+  AccessProfileArea,
+  AccessProfileBasis,
+  AccessProfileFlow,
+  LoginInfo,
+} from './ops/AccessProfileOps';
+
 export type { AgentExportInterface } from './ops/AgentOps';
 
 export type {

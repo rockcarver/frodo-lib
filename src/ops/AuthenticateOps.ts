@@ -22,6 +22,13 @@ import { mergeDeep } from '../utils/JsonUtils';
 import { decodeJwtPayload } from '../utils/JwtUtils';
 import { createPkcePair } from '../utils/PkceUtils';
 import {
+  buildAccessProfile,
+  listAccessAreas,
+  type AccessAreaDescriptor,
+  type AccessProfile,
+  type AccessProfileAdaptationCode,
+} from './AccessProfileOps';
+import {
   BrowserLoginPromptHandler,
   exchangeTokenForScope,
   readMayActClientId,
@@ -65,7 +72,10 @@ import {
   type CredentialSource,
   type EscalationCandidate,
 } from './PrivilegeEscalationOps';
-import { resolveAvailableScope } from './RequiredScopesOps';
+import {
+  assertAmSessionAvailable,
+  resolveAvailableScope,
+} from './RequiredScopesOps';
 import { getSessionInfo } from './SessionOps';
 import {
   evictToken,
@@ -135,6 +145,42 @@ export type Authenticate = {
    * @returns {Promise<Tokens>} object containing the tokens
    */
   getTokensInteractive(options: BrowserLoginOptions): Promise<Tokens>;
+  /**
+   * Get the access profile of the current session: what the credential the library holds can do on a Cloud
+   * tenant. For an interactive login (a browser login with authorization code, or a device authorization login)
+   * and for a service account it says which scopes the token carries, whether the session can be refreshed,
+   * whether the token carries an Access Management session, which areas of the API are reachable and which are
+   * not and why (for example "the login did not request a scope that the client offers", "the access token of a
+   * device authorization login carries no Access Management session"), and what the library did differently from
+   * its defaults to make the login succeed. Every statement names its basis: what the token says, or a measured
+   * constant of the library with the date it was measured. The profile is computed from the token and the state,
+   * with no network call, so a session reused from the session cache has one too.
+   *
+   * What the profile says for the three interactive sessions of the built-in client (measured on a Cloud
+   * development tenant on 2026-11-14, one read call per area; "scope not requested": the client offers the
+   * scope, the login did not ask for it):
+   *
+   * | Area | Browser login, default scopes (`fr:am:* fr:idm:*`) | Browser login, all five scopes | Device login, without `fr:am:*` |
+   * | --- | --- | --- | --- |
+   * | Access Management | reachable | reachable | not reachable: no Access Management session |
+   * | Identity Management | reachable | reachable | reachable |
+   * | Environment secrets and variables | no: scope not requested | reachable | reachable |
+   * | Governance, configuration promotion, release information, certificates, custom domains, content security policy, cookie domains, SSO cookie, direct configuration session, telemetry | no: the client does not offer the scope | no: same | no: same |
+   * | Admin federation | no: the exchange client refuses the scope | no: same | no: same |
+   * | PingFederate administration | no: an interactive login gets no PingFederate token | no: same | no: same |
+   *
+   * The five scopes are `fr:am:* fr:idm:* fr:idc:esv:read fr:idc:esv:update fr:idc:monitoring:*`. None of these
+   * sessions has a refresh token; the access token lives 30 minutes.
+   * @returns {AccessProfile | undefined} the profile, or undefined if the session is not a Cloud session with an access token (a user session, Amster, ForgeOps, classic, no login yet)
+   */
+  getAccessProfile(): AccessProfile | undefined;
+  /**
+   * List the areas of the API that the access profile covers, with the scopes the API calls of each declare.
+   * Static: the same list for every session. A caller that keeps its own table of what needs what (for example
+   * a command line that says which commands a login cannot run) checks it against this list.
+   * @returns {AccessAreaDescriptor[]} the areas, in the order the profile lists them
+   */
+  listAccessAreas(): AccessAreaDescriptor[];
   /**
    * Applies an already-obtained, externally-issued OAuth2 access token to
    * `state`, ready for immediate use. Unlike `getTokens()`/
@@ -259,17 +305,25 @@ export default (state: State): Authenticate => {
         useDeviceFlow,
         promptHandler,
         state,
-      }).finally(() => {
-        if (loginsInFlight.get(state)?.promise === promise) {
-          loginsInFlight.delete(state);
-        }
-      });
+      })
+        .then((tokens) => withAccessProfile(tokens, state))
+        .finally(() => {
+          if (loginsInFlight.get(state)?.promise === promise) {
+            loginsInFlight.delete(state);
+          }
+        });
       loginsInFlight.set(state, { call, promise });
       return promise;
     },
     async getTokensInteractive(options: BrowserLoginOptions) {
       disposed.delete(state);
       return getTokensInteractive({ ...options, state });
+    },
+    getAccessProfile() {
+      return buildAccessProfile({ state });
+    },
+    listAccessAreas() {
+      return listAccessAreas();
     },
     async applyAccessToken(token: AccessTokenMetaType) {
       disposed.delete(state);
@@ -352,8 +406,70 @@ const CLOUD_BROWSER_LOGIN_CLIENT_ID = 'AICMCPClient';
  * `openid` is rejected with `invalid_scope` by this client, so it must be
  * omitted (unlike every other admin scope list in this file).
  */
-const CLOUD_BROWSER_ADMIN_SCOPES: string[] = [s.AmFullScope, s.IdmFullScope];
+const CLOUD_LEGACY_BROWSER_ADMIN_SCOPES: string[] = [
+  s.AmFullScope,
+  s.IdmFullScope,
+];
+const cloudLegacyBrowserAdminScopes =
+  CLOUD_LEGACY_BROWSER_ADMIN_SCOPES.join(' ');
+/**
+ * What a browser login (authorization code) on the built-in client asks for:
+ * every scope the client offers at authorization (2026-11-14: a login that
+ * asks for all five is granted all five, and the ESV and monitoring scopes
+ * make the environment secrets and variables reachable, which a login for
+ * `fr:am:* fr:idm:*` alone cannot).
+ */
+const CLOUD_BROWSER_ADMIN_SCOPES: string[] = [
+  s.AmFullScope,
+  s.IdmFullScope,
+  s.ESVReadScope,
+  s.ESVUpdateScope,
+  s.MonitoringFullScope,
+];
 const cloudBrowserAdminScopes = CLOUD_BROWSER_ADMIN_SCOPES.join(' ');
+/**
+ * What a device authorization login on the built-in client asks for: the
+ * same, without `fr:am:*`. A device login that asks for `fr:am:*` ends in
+ * `500 server_error` after the approval on the tenants where this was
+ * measured (2026-11-13 and 2026-11-14), and the token of a device login
+ * carries no Access Management session, so it cannot call Access
+ * Management anyway.
+ */
+const CLOUD_DEVICE_ADMIN_SCOPES: string[] = CLOUD_BROWSER_ADMIN_SCOPES.filter(
+  (scope) => scope !== s.AmFullScope
+);
+const cloudDeviceAdminScopes = CLOUD_DEVICE_ADMIN_SCOPES.join(' ');
+/**
+ * What a device login falls back to when the client of a tenant refuses the
+ * defaults above (invalid_scope): Identity Management only.
+ */
+const cloudDeviceFallbackScopes = s.IdmFullScope;
+
+/**
+ * Whether a failed login request was refused because the client does not offer
+ * a requested scope (OAuth error invalid_scope): in the answer of the token or
+ * device endpoint, or in the error of the loopback redirect of a browser login.
+ * @param {unknown} error the error of the request
+ * @returns {boolean} true for invalid_scope
+ */
+function isInvalidScopeError(error: unknown): boolean {
+  const queue: unknown[] = [error];
+  while (queue.length > 0) {
+    const current = queue.shift() as any;
+    if (!current) continue;
+    if (current.response?.data?.error === 'invalid_scope') return true;
+    if (
+      current instanceof FrodoError &&
+      /^Browser login failed: invalid_scope\b/.test(current.message)
+    ) {
+      return true;
+    }
+    if (Array.isArray(current.originalErrors)) {
+      queue.push(...current.originalErrors);
+    }
+  }
+  return false;
+}
 /**
  * `CLOUD_BROWSER_LOGIN_CLIENT_ID`'s one registered redirect URI, confirmed
  * (2026-09-07, empirically against a real AIC tenant by probing
@@ -2365,7 +2481,24 @@ export type Tokens = {
   subject?: string;
   host?: string;
   realm?: string;
+  /**
+   * What the session can do: the access profile of the credential (see `Authenticate.getAccessProfile()`).
+   * Present for a Cloud session with an access token, absent otherwise.
+   */
+  accessProfile?: AccessProfile;
 };
+
+/**
+ * Adds the access profile of the session to a login result, when the session has one. Never throws.
+ * @param {Tokens} tokens the result of a login
+ * @param {State} state library state
+ * @returns {Tokens} the same result, with `accessProfile` set when there is one
+ */
+function withAccessProfile(tokens: Tokens, state: State): Tokens {
+  if (!tokens || tokens.accessProfile) return tokens;
+  const accessProfile = buildAccessProfile({ state });
+  return accessProfile ? { ...tokens, accessProfile } : tokens;
+}
 
 /**
  * Get tokens
@@ -3225,6 +3358,9 @@ async function applyCloudInteractiveToken({
         value: `Bearer ${subjectToken}`,
       };
     }
+    // A device authorization login has no Access Management session:
+    // refuse before the exchange, with the reason, instead of a 403 later.
+    assertAmSessionAvailable({ state });
     const scope = resolveAvailableScope({
       requiredScopes:
         requiredScopes && requiredScopes.length > 0
@@ -3318,9 +3454,15 @@ async function applyAccessToken({
     );
   }
   try {
+    // Remember that this token was issued elsewhere (a copy: the caller's
+    // object is not changed), so the access profile can say so.
+    const external: AccessTokenMetaType = {
+      ...token,
+      login: token.login ?? { flow: 'external-token' },
+    };
     const knownUsername = await applyInteractiveToken({
       deploymentType,
-      token,
+      token: external,
       state,
     });
     const resolvedSubject = await resolveBrowserLoginSubject({
@@ -3330,14 +3472,17 @@ async function applyAccessToken({
       state,
     });
     state.setUsername(resolvedSubject);
-    return {
-      bearerToken: state.getBearerTokenMeta(),
-      userSessionToken: state.getUserSessionTokenMeta(),
-      pfBearerToken: state.getPfBearerTokenMeta(),
-      subject: resolvedSubject,
-      host: state.getHost(),
-      realm: state.getRealm() ? state.getRealm() : 'root',
-    };
+    return withAccessProfile(
+      {
+        bearerToken: state.getBearerTokenMeta(),
+        userSessionToken: state.getUserSessionTokenMeta(),
+        pfBearerToken: state.getPfBearerTokenMeta(),
+        subject: resolvedSubject,
+        host: state.getHost(),
+        realm: state.getRealm() ? state.getRealm() : 'root',
+      },
+      state
+    );
   } catch (error) {
     throw new FrodoError(`Error applying access token`, error);
   }
@@ -3368,6 +3513,10 @@ function buildBrowserTokenRefreshHandler({
   }
   return async () => {
     const refreshed = await refreshBrowserBearerToken({ state });
+    // The refreshed token is the same login: keep what is known about it.
+    if (initialToken.login && !refreshed.login) {
+      refreshed.login = initialToken.login;
+    }
     state.setRefreshToken(refreshed.refresh_token);
     if (refreshed.id_token) {
       state.setIdToken(refreshed.id_token);
@@ -3618,14 +3767,17 @@ async function tryReuseCachedBrowserSession({
     // not just a fresh interactive login.
     state.setUsername(resolvedSubject);
     state.setActiveCredentialSource('browser');
-    return {
-      bearerToken: state.getBearerTokenMeta(),
-      userSessionToken: state.getUserSessionTokenMeta(),
-      pfBearerToken: state.getPfBearerTokenMeta(),
-      subject: resolvedSubject,
-      host: state.getHost(),
-      realm: state.getRealm() ? state.getRealm() : 'root',
-    };
+    return withAccessProfile(
+      {
+        bearerToken: state.getBearerTokenMeta(),
+        userSessionToken: state.getUserSessionTokenMeta(),
+        pfBearerToken: state.getPfBearerTokenMeta(),
+        subject: resolvedSubject,
+        host: state.getHost(),
+        realm: state.getRealm() ? state.getRealm() : 'root',
+      },
+      state
+    );
   } catch (error) {
     debugMessage({
       message: `AuthenticateOps.tryReuseCachedBrowserSession: cached session failed validation, falling back to a fresh login: ${error}`,
@@ -3683,7 +3835,20 @@ export async function getTokensInteractive({
     switch (resolvedDeploymentType) {
       case Constants.CLOUD_DEPLOYMENT_TYPE_KEY: {
         const clientId = loginClientId || CLOUD_BROWSER_LOGIN_CLIENT_ID;
-        const scope = loginScope || cloudBrowserAdminScopes;
+        const usingBuiltInClient = clientId === CLOUD_BROWSER_LOGIN_CLIENT_ID;
+        // The defaults are measured for the built-in client only: a client
+        // the customer registered keeps the two scopes it always got, since
+        // it may not offer the others. An explicit scope always wins.
+        const defaultScope = !usingBuiltInClient
+          ? cloudLegacyBrowserAdminScopes
+          : useDeviceFlow
+            ? cloudDeviceAdminScopes
+            : cloudBrowserAdminScopes;
+        let scope = loginScope || defaultScope;
+        const adaptations: AccessProfileAdaptationCode[] =
+          !loginScope && usingBuiltInClient && useDeviceFlow
+            ? ['DEVICE_LOGIN_AM_SCOPE_NOT_REQUESTED']
+            : [];
         // Shared with the non-interactive synthetic flow's own
         // --login-redirect-uri (state.getAdminClientRedirectUri()) — same
         // fallback pattern loginClientId already uses against
@@ -3698,7 +3863,6 @@ export async function getTokensInteractive({
         // Only applies when actually using the built-in client; a
         // customer-supplied --login-client-id's registration is theirs to
         // control, same as forgeops/classic.
-        const usingBuiltInClient = clientId === CLOUD_BROWSER_LOGIN_CLIENT_ID;
         if (
           usingBuiltInClient &&
           resolvedRedirectUri &&
@@ -3713,22 +3877,53 @@ export async function getTokensInteractive({
         const effectiveRedirectUri = usingBuiltInClient
           ? CLOUD_BROWSER_LOGIN_REDIRECT_URI
           : resolvedRedirectUri;
-        token = useDeviceFlow
-          ? await startDeviceAuthorizationFlow({
-              clientId,
-              scope,
-              promptHandler,
-              timeoutMs,
-              state,
-            })
-          : await runInteractiveAuthorizationCodeFlow({
-              clientId,
-              scope,
-              redirectUri: effectiveRedirectUri,
-              promptHandler,
-              timeoutMs,
-              state,
-            });
+        const runCloudFlow = (requestedScope: string) =>
+          useDeviceFlow
+            ? startDeviceAuthorizationFlow({
+                clientId,
+                scope: requestedScope,
+                promptHandler,
+                timeoutMs,
+                state,
+              })
+            : runInteractiveAuthorizationCodeFlow({
+                clientId,
+                scope: requestedScope,
+                redirectUri: effectiveRedirectUri,
+                promptHandler,
+                timeoutMs,
+                state,
+              });
+        try {
+          token = await runCloudFlow(scope);
+        } catch (error) {
+          // The defaults are measured on the tenants that were measured. A
+          // tenant whose built-in client does not offer one of them refuses
+          // the request with invalid_scope before anything is approved: ask
+          // again, once, for the scopes this login always asked for. A scope
+          // that the caller named is never changed.
+          if (
+            loginScope ||
+            !usingBuiltInClient ||
+            !isInvalidScopeError(error)
+          ) {
+            throw error;
+          }
+          scope = useDeviceFlow
+            ? cloudDeviceFallbackScopes
+            : cloudLegacyBrowserAdminScopes;
+          adaptations.push('DEFAULT_SCOPES_REDUCED');
+          debugMessage({
+            message: `AuthenticateOps.getTokensInteractive: the client refused the default scopes (invalid_scope), asking again for [${scope}]`,
+            state,
+          });
+          token = await runCloudFlow(scope);
+        }
+        token.login = {
+          flow: useDeviceFlow ? 'device' : 'browser',
+          requestedScope: scope,
+          adaptations,
+        };
         state.setAuthMode('interactive');
         state.setBrowserLoginClientId(clientId);
         state.setBrowserLoginScope(scope);
@@ -3949,14 +4144,17 @@ export async function getTokensInteractive({
       });
     }
 
-    const tokens: Tokens = {
-      bearerToken: state.getBearerTokenMeta(),
-      userSessionToken: state.getUserSessionTokenMeta(),
-      pfBearerToken: state.getPfBearerTokenMeta(),
-      subject: resolvedSubject,
-      host: state.getHost(),
-      realm: state.getRealm() ? state.getRealm() : 'root',
-    };
+    const tokens: Tokens = withAccessProfile(
+      {
+        bearerToken: state.getBearerTokenMeta(),
+        userSessionToken: state.getUserSessionTokenMeta(),
+        pfBearerToken: state.getPfBearerTokenMeta(),
+        subject: resolvedSubject,
+        host: state.getHost(),
+        realm: state.getRealm() ? state.getRealm() : 'root',
+      },
+      state
+    );
     // Same escalation ladder as getTokens()'s own tail (see
     // tryBrowserLogin()'s withEscalation()) — installed here too since a
     // direct getTokensInteractive() call (frodo-cli's `login.ts` for an
