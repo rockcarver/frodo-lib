@@ -70,4 +70,4 @@ A decision that binds more than one repository is a core record: the same file i
 | 0015 | [Static configuration is what a promotion carries, and everything else is dynamic](0015-static-configuration-is-what-a-promotion-carries-and-everything-else-is-dynamic.md) | accepted |
 | 0016 | [Files shared by processes are written safely and reading never writes](0016-files-shared-by-processes-are-written-safely-and-reading-never-writes.md) | accepted |
 | 0017 | [Proxy support is guarded by a short named set of tests, not by running the suite through a proxy](0017-proxy-support-is-guarded-by-a-short-named-set-of-tests.md) | accepted |
-| 0018 | [The access profile and the pre-flight scope check share one set of rules](0018-the-access-profile-and-the-preflight-check-share-one-set-of-rules.md) | proposed |
+| 0018 | [The access profile and the pre-flight scope check share one set of rules](0018-the-access-profile-and-the-preflight-check-share-one-set-of-rules.md) | accepted |
