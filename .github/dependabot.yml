@@ -60,5 +60,5 @@ updates:
       # action installs the runtime scripts of the gh-aw version it is tagged
       # with, so bumping it alone leaves compiler and runtime out of step. A
       # Concierge release moves it by recompiling the locks; a Dependabot bump
-      # would also be auto-merged when it is a patch (dependabot-auto-merge.yml).
+      # alone would leave them out of step.
       - dependency-name: "github/gh-aw-actions/setup"
