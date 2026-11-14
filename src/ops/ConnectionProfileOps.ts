@@ -348,7 +348,6 @@ export interface ConnectionsFileInterface {
   [key: string]: SecureConnectionProfileInterface;
 }
 
-const legacyProfileFilename = '.frodorc';
 const newProfileFilename = 'Connections.json';
 
 /**
@@ -578,57 +577,6 @@ export function findConnectionProfiles({
 }
 
 /**
- * Migrate from .frodorc to Connections.json
- *
- * The legacy file `.frodorc` lived in the Frodo home next to the default profiles file `Connections.json`, so the
- * migration belongs to that location only: a caller that names its own profiles file (the state or the environment)
- * has nothing to migrate, and nothing is created, copied or renamed in the Frodo home for it.
- *
- * - neither file exists: an empty `Connections.json` is created (exclusively: another process may have created it,
- *   with profiles in it, a moment ago)
- * - only the legacy file exists: it is copied to `Connections.json` and renamed to `.frodorc.deprecated`
- * - otherwise nothing is done
- *
- * @param {State} state library state
- */
-export function migrateFromLegacyProfile({ state }: { state: State }) {
-  try {
-    const legacyPath = path.join(getFrodoHome(), legacyProfileFilename);
-    const newPath = path.join(getFrodoHome(), newProfileFilename);
-    if (
-      path.resolve(getConnectionProfilesPath({ state })) !==
-      path.resolve(newPath)
-    ) {
-      // another profiles file is in use: the legacy file of the Frodo home is none of its business
-      return;
-    }
-    if (!fs.existsSync(legacyPath) && !fs.existsSync(newPath)) {
-      // no connections file (old or new), create empty new one (exclusively:
-      // another process may have created it, with profiles in it, a moment ago)
-      createSecureFileExclusiveSync(
-        newPath,
-        JSON.stringify({}, null, fileOptions.indentation)
-      );
-    } else if (fs.existsSync(legacyPath) && !fs.existsSync(newPath)) {
-      // old exists, new one does not - so copy old to new one
-      fs.copyFileSync(legacyPath, newPath);
-      secureExistingFileSync(newPath);
-      // for now, just add a "deprecated" suffix. May delete the old file
-      // in a future release
-      fs.renameSync(legacyPath, `${legacyPath}.deprecated`);
-      secureExistingFileSync(`${legacyPath}.deprecated`);
-    }
-    // in other cases, where
-    // (both old and new exist) OR (only new one exists) don't do anything
-  } catch (error) {
-    throw new FrodoError(
-      `Error migrating from legacy connection profile`,
-      error
-    );
-  }
-}
-
-/**
  * Initialize connection profiles
  *
  * This method is called from app.ts and runs before any of the message handlers are registered.
@@ -663,7 +611,6 @@ export async function initConnectionProfiles({ state }: { state: State }) {
     }
     // encrypt the password and logApiSecret from clear text to aes-256-GCM
     else {
-      migrateFromLegacyProfile({ state });
       const data = fs.readFileSync(filename, 'utf8');
       const connectionsData: ConnectionsFileInterface = JSON.parse(data);
       // The encrypting waits, and the file must not be locked while it does:
