@@ -10,6 +10,10 @@ import {
 } from '../api/OAuth2CIMDProfileApi';
 import { State } from '../shared/State';
 import {
+  validateCIMDProfile as _validateCIMDProfile,
+  type CIMDProfileFinding,
+} from '../utils/CIMDProfileValidationUtils';
+import {
   createProgressIndicator,
   debugMessage,
   printMessage,
@@ -53,6 +57,18 @@ export type OAuth2CIMDProfile = {
    * @returns {Promise<CIMDProfileSchema>} a promise that resolves to the JSON schema of a CIMD profile
    */
   readCIMDProfileSchema(): Promise<CIMDProfileSchema>;
+  /**
+   * Validate a CIMD profile offline: say what the server refuses with a specific reason (`error`) and what it accepts but should not accept unnoticed (`warning`). Nothing is read from or written to the tenant, the profile is not modified and the answer never blocks a write: the server stays authoritative. The profile may be in the plain shape (as readCIMDProfiles returns it) or the wrapped shape ({ inherited, value }, as readCIMDProfile returns it); both give the same findings, and an inherited value counts as absent. Each finding has a stable code, a severity, a message that names the attribute and the value, and a JSON pointer to the attribute. The checks: the client id URL patterns (required, https:// in lower case, host, white space, wildcard port; wildcards in the host, no path, query, fragment, user info, dot segments, local addresses, duplicates), the metadata deny list, the SSRF switch, status, subject type, token endpoint authentication method, grant types, token lifetimes, redirect URIs and the attribute names. The rules are what a probe of an Identity Cloud tenant (AM 9.0.0) showed; a later build may refuse more or less.
+   * @param {CIMDProfileSkeleton | NoIdObjectSkeletonInterface} profileData the profile to validate
+   * @param {CIMDProfileSkeleton[]} otherProfiles the other profiles of the realm (as readCIMDProfiles returns them): when given, each pattern is also compared with theirs, and a pattern that is identical to, inside or around a pattern of another profile is reported (a client id that matches two profiles is refused with invalid_client at run time). A profile with the same _id as profileData is skipped.
+   * @param {CIMDProfileSchema} schema the schema of the profile (as readCIMDProfileSchema returns it): when given, the allowed values and the attribute names come from it, otherwise from the values the library knows
+   * @returns {CIMDProfileFinding[]} the findings, empty for a profile without any
+   */
+  validateCIMDProfile(
+    profileData: CIMDProfileSkeleton | NoIdObjectSkeletonInterface,
+    otherProfiles?: CIMDProfileSkeleton[],
+    schema?: CIMDProfileSchema
+  ): CIMDProfileFinding[];
   /**
    * Read all CIMD profiles of the realm, sorted by id, in the plain shape. If the realm does not offer CIMD profiles the result is empty and no request for profiles is made.
    * @returns {Promise<CIMDProfileSkeleton[]>} a promise that resolves to an array of CIMD profile objects
@@ -149,6 +165,13 @@ export default (state: State): OAuth2CIMDProfile => {
     },
     async readCIMDProfileSchema() {
       return readCIMDProfileSchema({ state });
+    },
+    validateCIMDProfile(
+      profileData: CIMDProfileSkeleton | NoIdObjectSkeletonInterface,
+      otherProfiles?: CIMDProfileSkeleton[],
+      schema?: CIMDProfileSchema
+    ) {
+      return _validateCIMDProfile({ profileData, otherProfiles, schema });
     },
     async readCIMDProfiles() {
       return readCIMDProfiles({ state });
