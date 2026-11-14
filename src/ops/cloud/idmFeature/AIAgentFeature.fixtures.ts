@@ -295,21 +295,25 @@ export function fakeRepairTenant(state: FakeRepairState): {
       write(`putProvider:${realm}`, () => {
         state.providers[realm] = clone(provider) as never;
       }),
-    deleteSecretMapping: (realm, storeId, typeId, secretId) =>
-      write(`deleteSecretMapping:${realm}:${secretId}`, () => {
+    deleteSecretMapping: (realm, storeId, typeId, mappingId) =>
+      write(`deleteSecretMapping:${realm}:${mappingId}`, () => {
+        const notFound = () => {
+          const error: any = new Error('Request failed with status code 404');
+          error.name = 'AxiosError';
+          error.response = { status: 404, data: { code: 404 } };
+          return error;
+        };
         const store = (state.secretStores[realm] ?? []).find(
           (one) => one.storeId === storeId
         );
         // a store type that is not the store's is another resource path: the platform answers 404
-        if (!store || store.storeTypeId !== typeId) {
-          const error: any = new Error('Request failed with status code 404');
-          error.name = 'AxiosError';
-          error.response = { status: 404, data: { code: 404 } };
-          throw error;
-        }
-        store.mappings = store.mappings.filter(
-          (mapping) => mapping.secretId !== secretId
-        );
+        if (!store || store.storeTypeId !== typeId) throw notFound();
+        // the URL names the mapping by its `_id` (the secret id when the mapping has none, as the library creates
+        // them): an id that no mapping has answers 404 (frodo-lib#1080)
+        const wanted = (mapping: { _id?: string; secretId: string }) =>
+          (mapping._id ?? mapping.secretId) === mappingId;
+        if (!store.mappings.some(wanted)) throw notFound();
+        store.mappings = store.mappings.filter((mapping) => !wanted(mapping));
       }),
     enableFeature: () =>
       write('enableFeature', () => {

@@ -89,6 +89,9 @@ function answer(method: string, url: string, body?: any) {
     return { data: body };
   if (method === 'DELETE' && url.includes('/mappings/')) {
     const id = url.split('/').pop();
+    // the URL names the mapping by its `_id`; an id that no mapping has is a 404, as on the platform (frodo-lib#1080)
+    if (!tenantMappings.some((mapping) => mapping._id === id))
+      throw httpError(url, 404, 'Not Found');
     tenantMappings = tenantMappings.filter((mapping) => mapping._id !== id);
     return { data: { _id: id } };
   }
@@ -344,8 +347,8 @@ describe('the reads that belong to a realm', () => {
         storeId: 'ESV',
         storeTypeId: 'GoogleSecretManagerSecretStoreProvider',
         mappings: [
-          { secretId: 'am.x', aliases: ['esv-x'] },
-          { secretId: 'am.y', aliases: [] },
+          { secretId: 'am.x', _id: 'am.x', aliases: ['esv-x'] },
+          { secretId: 'am.y', _id: 'am.y', aliases: [] },
         ],
       },
     ]);
@@ -454,12 +457,12 @@ describe('the writes of the repair', () => {
       'alpha',
       'ESV',
       'GoogleSecretManagerSecretStoreProvider',
-      'am.test.one'
+      'am.x'
     );
     const del = requests.find((request) => request.method === 'DELETE')!;
     expect(del.url).toContain('/realms/root/realms/alpha/');
     expect(del.url).toContain(
-      '/secrets/stores/GoogleSecretManagerSecretStoreProvider/ESV/mappings/am.test.one'
+      '/secrets/stores/GoogleSecretManagerSecretStoreProvider/ESV/mappings/am.x'
     );
     expect(del.realm).toBe('alpha');
   });
@@ -495,8 +498,8 @@ describe('the secret stores of a realm on Cloud (frodo-lib#1078)', () => {
         storeId: 'ESV',
         storeTypeId: 'GoogleSecretManagerSecretStoreProvider',
         mappings: [
-          { secretId: 'am.x', aliases: ['esv-x'] },
-          { secretId: 'am.y', aliases: [] },
+          { secretId: 'am.x', _id: 'am.x', aliases: ['esv-x'] },
+          { secretId: 'am.y', _id: 'am.y', aliases: [] },
         ],
       },
     ]);
@@ -629,5 +632,156 @@ describe('the secret stores of a realm on Cloud (frodo-lib#1078)', () => {
       'am.keep.bare',
     ]);
     expect(listings()).toEqual([]);
+  });
+
+  describe('a mapping whose _id differs from its secretId (frodo-lib#1080)', () => {
+    const UUID = '5207e976-395b-4718-96ad-b042d8a2dc2f';
+    const UUID_TWO = '5acfc15b-cec0-4002-892a-7848b2b6bc56';
+    // two dangling mappings: one created without an _id (AM generated one), one the way the library creates them; and one that resolves
+    const mixedMappings = () => [
+      { _id: UUID, secretId: 'am.test.generated', aliases: ['test'] },
+      {
+        _id: 'am.test.plain',
+        secretId: 'am.test.plain',
+        aliases: ['esv-missing'],
+      },
+      { _id: UUID_TWO, secretId: 'am.keep.generated', aliases: ['esv-one'] },
+    ];
+    const deletes = () =>
+      requests
+        .filter((request) => request.method === 'DELETE')
+        .map((request) => request.url.split('/mappings/')[1]);
+    function hybridMixed() {
+      const setup = hybrid();
+      tenantMappings = mixedMappings();
+      return setup;
+    }
+    const noWait = { now: () => 0, sleep: async () => undefined };
+
+    test('the read carries the _id, and leaves it out when the server returned none', async () => {
+      const { tenant } = newTenant('cloud');
+      tenantMappings = [
+        ...mixedMappings(),
+        { secretId: 'am.no.id', aliases: ['esv-one'] } as never,
+        { _id: '', secretId: 'am.empty.id', aliases: ['esv-one'] },
+      ];
+      const [store] = await tenant.readSecretStoreMappings('alpha');
+      expect(store.mappings).toEqual([
+        { secretId: 'am.test.generated', _id: UUID, aliases: ['test'] },
+        {
+          secretId: 'am.test.plain',
+          _id: 'am.test.plain',
+          aliases: ['esv-missing'],
+        },
+        { secretId: 'am.keep.generated', _id: UUID_TWO, aliases: ['esv-one'] },
+        { secretId: 'am.no.id', aliases: ['esv-one'] },
+        // an empty _id names nothing in the URL: it is left out as well, so the delete falls back to the secret id
+        { secretId: 'am.empty.id', aliases: ['esv-one'] },
+      ]);
+      expect(Object.keys(store.mappings[3])).not.toContain('_id');
+      expect(Object.keys(store.mappings[4])).not.toContain('_id');
+    });
+
+    test('the diagnosis names the _id of each dangling mapping, and only of those', async () => {
+      const { tenant } = hybridMixed();
+      const diagnosis = await diagnoseAIAgentFeature(tenant);
+      const finding = diagnosis.findings.find(
+        (one) =>
+          one.id === 'secret-mappings-dangling' && one.details.realm === 'alpha'
+      );
+      expect(finding?.details.mappings).toEqual([
+        expect.objectContaining({ secretId: 'am.test.generated', _id: UUID }),
+        expect.objectContaining({
+          secretId: 'am.test.plain',
+          _id: 'am.test.plain',
+        }),
+      ]);
+    });
+
+    test('the plan carries the _id in the step and in the backup', async () => {
+      const { tenant } = hybridMixed();
+      const plan = await planAIAgentFeatureRepair(tenant);
+      const steps = plan.steps.filter(
+        (step) => step.id === 'delete-secret-mapping'
+      );
+      expect(
+        steps.map((step) => [step.details.secretId, step.details._id])
+      ).toEqual([
+        ['am.test.generated', UUID],
+        ['am.test.plain', 'am.test.plain'],
+      ]);
+      expect(
+        plan.backup.secretStoreMappings.map((mapping) => [
+          mapping.secretId,
+          mapping._id,
+        ])
+      ).toEqual([
+        ['am.test.generated', UUID],
+        ['am.test.plain', 'am.test.plain'],
+      ]);
+    });
+
+    test('the repair deletes a mapping by its _id: by the secret id the platform answers 404', async () => {
+      const { tenant } = hybridMixed();
+      const plan = await planAIAgentFeatureRepair(tenant);
+      const result = await repairAIAgentFeature(tenant, plan, {}, noWait);
+      expect(result.completed).toBe(true);
+      expect(deletes()).toEqual([UUID, 'am.test.plain']);
+      // the one that resolves is untouched
+      expect(tenantMappings.map((mapping) => mapping._id)).toEqual([UUID_TWO]);
+      expect(
+        result.results
+          .filter((one) => one.step.id === 'delete-secret-mapping')
+          .map((one) => one.status)
+      ).toEqual(['done', 'done']);
+    });
+
+    test('a delete by the secret id is what the platform refuses (the defect this guards against)', async () => {
+      const { tenant } = hybridMixed();
+      await expect(
+        tenant.deleteSecretMapping(
+          'alpha',
+          'ESV',
+          'GoogleSecretManagerSecretStoreProvider',
+          'am.test.generated'
+        )
+      ).rejects.toMatchObject({ response: { status: 404 } });
+      expect(tenantMappings).toHaveLength(3);
+    });
+
+    test('the step uses the _id the tenant has now, not the one in an old plan', async () => {
+      const { tenant } = hybridMixed();
+      const plan = await planAIAgentFeatureRepair(tenant);
+      // the mapping was deleted and created again in the meantime: same secret id, another _id
+      const NEW = '11111111-2222-3333-4444-555555555555';
+      tenantMappings = tenantMappings.map((mapping) =>
+        mapping.secretId === 'am.test.generated'
+          ? { ...mapping, _id: NEW }
+          : mapping
+      );
+      const result = await repairAIAgentFeature(tenant, plan, {}, noWait);
+      expect(result.completed).toBe(true);
+      expect(deletes()).toEqual([NEW, 'am.test.plain']);
+    });
+
+    test('a mapping the server returned without an _id is deleted by its secret id (unchanged)', async () => {
+      const { tenant } = hybrid();
+      tenantMappings = [
+        { secretId: 'am.test.one', aliases: ['test'] } as never,
+        ...danglingTenantMappings().slice(1),
+      ];
+      // the fake server names a mapping without an _id by its secret id, as the library creates them
+      tenantMappings = tenantMappings.map((mapping) => ({
+        ...mapping,
+        _id: mapping._id ?? mapping.secretId,
+      }));
+      const plan = await planAIAgentFeatureRepair(tenant);
+      expect(
+        plan.steps.find((step) => step.id === 'delete-secret-mapping')?.details
+      ).not.toHaveProperty('_id', undefined);
+      const result = await repairAIAgentFeature(tenant, plan, {}, noWait);
+      expect(result.completed).toBe(true);
+      expect(deletes()).toContain('am.test.one');
+    });
   });
 });

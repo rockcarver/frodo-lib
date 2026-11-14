@@ -153,6 +153,7 @@ export async function planAIAgentFeatureRepair(
       storeId: string;
       storeTypeId: string;
       secretId: string;
+      _id?: string;
       aliases: string[];
     }[]) {
       mappingsToDelete.push({ realm, ...mapping });
@@ -643,11 +644,13 @@ export async function repairAIAgentFeature(
             `The mapping ${secretId} points to an ESV secret that exists now; the plan is out of date.`
           );
         }
+        // the mapping is deleted by the id it has in the URL, read from the tenant now (frodo-lib#1080): that is its
+        // `_id`, which differs from the secret id for a mapping that was created without one
         await tenant.deleteSecretMapping(
           realm,
           storeId,
           current.storeTypeId,
-          secretId
+          current.mapping._id ?? secretId
         );
         if (await find()) {
           throw new Error(

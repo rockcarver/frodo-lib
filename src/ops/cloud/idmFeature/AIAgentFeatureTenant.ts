@@ -56,6 +56,13 @@ export type AIAgentGateState = {
 export type AIAgentSecretMapping = {
   secretId: string;
   aliases: string[];
+  /**
+   * The id the mapping has in the URL of the secret store (`.../mappings/<_id>`), as the read returned it. It equals
+   * `secretId` for a mapping that the library or the admin console created, but not for one that was created without
+   * an `_id` (AM then generates one): the server answers 404 to a delete by `secretId` for such a mapping
+   * (frodo-lib#1080). Absent when the read returned none.
+   */
+  _id?: string;
 };
 
 /** The mappings of one secret store of a realm that is backed by ESV secrets. */
@@ -104,12 +111,15 @@ export interface AIAgentFeatureRepairTenant extends AIAgentFeatureTenant {
   readProviderTemplate(realm: string): Promise<OAuth2ProviderSkeleton>;
   /** Write the OAuth 2.0 provider of the realm (creates it if the realm has none); `_id` and `_rev` are not sent. */
   putProvider(realm: string, provider: OAuth2ProviderSkeleton): Promise<void>;
-  /** Delete one mapping of a secret store of the realm. */
+  /**
+   * Delete one mapping of a secret store of the realm. `mappingId` is the id the mapping has in the URL: its `_id` as
+   * the read returned it, or its `secretId` when the read returned none.
+   */
   deleteSecretMapping(
     realm: string,
     storeId: string,
     storeTypeId: string,
-    secretId: string
+    mappingId: string
   ): Promise<void>;
   /** The environment action `POST /environment/aiagent?_action=enable`. */
   enableFeature(): Promise<unknown>;
@@ -237,6 +247,9 @@ export function createAIAgentFeatureTenant(state: State): AIAgentFeatureTenant {
             mappings: mappings.map((mapping) => ({
               secretId: mapping.secretId,
               aliases: mapping.aliases ?? [],
+              ...(typeof mapping._id === 'string' && mapping._id !== ''
+                ? { _id: mapping._id }
+                : {}),
             })),
           });
         }
@@ -319,12 +332,14 @@ export function createAIAgentFeatureRepairTenant(
         await putOAuth2Provider({ providerData: body, state });
       }),
 
-    deleteSecretMapping: (realm, storeId, storeTypeId, secretId) =>
+    // The argument of the API function that is called `secretId` is the last segment of the URL, that is the `_id` of
+    // the mapping (frodo-lib#1080).
+    deleteSecretMapping: (realm, storeId, storeTypeId, mappingId) =>
       inRealm(realm, async () => {
         await deleteSecretStoreMapping({
           secretStoreId: storeId,
           secretStoreTypeId: storeTypeId,
-          secretId,
+          secretId: mappingId,
           globalConfig: false,
           state,
         });

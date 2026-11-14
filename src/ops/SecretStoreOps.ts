@@ -188,7 +188,7 @@ export type SecretStore = {
    * Delete secret store mapping
    * @param {string} secretStoreId Secret store id
    * @param {string | undefined} secretStoreTypeId Secret store type id (optional)
-   * @param {string} secretId Secret store mapping label
+   * @param {string} secretId Secret store mapping label. It is the last segment of the URL of the mapping, that is the `_id` of the mapping: it equals the label for a mapping that this library or the admin console created, but not for one created without an `_id` (the server then generates one and answers 404 to the label)
    * @param {boolean} globalConfig true if the secret store mapping is global, false otherwise. Default: false.
    * @returns {Promise<SecretStoreMappingSkeleton>} a promise that resolves to a secret store mapping object
    */
@@ -1078,7 +1078,7 @@ export async function deleteSecretStores({
  * Delete secret store mapping
  * @param {string} secretStoreId Secret store id
  * @param {string | undefined} secretStoreTypeId Secret store type id (optional)
- * @param {string} secretId Secret store mapping label
+ * @param {string} secretId Secret store mapping label. It is the last segment of the URL of the mapping, that is the `_id` of the mapping: it equals the label for a mapping that this library or the admin console created, but not for one created without an `_id` (the server then generates one and answers 404 to the label)
  * @param {boolean} globalConfig true if the secret store mapping is global, false otherwise. Default: false.
  * @returns {Promise<SecretStoreMappingSkeleton>} a promise that resolves to a secret store mapping object
  */
