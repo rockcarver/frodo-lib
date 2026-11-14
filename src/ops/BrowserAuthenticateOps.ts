@@ -4,6 +4,7 @@ import { AddressInfo } from 'net';
 import { URL } from 'url';
 import { AxiosError } from 'axios';
 import { DeviceAuthorizationResponseType } from '../api/OAuth2OIDCApi';
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import { sleep } from '../utils/FrodoUtils';
@@ -608,11 +609,76 @@ export async function startDeviceAuthorizationFlow({
         intervalMs += 5000;
         continue;
       }
+      const failure = extractOAuthFailure(error);
+      if (failure?.status === 500 && failure.error === 'server_error') {
+        throw new FrodoError(
+          describeDeviceTokenFailure({ clientId, scope, failure }),
+          error,
+          'DEVICE_LOGIN_TOKEN_NOT_ISSUED'
+        );
+      }
       throw error;
     }
   }
   throw new FrodoError(
     `Device login timed out before it was approved. Please try again.`
+  );
+}
+
+type OAuthFailure = {
+  status?: number;
+  error?: string;
+  description?: string;
+  transactionId?: string;
+};
+
+/**
+ * The facts of a failed token request: the HTTP status, the OAuth error and
+ * its description, and the transaction id the server answered with.
+ */
+function extractOAuthFailure(error: unknown): OAuthFailure | undefined {
+  if (!(error instanceof FrodoError)) return undefined;
+  const original = error.originalErrors[0] as AxiosError | undefined;
+  const response = original?.response;
+  if (!response) return undefined;
+  const data = response.data as
+    { error?: string; error_description?: string } | undefined;
+  const header = response.headers?.['x-forgerock-transactionid'];
+  return {
+    status: response.status,
+    error: data?.error,
+    description: data?.error_description,
+    transactionId: typeof header === 'string' ? header : undefined,
+  };
+}
+
+/**
+ * The message of a device login whose token request answered a server error
+ * after the user approved. States the facts, the combination that was measured
+ * to fail, and the one that was measured to work.
+ */
+function describeDeviceTokenFailure({
+  clientId,
+  scope,
+  failure,
+}: {
+  clientId: string;
+  scope: string;
+  failure: OAuthFailure;
+}): string {
+  const askedForAm = scope
+    .split(' ')
+    .includes(Constants.AVAILABLE_SCOPES.AmFullScope);
+  return (
+    `The device authorization login was approved, but the authorization server could not issue the access token: HTTP ${failure.status} ${failure.error}` +
+    `${failure.description ? ` (${failure.description})` : ''}. ` +
+    `Client: ${clientId}. Requested scope: [${scope}].` +
+    `${failure.transactionId ? ` Transaction id: ${failure.transactionId}.` : ''}` +
+    `${
+      askedForAm
+        ? ` A device login that requests ${Constants.AVAILABLE_SCOPES.AmFullScope} did not complete on the Cloud development tenants where this was measured (${Constants.CLOUD_INTERACTIVE_MEASURED_ON}), while one without it did; the access token of a device login carries no Access Management session either way. Request the device login without ${Constants.AVAILABLE_SCOPES.AmFullScope}, or use a browser (authorization code) login or a service account for Access Management.`
+        : ''
+    }`
   );
 }
 

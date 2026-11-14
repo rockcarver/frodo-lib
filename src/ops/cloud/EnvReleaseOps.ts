@@ -34,9 +34,6 @@ export async function readRelease({
     const domains = await _getRelease({ state });
     return domains;
   } catch (error) {
-    throw new FrodoError(
-      `Error reading federation enforcement configuration`,
-      error
-    );
+    throw new FrodoError(`Error reading release information`, error);
   }
 }

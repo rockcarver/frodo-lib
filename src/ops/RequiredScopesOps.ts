@@ -1,5 +1,11 @@
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
+import {
+  amSessionOf,
+  describeFlow,
+  describeSession,
+  scopeSatisfies,
+} from './AccessProfileOps';
 import { FrodoError } from './FrodoError';
 
 /**
@@ -51,27 +57,17 @@ export function resolveAvailableScope({
   );
 
   if (unavailable.length > 0) {
+    const session = describeSession({ state });
     throw new InsufficientScopeError(
-      `This operation requires scope(s) [${unavailable.join(', ')}], which cloud browser-login mode cannot obtain. AICMCPExchangeClient (the client browser-mode exchanges AM-domain tokens through) only allows: ${Constants.CLOUD_BROWSER_MODE_AVAILABLE_SCOPES.join(', ')}. Use a non-browser auth mode for this operation, or wait for a widened/dedicated exchange client.`,
+      `This operation requires scope(s) [${unavailable.join(', ')}], which cloud browser-login mode cannot obtain.${
+        session ? ` The current session is ${session}.` : ''
+      } AICMCPExchangeClient (the client browser-mode exchanges AM-domain tokens through) only allows: ${Constants.CLOUD_BROWSER_MODE_AVAILABLE_SCOPES.join(', ')}. Use a non-browser auth mode for this operation, or wait for a widened/dedicated exchange client.`,
       null,
       'INSUFFICIENT_SCOPE'
     );
   }
 
   return requiredScopes.join(' ');
-}
-
-/**
- * Returns whether a single granted scope covers a single required scope:
- * an exact match, or a wildcard grant (`fr:idc:esv:*`) whose prefix covers
- * the required scope (`fr:idc:esv:read`).
- */
-function scopeSatisfies(grantedScope: string, requiredScope: string): boolean {
-  if (grantedScope === requiredScope) return true;
-  return (
-    grantedScope.endsWith(':*') &&
-    requiredScope.startsWith(grantedScope.slice(0, -1))
-  );
 }
 
 /**
@@ -125,12 +121,84 @@ export function assertHasRequiredScope({
   );
 
   if (missing.length > 0) {
+    const session = describeSession({ state });
     throw new InsufficientScopeError(
       `This operation requires scope(s) [${missing.join(', ')}], which the current session's token does not carry (granted: [${
         granted.join(', ') || 'none'
-      }]). Re-authenticate with a credential granted the required scope to continue.`,
+      }]).${
+        session ? ` The current session is ${session}.` : ''
+      } Re-authenticate with a credential granted the required scope to continue.`,
       null,
       'INSUFFICIENT_SCOPE'
     );
   }
+}
+
+/**
+ * Local pre-flight gate for Access Management calls of a cloud session that reaches Access
+ * Management through the token exchange: refuses the call before it is sent when the session is a
+ * device authorization login whose access token carries no Access Management session.
+ *
+ * @remarks
+ * Measured on Cloud development tenants (2026-11-14): Access Management refuses such a token
+ * (`403 No session for request`, `401 Access Denied`), also after the token exchange. Only a session
+ * that is known to be a device authorization login is refused: a token of an unknown kind goes to the
+ * server, because the library does not guess about tenants it has not measured. The error is an
+ * `InsufficientScopeError`, so the escalation ladder can retry with a service account.
+ * @param {object} params parameters object
+ * @param {State} params.state library state
+ * @throws {InsufficientScopeError} when the session cannot reach Access Management
+ */
+export function assertAmSessionAvailable({ state }: { state: State }): void {
+  if (state.getDeploymentType() !== Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
+    return;
+  }
+  const meta = state.getBearerTokenMeta();
+  if (meta?.login?.flow !== 'device') {
+    return;
+  }
+  if (amSessionOf(meta.access_token) !== 'absent') {
+    return;
+  }
+  throw new InsufficientScopeError(
+    `This operation needs access to Access Management, which the current session cannot reach: the session was obtained by ${describeFlow('device')}, and its access token carries no Access Management session. A browser (authorization code) login or a service account has one.`,
+    null,
+    'NO_AM_SESSION'
+  );
+}
+
+/**
+ * Local pre-flight gate for PingFederate administration calls: refuses the call before it is sent
+ * when the session is an interactive login (or an access token applied from elsewhere), which never
+ * gets the separate PingFederate token that these calls need.
+ *
+ * @remarks
+ * Measured on a Cloud development tenant (2026-11-14): without this gate the call went out without a
+ * credential and the server answered a bare `401`. The error is an `InsufficientScopeError`, so the
+ * escalation ladder can retry with a service account.
+ * @param {object} params parameters object
+ * @param {State} params.state library state
+ * @throws {InsufficientScopeError} when the session cannot reach PingFederate administration
+ */
+export function assertPingFederateAvailable({ state }: { state: State }): void {
+  if (state.getDeploymentType() !== Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
+    return;
+  }
+  if (!state.getAmCredentialProvider() || state.getPfBearerToken()) {
+    return;
+  }
+  const session = describeSession({ state });
+  throw new InsufficientScopeError(
+    `This operation requires scope(s) [${Constants.AVAILABLE_SCOPES.WSFedAdminScope}], which the current session's token does not carry (granted: [${
+      scopesGranted(state).join(', ') || 'none'
+    }]).${
+      session ? ` The current session is ${session}.` : ''
+    } PingFederate administration needs a token of its own, which an interactive login never gets.`,
+    null,
+    'INSUFFICIENT_SCOPE'
+  );
+}
+
+function scopesGranted(state: State): string[] {
+  return (state.getBearerTokenMeta()?.scope ?? '').split(' ').filter(Boolean);
 }
