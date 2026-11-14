@@ -24,14 +24,14 @@ import {
   OAuth2ProviderSkeleton,
   putOAuth2Provider,
 } from '../../../api/OAuth2ProviderApi';
-import {
-  deleteSecretStoreMapping,
-  getSecretStoreMappings,
-  getSecretStores,
-} from '../../../api/SecretStoreApi';
+import { deleteSecretStoreMapping } from '../../../api/SecretStoreApi';
 import { getTree } from '../../../api/TreeApi';
 import { State } from '../../../shared/State';
 import { getFailedResponse, isNotFoundError } from '../../FrodoError';
+import {
+  readSecretStoreMappings,
+  readSecretStores,
+} from '../../SecretStoreOps';
 import { enableAIAgentFeature } from '../EnvAIAgentOps';
 import {
   ManagedConfigLike,
@@ -213,15 +213,19 @@ export function createAIAgentFeatureTenant(state: State): AIAgentFeatureTenant {
       return (secrets?.result ?? []).map((secret) => secret._id);
     },
 
+    // The stores are listed by the ops layer, not by the API function that lists them: Cloud refuses that listing
+    // (`POST .../secrets/stores?_action=nextdescendents` answers 403 "not available in PingOne Advanced Identity
+    // Cloud"), and `readSecretStores` knows the rule for it (it reads the one store Cloud has, ESV, directly). A
+    // second copy of the rule here would be the next place to forget it (frodo-lib#1078).
     readSecretStoreMappings: (realm) =>
       inRealm(realm, async () => {
-        const stores = await getSecretStores({ globalConfig: false, state });
+        const stores = await readSecretStores({ globalConfig: false, state });
         const found: AIAgentSecretStoreMappings[] = [];
-        for (const store of stores?.result ?? []) {
+        for (const store of stores) {
           const storeTypeId = (store as { _type?: { _id?: string } })._type
             ?._id;
           if (storeTypeId !== ESV_SECRET_STORE_TYPE) continue;
-          const mappings = await getSecretStoreMappings({
+          const mappings = await readSecretStoreMappings({
             secretStoreId: store._id,
             secretStoreTypeId: storeTypeId,
             globalConfig: false,
@@ -230,7 +234,7 @@ export function createAIAgentFeatureTenant(state: State): AIAgentFeatureTenant {
           found.push({
             storeId: store._id,
             storeTypeId,
-            mappings: (mappings?.result ?? []).map((mapping) => ({
+            mappings: mappings.map((mapping) => ({
               secretId: mapping.secretId,
               aliases: mapping.aliases ?? [],
             })),
