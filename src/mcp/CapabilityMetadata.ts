@@ -2529,6 +2529,44 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Update or upsert a CIMD profile. Prefer namedArgs { profileId, profileData }. Same trust exposure as createCIMDProfile: the profile decides which https:// client ids may act as OAuth 2.0 clients without registration. Update replaces the stored attributes with exactly what you send, so send every group you want to keep (read the profile first): a body with only some groups silently removes the rest, including the metadata deny list and the SSRF switch. Create fills in defaults, update does not (except for an id that does not exist yet). The server ignores revisions, so a concurrent update is lost without notice. Values may be plain or { inherited, value }.',
   },
+  'oauth2oidc.cimd.validateCIMDProfile': {
+    operationType: 'special',
+    objectType: 'CIMDProfile',
+    argumentMode: 'named',
+    parameterOverrides: {
+      profileData: {
+        type: 'CIMDProfileSkeleton',
+        description:
+          'The CIMD profile to validate, in the plain shape (as oauth2oidc.cimd.readCIMDProfiles returns it) or the wrapped shape ({ inherited, value }, as readCIMDProfile returns it). Both give the same findings.',
+        schema: {
+          type: 'object',
+          properties: {
+            cimdConfig: { type: 'object' },
+            coreOAuth2ClientConfig: { type: 'object' },
+            advancedOAuth2ClientConfig: { type: 'object' },
+            coreOpenIDClientConfig: { type: 'object' },
+            signEncOAuth2ClientConfig: { type: 'object' },
+            overrideOAuth2ClientConfig: { type: 'object' },
+          },
+          additionalProperties: true,
+        },
+      },
+      otherProfiles: {
+        description:
+          'Optional. The other CIMD profiles of the realm (the array oauth2oidc.cimd.readCIMDProfiles returns). When given, the patterns of the profile are also compared with theirs and overlaps are reported. Omit it to skip the overlap checks.',
+        schema: { type: 'array', items: { type: 'object' } },
+      },
+      schema: {
+        description:
+          'Optional. The profile schema (what oauth2oidc.cimd.readCIMDProfileSchema returns). When given, the allowed values and attribute names come from it, otherwise from the values the library knows.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+    },
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Validates a CIMD profile offline and returns findings (code, severity, message, path): errors are what the server refuses on write, warnings are settings it accepts but that weaken the authorization server (a wildcard in the host of a client id URL pattern, a disabled SSRF switch, a pattern that overlaps a pattern of another profile, an http:// redirect URI). It reads nothing from the tenant and changes nothing; the server stays authoritative, so run it before oauth2oidc.cimd.createCIMDProfile or updateCIMDProfile, which never call it. The rules are what a probe of one server version showed.',
+  },
   'oauth2oidc.cimd.isCIMDProfileAvailable': {
     operationType: 'read',
     objectType: 'CIMDProfile',

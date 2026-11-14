@@ -140,6 +140,12 @@ export type { SocialIdpSkeleton } from './api/SocialIdentityProvidersApi';
 export type { TreeSkeleton } from './api/TreeApi';
 
 export type {
+  CIMDProfileFinding,
+  CIMDProfileFindingCode,
+  CIMDProfileFindingSeverity,
+} from './utils/CIMDProfileValidationUtils';
+
+export type {
   JourneyValidationCode,
   JourneyValidationFinding,
   JourneyValidationInput,
