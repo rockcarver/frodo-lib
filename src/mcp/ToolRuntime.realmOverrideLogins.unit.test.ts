@@ -83,13 +83,23 @@ const CALLS = 3;
 
 let am: FakeAm;
 
+// The instances that the runtime builds for a request do not get the master key
+// path of the server's own instance, so they find the key through this
+// variable. Without it they would use the default path, in the home directory.
+const MASTER_KEY_PATH = 'FRODO_MASTER_KEY_PATH';
+let savedMasterKeyPath: string | undefined;
+
 beforeAll(() => {
   fs.rmSync(TMP_DIR, { recursive: true, force: true });
   fs.mkdirSync(TMP_DIR, { recursive: true });
   fs.writeFileSync(resolve(TMP_DIR, 'masterkey.key'), 'test-master-key');
+  savedMasterKeyPath = process.env[MASTER_KEY_PATH];
+  process.env[MASTER_KEY_PATH] = resolve(TMP_DIR, 'masterkey.key');
 });
 
 afterAll(() => {
+  if (savedMasterKeyPath === undefined) delete process.env[MASTER_KEY_PATH];
+  else process.env[MASTER_KEY_PATH] = savedMasterKeyPath;
   fs.rmSync(TMP_DIR, { recursive: true, force: true });
 });
 
