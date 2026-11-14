@@ -11,7 +11,7 @@
  * writes, no network, nothing under the real frodo home.
  */
 import fs from 'fs';
-import { tmpdir } from 'os';
+import { homedir, tmpdir } from 'os';
 import { join } from 'path';
 import { jest } from '@jest/globals';
 import '../index';
@@ -333,6 +333,10 @@ describe('Connection profile header overrides', () => {
 
       expect(readFileText()).toBe(before);
       expect(fs.statSync(filename).mtimeMs).toBe(modified);
+      // a profiles file of its own: nothing is created in the Frodo home for it (frodo-lib#1076)
+      expect(fs.existsSync(join(homedir(), '.frodo', 'Connections.json'))).toBe(
+        false
+      );
     });
 
     test('13: saving it after it was loaded replaces the plain maps with encrypted ones', async () => {

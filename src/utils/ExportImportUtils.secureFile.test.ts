@@ -18,7 +18,7 @@
  *        NODE_OPTIONS=--experimental-vm-modules npx jest --silent ExportImportUtils.secureFile
  */
 import fs from 'fs';
-import { tmpdir } from 'os';
+import { homedir, tmpdir } from 'os';
 import { join } from 'path';
 import { jest } from '@jest/globals';
 import { state } from '../index';
@@ -397,6 +397,10 @@ describe('initConnectionProfiles (end-to-end self-heal)', () => {
         expect(fs.readFileSync(masterKeyPath, 'utf8')).toBe(
           'pre-existing-key-material'
         );
+        // a profiles file of its own: nothing is created in the Frodo home for it (frodo-lib#1076)
+        expect(
+          fs.existsSync(join(homedir(), '.frodo', 'Connections.json'))
+        ).toBe(false);
       } finally {
         state.setConnectionProfilesPath(prevProfilesPath);
         state.setMasterKeyPath(prevMasterKeyPath);
