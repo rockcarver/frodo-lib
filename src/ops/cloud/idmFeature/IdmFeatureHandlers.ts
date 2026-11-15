@@ -65,21 +65,26 @@ const handlers: Record<string, IdmFeatureHandler> = {
 /**
  * The handler of a feature.
  * @param {string} featureId feature id, for example `aiagent`
+ * @param {Record<string, IdmFeatureHandler>} registry the registry to look in; the library's own by default (a test passes another one)
  * @returns {IdmFeatureHandler | undefined} the handler, or undefined if the library has none for that feature
  */
 export function getIdmFeatureHandler(
-  featureId: string
+  featureId: string,
+  registry: Record<string, IdmFeatureHandler> = handlers
 ): IdmFeatureHandler | undefined {
-  return Object.prototype.hasOwnProperty.call(handlers, featureId)
-    ? handlers[featureId]
+  return Object.prototype.hasOwnProperty.call(registry, featureId)
+    ? registry[featureId]
     : undefined;
 }
 
 /**
  * The ids of the features that have a handler, that is the features the library can diagnose and repair. It reads the
  * same registry as {@link getIdmFeatureHandler}, so a feature that gets a handler is listed without a second edit.
+ * @param {Record<string, IdmFeatureHandler>} registry the registry to list; the library's own by default (a test passes another one)
  * @returns {string[]} the feature ids, a new array on every call
  */
-export function listIdmFeatureHandlerIds(): string[] {
-  return Object.keys(handlers);
+export function listIdmFeatureHandlerIds(
+  registry: Record<string, IdmFeatureHandler> = handlers
+): string[] {
+  return Object.keys(registry);
 }
