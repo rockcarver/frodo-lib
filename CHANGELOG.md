@@ -10,6 +10,11 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-45] - 2026-11-15
+
+### Changed
+- Improved the repair process for AI agents features. The `planIdmFeatureRepair` and `repairIdmFeature` functions now ensure that definitions are aligned with the original, preventing discrepancies in the registry. Customizations are restored only upon request, and transient 404 errors after a write operation are retried for robustness. (#1102)
+
 ## [v5.0.0-44] - 2026-11-14
 
 ### Added
@@ -3012,6 +3017,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-45]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-44...v5.0.0-45
 [v5.0.0-44]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-43...v5.0.0-44
 [v5.0.0-43]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-42...v5.0.0-43
 [v5.0.0-42]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-41...v5.0.0-42
