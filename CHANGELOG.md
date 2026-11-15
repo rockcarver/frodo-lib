@@ -10,6 +10,14 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-46] - 2026-11-15
+
+### Added
+- Introduced diagnostic capabilities for IDM features. The `frodo.cloud.idmFeature` module now includes `canDiagnoseIdmFeature(featureId): boolean`, which checks if the library can diagnose and repair a given feature, and `listDiagnosableIdmFeatures(): string[]`, which returns a list of diagnosable feature IDs. This enhancement allows users to assess feature support without requiring a request or login (#1103).
+
+### Changed
+- The Dependabot auto-merge workflow now utilizes a shared action, replacing the previous implementation with a more streamlined approach. This change ensures consistency across repositories by using the `gearsnlevers/dependabot-auto-merge-action` (#1104).
+
 ## [v5.0.0-45] - 2026-11-15
 
 ### Changed
@@ -3017,6 +3025,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-46]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-45...v5.0.0-46
 [v5.0.0-45]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-44...v5.0.0-45
 [v5.0.0-44]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-43...v5.0.0-44
 [v5.0.0-43]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-42...v5.0.0-43
