@@ -130,11 +130,12 @@ which prints two results:
   [Validate guidance](#validate-guidance)): `decisions/`, `.claude/skills/`,
   `.github/instructions/`, the core records drift check
   (`.github/scripts/check-core-records-drift.mjs`) and its workflow, the
-  Dependabot policy files (`.github/dependabot.yml`,
-  `.github/workflows/dependabot-auto-merge.yml` and
-  `scripts/dependabot-auto-merge.mjs`), or any Markdown file in the repository
-  root. It is independent of `code`: the config and the workflow are not code,
-  the script is (its pull request runs the long matrix as well).
+  Dependabot policy files (`.github/dependabot.yml` and
+  `.github/workflows/dependabot-auto-merge.yml`), or any Markdown file in the
+  repository root. It is independent of `code`: the config and the workflow are
+  not code, so a pull request that changes only them runs the guidance job and
+  skips the long matrix. The decision about a Dependabot pull request is made by
+  a shared action that the workflow calls, not by a script of this repository.
 
 The script is read from the commit the pull request **targets**, never from
 the pull request itself: a change to the classifier is classified by the
@@ -197,13 +198,18 @@ only the tests that validate files the filter treats as non-code:
   `decisions/core/` (the core records, with their index), the weekly core
   records drift check and its workflow (`core-records-drift.yml`, which only
   reads and compares `decisions/core/` with frodo-cli's);
-- `src/dependabotAutoMerge.unit.test.ts` and `src/dependabotPolicy.unit.test.ts`:
-  the Dependabot policy of [core 0023](decisions/core/0023-dependency-updates-arrive-late-and-only-tooling-merges-without-a-person.md):
-  the decision script, the auto-merge workflow, and the group `tooling` and the
-  cooldown of `dependabot.yml` against the packages that shipped code imports.
-  The second one also compares the group with the sourcemap of `dist/` when a
-  build exists; this job has none, so that case is skipped here and runs in
-  the full suite;
+- `src/dependabotPolicy.unit.test.ts` and `src/dependabotWorkflow.unit.test.ts`:
+  the part of the Dependabot policy of [core 0023](decisions/core/0023-dependency-updates-arrive-late-and-only-tooling-merges-without-a-person.md)
+  that only this repository can check: the group `tooling` and the cooldown of
+  `dependabot.yml` against the packages that shipped code imports (the first one
+  also compares the group with the sourcemap of `dist/` when a build exists;
+  this job has none, so that case is skipped here and runs in the full suite),
+  and the properties of the auto-merge workflow that the policy relies on (the
+  shared action pinned by its full commit SHA, the guard on the actor, the token
+  only in the step that calls the action, nothing checked out or run, the dry
+  run; the second one). The decision about a pull request is made by the action
+  [gearsnlevers/dependabot-auto-merge-action](https://github.com/gearsnlevers/dependabot-auto-merge-action),
+  which has its own tests;
 - `src/index.test.ts`: the contributor guide the export guard points at.
 
 A code change runs the same tests again in the full suite, so this job only

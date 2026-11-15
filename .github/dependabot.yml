@@ -3,8 +3,9 @@
 #
 # - Tooling (the named list in the group `tooling` below: packages that do not end up
 #   in what we ship) is grouped into one weekly PR for minor and patch updates, and
-#   that PR can auto-merge (dependabot-auto-merge.yml). Every other package, that is
-#   every package that shipped code imports (it is bundled into dist/), the bundler
+#   that PR can auto-merge (dependabot-auto-merge.yml, which calls the shared action
+#   gearsnlevers/dependabot-auto-merge-action: it reads this group from here). Every
+#   other package, that is every package that shipped code imports (it is bundled into dist/), the bundler
 #   (tsdown: it writes the file that we ship, so it is treated like a bundled package),
 #   the manual set (Prettier, TypeScript, ESLint and their plugins, whose majors need
 #   coordinated config work and whose minors can reformat code) and anything that is not
