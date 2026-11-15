@@ -169,6 +169,8 @@ jobs:
           npm run test:only -- --runTestsByPath \
             src/agentSkills.test.ts \
             src/decisionRecords.test.ts \
+            src/dependabotAutoMerge.unit.test.ts \
+            src/dependabotPolicy.unit.test.ts \
             src/index.test.ts
 
   build:
