@@ -73,14 +73,26 @@ describe('the workflow that arms auto-merge keeps the properties that the policy
     expect(code).not.toMatch(/pull_request_target/);
   });
 
-  test('the token reaches only the step that calls the action, with minimal permissions', () => {
+  test('the token reaches only the step that calls the action', () => {
     expect(code.match(/GITHUB_TOKEN/g)).toHaveLength(1);
     expect(code).toMatch(
       /github-token:\s*\$\{\{\s*secrets\.GITHUB_TOKEN\s*\}\}/
     );
-    expect(code).toMatch(
-      /permissions:\s*\n\s*contents: write\s*\n\s*pull-requests: write/
-    );
+  });
+
+  test('it asks for the two permissions that arming needs and nothing more, and no job widens them', () => {
+    // the workflow-level block is exactly these two lines, in any order
+    const block = /^permissions:\n((?:[ ]+\S.*\n)+)/m.exec(code)?.[1] ?? '';
+    expect(
+      block
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .sort()
+    ).toEqual(['contents: write', 'pull-requests: write']);
+    // the one block is the only one: a `permissions:` that is indented belongs to a job or a step
+    expect(code.match(/permissions:/g)).toHaveLength(1);
+    expect(code).not.toMatch(/^[ ]+permissions:/m);
   });
 
   test('a manual run can be a dry run, which the action gets as `dry-run`, and the default is to arm', () => {
