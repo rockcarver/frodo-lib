@@ -22,6 +22,8 @@ type Request = { method: string; url: string; realm: string; body?: any };
 const requests: Request[] = [];
 /** URL part -> status or error: the fake answers this instead of the normal answer */
 const refuse: Record<string, number | Error> = {};
+/** URL part -> status and a number of requests: the fake answers the first `times` matching requests with the status, then normally */
+const refuseFirst: Record<string, { status: number; times: number }> = {};
 let currentState: { getRealm(): string; getDeploymentType(): string };
 
 const CLOUD_REFUSAL =
@@ -72,6 +74,12 @@ function answer(method: string, url: string, body?: any) {
     if (url.includes(part)) {
       if (how instanceof Error) throw how;
       throw httpError(url, how);
+    }
+  }
+  for (const [part, how] of Object.entries(refuseFirst)) {
+    if (url.includes(part) && how.times > 0) {
+      how.times -= 1;
+      throw httpError(url, how.status);
     }
   }
   // the writes of the repair
@@ -202,8 +210,12 @@ jest.unstable_mockModule('../../../api/BaseApi', () => ({
 }));
 
 const { default: State } = await import('../../../shared/State');
-const { createAIAgentFeatureRepairTenant, createAIAgentFeatureTenant } =
-  await import('./AIAgentFeatureTenant');
+const {
+  createAIAgentFeatureRepairTenant,
+  createAIAgentFeatureTenant,
+  MANAGED_READ_PAUSE,
+  MANAGED_READ_RETRIES,
+} = await import('./AIAgentFeatureTenant');
 const { fakeRepairTenant, healthyRepairState } =
   await import('./AIAgentFeature.fixtures');
 const { diagnoseAIAgentFeature } = await import('./AIAgentFeatureDiagnose');
@@ -213,19 +225,27 @@ const { planAIAgentFeatureRepair, repairAIAgentFeature } =
 const HOST = 'https://tenant.example.com/am';
 const CALLER_REALM = '/';
 
+/** The pauses the tenant waited between two attempts of a read that answered 404. */
+const sleeps: number[] = [];
+const fakeSleep = async (milliseconds: number) => {
+  sleeps.push(milliseconds);
+};
+
 function newTenant(deploymentType = 'cloud') {
   const state = State({});
   state.setHost(HOST);
   state.setDeploymentType(deploymentType);
   state.setRealm(CALLER_REALM);
   currentState = state;
-  return { state, tenant: createAIAgentFeatureTenant(state) };
+  return { state, tenant: createAIAgentFeatureTenant(state, fakeSleep) };
 }
 
 beforeEach(() => {
   requests.length = 0;
+  sleeps.length = 0;
   tenantMappings = defaultMappings();
   for (const key of Object.keys(refuse)) delete refuse[key];
+  for (const key of Object.keys(refuseFirst)) delete refuseFirst[key];
 });
 
 describe('the reads that belong to the tenant', () => {
@@ -360,6 +380,64 @@ describe('the reads that belong to a realm', () => {
         request.url.includes('/secrets/stores?_action=nextdescendents')
       )
     ).toBe(true);
+  });
+
+  describe('a read of the managed objects that IDM answers with 404 for a moment', () => {
+    // frodo-lib#1101: after a write of config/managed IDM re-initialises the managed object whose definition was
+    // written, and for 0.1 to 0.5 seconds its endpoint answers 404
+    const AGENTS = '/managed/alpha_aiagent?';
+    const attempts = () =>
+      requests.filter((request) => request.url.includes(AGENTS)).length;
+
+    test('the budget is five retries 500 milliseconds apart: about 2.5 seconds at most', () => {
+      expect(MANAGED_READ_RETRIES).toBe(5);
+      expect(MANAGED_READ_PAUSE).toBe(500);
+    });
+
+    test('a 404 that goes away is not a finding: the read is repeated and the count comes back', async () => {
+      const { tenant } = newTenant();
+      refuseFirst[AGENTS] = { status: 404, times: 2 };
+      expect(await tenant.countIdmAgents('alpha')).toBe(3);
+      // two refusals, then the two pages
+      expect(attempts()).toBe(4);
+      expect(sleeps).toEqual([MANAGED_READ_PAUSE, MANAGED_READ_PAUSE]);
+    });
+
+    test('a 404 that goes away at the last retry still gives the count', async () => {
+      const { tenant } = newTenant();
+      refuseFirst[AGENTS] = { status: 404, times: MANAGED_READ_RETRIES };
+      expect(await tenant.countIdmAgents('alpha')).toBe(3);
+      expect(sleeps).toHaveLength(MANAGED_READ_RETRIES);
+    });
+
+    test('a 404 that stays is thrown after the last attempt, and only then', async () => {
+      const { tenant } = newTenant();
+      refuse[AGENTS] = 404;
+      await expect(tenant.countIdmAgents('alpha')).rejects.toMatchObject({
+        response: { status: 404 },
+      });
+      expect(attempts()).toBe(MANAGED_READ_RETRIES + 1);
+      expect(sleeps).toEqual(
+        new Array(MANAGED_READ_RETRIES).fill(MANAGED_READ_PAUSE)
+      );
+    });
+
+    test.each([401, 403, 500, 503])('a %s is not repeated', async (status) => {
+      const { tenant } = newTenant();
+      refuse[AGENTS] = status;
+      await expect(tenant.countIdmAgents('alpha')).rejects.toMatchObject({
+        response: { status },
+      });
+      expect(attempts()).toBe(1);
+      expect(sleeps).toEqual([]);
+    });
+
+    test('the realm that is read is not changed by the pause: the caller realm is back', async () => {
+      const { state, tenant } = newTenant();
+      refuseFirst[AGENTS] = { status: 404, times: 1 };
+      await tenant.countIdmAgents('alpha');
+      expect(state.getRealm()).toBe(CALLER_REALM);
+    });
   });
 
   test('the IDM agents are counted over all pages', async () => {
@@ -593,6 +671,38 @@ describe('the secret stores of a realm on Cloud (frodo-lib#1078)', () => {
     expect(
       diagnosis.findings.some((finding) => finding.id.startsWith('secret-'))
     ).toBe(false);
+  });
+
+  test('the diagnosis does not report a 404 of the IDM agent objects that goes away within the budget; one that stays is a check-failed finding', async () => {
+    // frodo-lib#1101: the last diagnosis of a repair runs right after a write of config/managed
+    const state = healthyRepairState();
+    state.gates.alpha = { typeListed: true, listStatus: 200, agentCount: 3 };
+    state.gates.bravo = { typeListed: true, listStatus: 200, agentCount: 3 };
+    const { tenant: real } = newTenant('cloud');
+    const tenant = {
+      ...fakeRepairTenant(state).tenant,
+      countIdmAgents: real.countIdmAgents,
+    };
+
+    refuseFirst['/managed/alpha_aiagent?'] = { status: 404, times: 3 };
+    let diagnosis = await diagnoseAIAgentFeature(tenant);
+    expect(
+      diagnosis.findings.filter((finding) => finding.id === 'check-failed')
+    ).toEqual([]);
+    expect(sleeps).toHaveLength(3);
+
+    sleeps.length = 0;
+    refuse['/managed/alpha_aiagent?'] = 404;
+    diagnosis = await diagnoseAIAgentFeature(tenant);
+    const failed = diagnosis.findings.filter(
+      (finding) => finding.id === 'check-failed'
+    );
+    expect(failed).toHaveLength(1);
+    expect(failed[0].details).toMatchObject({
+      check: 'IDM AI agent objects',
+      realm: 'alpha',
+    });
+    expect(sleeps).toHaveLength(MANAGED_READ_RETRIES);
   });
 
   test('the plan deletes them and the repair reads and deletes them through the same Cloud rule', async () => {

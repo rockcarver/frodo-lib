@@ -6,7 +6,8 @@
 /**
  * How serious a finding is.
  * - `error`: the feature does not work, or a repair is needed for it to work.
- * - `warning`: cosmetic or advisory; the feature may work. A warning is never repaired.
+ * - `warning`: advisory; the feature may work. A warning is repaired only when it says it is `repairable`: white space
+ *   that only makes the registry read "not installed", which a repair normalises.
  * - `info`: a fact about a healthy part of the feature.
  */
 export type IdmFeatureFindingSeverity = 'error' | 'warning' | 'info';
@@ -52,17 +53,52 @@ export type IdmFeatureDiagnosis = {
  */
 export type IdmFeatureRepairOptions = {
   /**
-   * Leave the definitions aligned with the original after the repair. Default: false. A repair that has to align
-   * definitions to be able to run the enable action puts them back as they were at the end; the registry then reads
-   * "not installed" again if they were customised.
+   * Put the customizations back after the repair. Default: false.
+   *
+   * A repair that has to align definitions with the original (the enable action installs the feature internally and
+   * must not run on definitions that are present but not equal) leaves them aligned, so that the registry reads the
+   * feature installed. A customization is a title or an extra mapping property that somebody set on purpose; with this
+   * option the repair puts those back at the end, and the registry then reads "not installed" again, because it
+   * compares the definitions byte for byte. White space is never put back: it adds no configuration and no function.
    */
-  keepAligned?: boolean;
+  restoreCustomizations?: boolean;
   /**
    * The authentication service an OAuth 2.0 provider without a password grant authentication service is given.
    * Default: `Login`, the one the providers of healthy tenants use. It has to exist as an authentication tree in the
    * realm.
    */
   authService?: string;
+};
+
+/**
+ * One difference between a definition of the feature in the tenant and the original, as a plan or a result reports it.
+ * Plain data, so a caller can show it and keep it.
+ */
+export type IdmFeatureDefinitionChange = {
+  /** The configuration object the definition is in. */
+  config: 'managed' | 'repo.ds';
+  /** The managed object name (`managed`) or the mapping key such as `managed/alpha_aiagent` (`repo.ds`). */
+  object: string;
+  /** Where in the object, for people: `schema.title`, `onDelete.source`. */
+  location: string;
+  /** `changed`: both have it and the values differ. `extra`: only the tenant has it. `missing`: only the original has it. */
+  kind: 'missing' | 'extra' | 'changed';
+  /** `whitespace` differs from the original only in white space; `title` and `extra-mapping-property` are customizations. */
+  class: 'whitespace' | 'title' | 'extra-mapping-property';
+  /** The value in the tenant; absent if the tenant lacks it. Long values are not shortened: this is the data to restore from. */
+  tenantValue?: unknown;
+  /** The value in the original; absent if the original lacks it. */
+  originalValue?: unknown;
+};
+
+/** A customization (a title or an extra mapping property) and what a repair does with it. */
+export type IdmFeatureCustomization = IdmFeatureDefinitionChange & {
+  /**
+   * `replaced`: the repair writes the original and leaves it, so that the registry reads the feature installed.
+   * `put-back`: the repair writes the original and puts the customization back at the end (`restoreCustomizations`);
+   * the registry then reads "not installed", because it compares the definitions byte for byte.
+   */
+  outcome: 'replaced' | 'put-back';
 };
 
 /** What a step of a repair does. */
@@ -73,13 +109,13 @@ export type IdmFeatureRepairStepId =
   | 'create-provider'
   /** set the password grant authentication service of a provider that has none */
   | 'set-auth-service'
-  /** write the original over cosmetically drifted definitions, so that the enable action is safe */
+  /** write the original over drifted definitions (white space, customizations): the enable action is then safe, and the registry reads installed */
   | 'align-definitions'
   /** run the environment action that enables AI agents */
   | 'enable'
   /** poll until AM accepts AI agents in the realms; only if the repair is asked to wait */
   | 'wait-for-gate'
-  /** put the customised definitions back */
+  /** put the customizations (titles, extra mapping properties) back; only if the repair is asked to */
   | 'restore-definitions'
   /** diagnose the feature again */
   | 'diagnose';
@@ -143,9 +179,20 @@ export type IdmFeatureRepairBlocker = {
 export type IdmFeatureRepairPlan = {
   featureId: string;
   /** The options the plan was made with (defaults filled in). */
-  options: { keepAligned: boolean; authService: string };
+  options: { restoreCustomizations: boolean; authService: string };
   /** The diagnosis the plan is made from. */
   diagnosis: IdmFeatureDiagnosis;
+  /**
+   * The differences from the original that the plan aligns and that are only white space: normalised, never put back.
+   * Empty if the plan aligns nothing.
+   */
+  normalised: IdmFeatureDefinitionChange[];
+  /**
+   * The customizations the plan replaces by the original, each with what happens to it: `replaced` (it stays
+   * replaced) or `put-back` (the plan puts it back at the end, because `restoreCustomizations` is set). Empty if the
+   * plan aligns nothing or finds no customization. What a person may want to restore is in `tenantValue`.
+   */
+  customizations: IdmFeatureCustomization[];
   /**
    * False if something blocks the repair (see `blockers`); the plan then has no steps and no backup data. True with no
    * steps means there is nothing to repair.
@@ -187,4 +234,11 @@ export type IdmFeatureRepairResult = {
   results: IdmFeatureRepairStepResult[];
   /** The diagnosis after the repair. */
   diagnosis: IdmFeatureDiagnosis;
+  /** The white space this run normalised (it aligned it with the original and did not put it back). */
+  normalised: IdmFeatureDefinitionChange[];
+  /**
+   * The customizations this run replaced by the original, each with its outcome: `replaced` (it is not in the tenant
+   * any more; `tenantValue` is what it was) or `put-back` (the run put it back, `restoreCustomizations`).
+   */
+  customizations: IdmFeatureCustomization[];
 };

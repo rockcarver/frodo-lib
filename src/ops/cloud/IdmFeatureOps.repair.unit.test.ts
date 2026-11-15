@@ -46,7 +46,7 @@ beforeEach(() => {
 
 describe('planIdmFeatureRepair', () => {
   test('hands the state and the options to the handler of the feature', async () => {
-    const options = { keepAligned: true, authService: 'MyLogin' };
+    const options = { restoreCustomizations: true, authService: 'MyLogin' };
     await planIdmFeatureRepair({ featureId: 'aiagent', options, state });
     expect(plan).toHaveBeenCalledWith(state, options);
   });

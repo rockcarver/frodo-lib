@@ -9,15 +9,18 @@
  *    authentication service it lacks (the platform's write of the provider is refused without one);
  * 3. align definitions that differ cosmetically from the original, when the enable action has to run: that action
  *    installs the IDM feature internally, and an install on definitions that are present but not equal would add them a
- *    second time;
+ *    second time. White space alone is also aligned when nothing else is wrong, because it only makes the registry
+ *    read "not installed";
  * 4. run the enable action, and only if the registry then reads installed;
  * 5. optionally wait for AM to accept AI agents, which can need minutes;
- * 6. put the aligned definitions back, unless the caller keeps them aligned;
+ * 6. put the customizations (titles, extra mapping properties) back, only if the caller asks for it
+ *    (`restoreCustomizations`); white space is never put back, so that the registry reads the feature installed;
  * 7. diagnose again.
  *
  * Every write is read back and compared with what was written; a difference stops the run. A step also checks that the
  * tenant still looks as it did when the plan was made, so an old plan is not applied to a changed tenant. If a step
- * fails after definitions were aligned, they are put back before the error is thrown.
+ * fails after definitions were aligned, the customizations are put back before the error is thrown when the caller asked
+ * for that; otherwise the definitions stay aligned.
  */
 import { FrodoError } from '../../FrodoError';
 import {
@@ -25,7 +28,10 @@ import {
   applyDifferences,
   compareAIAgentDefinitions,
   confirmDifferences,
+  describeChange,
   differencesNotOnSide,
+  isCustomization,
+  isWhitespace,
   ManagedConfigLike,
   RepoDsConfigLike,
 } from './AIAgentFeatureDefinitions';
@@ -42,6 +48,8 @@ import {
 } from './AIAgentFeatureReference';
 import { AIAgentFeatureRepairTenant } from './AIAgentFeatureTenant';
 import {
+  IdmFeatureCustomization,
+  IdmFeatureDefinitionChange,
   IdmFeatureDiagnosis,
   IdmFeatureRepairBackup,
   IdmFeatureRepairBlocker,
@@ -83,6 +91,34 @@ const emptyBackup = (): IdmFeatureRepairBackup => ({
   secretStoreMappings: [],
 });
 
+/**
+ * What a run does to the differences it aligns, as a plan or a result reports it: the white space that is normalised
+ * and the customizations that are replaced, each with what happens to it.
+ * @param {AIAgentDefinitionDifference[]} aligned the cosmetic differences that are (or were) aligned
+ * @param {(difference: AIAgentDefinitionDifference) => 'replaced' | 'put-back'} outcomeOf what happens to a customization
+ * @returns {{ normalised: IdmFeatureDefinitionChange[]; customizations: IdmFeatureCustomization[] }} the report
+ */
+function reportChanges(
+  aligned: AIAgentDefinitionDifference[],
+  outcomeOf: (
+    difference: AIAgentDefinitionDifference
+  ) => 'replaced' | 'put-back'
+): {
+  normalised: IdmFeatureDefinitionChange[];
+  customizations: IdmFeatureCustomization[];
+} {
+  return {
+    normalised: aligned.filter(isWhitespace).map(describeChange),
+    customizations: aligned.filter(isCustomization).map((difference) => ({
+      ...describeChange(difference),
+      outcome: outcomeOf(difference),
+    })),
+  };
+}
+
+/** The finding of definitions that differ from the original only cosmetically; white space alone is repairable even when it is a warning. */
+const DRIFT_FINDING_ID = 'definitions-cosmetic-drift';
+
 /** The finding of IDM AI agents that AM does not list: a symptom, reported and never repaired. */
 const DATA_FINDING_ID = 'agents-without-am-entry';
 
@@ -104,14 +140,16 @@ export async function planAIAgentFeatureRepair(
   tenant: AIAgentFeatureRepairTenant,
   options: IdmFeatureRepairOptions = {}
 ): Promise<IdmFeatureRepairPlan> {
-  const keepAligned = options.keepAligned === true;
+  const restoreCustomizations = options.restoreCustomizations === true;
   const authService =
     options.authService || DEFAULT_PASSWORD_GRANT_AUTH_SERVICE;
   const diagnosis = await diagnoseAIAgentFeature(tenant);
   const base = {
     featureId: AI_AGENT_FEATURE_ID,
-    options: { keepAligned, authService },
+    options: { restoreCustomizations, authService },
     diagnosis,
+    normalised: [] as IdmFeatureDefinitionChange[],
+    customizations: [] as IdmFeatureCustomization[],
   };
   const errors = diagnosis.findings.filter(
     (finding) => finding.severity === 'error'
@@ -130,7 +168,14 @@ export async function planAIAgentFeatureRepair(
       backup: emptyBackup(),
     };
   }
-  const actionable = errors.filter((finding) => finding.repairable);
+  // only errors are repaired, and the one warning that says it is repairable: white space that only makes the registry
+  // read "not installed"
+  const actionable = diagnosis.findings.filter(
+    (finding) =>
+      finding.repairable &&
+      (finding.severity === 'error' ||
+        (finding.severity === 'warning' && finding.id === DRIFT_FINDING_ID))
+  );
   if (!actionable.length) {
     return {
       ...base,
@@ -240,6 +285,15 @@ export async function planAIAgentFeatureRepair(
     } else {
       aligns = cosmetic;
     }
+  } else if (
+    !needsEnable &&
+    !registryInstalled &&
+    cosmetic.length &&
+    comparison.differences.every(isWhitespace)
+  ) {
+    // nothing needs the enable action and the only difference is white space: normalise it, so that the registry reads
+    // the feature installed
+    aligns = cosmetic;
   }
   if (blockers.length) {
     return {
@@ -251,15 +305,25 @@ export async function planAIAgentFeatureRepair(
     };
   }
 
+  const whereOf = (differences: AIAgentDefinitionDifference[]) =>
+    differences
+      .map(
+        (difference) =>
+          `${difference.object}${difference.location ? ` ${difference.location}` : ''}`
+      )
+      .join('; ');
+  const customizationsToAlign = aligns.filter(isCustomization);
   if (aligns.length) {
-    const where = aligns.map(
-      (difference) =>
-        `${difference.object}${difference.location ? ` ${difference.location}` : ''}`
-    );
+    const why = needsEnable
+      ? 'so that the enable action does not add the feature a second time'
+      : 'so that the registry reads the feature installed';
+    const lost = customizationsToAlign.length
+      ? ` ${customizationsToAlign.length} of them ${customizationsToAlign.length === 1 ? 'is a customization' : 'are customizations'} (${whereOf(customizationsToAlign)}): ${restoreCustomizations ? 'put back at the end' : 'replaced by the original and not put back'}.`
+      : '';
     steps.push({
       id: 'align-definitions',
       writes: true,
-      description: `Write the original over ${aligns.length} cosmetically drifted definition(s) (${where.join('; ')}), so that the enable action does not add the feature a second time.`,
+      description: `Write the original over ${aligns.length} definition(s) that differ from it (${whereOf(aligns)}), ${why}.${lost}`,
       details: { differences: clone(aligns) },
     });
   }
@@ -277,12 +341,13 @@ export async function planAIAgentFeatureRepair(
       details: { realms: enableRealms },
     });
   }
-  if (aligns.length && !keepAligned) {
+  // only the customizations are put back, and only when the caller asks for it; white space is never put back
+  if (customizationsToAlign.length && restoreCustomizations) {
     steps.push({
       id: 'restore-definitions',
       writes: true,
-      description: `Put the ${aligns.length} customised definition(s) back as they were.`,
-      details: { differences: clone(aligns) },
+      description: `Put the ${customizationsToAlign.length} customization(s) back as they were (${whereOf(customizationsToAlign)}).`,
+      details: { differences: clone(customizationsToAlign) },
     });
   }
   steps.push({
@@ -308,7 +373,16 @@ export async function planAIAgentFeatureRepair(
     }
   }
 
-  return { ...base, repairable: true, blockers: [], steps, backup };
+  return {
+    ...base,
+    repairable: true,
+    blockers: [],
+    steps,
+    backup,
+    ...reportChanges(aligns, () =>
+      restoreCustomizations ? 'put-back' : 'replaced'
+    ),
+  };
 }
 
 /** A tenant that no longer looks as it did when the plan was made, or a plan that does not match the reference. */
@@ -356,7 +430,9 @@ export async function repairAIAgentFeature(
     typeof options.timeout === 'number' && options.timeout >= 0
       ? options.timeout
       : DEFAULT_GATE_TIMEOUT;
-  const { authService, keepAligned } = plan.options;
+  const { authService } = plan.options;
+  // a plan is data that somebody can have edited: only `true` asks for the customizations to be put back
+  const restoreCustomizations = plan.options.restoreCustomizations === true;
   const results: IdmFeatureRepairStepResult[] = [];
   let diagnosis: IdmFeatureDiagnosis | undefined;
   let aligned = false;
@@ -437,15 +513,19 @@ export async function repairAIAgentFeature(
   /** Why the definitions could not be put back, if that was tried and failed. */
   let restoreFailure: unknown;
 
-  /** The aligned differences of the configurations the alignment reached: what there is to put back. */
+  /** The aligned differences of the configurations the alignment reached. */
   const writtenDifferences = () =>
     (alignedDifferences ?? []).filter((difference) =>
       alignedConfigs.has(difference.config)
     );
 
-  /** What the alignment reached and the restore has not put back (yet). */
+  /** What there is to put back: the customizations the alignment reached. White space is never put back. */
+  const writtenCustomizations = () =>
+    writtenDifferences().filter(isCustomization);
+
+  /** The customizations the alignment reached and the restore has not put back (yet). */
   const remainingDifferences = () =>
-    writtenDifferences().filter(
+    writtenCustomizations().filter(
       (difference) => !restoredConfigs.has(difference.config)
     );
 
@@ -478,8 +558,8 @@ export async function repairAIAgentFeature(
 
   const restore = async () => {
     restoreTried = true;
-    const toPutBack = writtenDifferences();
-    // nothing was aligned, nothing to put back (and no pointless write of an unchanged configuration)
+    const toPutBack = writtenCustomizations();
+    // no customization was aligned, nothing to put back (and no pointless write of an unchanged configuration)
     for (const config of ['managed', 'repo.ds'] as const) {
       const own = toPutBack.filter(
         (difference) => difference.config === config
@@ -498,29 +578,29 @@ export async function repairAIAgentFeature(
   const restoreStepOf = (): IdmFeatureRepairStep =>
     plan.steps.find((one) => one.id === 'restore-definitions') ?? {
       id: 'restore-definitions',
-      description: 'Put the customised definitions back.',
+      description: 'Put the customizations back.',
       writes: true,
       details: {},
     };
 
   /**
-   * The definitions this run aligned are put back, unless the caller keeps them aligned: decided by what the run did
-   * and by `keepAligned`, not by the steps the plan still has. Reported as a step of the result. Returns why the
-   * definitions could not be put back, if that was tried and failed.
+   * The customizations this run replaced are put back only if the caller asked for that: decided by what the run did
+   * and by `restoreCustomizations`, not by the steps the plan still has. White space is never put back. Reported as a
+   * step of the result. Returns why the customizations could not be put back, if that was tried and failed.
    */
   const settleDefinitions = async (
     after: 'a failure' | 'the last step'
   ): Promise<unknown> => {
     if (!aligned || restoreTried || restoreHandled) return undefined;
     restoreHandled = true;
-    // nothing was aligned: there is nothing to put back and nothing to keep aligned
-    if (!writtenDifferences().length) return undefined;
+    // no customization was replaced (nothing was aligned, or only white space): nothing to put back or to leave
+    if (!writtenCustomizations().length) return undefined;
     const restoreStep = restoreStepOf();
-    if (keepAligned) {
+    if (!restoreCustomizations) {
       report(
         restoreStep,
         'skipped',
-        `The definitions stay aligned with the original, as asked; the registry reads version ${AI_AGENT_FEATURE_REFERENCE_VERSION} installed while they do.`
+        `The ${writtenCustomizations().length} customization(s) stay replaced by the original, as the repair was not asked to put them back; the registry reads version ${AI_AGENT_FEATURE_REFERENCE_VERSION} installed while they do.`
       );
       return undefined;
     }
@@ -530,14 +610,14 @@ export async function repairAIAgentFeature(
         restoreStep,
         'done',
         after === 'a failure'
-          ? 'Put the customised definitions back after the failure.'
-          : 'Put the customised definitions back (the plan had no step for it).'
+          ? 'Put the customizations back after the failure.'
+          : 'Put the customizations back (the plan had no step for it).'
       );
     } catch (failure) {
       report(
         restoreStep,
         'failed',
-        `Could not put the customised definitions back: ${describeFailure(failure).message}`
+        `Could not put the customizations back: ${describeFailure(failure).message}`
       );
       return failure;
     }
@@ -554,7 +634,11 @@ export async function repairAIAgentFeature(
     const named = remaining.map((difference) =>
       `${difference.object} ${difference.location}`.trim()
     );
-    const all = new Set((alignedDifferences ?? []).map((one) => one.config));
+    const all = new Set(
+      (alignedDifferences ?? [])
+        .filter(isCustomization)
+        .map((one) => one.config)
+    );
     const still = new Set(remaining.map((one) => one.config));
     const state =
       still.size < all.size
@@ -563,7 +647,7 @@ export async function repairAIAgentFeature(
           ? 'possibly still aligned with the original (a write of the alignment failed and the configuration could not be read back)'
           : 'still aligned with the original';
     return new FrodoError(
-      `Error repairing IDM feature ${AI_AGENT_FEATURE_ID}: ${what} The definitions are ${state} and were not put back (${named.join('; ')}); the backup of the plan holds the customised values.`,
+      `Error repairing IDM feature ${AI_AGENT_FEATURE_ID}: ${what} The customizations are ${state} and were not put back (${named.join('; ')}); the backup of the plan holds the values they had.`,
       restoreError === cause
         ? (cause as Error)
         : [cause as Error, restoreError as Error]
@@ -865,29 +949,29 @@ export async function repairAIAgentFeature(
       case 'restore-definitions': {
         restoreHandled = true;
         // the values to put back were read from the tenant when the alignment started in this run, not from the plan
-        if (!writtenDifferences().length) {
+        if (!writtenCustomizations().length) {
           return {
             status: 'skipped',
             message:
-              'The definitions were not aligned in this run: there is nothing to put back.',
+              'No customization was replaced in this run: there is nothing to put back.',
           };
         }
         if (restoreTried) {
           return {
             status: 'skipped',
-            message: 'The customised definitions were put back already.',
+            message: 'The customizations were put back already.',
           };
         }
-        if (keepAligned) {
+        if (!restoreCustomizations) {
           return {
             status: 'skipped',
-            message: `The definitions stay aligned with the original, as asked; the registry reads version ${AI_AGENT_FEATURE_REFERENCE_VERSION} installed while they do.`,
+            message: `The ${writtenCustomizations().length} customization(s) stay replaced by the original, as the repair was not asked to put them back; the registry reads version ${AI_AGENT_FEATURE_REFERENCE_VERSION} installed while they do.`,
           };
         }
         await restore();
         return {
           status: 'done',
-          message: 'Put the customised definitions back.',
+          message: 'Put the customizations back.',
         };
       }
 
@@ -945,5 +1029,9 @@ export async function repairAIAgentFeature(
     completed: results.every((result) => result.status !== 'failed'),
     results,
     diagnosis,
+    // what this run did to the differences it aligned: white space normalised, customizations replaced or put back
+    ...reportChanges(writtenDifferences(), (difference) =>
+      restoredConfigs.has(difference.config) ? 'put-back' : 'replaced'
+    ),
   };
 }
