@@ -46,7 +46,10 @@ export type OAuth2TrustedJwtIssuer = {
     issuerData: OAuth2TrustedJwtIssuerSkeleton
   ): Promise<OAuth2TrustedJwtIssuerSkeleton>;
   /**
-   * Update or create OAuth2 trusted jwt issuer
+   * Update or create OAuth2 trusted jwt issuer. When the server refuses the body with "Invalid attribute specified." and
+   * the body has top-level attributes that the server does not list as valid, only those attributes are left out of a
+   * copy of the body, which is sent once more, and a warning names them; the object that was passed in is not changed.
+   * When no top-level attribute is unknown, nothing is sent a second time and the error says what the server accepts.
    * @param {string} issuerId trusted jwt issuer id
    * @param {any} issuerData trusted jwt issuer object
    * @returns {Promise<any>} a promise that resolves to an trusted jwt issuer object
@@ -404,7 +407,10 @@ export async function createOAuth2TrustedJwtIssuer({
 }
 
 /**
- * Update or create OAuth2 trusted jwt issuer
+ * Update or create OAuth2 trusted jwt issuer. When the server refuses the body with "Invalid attribute specified." and
+ * the body has top-level attributes that the server does not list as valid, only those attributes are left out of a
+ * copy of the body, which is sent once more, and a warning names them; the object that was passed in is not changed.
+ * When no top-level attribute is unknown, nothing is sent a second time and the error says what the server accepts.
  * @param {string} issuerId trusted jwt issuer id
  * @param {any} issuerData trusted jwt issuer object
  * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to an trusted jwt issuer object
@@ -438,31 +444,46 @@ export async function updateOAuth2TrustedJwtIssuer({
       error.response?.status === 400 &&
       error.response?.data?.message === 'Invalid attribute specified.'
     ) {
+      const validAttributes = error.response.data.detail?.validAttributes;
+      // The server lists the attributes it accepts (the top-level ones of the
+      // issuer; a wrapped value `{ value, inherited }` is one attribute), so
+      // the invalid ones are the top-level attributes of the body that are
+      // not in that list. The system attributes (`_id`, `_type`) are never
+      // judged: the server ignores `_type` and `_id` is the object's own.
+      const invalidAttributes = Array.isArray(validAttributes)
+        ? Object.keys(issuerData).filter(
+            (attribute) =>
+              attribute !== '_id' &&
+              attribute !== '_type' &&
+              !validAttributes.includes(attribute)
+          )
+        : [];
+      if (invalidAttributes.length === 0) {
+        // Nothing in the body can be named as unknown (the list is missing, or
+        // the invalid attribute is inside a valid one): a second request would
+        // be refused the same way, so there is no retry.
+        throw new FrodoError(
+          `Error updating ${getCurrentRealmName(state) + ' realm'} trusted issuer ${issuerId}: the server refused an attribute${
+            Array.isArray(validAttributes)
+              ? ` and none of the attributes of the issuer is unknown to it (it accepts: ${validAttributes.join(', ')})`
+              : ' and did not say which ones it accepts'
+          }`,
+          error
+        );
+      }
       try {
         // Work on a copy: the object of the caller keeps what the server
-        // rejected.
+        // rejected. Only the attributes that the server does not know are
+        // left out, once; a valid attribute is never touched.
         const retryData = cloneDeep(issuerData);
-        const validAttributes = [
-          ...error.response.data.detail.validAttributes,
-          '_id',
-        ];
-        for (const key of Object.keys(retryData)) {
-          const value = retryData[key];
-          // Only an object has attributes of its own: the elements of an array
-          // (allowedSubjects) are values, not attributes, and a null has none.
-          if (value && typeof value === 'object' && !Array.isArray(value)) {
-            for (const attribute of Object.keys(value)) {
-              if (!validAttributes.includes(attribute)) {
-                printMessage({
-                  message: `\n- Removing invalid attribute from trusted issuer ${issuerId}: ${key}.${attribute}`,
-                  type: 'warn',
-                  state,
-                });
-                delete value[attribute];
-              }
-            }
-          }
+        for (const attribute of invalidAttributes) {
+          delete retryData[attribute];
         }
+        printMessage({
+          message: `\n- Removing invalid attribute${invalidAttributes.length === 1 ? '' : 's'} from trusted issuer ${issuerId}: ${invalidAttributes.join(', ')}`,
+          type: 'warn',
+          state,
+        });
         const response = await _putOAuth2TrustedJwtIssuer({
           id: issuerId,
           issuerData: retryData,
