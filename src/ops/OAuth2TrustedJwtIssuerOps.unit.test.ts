@@ -318,7 +318,9 @@ describe('the retry after "Invalid attribute specified."', () => {
     const warnings = printed.filter((p) => p.type === 'warn');
     expect(warnings).toHaveLength(1);
     expect(warnings[0].message).toContain('matrix-issuer');
-    expect(warnings[0].message).toContain('zzUnknownAttribute, zzOtherAttribute');
+    expect(warnings[0].message).toContain(
+      'zzUnknownAttribute, zzOtherAttribute'
+    );
     expect(warnings[0].message).toContain('attributes');
     // no line per leaf of the body
     expect(printed.filter((p) => /Removing/.test(p.message))).toHaveLength(1);
@@ -370,7 +372,9 @@ describe('the retry after "Invalid attribute specified."', () => {
     expect(failure.message).toContain(
       'Error updating alpha realm trusted issuer matrix-issuer'
     );
-    expect(failure.message).toContain('none of the attributes of the issuer is unknown');
+    expect(failure.message).toContain(
+      'none of the attributes of the issuer is unknown'
+    );
     expect(failure.message).toContain('jwksUri');
     expect(printed.filter((p) => /Removing/.test(p.message))).toHaveLength(0);
   });
