@@ -149,16 +149,55 @@ describe('drifted definitions', () => {
     expect(find(diagnosis, 'definitions-structural-drift')).toEqual([]);
   });
 
-  test('with an open gate and AI agents working: a warning, nothing to repair', async () => {
+  test('with an open gate and AI agents working, and only white space: a warning that a repair can fix', async () => {
     const { diagnosis } = await diagnose(drift);
-    expect(find(diagnosis, 'definitions-cosmetic-drift')[0]).toMatchObject({
-      severity: 'warning',
-      repairable: false,
-    });
+    const finding = find(diagnosis, 'definitions-cosmetic-drift')[0];
+    expect(finding).toMatchObject({ severity: 'warning', repairable: true });
+    // white space is noise: the message says what differs and that nothing is affected
+    expect(finding.message).toContain('only in white space;');
+    expect(finding.message).toContain('AI agents are not affected');
+    expect(finding.message).not.toContain('customization');
     expect(find(diagnosis, 'gate-open')).toHaveLength(2);
     expect(
       diagnosis.findings.some((finding) => finding.severity === 'error')
     ).toBe(false);
+  });
+
+  test('with an open gate and AI agents working, and a customization: a warning that a repair leaves alone', async () => {
+    const { diagnosis } = await diagnose((state) => {
+      state.feature = { installedVersion: null, availableVersions: ['1'] };
+      objectOf(state.managed, 'alpha_aiagent').schema.title = 'Our agents';
+    });
+    const finding = find(diagnosis, 'definitions-cosmetic-drift')[0];
+    expect(finding).toMatchObject({ severity: 'warning', repairable: false });
+    expect(finding.message).toContain(
+      'only in white space, a title or an extra mapping property'
+    );
+    expect(finding.message).toContain('1 of them is a customization');
+    expect((finding.details.differences as any[])[0]).toMatchObject({
+      cosmeticClass: 'title',
+    });
+  });
+
+  test('white space next to a customization is not repairable on its own: the customization decides', async () => {
+    const { diagnosis } = await diagnose((state) => {
+      drift(state);
+      objectOf(state.managed, 'alpha_aiagent').schema.title = 'Our agents';
+    });
+    expect(find(diagnosis, 'definitions-cosmetic-drift')[0].repairable).toBe(
+      false
+    );
+  });
+
+  test('with a closed gate a customization is an error that the repair can fix: the enable action needs the definitions aligned', async () => {
+    const { diagnosis } = await diagnose((state) => {
+      state.feature = { installedVersion: null, availableVersions: ['1'] };
+      objectOf(state.managed, 'alpha_aiagent').schema.title = 'Our agents';
+      closeGate(state, 'alpha');
+    });
+    const finding = find(diagnosis, 'definitions-cosmetic-drift')[0];
+    expect(finding).toMatchObject({ severity: 'error', repairable: true });
+    expect(finding.message).toContain('must not run until they are aligned');
   });
 
   test.each([

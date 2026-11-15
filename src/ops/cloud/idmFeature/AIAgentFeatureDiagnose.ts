@@ -21,6 +21,8 @@ import {
   AIAgentDefinitionComparison,
   AIAgentDefinitionDifference,
   compareAIAgentDefinitions,
+  isCustomization,
+  isWhitespace,
 } from './AIAgentFeatureDefinitions';
 import {
   AI_AGENT_FEATURE_ID,
@@ -484,13 +486,25 @@ export async function diagnoseAIAgentFeature(
         );
       }
       if (cosmetic.length) {
+        // white space only: a repair normalises it even when the enable action does not have to run, because it
+        // adds no configuration and no function and only makes the registry read "not installed"; a customization
+        // (a title, an extra mapping property) is replaced only when the enable action has to run
+        const whitespaceOnly = cosmetic.every(isWhitespace);
+        const customizations = cosmetic.filter(isCustomization).length;
+        const what = whitespaceOnly
+          ? 'only in white space'
+          : 'only in white space, a title or an extra mapping property';
         add(
           'definitions-cosmetic-drift',
           needsEnable ? 'error' : 'warning',
           needsEnable
-            ? `${cosmetic.length} definition(s) of the feature differ from the original only cosmetically; that is why the registry reads not installed, and it must not run the enable action, which installs the feature internally, until they are aligned.`
-            : `${cosmetic.length} definition(s) of the feature differ from the original only cosmetically; that is why the registry reads not installed. AI agents are not affected.`,
-          needsEnable && structural.length === 0,
+            ? `${cosmetic.length} definition(s) of the feature differ from the original ${what}; that is why the registry reads not installed, and the enable action, which installs the feature internally, must not run until they are aligned.`
+            : `${cosmetic.length} definition(s) of the feature differ from the original ${what}; that is why the registry reads not installed. AI agents are not affected.${
+                customizations
+                  ? ` ${customizations} of them ${customizations === 1 ? 'is a customization' : 'are customizations'}, which a repair leaves alone while nothing else is wrong.`
+                  : ''
+              }`,
+          structural.length === 0 && (needsEnable || whitespaceOnly),
           { differences: summarise(cosmetic) }
         );
       }

@@ -9,6 +9,7 @@ import {
   AI_AGENT_FEATURE_REFERENCE,
   AIAgentFeatureReference,
 } from './AIAgentFeatureReference';
+import { IdmFeatureDefinitionChange } from './IdmFeatureTypes';
 
 /** The part of `config/managed` the comparison reads. */
 export type ManagedConfigLike = {
@@ -25,7 +26,13 @@ export type RepoDsConfigLike = {
   [key: string]: unknown;
 };
 
-/** The class of a difference that changes no behaviour. */
+/**
+ * The class of a difference that changes no behaviour.
+ *
+ * `whitespace` is noise: it adds no configuration and no function, it only makes the registry's byte comparison read
+ * "not installed", so a repair normalises it and never puts it back. `title` and `extra-mapping-property` are
+ * customizations: a person changed or added them on purpose (see {@link isCustomization}).
+ */
 export type AIAgentCosmeticClass =
   /** a string that differs only in white space, for example one trailing newline */
   | 'whitespace'
@@ -33,6 +40,61 @@ export type AIAgentCosmeticClass =
   | 'title'
   /** a property of an explicit `repo.ds` mapping that the original does not have */
   | 'extra-mapping-property';
+
+/** The classes of difference that are customizations: a repair puts them back only when it is asked to. */
+export const CUSTOMIZATION_CLASSES: readonly AIAgentCosmeticClass[] = [
+  'title',
+  'extra-mapping-property',
+];
+
+/**
+ * Whether a difference is a customization: a title or an extra mapping property that somebody set on purpose. White
+ * space is not (see {@link AIAgentCosmeticClass}), and neither is a structural difference.
+ * @param {AIAgentDefinitionDifference} difference a difference found by {@link compareAIAgentDefinitions}
+ * @returns {boolean} true for a customization
+ */
+export function isCustomization(
+  difference: AIAgentDefinitionDifference
+): boolean {
+  return (
+    difference.cosmetic &&
+    difference.cosmeticClass !== undefined &&
+    CUSTOMIZATION_CLASSES.includes(difference.cosmeticClass)
+  );
+}
+
+/**
+ * Whether a difference is white space only (a cosmetic difference that is not a customization).
+ * @param {AIAgentDefinitionDifference} difference a difference found by {@link compareAIAgentDefinitions}
+ * @returns {boolean} true for white space
+ */
+export function isWhitespace(difference: AIAgentDefinitionDifference): boolean {
+  return difference.cosmetic && difference.cosmeticClass === 'whitespace';
+}
+
+/**
+ * A difference as a plan or a result reports it to a caller: where it is, what the tenant holds and what the original
+ * has.
+ * @param {AIAgentDefinitionDifference} difference a cosmetic difference
+ * @returns {IdmFeatureDefinitionChange} the change, plain data
+ */
+export function describeChange(
+  difference: AIAgentDefinitionDifference
+): IdmFeatureDefinitionChange {
+  return {
+    config: difference.config,
+    object: difference.object,
+    location: difference.location,
+    kind: difference.kind,
+    class: difference.cosmeticClass as AIAgentCosmeticClass,
+    ...('actual' in difference && difference.actual !== undefined
+      ? { tenantValue: JSON.parse(JSON.stringify(difference.actual)) }
+      : {}),
+    ...('expected' in difference && difference.expected !== undefined
+      ? { originalValue: JSON.parse(JSON.stringify(difference.expected)) }
+      : {}),
+  };
+}
 
 /**
  * One difference between the reference and a tenant.

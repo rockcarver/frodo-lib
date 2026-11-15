@@ -129,6 +129,46 @@ export interface AIAgentFeatureRepairTenant extends AIAgentFeatureTenant {
 export const ESV_SECRET_STORE_TYPE = 'GoogleSecretManagerSecretStoreProvider';
 
 /**
+ * How often a read of the managed objects of the feature is repeated when IDM answers it with 404 (so up to
+ * `MANAGED_READ_RETRIES + 1` attempts in all). After a write of `config/managed` IDM re-initialises the managed object
+ * whose definition was written, and the endpoint of that object answers 404 for a moment: a measurement on a Cloud
+ * development tenant found windows of 0.1 to 0.5 seconds, so five retries 500 milliseconds apart cover it with a
+ * margin of five. Only the status 404 is repeated; the realm the object belongs to has the managed object definition, so
+ * a 404 that lasts is a real finding and is reported after the last attempt.
+ */
+export const MANAGED_READ_RETRIES = 5;
+
+/** The pause between two attempts of a read of the managed objects that answered 404, in milliseconds. */
+export const MANAGED_READ_PAUSE = 500;
+
+/** What a tenant waits with between two attempts of a read; a test replaces it. */
+export type TenantSleep = (milliseconds: number) => Promise<void>;
+
+const realSleep: TenantSleep = (milliseconds) =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+/**
+ * Run `read` and run it again, after {@link MANAGED_READ_PAUSE} milliseconds, for as long as it fails with a 404, at most
+ * {@link MANAGED_READ_RETRIES} more times. Any other failure, and the last 404, are thrown as they are.
+ * @param {() => Promise<T>} read the read to make
+ * @param {TenantSleep} sleep waits between two attempts
+ * @returns {Promise<T>} what `read` returned
+ */
+async function retryOnNotFound<T>(
+  read: () => Promise<T>,
+  sleep: TenantSleep
+): Promise<T> {
+  for (let retry = 0; ; retry++) {
+    try {
+      return await read();
+    } catch (error) {
+      if (!isNotFoundError(error) || retry >= MANAGED_READ_RETRIES) throw error;
+      await sleep(MANAGED_READ_PAUSE);
+    }
+  }
+}
+
+/**
  * Run `call` with the state on `realm`; the caller's realm is put back afterwards, also when `call` throws.
  * @param {State} state the state to switch
  * @param {string} realm the realm to run in
@@ -152,9 +192,13 @@ async function runInRealm<T>(
 /**
  * The tenant behind a state.
  * @param {State} state the state of a library user that is logged in to the tenant
+ * @param {TenantSleep} sleep waits between two attempts of a read that answered 404 (see {@link MANAGED_READ_RETRIES}); a test replaces it
  * @returns {AIAgentFeatureTenant} the reads of the diagnosis, as requests to that tenant
  */
-export function createAIAgentFeatureTenant(state: State): AIAgentFeatureTenant {
+export function createAIAgentFeatureTenant(
+  state: State,
+  sleep: TenantSleep = realSleep
+): AIAgentFeatureTenant {
   const inRealm = <T>(realm: string, call: () => Promise<T>): Promise<T> =>
     runInRealm(state, realm, call);
 
@@ -260,13 +304,17 @@ export function createAIAgentFeatureTenant(state: State): AIAgentFeatureTenant {
       let count = 0;
       let cookie: string | undefined;
       do {
-        const page = await queryManagedObjects({
-          type: `${realm}_aiagent`,
-          filter: 'true',
-          fields: ['_id'],
-          pageCookie: cookie,
-          state,
-        });
+        const page = await retryOnNotFound(
+          () =>
+            queryManagedObjects({
+              type: `${realm}_aiagent`,
+              filter: 'true',
+              fields: ['_id'],
+              pageCookie: cookie,
+              state,
+            }),
+          sleep
+        );
         count += (page?.result ?? []).length;
         cookie = page?.pagedResultsCookie || undefined;
       } while (cookie);
@@ -278,12 +326,14 @@ export function createAIAgentFeatureTenant(state: State): AIAgentFeatureTenant {
 /**
  * The tenant behind a state, with the writes of the repair.
  * @param {State} state the state of a library user that is logged in to the tenant
+ * @param {TenantSleep} sleep waits between two attempts of a read that answered 404 (see {@link MANAGED_READ_RETRIES}); a test replaces it
  * @returns {AIAgentFeatureRepairTenant} the reads and the writes, as requests to that tenant
  */
 export function createAIAgentFeatureRepairTenant(
-  state: State
+  state: State,
+  sleep: TenantSleep = realSleep
 ): AIAgentFeatureRepairTenant {
-  const reads = createAIAgentFeatureTenant(state);
+  const reads = createAIAgentFeatureTenant(state, sleep);
   const inRealm = <T>(realm: string, call: () => Promise<T>): Promise<T> =>
     runInRealm(state, realm, call);
   return {

@@ -67,12 +67,27 @@ function fakeClock() {
   };
 }
 
-/** The tenant as it was when the feature broke: drifted definitions, both gates closed, a provider without the authentication service, a realm without a provider. */
+/** The title somebody gave the alpha AI agent object on purpose: a customization. */
+const CUSTOM_TITLE = 'Our AI agents';
+/** The title the original has. */
+const ORIGINAL_TITLE = objectOf(healthyRepairState().managed, 'alpha_aiagent')
+  .schema.title as string;
+const titleOf = (state: FakeRepairState) =>
+  objectOf(state.managed, 'alpha_aiagent').schema.title;
+const hasNewline = (state: FakeRepairState, name = 'alpha_aiagent') =>
+  objectOf(state.managed, name).onDelete.source.endsWith('\n');
+
+/**
+ * The tenant as it was when the feature broke: definitions with a trailing newline (white space) and one title that
+ * somebody changed on purpose (a customization), both gates closed, a provider without the authentication service, a
+ * realm without a provider.
+ */
 function brokenState(): FakeRepairState {
   const state = healthyRepairState();
   state.feature.installedVersion = null;
   objectOf(state.managed, 'alpha_aiagent').onDelete.source += '\n';
   objectOf(state.managed, 'bravo_aiagent').onDelete.source += '\n';
+  objectOf(state.managed, 'alpha_aiagent').schema.title = CUSTOM_TITLE;
   for (const realm of ['alpha', 'bravo']) {
     state.gates[realm] = {
       typeListed: false,
@@ -125,6 +140,56 @@ describe('planIdmFeatureRepair', () => {
     expect(plan.diagnosis.findings.map((f) => f.id)).toContain(
       'definitions-cosmetic-drift'
     );
+    // a customization is left alone while nothing else is wrong: the finding says so and is not repairable
+    const finding = plan.diagnosis.findings.find(
+      (f) => f.id === 'definitions-cosmetic-drift'
+    )!;
+    expect(finding).toMatchObject({ severity: 'warning', repairable: false });
+    expect(finding.message).toContain('customization');
+    expect(plan).toMatchObject({ normalised: [], customizations: [] });
+  });
+
+  test('white space only, nothing else wrong: the plan normalises it, with no enable action', async () => {
+    const state = healthyRepairState();
+    state.feature.installedVersion = null;
+    objectOf(state.managed, 'alpha_aiagent').onDelete.source += '\n';
+    const { tenant, writes } = fakeRepairTenant(state);
+    const plan = await planAIAgentFeatureRepair(tenant);
+    expect(plan.repairable).toBe(true);
+    expect(ids(plan)).toEqual(['align-definitions', 'diagnose']);
+    expect(plan.steps[0].description).toContain(
+      'so that the registry reads the feature installed'
+    );
+    expect(plan.customizations).toEqual([]);
+    expect(plan.normalised).toEqual([
+      expect.objectContaining({
+        config: 'managed',
+        object: 'alpha_aiagent',
+        location: 'onDelete.source',
+        kind: 'changed',
+        class: 'whitespace',
+      }),
+    ]);
+    // the finding is a warning that says it can be repaired
+    expect(
+      plan.diagnosis.findings.find((f) => f.id === 'definitions-cosmetic-drift')
+    ).toMatchObject({ severity: 'warning', repairable: true });
+    expect(writes).toEqual([]);
+  });
+
+  test('white space and a customization, nothing else wrong: the customization keeps the plan from touching anything', async () => {
+    const state = healthyRepairState();
+    state.feature.installedVersion = null;
+    objectOf(state.managed, 'alpha_aiagent').onDelete.source += '\n';
+    objectOf(state.managed, 'alpha_aiagent').schema.title = CUSTOM_TITLE;
+    const { tenant } = fakeRepairTenant(state);
+    const plan = await planAIAgentFeatureRepair(tenant);
+    expect(plan).toMatchObject({
+      repairable: true,
+      steps: [],
+      normalised: [],
+      customizations: [],
+    });
   });
 
   test('a broken tenant: the steps are itemised in the order they are safe', async () => {
@@ -146,7 +211,6 @@ describe('planIdmFeatureRepair', () => {
       'align-definitions',
       'enable',
       'wait-for-gate',
-      'restore-definitions',
       'diagnose',
     ]);
     expect(
@@ -162,10 +226,31 @@ describe('planIdmFeatureRepair', () => {
       realm: 'alpha',
     });
     const align = plan.steps.find((s) => s.id === 'align-definitions')!;
-    expect((align.details.differences as any[]).map((d) => d.object)).toEqual([
-      'alpha_aiagent',
-      'bravo_aiagent',
+    expect([
+      ...new Set((align.details.differences as any[]).map((d) => d.object)),
+    ]).toEqual(['alpha_aiagent', 'bravo_aiagent']);
+    // what the plan says about the differences: white space is normalised, the title is a customization that is replaced
+    expect(plan.normalised.map((c) => `${c.object} ${c.location}`)).toEqual([
+      'alpha_aiagent onDelete.source',
+      'bravo_aiagent onDelete.source',
     ]);
+    expect(plan.normalised.every((c) => c.class === 'whitespace')).toBe(true);
+    expect(plan.customizations).toEqual([
+      {
+        config: 'managed',
+        object: 'alpha_aiagent',
+        location: 'schema.title',
+        kind: 'changed',
+        class: 'title',
+        tenantValue: CUSTOM_TITLE,
+        originalValue: ORIGINAL_TITLE,
+        outcome: 'replaced',
+      },
+    ]);
+    expect(align.description).toContain('1 of them is a customization');
+    expect(align.description).toContain(
+      'replaced by the original and not put back'
+    );
     expect(plan.steps.every((s) => s.description.length > 0)).toBe(true);
     expect(plan.steps.filter((s) => s.writes).map((s) => s.id)).not.toContain(
       'wait-for-gate'
@@ -212,11 +297,40 @@ describe('planIdmFeatureRepair', () => {
     expect(JSON.parse(JSON.stringify(plan))).toEqual(plan);
   });
 
-  test('keepAligned leaves out the step that puts the definitions back', async () => {
+  test('by default the plan has no step that puts anything back; restoreCustomizations adds one for the customizations only', async () => {
     const { tenant } = fakeRepairTenant(brokenState());
-    const plan = await planAIAgentFeatureRepair(tenant, { keepAligned: true });
-    expect(plan.options.keepAligned).toBe(true);
-    expect(ids(plan)).toContain('align-definitions');
+    const byDefault = await planAIAgentFeatureRepair(tenant);
+    expect(byDefault.options.restoreCustomizations).toBe(false);
+    expect(ids(byDefault)).toContain('align-definitions');
+    expect(ids(byDefault)).not.toContain('restore-definitions');
+
+    const asked = await planAIAgentFeatureRepair(tenant, {
+      restoreCustomizations: true,
+    });
+    expect(asked.options.restoreCustomizations).toBe(true);
+    expect(ids(asked).filter((id) => id.endsWith('definitions'))).toEqual([
+      'align-definitions',
+      'restore-definitions',
+    ]);
+    // the step puts back the title and nothing else: the trailing newlines are not in it
+    const restore = asked.steps.find((s) => s.id === 'restore-definitions')!;
+    expect(
+      (restore.details.differences as any[]).map(
+        (d) => `${d.object} ${d.location}`
+      )
+    ).toEqual(['alpha_aiagent schema.title']);
+    expect(restore.description).toContain('1 customization(s)');
+    // what the plan says happens to the title and the white space
+    expect(asked.customizations.map((c) => c.outcome)).toEqual(['put-back']);
+    expect(asked.normalised).toHaveLength(2);
+  });
+
+  test('a plan with the option keepAligned of the earlier prereleases is read as the default', async () => {
+    const { tenant } = fakeRepairTenant(brokenState());
+    const plan = await planAIAgentFeatureRepair(tenant, {
+      keepAligned: true,
+    } as never);
+    expect(plan.options.restoreCustomizations).toBe(false);
     expect(ids(plan)).not.toContain('restore-definitions');
   });
 
@@ -330,7 +444,7 @@ describe('repairIdmFeature', () => {
     return { ...fake, plan };
   }
 
-  test('the broken tenant is repaired in order, the customised definitions are put back, the gate is waited for', async () => {
+  test('the broken tenant is repaired in order, the customization is put back when asked, the gate is waited for', async () => {
     const state = brokenState();
     withDanglingMappings(state);
     state.gates.bravo = {
@@ -339,7 +453,9 @@ describe('repairIdmFeature', () => {
       agentCount: null,
     };
     state.closedReadsAfterEnable = 2;
-    const { tenant, plan, writes } = await planned(state);
+    const { tenant, plan, writes } = await planned(state, {
+      restoreCustomizations: true,
+    });
     const { clock, sleeps } = fakeClock();
     const result = await repairAIAgentFeature(
       tenant,
@@ -373,7 +489,8 @@ describe('repairIdmFeature', () => {
     expect(sleeps.reduce((a, b) => a + b, 0)).toBeLessThan(
       DEFAULT_GATE_TIMEOUT
     );
-    // the tenant: mappings gone (the working one stays), providers usable, customised definitions back
+    // the tenant: mappings gone (the working one stays), providers usable, the customization back and the white
+    // space not
     expect(state.secretStores.alpha[0].mappings.map((m) => m.secretId)).toEqual(
       ['am.keep']
     );
@@ -385,9 +502,22 @@ describe('repairIdmFeature', () => {
       (state.providers.bravo as any).advancedOAuth2Config
         .passwordGrantAuthService
     ).toBe('Login');
-    expect(
-      objectOf(state.managed, 'alpha_aiagent').onDelete.source.endsWith('\n')
-    ).toBe(true);
+    expect(titleOf(state)).toBe(CUSTOM_TITLE);
+    expect(hasNewline(state)).toBe(false);
+    expect(hasNewline(state, 'bravo_aiagent')).toBe(false);
+    expect(result.customizations).toEqual([
+      expect.objectContaining({
+        object: 'alpha_aiagent',
+        location: 'schema.title',
+        tenantValue: CUSTOM_TITLE,
+        originalValue: ORIGINAL_TITLE,
+        outcome: 'put-back',
+      }),
+    ]);
+    expect(result.normalised.map((c) => c.object)).toEqual([
+      'alpha_aiagent',
+      'bravo_aiagent',
+    ]);
     expect(state.enableRuns).toBe(1);
     // nothing was added twice
     expect(
@@ -423,20 +553,109 @@ describe('repairIdmFeature', () => {
     expect(bodies[1].provider.aiAgentsConfig).toBeDefined();
   });
 
-  test('keepAligned leaves the definitions aligned and the registry reads installed', async () => {
+  test('by default the repair leaves the definitions aligned: the registry reads installed, the customization stays replaced', async () => {
     const state = brokenState();
-    const { tenant, plan } = await planned(state, { keepAligned: true });
+    const { tenant, plan, writes } = await planned(state);
     const result = await repairAIAgentFeature(
       tenant,
       plan,
       {},
       fakeClock().clock
     );
+    // one write to align, then the enable action: nothing is put back
+    expect(writes.filter((w) => w === 'putManagedConfig')).toHaveLength(1);
     expect(outcome(result)).not.toContain('restore-definitions=done');
-    expect(
-      objectOf(state.managed, 'alpha_aiagent').onDelete.source.endsWith('\n')
-    ).toBe(false);
+    expect(outcome(result)).toContain('restore-definitions=skipped');
+    expect(result.results.at(-1)!.message).toContain(
+      '1 customization(s) stay replaced by the original'
+    );
+    expect(hasNewline(state)).toBe(false);
+    expect(titleOf(state)).toBe(ORIGINAL_TITLE);
     expect(state.feature.installedVersion).toBe('1');
+    // the result says what was lost and where it was
+    expect(result.customizations).toEqual([
+      expect.objectContaining({
+        object: 'alpha_aiagent',
+        location: 'schema.title',
+        class: 'title',
+        tenantValue: CUSTOM_TITLE,
+        originalValue: ORIGINAL_TITLE,
+        outcome: 'replaced',
+      }),
+    ]);
+    expect(result.normalised).toHaveLength(2);
+    // the diagnosis after the repair has no finding about definitions: the registry reads installed
+    expect(result.diagnosis.installedVersion).toBe('1');
+    expect(
+      result.diagnosis.findings.some((f) => f.id.startsWith('definitions-'))
+    ).toBe(false);
+  });
+
+  test('an extra mapping property is a customization: by default it stays removed, and the result says what it was', async () => {
+    const state = brokenState();
+    const extra = { type: 'simple', ldapAttribute: 'description' };
+    (state.repoDs.resourceMapping as any).explicitMapping[
+      'managed/alpha_aiagentprivilege'
+    ].properties.leftover = extra;
+    const { tenant, plan, writes } = await planned(state);
+    const result = await repairAIAgentFeature(
+      tenant,
+      plan,
+      {},
+      fakeClock().clock
+    );
+    // one write of each configuration: the alignment; nothing is put back
+    expect(writes.filter((w) => w === 'putManagedConfig')).toHaveLength(1);
+    expect(writes.filter((w) => w === 'putRepoDs')).toHaveLength(1);
+    expect(
+      (state.repoDs.resourceMapping as any).explicitMapping[
+        'managed/alpha_aiagentprivilege'
+      ].properties.leftover
+    ).toBeUndefined();
+    expect(result.customizations.map((c) => c.class).sort()).toEqual([
+      'extra-mapping-property',
+      'title',
+    ]);
+    const property = result.customizations.find(
+      (c) => c.class === 'extra-mapping-property'
+    )!;
+    expect(property).toMatchObject({
+      config: 'repo.ds',
+      object: 'managed/alpha_aiagentprivilege',
+      kind: 'extra',
+      tenantValue: extra,
+      outcome: 'replaced',
+    });
+    // there is no original value of a property the original does not have
+    expect('originalValue' in property).toBe(false);
+    expect(state.feature.installedVersion).toBe('1');
+  });
+
+  test('white space only is normalised without the enable action, and the registry reads installed', async () => {
+    const state = healthyRepairState();
+    state.feature.installedVersion = null;
+    objectOf(state.managed, 'alpha_aiagent').onDelete.source += '\n';
+    const { tenant, plan, writes } = await planned(state);
+    const result = await repairAIAgentFeature(
+      tenant,
+      plan,
+      {},
+      fakeClock().clock
+    );
+    expect(writes).toEqual(['putManagedConfig']);
+    expect(outcome(result)).toEqual([
+      'align-definitions=done',
+      'diagnose=done',
+    ]);
+    expect(state.enableRuns).toBe(0);
+    expect(hasNewline(state)).toBe(false);
+    expect(state.feature.installedVersion).toBe('1');
+    expect(result.customizations).toEqual([]);
+    expect(result.normalised).toHaveLength(1);
+    expect(result.completed).toBe(true);
+    expect(
+      result.diagnosis.findings.some((f) => f.id.startsWith('definitions-'))
+    ).toBe(false);
   });
 
   test('without wait the repair does not wait: the step is skipped and the gate may still be closed', async () => {
@@ -471,7 +690,9 @@ describe('repairIdmFeature', () => {
   test('the default timeout is 20 minutes in milliseconds, and a gate that stays closed is a failed step, not an error', async () => {
     const state = brokenState();
     state.closedReadsAfterEnable = 100000;
-    const { tenant, plan } = await planned(state);
+    const { tenant, plan } = await planned(state, {
+      restoreCustomizations: true,
+    });
     const { clock, sleeps } = fakeClock();
     const result = await repairAIAgentFeature(
       tenant,
@@ -483,7 +704,7 @@ describe('repairIdmFeature', () => {
     expect(sleeps.reduce((a, b) => a + b, 0)).toBe(1_200_000);
     expect(outcome(result)).toContain('wait-for-gate=failed');
     expect(result.completed).toBe(false);
-    // the rest still ran: the definitions are back and the diagnosis is there
+    // the rest still ran: the customization is back and the diagnosis is there
     expect(outcome(result).slice(-2)).toEqual([
       'restore-definitions=done',
       'diagnose=done',
@@ -600,31 +821,40 @@ describe('the enable action is guarded', () => {
     ).toHaveLength(1);
   });
 
-  test('it is not run if the registry still reads not installed after the alignment', async () => {
-    const state = brokenState();
-    const fake = fakeRepairTenant(state);
-    const plan = await planAIAgentFeatureRepair(fake.tenant);
-    // something else makes the registry read null: the platform keeps its own state
-    const read = fake.tenant.readFeature;
-    let aligned = false;
-    const put = fake.tenant.putManagedConfig;
-    fake.tenant.putManagedConfig = async (config) => {
-      aligned = true;
-      return put(config);
-    };
-    fake.tenant.readFeature = async () => {
-      const feature = await read();
-      return aligned ? { ...feature, installedVersion: null } : feature;
-    };
-    await expect(
-      repairAIAgentFeature(fake.tenant, plan, {}, fakeClock().clock)
-    ).rejects.toThrow('Error repairing IDM feature aiagent');
-    expect(state.enableRuns).toBe(0);
-    // the customised definitions were put back
-    expect(
-      objectOf(state.managed, 'alpha_aiagent').onDelete.source.endsWith('\n')
-    ).toBe(true);
-  });
+  test.each([
+    ['by default the definitions stay aligned', {}, ORIGINAL_TITLE],
+    [
+      'with restoreCustomizations the title is put back, the white space is not',
+      { restoreCustomizations: true },
+      CUSTOM_TITLE,
+    ],
+  ])(
+    'it is not run if the registry still reads not installed after the alignment: %s',
+    async (_name, options, title) => {
+      const state = brokenState();
+      const fake = fakeRepairTenant(state);
+      const plan = await planAIAgentFeatureRepair(fake.tenant, options);
+      // something else makes the registry read null: the platform keeps its own state
+      const read = fake.tenant.readFeature;
+      let aligned = false;
+      const put = fake.tenant.putManagedConfig;
+      fake.tenant.putManagedConfig = async (config) => {
+        aligned = true;
+        return put(config);
+      };
+      fake.tenant.readFeature = async () => {
+        const feature = await read();
+        return aligned ? { ...feature, installedVersion: null } : feature;
+      };
+      await expect(
+        repairAIAgentFeature(fake.tenant, plan, {}, fakeClock().clock)
+      ).rejects.toThrow('Error repairing IDM feature aiagent');
+      expect(state.enableRuns).toBe(0);
+      // the white space is never put back; the customization only if the repair is asked to
+      expect(hasNewline(state)).toBe(false);
+      expect(titleOf(state)).toBe(title);
+    }
+  );
 });
 
 describe('every write is read back', () => {
@@ -757,12 +987,17 @@ describe('a plan is not applied to a tenant that changed', () => {
 });
 
 describe('a step that fails', () => {
-  test('after the alignment the customised definitions are put back before the error is thrown', async () => {
+  test('after the alignment the customization is put back before the error is thrown, when the repair is asked to', async () => {
     const state = brokenState();
     state.fail.enableFeature = httpError(500);
     const { tenant, plan } = await (async () => {
       const fake = fakeRepairTenant(state);
-      return { ...fake, plan: await planAIAgentFeatureRepair(fake.tenant) };
+      return {
+        ...fake,
+        plan: await planAIAgentFeatureRepair(fake.tenant, {
+          restoreCustomizations: true,
+        }),
+      };
     })();
     const seen: string[] = [];
     const error = await repairAIAgentFeature(
@@ -781,24 +1016,29 @@ describe('a step that fails', () => {
       'enable=failed',
       'restore-definitions=done',
     ]);
-    expect(
-      objectOf(state.managed, 'alpha_aiagent').onDelete.source.endsWith('\n')
-    ).toBe(true);
+    // the customization is back; the white space is not, ever
+    expect(titleOf(state)).toBe(CUSTOM_TITLE);
+    expect(hasNewline(state)).toBe(false);
   });
 
-  test('with keepAligned the definitions stay aligned', async () => {
+  test('by default the definitions stay aligned after a failure: nothing is put back', async () => {
     const state = brokenState();
     state.fail.enableFeature = httpError(500);
     const fake = fakeRepairTenant(state);
-    const plan = await planAIAgentFeatureRepair(fake.tenant, {
-      keepAligned: true,
-    });
+    const plan = await planAIAgentFeatureRepair(fake.tenant);
+    const seen: string[] = [];
     await expect(
-      repairAIAgentFeature(fake.tenant, plan, {}, fakeClock().clock)
+      repairAIAgentFeature(
+        fake.tenant,
+        plan,
+        { resultCallback: (r) => seen.push(`${r.step.id}=${r.status}`) },
+        fakeClock().clock
+      )
     ).rejects.toThrow();
-    expect(
-      objectOf(state.managed, 'alpha_aiagent').onDelete.source.endsWith('\n')
-    ).toBe(false);
+    expect(hasNewline(state)).toBe(false);
+    expect(titleOf(state)).toBe(ORIGINAL_TITLE);
+    expect(seen).toContain('restore-definitions=skipped');
+    expect(seen).not.toContain('restore-definitions=done');
   });
 
   test('a failure before the alignment writes no definitions', async () => {
@@ -841,12 +1081,17 @@ describe('the fake platform', () => {
 });
 
 describe('a plan is data that somebody can have edited', () => {
+  /** A plan that asks for the customizations to be put back, so that it has the restore step to edit. */
   async function brokenPlan(change?: (state: FakeRepairState) => void) {
     const state = brokenState();
     change?.(state);
     const fake = fakeRepairTenant(state);
     const plan = JSON.parse(
-      JSON.stringify(await planAIAgentFeatureRepair(fake.tenant))
+      JSON.stringify(
+        await planAIAgentFeatureRepair(fake.tenant, {
+          restoreCustomizations: true,
+        })
+      )
     ) as IdmFeatureRepairPlan;
     fake.writes.length = 0;
     return { state, ...fake, plan };
@@ -963,10 +1208,8 @@ describe('a plan is data that somebody can have edited', () => {
       fakeClock().clock
     );
     expect(result.completed).toBe(true);
-    // the customised definition is back, as the tenant had it
-    expect(
-      objectOf(state.managed, 'alpha_aiagent').onDelete.source.endsWith('\n')
-    ).toBe(true);
+    // the customization is back, as the tenant had it
+    expect(titleOf(state)).toBe(CUSTOM_TITLE);
     expect(JSON.stringify(state.managed)).not.toContain('evil');
   });
 
@@ -1049,7 +1292,9 @@ describe('the value that is put back comes back in whatever key order the server
     fake.tenant.putRepoDs = async (config) => {
       state.repoDs = reverseKeys(clone(config));
     };
-    const plan = await planAIAgentFeatureRepair(fake.tenant);
+    const plan = await planAIAgentFeatureRepair(fake.tenant, {
+      restoreCustomizations: true,
+    });
     expect(
       (
         plan.steps.find((s) => s.id === 'align-definitions')!.details
@@ -1075,7 +1320,9 @@ describe('waiting for the gate: what goes wrong while looking', () => {
   async function brokenPlan() {
     const state = brokenState();
     const fake = fakeRepairTenant(state);
-    const plan = await planAIAgentFeatureRepair(fake.tenant);
+    const plan = await planAIAgentFeatureRepair(fake.tenant, {
+      restoreCustomizations: true,
+    });
     return { state, ...fake, plan };
   }
 
@@ -1147,7 +1394,7 @@ describe('waiting for the gate: what goes wrong while looking', () => {
   });
 
   test.each([401, 403])(
-    'a look that is refused with %s stops the wait with a FrodoError, and the definitions are put back',
+    'a look that is refused with %s stops the wait with a FrodoError, and the customization is put back',
     async (status) => {
       const { state, tenant, plan } = await brokenPlan();
       tenant.readGate = async () => {
@@ -1173,9 +1420,8 @@ describe('waiting for the gate: what goes wrong while looking', () => {
         'wait-for-gate=failed',
         'restore-definitions=done',
       ]);
-      expect(
-        objectOf(state.managed, 'alpha_aiagent').onDelete.source.endsWith('\n')
-      ).toBe(true);
+      expect(titleOf(state)).toBe(CUSTOM_TITLE);
+      expect(hasNewline(state)).toBe(false);
     }
   );
 
@@ -1215,11 +1461,16 @@ describe('waiting for the gate: what goes wrong while looking', () => {
   });
 });
 
-describe('what the plan must not decide: the type of a secret store, and whether the definitions are put back', () => {
+describe('what the plan must not decide: the type of a secret store, and whether the customizations are put back', () => {
+  /** A plan that asks for the customizations to be put back. */
   async function planned(state: FakeRepairState) {
     const fake = fakeRepairTenant(state);
     const plan = JSON.parse(
-      JSON.stringify(await planAIAgentFeatureRepair(fake.tenant))
+      JSON.stringify(
+        await planAIAgentFeatureRepair(fake.tenant, {
+          restoreCustomizations: true,
+        })
+      )
     ) as IdmFeatureRepairPlan;
     fake.writes.length = 0;
     return { state, ...fake, plan };
@@ -1256,7 +1507,7 @@ describe('what the plan must not decide: the type of a secret store, and whether
     );
   });
 
-  test('the definitions are put back after a failed step although the plan has no step for it', async () => {
+  test('the customization is put back after a failed step although the plan has no step for it', async () => {
     const state = brokenState();
     state.fail.enableFeature = httpError(500);
     const { tenant, plan } = await planned(state);
@@ -1275,27 +1526,23 @@ describe('what the plan must not decide: the type of a secret store, and whether
       'enable=failed',
       'restore-definitions=done',
     ]);
-    expect(
-      objectOf(state.managed, 'alpha_aiagent').onDelete.source.endsWith('\n')
-    ).toBe(true);
-    expect(
-      objectOf(state.managed, 'bravo_aiagent').onDelete.source.endsWith('\n')
-    ).toBe(true);
+    expect(titleOf(state)).toBe(CUSTOM_TITLE);
+    // white space is never put back
+    expect(hasNewline(state)).toBe(false);
+    expect(hasNewline(state, 'bravo_aiagent')).toBe(false);
   });
 
-  test('keepAligned still keeps the definitions aligned after a failed step', async () => {
+  test('the option of the plan decides after a failed step: without restoreCustomizations the customization stays replaced', async () => {
     const state = brokenState();
     state.fail.enableFeature = httpError(500);
-    const fake = fakeRepairTenant(state);
-    const plan = await planAIAgentFeatureRepair(fake.tenant, {
-      keepAligned: true,
-    });
+    const { tenant, plan } = await planned(state);
+    // the plan is data: it still has its restore step, and its option says not to put anything back
+    plan.options.restoreCustomizations = false;
     await expect(
-      repairAIAgentFeature(fake.tenant, plan, {}, fakeClock().clock)
+      repairAIAgentFeature(tenant, plan, {}, fakeClock().clock)
     ).rejects.toThrow();
-    expect(
-      objectOf(state.managed, 'alpha_aiagent').onDelete.source.endsWith('\n')
-    ).toBe(false);
+    expect(titleOf(state)).toBe(ORIGINAL_TITLE);
+    expect(hasNewline(state)).toBe(false);
   });
 
   /** The second write of the managed configuration (the restore; the first is the alignment) fails. */
@@ -1325,10 +1572,11 @@ describe('what the plan must not decide: the type of a secret store, and whether
     const text = error.getCombinedMessage();
     expect(error.name).toBe('FrodoError');
     expect(error.message).toContain(
-      'The definitions are still aligned with the original and were not put back'
+      'The customizations are still aligned with the original and were not put back'
     );
-    expect(error.message).toContain('alpha_aiagent onDelete.source');
-    expect(error.message).toContain('bravo_aiagent onDelete.source');
+    // only the customization is named: the white space is not something to put back
+    expect(error.message).toContain('alpha_aiagent schema.title');
+    expect(error.message).not.toContain('onDelete.source');
     // the cause is the step that failed, and the failed restore is there too
     expect(error.httpStatus).toBe(500);
     expect(text).toContain('Status: 503');
@@ -1337,9 +1585,8 @@ describe('what the plan must not decide: the type of a secret store, and whether
       'restore-definitions=failed',
     ]);
     // and they are in fact still aligned
-    expect(
-      objectOf(state.managed, 'alpha_aiagent').onDelete.source.endsWith('\n')
-    ).toBe(false);
+    expect(titleOf(state)).toBe(ORIGINAL_TITLE);
+    expect(hasNewline(state)).toBe(false);
   });
 
   test('a restore step of the plan that fails says the same', async () => {
@@ -1353,17 +1600,23 @@ describe('what the plan must not decide: the type of a secret store, and whether
       fakeClock().clock
     ).catch((e) => e);
     expect(error.name).toBe('FrodoError');
-    expect(error.message).toContain('Put the');
+    expect(error.message).toContain('Put the 1 customization(s) back');
     expect(error.message).toContain(
-      'The definitions are still aligned with the original and were not put back (alpha_aiagent onDelete.source; bravo_aiagent onDelete.source)'
+      'The customizations are still aligned with the original and were not put back (alpha_aiagent schema.title)'
     );
     // one attempt only
     expect(state.enableRuns).toBe(1);
   });
 });
 
-describe('the definitions are put back by what the run did, not by the steps of the plan', () => {
-  async function planned(state: FakeRepairState, options = {}) {
+describe('the customizations are put back by what the run did, not by the steps of the plan', () => {
+  /** By default a plan that asks for the customizations to be put back. */
+  async function planned(
+    state: FakeRepairState,
+    options: { restoreCustomizations?: boolean } = {
+      restoreCustomizations: true,
+    }
+  ) {
     const fake = fakeRepairTenant(state);
     const plan = JSON.parse(
       JSON.stringify(await planAIAgentFeatureRepair(fake.tenant, options))
@@ -1394,11 +1647,12 @@ describe('the definitions are put back by what the run did, not by the steps of 
     };
     return counts;
   }
+  /** The customization (the title) is in the tenant. */
   const customised = (state: FakeRepairState) =>
-    objectOf(state.managed, 'alpha_aiagent').onDelete.source.endsWith('\n');
+    titleOf(state) === CUSTOM_TITLE;
 
   describe('on success', () => {
-    test('a plan whose restore step was taken out still gets its definitions put back, and the result says so', async () => {
+    test('a plan whose restore step was taken out still gets its customization put back, and the result says so', async () => {
       const { state, tenant, plan } = await planned(brokenState());
       without(plan, 'restore-definitions');
       const counts = countWrites(tenant);
@@ -1423,9 +1677,9 @@ describe('the definitions are put back by what the run did, not by the steps of 
       expect(result.diagnosis.installedVersion).toBeNull();
     });
 
-    test('keepAligned leaves them aligned and the result says so', async () => {
+    test('without restoreCustomizations they stay aligned and the result says so', async () => {
       const { state, tenant, plan } = await planned(brokenState(), {
-        keepAligned: true,
+        restoreCustomizations: false,
       });
       expect(plan.steps.map((s) => s.id)).not.toContain('restore-definitions');
       const counts = countWrites(tenant);
@@ -1442,13 +1696,13 @@ describe('the definitions are put back by what the run did, not by the steps of 
         (r) => r.step.id === 'restore-definitions'
       )!;
       expect(restoreResult.status).toBe('skipped');
-      expect(restoreResult.message).toContain('stay aligned');
+      expect(restoreResult.message).toContain('stay replaced by the original');
       expect(result.diagnosis.installedVersion).toBe('1');
     });
 
-    test('a plan that still has its restore step but keeps the definitions aligned does not restore them', async () => {
+    test('a plan that still has its restore step but whose option says not to restore does not restore', async () => {
       const { state, tenant, plan } = await planned(brokenState());
-      plan.options.keepAligned = true;
+      plan.options.restoreCustomizations = false;
       const counts = countWrites(tenant);
       const result = await repairAIAgentFeature(
         tenant,
@@ -1466,7 +1720,7 @@ describe('the definitions are put back by what the run did, not by the steps of 
       ).toHaveLength(1);
     });
 
-    test('a restore that fails at the end is an error that says the definitions are still aligned and names them', async () => {
+    test('a restore that fails at the end is an error that says the customizations are still aligned and names them', async () => {
       const { state, tenant, plan } = await planned(brokenState());
       without(plan, 'restore-definitions');
       countWrites(tenant, { managed: [2] });
@@ -1478,17 +1732,19 @@ describe('the definitions are put back by what the run did, not by the steps of 
       ).catch((e) => e);
       expect(error.name).toBe('FrodoError');
       expect(error.message).toContain(
-        'The definitions are still aligned with the original and were not put back (alpha_aiagent onDelete.source; bravo_aiagent onDelete.source)'
+        'The customizations are still aligned with the original and were not put back (alpha_aiagent schema.title)'
       );
       expect(customised(state)).toBe(false);
     });
   });
 
   describe('after a failed step', () => {
-    test('keepAligned: the result says the definitions stay aligned', async () => {
+    test('without restoreCustomizations: the result says the customization stays replaced', async () => {
       const state = brokenState();
       state.fail.enableFeature = httpError(500);
-      const { tenant, plan } = await planned(state, { keepAligned: true });
+      const { tenant, plan } = await planned(state, {
+        restoreCustomizations: false,
+      });
       const seen: string[] = [];
       await expect(
         repairAIAgentFeature(
@@ -1558,7 +1814,7 @@ describe('the definitions are put back by what the run did, not by the steps of 
         expect(leftover(state)).toEqual({ type: 'simple' });
       });
 
-      test('and if that cannot be put back either, the error says the definitions are partly aligned and names only those', async () => {
+      test('and if that cannot be put back either, the error says the customizations are partly aligned and names only those', async () => {
         const { state, tenant, plan } = await planned(withRepoDrift());
         countWrites(tenant, { repoDs: [1], managed: [2] });
         const error = await repairAIAgentFeature(
@@ -1568,11 +1824,11 @@ describe('the definitions are put back by what the run did, not by the steps of 
           fakeClock().clock
         ).catch((e) => e);
         expect(error.message).toContain(
-          'The definitions are partly aligned with the original (config/managed only) and were not put back (alpha_aiagent onDelete.source; bravo_aiagent onDelete.source)'
+          'The customizations are partly aligned with the original (config/managed only) and were not put back (alpha_aiagent schema.title)'
         );
-        // the names after "were not put back" are the written ones; the step's own description names all three
+        // the names after "were not put back" are the written ones; the step's own description names all of them
         expect(error.message.match(/were not put back \(([^)]*)\)/)[1]).toBe(
-          'alpha_aiagent onDelete.source; bravo_aiagent onDelete.source'
+          'alpha_aiagent schema.title'
         );
         expect(customised(state)).toBe(false);
       });
@@ -1634,7 +1890,13 @@ describe('the definitions are put back by what the run did, not by the steps of 
 });
 
 describe('a write whose answer is lost', () => {
-  async function planned(state: FakeRepairState, options = {}) {
+  /** By default a plan that asks for the customizations to be put back. */
+  async function planned(
+    state: FakeRepairState,
+    options: { restoreCustomizations?: boolean } = {
+      restoreCustomizations: true,
+    }
+  ) {
     const fake = fakeRepairTenant(state);
     const plan = JSON.parse(
       JSON.stringify(await planAIAgentFeatureRepair(fake.tenant, options))
@@ -1653,8 +1915,9 @@ describe('a write whose answer is lost', () => {
     (state.repoDs.resourceMapping as any).explicitMapping[
       'managed/alpha_aiagentprivilege'
     ].properties.leftover;
+  /** The customization (the title) is in the tenant. */
   const customised = (state: FakeRepairState) =>
-    objectOf(state.managed, 'alpha_aiagent').onDelete.source.endsWith('\n');
+    titleOf(state) === CUSTOM_TITLE;
   const lost = () => new Error('socket hang up');
 
   /**
@@ -1819,12 +2082,12 @@ describe('a write whose answer is lost', () => {
       fakeClock().clock
     ).catch((e) => e);
     expect(error.message).toContain(
-      'possibly still aligned with the original (a write of the alignment failed and the configuration could not be read back) and were not put back (alpha_aiagent onDelete.source; bravo_aiagent onDelete.source)'
+      'possibly still aligned with the original (a write of the alignment failed and the configuration could not be read back) and were not put back (alpha_aiagent schema.title)'
     );
     expect(customised(state)).toBe(false);
   });
 
-  test('the definitions that were put back are not named when a later restore fails: repo.ds only', async () => {
+  test('the customizations that were put back are not named when a later restore fails: repo.ds only', async () => {
     const state = withRepoDrift();
     state.fail.enableFeature = httpError(500);
     const { tenant, plan } = await planned(state);
@@ -1836,15 +2099,15 @@ describe('a write whose answer is lost', () => {
       fakeClock().clock
     ).catch((e) => e);
     expect(error.message).toContain(
-      'The definitions are partly aligned with the original (config/repo.ds only) and were not put back (managed/alpha_aiagentprivilege properties.leftover)'
+      'The customizations are partly aligned with the original (config/repo.ds only) and were not put back (managed/alpha_aiagentprivilege properties.leftover)'
     );
     expect(customised(state)).toBe(true); // managed was put back
     expect(leftover(state)).toBeUndefined(); // repo.ds is still aligned
   });
 
-  test('keepAligned with an alignment that did not take effect: the result does not claim the definitions stay aligned', async () => {
+  test('without restoreCustomizations and with an alignment that did not take effect: the result does not claim the customizations stay replaced', async () => {
     const { tenant, plan } = await planned(brokenState(), {
-      keepAligned: true,
+      restoreCustomizations: false,
     });
     writes(tenant, { managed: { 1: 'rejected' } });
     const seen: string[] = [];
