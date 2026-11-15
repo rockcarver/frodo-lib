@@ -192,6 +192,39 @@ describe('planIdmFeatureRepair', () => {
     });
   });
 
+  test('a repairable error and a customization, but no need for the enable action: the customization is not touched', async () => {
+    const state = healthyRepairState();
+    withDanglingMappings(state);
+    state.feature.installedVersion = null;
+    objectOf(state.managed, 'alpha_aiagent').schema.title = CUSTOM_TITLE;
+    const { tenant } = fakeRepairTenant(state);
+    const plan = await planAIAgentFeatureRepair(tenant);
+    expect(ids(plan)).toEqual([
+      'delete-secret-mapping',
+      'delete-secret-mapping',
+      'diagnose',
+    ]);
+    expect(plan.customizations).toEqual([]);
+    expect(plan.normalised).toEqual([]);
+  });
+
+  test('a repairable error and white space, but no need for the enable action: the white space is normalised with it', async () => {
+    const state = healthyRepairState();
+    withDanglingMappings(state);
+    state.feature.installedVersion = null;
+    objectOf(state.managed, 'alpha_aiagent').onDelete.source += '\n';
+    const { tenant } = fakeRepairTenant(state);
+    const plan = await planAIAgentFeatureRepair(tenant);
+    expect(ids(plan)).toEqual([
+      'delete-secret-mapping',
+      'delete-secret-mapping',
+      'align-definitions',
+      'diagnose',
+    ]);
+    expect(plan.normalised).toHaveLength(1);
+    expect(plan.customizations).toEqual([]);
+  });
+
   test('a broken tenant: the steps are itemised in the order they are safe', async () => {
     const state = brokenState();
     withDanglingMappings(state);
@@ -1231,6 +1264,40 @@ describe('a plan is data that somebody can have edited', () => {
       objectOf(state.managed, 'alpha_aiagent').onDelete.source.endsWith('\n')
     ).toBe(true);
   });
+
+  test.each([
+    [
+      'without the option',
+      (plan: any) => delete plan.options.restoreCustomizations,
+    ],
+    [
+      'with the option of the earlier prereleases',
+      (plan: any) => {
+        delete plan.options.restoreCustomizations;
+        plan.options.keepAligned = false;
+      },
+    ],
+    [
+      'with an option that is not true',
+      (plan: any) => (plan.options.restoreCustomizations = 'yes'),
+    ],
+  ])(
+    'a plan %s does not ask for the customizations to be put back: they stay replaced',
+    async (_name, edit) => {
+      const { state, tenant, plan } = await brokenPlan();
+      edit(plan);
+      const result = await repairAIAgentFeature(
+        tenant,
+        plan,
+        {},
+        fakeClock().clock
+      );
+      expect(result.completed).toBe(true);
+      expect(titleOf(state)).toBe(ORIGINAL_TITLE);
+      expect(hasNewline(state)).toBe(false);
+      expect(result.customizations.map((c) => c.outcome)).toEqual(['replaced']);
+    }
+  );
 
   test('a step for a realm the feature is not installed for is refused', async () => {
     const { state, tenant, plan, writes } = await brokenPlan();
