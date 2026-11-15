@@ -32,12 +32,13 @@ ALWAYS_CODE='^(\.github/workflows/pipeline\.yml|\.github/scripts/classify-change
 # Files read by a validation test: src/agentSkills.test.ts reads the skills,
 # AGENTS.md and every repository path a skill cites; src/decisionRecords.test.ts
 # reads decisions/ (core records included), the core records drift check and its
-# workflow; src/index.test.ts reads CONTRIBUTE.md; src/dependabotAutoMerge.unit.test.ts
-# and src/dependabotPolicy.unit.test.ts read the Dependabot policy files
-# (.github/dependabot.yml, the auto-merge workflow and its script). Root Markdown
+# workflow; src/index.test.ts reads CONTRIBUTE.md; src/dependabotPolicy.unit.test.ts
+# and src/dependabotWorkflow.unit.test.ts read the Dependabot policy files
+# (.github/dependabot.yml and the auto-merge workflow; the policy itself is the
+# shared action that the workflow calls). Root Markdown
 # covers the entry points and the documents skills link; add a path here, in the
 # same pull request, when a new test reads a new kind of file.
-GUIDANCE='^(decisions/|\.claude/skills/|\.github/instructions/|\.github/scripts/check-core-records-drift\.mjs$|\.github/workflows/core-records-drift\.yml$|\.github/dependabot\.yml$|\.github/workflows/dependabot-auto-merge\.yml$|scripts/dependabot-auto-merge\.mjs$|[^/]+\.md$)'
+GUIDANCE='^(decisions/|\.claude/skills/|\.github/instructions/|\.github/scripts/check-core-records-drift\.mjs$|\.github/workflows/core-records-drift\.yml$|\.github/dependabot\.yml$|\.github/workflows/dependabot-auto-merge\.yml$|[^/]+\.md$)'
 
 count=0
 code=false
