@@ -226,11 +226,30 @@ describe('the module does not modify what the caller hands in', () => {
   });
 });
 
+/** An issuer in the form the server serves and takes: every attribute wrapped as `{ value, inherited }`. */
+function wrappedIssuer(extra: Record<string, unknown> = {}) {
+  return {
+    _id: 'matrix-issuer',
+    _type: {
+      _id: 'TrustedJwtIssuer',
+      name: 'OAuth2 Trusted JWT Issuer',
+      collection: true,
+    },
+    issuer: { value: 'https://idp.matrix.example.com', inherited: false },
+    allowedSubjects: { value: ['neo', 'trinity'], inherited: false },
+    jwksUri: { value: 'https://idp.matrix.example.com/jwks', inherited: false },
+    jwkSet: { value: '{"keys":[]}', inherited: false },
+    ...extra,
+  } as unknown as OAuth2TrustedJwtIssuerSkeleton;
+}
+
 describe('the retry after "Invalid attribute specified."', () => {
-  test('sends the cleaned copy once and the caller keeps the rejected attribute', async () => {
+  test('leaves out the top-level attribute that the server does not know, sends once more, and the caller keeps its object', async () => {
     const failure = invalidAttributeError(VALID_ATTRIBUTES);
     putOAuth2TrustedJwtIssuer.mockRejectedValueOnce(failure);
-    const issuerData = sampleIssuer();
+    const issuerData = wrappedIssuer({
+      zzUnknownAttribute: { value: 'x', inherited: false },
+    });
     const before = copy(issuerData);
 
     await updateOAuth2TrustedJwtIssuer({
@@ -249,31 +268,69 @@ describe('the retry after "Invalid attribute specified."', () => {
     const second = putOAuth2TrustedJwtIssuer.mock.calls[1][0].issuerData;
     expect(first).toBe(issuerData);
     expect(second).not.toBe(issuerData);
-    // the attributes of nested objects that the server does not list are
-    // gone from the copy (_id is always kept)
-    expect(second._type).toEqual({ _id: 'TrustedJwtIssuer' });
-    expect(second.issuer).toBe(issuerData.issuer);
+    // exactly the unknown attribute is gone; nothing else is touched
+    expect(second).toEqual(wrappedIssuer());
+    expect(Object.keys(second)).not.toContain('zzUnknownAttribute');
   });
 
-  test('says which attribute it removes, whatever the verbosity', async () => {
+  test('never strips what is inside a valid attribute: value and inherited of every wrapped attribute stay (the retry used to remove them)', async () => {
     putOAuth2TrustedJwtIssuer.mockRejectedValueOnce(
       invalidAttributeError(VALID_ATTRIBUTES)
     );
 
     await updateOAuth2TrustedJwtIssuer({
       issuerId: 'matrix-issuer',
-      issuerData: sampleIssuer(),
+      issuerData: wrappedIssuer({ zzUnknownAttribute: { value: 'x' } }),
+      state: mockState(),
+    });
+
+    const second = putOAuth2TrustedJwtIssuer.mock.calls[1][0].issuerData;
+    for (const attribute of [
+      'issuer',
+      'allowedSubjects',
+      'jwksUri',
+      'jwkSet',
+    ]) {
+      expect(Object.keys(second[attribute]).sort()).toEqual([
+        'inherited',
+        'value',
+      ]);
+    }
+    // the system attributes are not judged: _type keeps its name and collection
+    expect(second._type).toEqual(wrappedIssuer()._type);
+    expect(second._id).toBe('matrix-issuer');
+  });
+
+  test('says in ONE warning which attributes it leaves out, whatever the verbosity', async () => {
+    putOAuth2TrustedJwtIssuer.mockRejectedValueOnce(
+      invalidAttributeError(VALID_ATTRIBUTES)
+    );
+
+    await updateOAuth2TrustedJwtIssuer({
+      issuerId: 'matrix-issuer',
+      issuerData: wrappedIssuer({
+        zzUnknownAttribute: { value: 'x' },
+        zzOtherAttribute: { value: 'y' },
+      }),
       state: mockState({ verbose: false, debug: false }),
     });
 
     const warnings = printed.filter((p) => p.type === 'warn');
-    expect(warnings.map((w) => w.message)).toEqual([
-      expect.stringContaining('matrix-issuer: _type.name'),
-      expect.stringContaining('matrix-issuer: _type.collection'),
-    ]);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].message).toContain('matrix-issuer');
+    expect(warnings[0].message).toContain(
+      'zzUnknownAttribute, zzOtherAttribute'
+    );
+    expect(warnings[0].message).toContain('attributes');
+    // no line per leaf of the body
+    expect(printed.filter((p) => /Removing/.test(p.message))).toHaveLength(1);
+    const second = putOAuth2TrustedJwtIssuer.mock.calls[1][0].issuerData;
+    expect(Object.keys(second).sort()).toEqual(
+      Object.keys(wrappedIssuer()).sort()
+    );
   });
 
-  test('does not take the elements of an array for attributes and does not fail on null', async () => {
+  test('the plain form works too: the elements of an array and a null are values, not attributes', async () => {
     putOAuth2TrustedJwtIssuer.mockRejectedValueOnce(
       invalidAttributeError(VALID_ATTRIBUTES)
     );
@@ -281,7 +338,8 @@ describe('the retry after "Invalid attribute specified."', () => {
       ...sampleIssuer(),
       jwksUri: null,
       allowedSubjects: ['neo', 'trinity'],
-    } as OAuth2TrustedJwtIssuerSkeleton;
+      zzUnknownAttribute: 'x',
+    } as unknown as OAuth2TrustedJwtIssuerSkeleton;
 
     await updateOAuth2TrustedJwtIssuer({
       issuerId: 'matrix-issuer',
@@ -293,6 +351,53 @@ describe('the retry after "Invalid attribute specified."', () => {
     const second = putOAuth2TrustedJwtIssuer.mock.calls[1][0].issuerData;
     expect(second.allowedSubjects).toEqual(['neo', 'trinity']);
     expect(second.jwksUri).toBeNull();
+    expect(second._type).toEqual(sampleIssuer()._type);
+    expect('zzUnknownAttribute' in second).toBe(false);
+  });
+
+  test('when no attribute of the body is unknown there is NO retry: one request, an error that says what the server accepts', async () => {
+    putOAuth2TrustedJwtIssuer.mockRejectedValue(
+      invalidAttributeError(VALID_ATTRIBUTES)
+    );
+
+    const failure = await rejection(() =>
+      updateOAuth2TrustedJwtIssuer({
+        issuerId: 'matrix-issuer',
+        issuerData: wrappedIssuer(),
+        state: mockState(),
+      })
+    );
+
+    expect(putOAuth2TrustedJwtIssuer).toHaveBeenCalledTimes(1);
+    expect(failure.message).toContain(
+      'Error updating alpha realm trusted issuer matrix-issuer'
+    );
+    expect(failure.message).toContain(
+      'none of the attributes of the issuer is unknown'
+    );
+    expect(failure.message).toContain('jwksUri');
+    expect(printed.filter((p) => /Removing/.test(p.message))).toHaveLength(0);
+  });
+
+  test('when the server does not list the valid attributes there is NO retry and no crash', async () => {
+    putOAuth2TrustedJwtIssuer.mockRejectedValue({
+      response: {
+        status: 400,
+        data: { code: 400, message: 'Invalid attribute specified.' },
+      },
+    });
+
+    const failure = await rejection(() =>
+      updateOAuth2TrustedJwtIssuer({
+        issuerId: 'matrix-issuer',
+        issuerData: wrappedIssuer({ zzUnknownAttribute: { value: 'x' } }),
+        state: mockState(),
+      })
+    );
+
+    expect(putOAuth2TrustedJwtIssuer).toHaveBeenCalledTimes(1);
+    expect(failure.message).toContain('did not say which ones it accepts');
+    expect(failure.message).not.toMatch(/TypeError|undefined/);
   });
 
   test('a failing second request is an error that names the issuer', async () => {
@@ -302,7 +407,7 @@ describe('the retry after "Invalid attribute specified."', () => {
     await expect(
       updateOAuth2TrustedJwtIssuer({
         issuerId: 'matrix-issuer',
-        issuerData: sampleIssuer(),
+        issuerData: wrappedIssuer({ zzUnknownAttribute: { value: 'x' } }),
         state: mockState(),
       })
     ).rejects.toThrow(

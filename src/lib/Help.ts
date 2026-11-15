@@ -4229,7 +4229,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "OAuth2TrustedJwtIssuer",
     methodName: "updateOAuth2TrustedJwtIssuer",
     signature: "updateOAuth2TrustedJwtIssuer( issuerId: string, issuerData: OAuth2TrustedJwtIssuerSkeleton ): Promise<OAuth2TrustedJwtIssuerSkeleton>",
-    description: "Update or create OAuth2 trusted jwt issuer",
+    description: "Update or create OAuth2 trusted jwt issuer. When the server refuses the body with \"Invalid attribute specified.\" and the body has top-level attributes that the server does not list as valid, only those attributes are left out of a copy of the body, which is sent once more, and a warning names them; the object that was passed in is not changed. When no top-level attribute is unknown, nothing is sent a second time and the error says what the server accepts.",
     params: [
       { name: "issuerId", type: "string", description: "trusted jwt issuer id", required: true },
       { name: "issuerData", type: "any", description: "trusted jwt issuer object", required: true },
