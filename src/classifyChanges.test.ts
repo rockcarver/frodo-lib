@@ -103,7 +103,10 @@ describe('classify-changes.sh', () => {
       ['the lockfile', 'package-lock.json'],
       ['a build script', 'scripts/generate-help.mjs'],
       ['the record validator', 'scripts/validate-decision-records.mjs'],
-      ['the dependabot auto-merge script', 'scripts/dependabot-auto-merge.mjs'],
+      [
+        'the former auto-merge script (the shared action carries it now: plain code here)',
+        'scripts/dependabot-auto-merge.mjs',
+      ],
       ['a build config', 'tsdown.config.mts'],
       ['the pipeline', '.github/workflows/pipeline.yml'],
       ['the classifier itself', '.github/scripts/classify-changes.sh'],
@@ -205,7 +208,6 @@ describe('classify-changes.sh', () => {
         'the dependabot auto-merge workflow',
         '.github/workflows/dependabot-auto-merge.yml',
       ],
-      ['the dependabot auto-merge script', 'scripts/dependabot-auto-merge.mjs'],
       ['a skill', '.claude/skills/build-the-lib/SKILL.md'],
       ['an instruction file', '.github/instructions/tests.instructions.md'],
       ['AGENTS.md', 'AGENTS.md'],
@@ -235,16 +237,8 @@ describe('classify-changes.sh', () => {
         '.github/workflows/dependabot-auto-merge.yml.bak',
       ],
       [
-        'a look-alike of the auto-merge script',
-        'scripts/dependabot-auto-merge.mjs.bak',
-      ],
-      [
-        'the auto-merge script in a nested folder',
-        'src/scripts/dependabot-auto-merge.mjs',
-      ],
-      [
-        'a test of the auto-merge script (code, and not itself a policy file)',
-        'src/dependabotAutoMerge.unit.test.ts',
+        'the former auto-merge script (the shared action carries it now)',
+        'scripts/dependabot-auto-merge.mjs',
       ],
       ['the concierge pin', '.github/issue-concierge.yml'],
       ['generated docs', 'docs/classes/Foo.html'],
@@ -287,12 +281,12 @@ describe('classify-changes.sh', () => {
         expect(
           classify(['.github/workflows/dependabot-auto-merge.yml'])
         ).toMatchObject({ code: false, guidance: true });
-        // the script is not on the non-code list: the long matrix runs as well
+        // the former script is a plain script now: the long matrix runs, the guidance job does not
         expect(classify(['scripts/dependabot-auto-merge.mjs'])).toMatchObject({
           code: true,
-          guidance: true,
+          guidance: false,
         });
-        // the three together, as the pull request that changes the policy has them
+        // the two together, as the pull request that changes the policy has them
         expect(
           classify([
             '.github/dependabot.yml',

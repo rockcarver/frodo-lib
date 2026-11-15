@@ -510,11 +510,10 @@ describe('the "Validate guidance" job', () => {
   test('lists every test that reads a guidance file', () => {
     // A test that reads records, skills, AGENTS.md, CONTRIBUTE.md, the Dependabot
     // policy files and the like validates files the code filter treats as
-    // non-code (or, for the script, as part of a policy): it must run in this
-    // job (record 0016). Add the test to the job, and its kind of file to
+    // non-code: it must run in this job (record 0016). Add the test to the job, and its kind of file to
     // GUIDANCE in .github/scripts/classify-changes.sh.
     const readsGuidance =
-      /(?:AGENTS|CLAUDE|CONTRIBUTE|PIPELINE|BUILD-ENV|MIGRATION|README|RECORD_REPLAY)\.md|['"`/]decisions['"`/]|\.claude\/|\.github\/instructions|dependabot(?:-auto-merge)?\.(?:yml|mjs)/;
+      /(?:AGENTS|CLAUDE|CONTRIBUTE|PIPELINE|BUILD-ENV|MIGRATION|README|RECORD_REPLAY)\.md|['"`/]decisions['"`/]|\.claude\/|\.github\/instructions|dependabot(?:-auto-merge)?\.yml/;
     const readsFiles = /from 'node:fs|from 'fs'|require\('(?:node:)?fs/;
     const own = ['src/classifyChanges.test.ts', 'src/pipelineWorkflow.test.ts'];
     const found: string[] = [];

@@ -1,20 +1,21 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 
 /*
  * Pins the shape of .github/dependabot.yml that core record 0023 relies on: the Dependabot group `tooling` is a
  * named list of packages that do not end up in what we ship, and nothing that shipped code imports, nor the bundler
  * that writes it (tsdown), may match one of its patterns (such a package must arrive as a pull request of its own,
  * which a person merges). Also pins the
- * cooldown. dependabot.yml is read with a few lines of text parsing because the repository has no YAML parser among
+ * cooldown. The decision about a pull request is made by the shared action
+ * https://github.com/gearsnlevers/dependabot-auto-merge-action, which reads the group `tooling` of dependabot.yml, so
+ * this test keeps the two small rules of the record that it needs for the list (the name of the group and the manual
+ * set) as local helpers, with tests of their own. dependabot.yml is read with a few lines of text parsing because the repository has no YAML parser among
  * its dependencies; the parts read are the ones that are written in a fixed layout.
  */
 
 const ROOT = process.cwd();
 const DEPENDABOT = path.join(ROOT, '.github/dependabot.yml');
 const PACKAGE_JSON = path.join(ROOT, 'package.json');
-const SCRIPT = path.join(ROOT, 'scripts/dependabot-auto-merge.mjs');
 const SOURCEMAP = path.join(ROOT, 'dist/index.js.map');
 
 const text = fs.readFileSync(DEPENDABOT, 'utf8');
@@ -75,6 +76,17 @@ const glob = (pattern: string) =>
 const matchesTooling = (name: string) =>
   toolingPatterns.some((p) => glob(p).test(name));
 
+/** The name of the Dependabot group that the shared action arms (core record 0023). */
+const TOOLING_GROUP = 'tooling';
+
+/** The manual set of core record 0023: a package whose name has one of these words (split at `/`, `@` and `-`). */
+const MANUAL_WORDS = ['eslint', 'prettier', 'typescript'];
+const isManualName = (name: string) =>
+  name
+    .toLowerCase()
+    .split(/[/@-]+/)
+    .some((word) => MANUAL_WORDS.includes(word));
+
 /** The packages that shipped code imports: every bare import of the files reachable from src/index.ts. */
 function bundledBySource(): Set<string> {
   const seen = new Set<string>();
@@ -110,12 +122,31 @@ function bundledBySource(): Set<string> {
   return new Set([...bare].filter((n) => devDependencies.includes(n)));
 }
 
-let isManualName: (name: string) => boolean;
-let TOOLING_GROUP: string;
-beforeAll(async () => {
-  const mod: any = await import(pathToFileURL(SCRIPT).href);
-  isManualName = mod.isManualName;
-  TOOLING_GROUP = mod.TOOLING_GROUP;
+describe('the helpers of this test', () => {
+  test('a pattern is anchored, `*` is any run of characters and the rest is literal', () => {
+    expect(glob('eslint*').test('eslint-plugin-x')).toBe(true);
+    expect(glob('@types/*').test('@types/node')).toBe(true);
+    expect(glob('@types/*').test('x@types/node')).toBe(false);
+    expect(glob('rimraf').test('rimraf-extra')).toBe(false);
+    expect(glob('a.b').test('axb')).toBe(false);
+    expect(glob('a+b').test('aab')).toBe(false);
+  });
+  test('the manual set is a whole word of the name: Prettier, TypeScript, ESLint and what belongs to them', () => {
+    for (const name of [
+      'eslint',
+      'prettier',
+      'typescript',
+      'eslint-plugin-import-x',
+      '@typescript-eslint/parser',
+      'eslint-config-prettier',
+      'Prettier',
+    ]) {
+      expect(isManualName(name)).toBe(true);
+    }
+    for (const name of ['rimraf', 'typedoc', 'ts-jest', 'esbuild', 'jest']) {
+      expect(isManualName(name)).toBe(false);
+    }
+  });
 });
 
 describe('the Dependabot group `tooling`', () => {
@@ -124,7 +155,7 @@ describe('the Dependabot group `tooling`', () => {
     expect(toolingPatterns.length).toBeGreaterThan(5);
     expect(toolingUpdateTypes.sort()).toEqual(['minor', 'patch']);
   });
-  test('has the name that the auto-merge script arms', () => {
+  test('has the name that the shared auto-merge action arms', () => {
     expect(TOOLING_GROUP).toBe('tooling');
     expect(lines.some((l) => l === `      ${TOOLING_GROUP}:`)).toBe(true);
   });

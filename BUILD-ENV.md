@@ -30,7 +30,7 @@ Dependency/replacement history (2026-10):
   node-jose->jose, node-forge->@peculiar/x509, tsup->tsdown
 
 Release automation:
-  ├─ dependabot.yml + dependabot-auto-merge.yml
+  ├─ dependabot.yml + dependabot-auto-merge.yml (calls the shared gearsnlevers/dependabot-auto-merge-action)
   ├─ ruleset "main-branch-protection": Build + Test gate + Cross-Platform Tests required
   └─ pipeline.yml: version bump -> build -> test -> npm trusted publish -> release -> Pages docs
 ```
@@ -324,14 +324,27 @@ update pull request that skipped it.
   pull request of its own; TS majors ignored. `github/gh-aw-actions/setup` is
   ignored: it is pinned inside the Issue Concierge's generated `*.lock.yml`
   files, which a Concierge release moves by recompiling them.
-- `dependabot-auto-merge.yml` runs `scripts/dependabot-auto-merge.mjs` for
-  Dependabot pull requests and in a daily sweep: it arms
+- `dependabot-auto-merge.yml` calls the shared action
+  [gearsnlevers/dependabot-auto-merge-action](https://github.com/gearsnlevers/dependabot-auto-merge-action)
+  (the same one frodo-cli uses, pinned by its full commit SHA with the version as
+  a comment) for Dependabot pull requests and in a daily sweep: it arms
   `gh pr merge --auto --squash` only for patch/minor updates of the group
   `tooling` whose every lockfile version is at least 7 days old (npm
   registry); majors, the manual set, bundled packages and GitHub Actions stay
-  manual. (Dependabot "rules" in settings only triage alerts.) The tests
-  `src/dependabotAutoMerge.unit.test.ts` and `src/dependabotPolicy.unit.test.ts`
-  run in `Validate guidance` whenever one of these three files changes.
+  manual. (Dependabot "rules" in settings only triage alerts.) The action reads
+  the tooling list from `dependabot.yml` on the default branch and checks out
+  nothing; the job does not run for the Dependabot pull requests that move the
+  pin (branches `dependabot/github_actions/`), so that a new, unread version of
+  the action never runs with the write token before a person has read it.
+  The tests `src/dependabotPolicy.unit.test.ts` and
+  `src/dependabotWorkflow.unit.test.ts` run in `Validate guidance` whenever one
+  of the two policy files (`dependabot.yml`, the workflow) changes.
+  **A new version of the action** arrives as a Dependabot pull request for
+  GitHub Actions (our own actions are not delayed by the cooldown); a person
+  reads what changed in the action, merges it, and then starts the workflow by
+  hand with the dry run on (`gh workflow run dependabot-auto-merge.yml -f
+  dry-run=true`), reads the verdicts in the log, and only then lets the next
+  Dependabot pull request through.
 - Known GitHub quirk (hit 3× on 2026-10-03): mergeability lags behind green
   check-runs — combined commit status `pending` with 0 statuses,
   `mergeStateStatus` BLOCKED/UNKNOWN despite all-success check-runs. Wait
@@ -369,4 +382,5 @@ update pull request that skipped it.
 | 2026-11-01 | The `push` trigger of `pipeline.yml` ignores the rest of what the classifier calls non-code (the Markdown files of the root such as `AGENTS.md` and `CLAUDE.md`, `LICENSE`, `decisions/`, `.claude/skills/`, `.github/instructions/`, `.github/ISSUE_TEMPLATE/`, `CODEOWNERS`, `dependabot.yml`, `copilot-instructions.md`): a merge of a pull request that changed only these started the whole pipeline for files no test builds. Guidance files are in it too, as `PIPELINE.md` and `CONTRIBUTE.md` already were; their pull request ran `Validate guidance`. `src/pipelineWorkflow.test.ts` pins the list against the classifier | — |
 | 2026-11-10 | The `Proxy Tests` step of the `Test` job runs `npm run test:proxy` (the named proxy tests and a live probe through the squid container, `FRODO_PROXY_LIVE=1`, which warns and skips the request through the proxy while the tenant does not answer 2xx without it) instead of the whole suite a second time; a jest setup file hides the proxy variables of the machine from every test file, which fixes 11 suites that failed behind a dead proxy; `src/pipelineWorkflow.test.ts` pins the step; decision `0017` | #982            |
 | 2026-11-14 | Dependabot policy (core `0023`): 7-day cooldown, bundled packages and the bundler one pull request each, only the named `tooling` group auto-merges and only for lockfile versions 7 days old, GitHub Actions never; the three policy files (`.github/dependabot.yml`, `.github/workflows/dependabot-auto-merge.yml`, `scripts/dependabot-auto-merge.mjs`) count as guidance and their two tests run in `Validate guidance` | #1091, #1092, this PR |
+| 2026-11-15 | The decision of the Dependabot auto-merge moves out of this repository: `dependabot-auto-merge.yml` calls the shared action [gearsnlevers/dependabot-auto-merge-action](https://github.com/gearsnlevers/dependabot-auto-merge-action) (v1.0.0, pinned by its full commit SHA, also used by frodo-cli); `scripts/dependabot-auto-merge.mjs` and its test are deleted; `src/dependabotWorkflow.unit.test.ts` pins the properties of the workflow, and the guidance job runs it and `src/dependabotPolicy.unit.test.ts`; the job skips the Dependabot pull requests that move the pin; the manual run has a `dry-run` input; a security update of a tooling package is armed after the age test, as core `0023` says (the own script refused it, the action does not) | #1093 (this PR) |
 | planned    | Polly→nock — DEFERRED (deep record-harness coupling; revisit on Node 28 or real breakage)                                                                                                                                                                           | —               |
