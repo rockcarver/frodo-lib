@@ -30,6 +30,7 @@ const repair = jest.fn(
   })
 );
 jest.unstable_mockModule('./idmFeature/IdmFeatureHandlers', () => ({
+  listIdmFeatureHandlerIds: () => ['aiagent'],
   getIdmFeatureHandler: (featureId: string) =>
     featureId === 'aiagent' ? { diagnose: jest.fn(), plan, repair } : undefined,
 }));

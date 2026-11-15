@@ -26,6 +26,7 @@ const diagnose = jest.fn(async (_state?: any): Promise<any> => ({
   findings: [],
 }));
 jest.unstable_mockModule('./idmFeature/IdmFeatureHandlers', () => ({
+  listIdmFeatureHandlerIds: () => ['aiagent'],
   getIdmFeatureHandler: (featureId: string) =>
     featureId === 'aiagent' ? { diagnose } : undefined,
 }));

@@ -74,3 +74,12 @@ export function getIdmFeatureHandler(
     ? handlers[featureId]
     : undefined;
 }
+
+/**
+ * The ids of the features that have a handler, that is the features the library can diagnose and repair. It reads the
+ * same registry as {@link getIdmFeatureHandler}, so a feature that gets a handler is listed without a second edit.
+ * @returns {string[]} the feature ids, a new array on every call
+ */
+export function listIdmFeatureHandlerIds(): string[] {
+  return Object.keys(handlers);
+}

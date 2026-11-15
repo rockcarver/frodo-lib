@@ -3133,6 +3133,12 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'cloud.idmFeature.readIdmFeatures': { mutating: false, riskClass: 'low' },
   'cloud.idmFeature.readIdmFeature': { mutating: false, riskClass: 'low' },
   'cloud.idmFeature.hasIdmFeature': { mutating: false, riskClass: 'low' },
+  'cloud.idmFeature.canDiagnoseIdmFeature': {
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      "Read-only and local: says whether the library has a diagnosis and repair for an IDM feature id (today only aiagent), from the library's own list. It sends no request and needs no login.",
+  },
   'cloud.idmFeature.validateIdmFeature': {
     mutating: false,
     riskClass: 'low',
