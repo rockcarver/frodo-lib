@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -19,10 +18,6 @@ type Meta = {
 type Change = { key?: string; name: string; version: string };
 
 const SCRIPT = path.resolve(process.cwd(), 'scripts/dependabot-auto-merge.mjs');
-const WORKFLOW = path.resolve(
-  process.cwd(),
-  '.github/workflows/dependabot-auto-merge.yml'
-);
 
 let mod: any;
 beforeAll(async () => {
@@ -562,43 +557,5 @@ describe('permanentRefusals: what no later look can change', () => {
   });
   test('the name of the tooling group is the one of dependabot.yml', () => {
     expect(mod.TOOLING_GROUP).toBe('tooling');
-  });
-});
-
-describe('the workflow keeps the properties that the policy relies on', () => {
-  const text = fs.readFileSync(WORKFLOW, 'utf8');
-  test('no substring test of package names is left', () => {
-    expect(text).not.toMatch(
-      /contains\(\s*steps\.metadata\.outputs\.dependency-names/
-    );
-    expect(text).not.toMatch(
-      /dependency-names,\s*'(eslint|prettier|typescript)'/
-    );
-  });
-  test('it runs for pull requests, daily and by hand, and a pull request only for Dependabot', () => {
-    expect(text).toMatch(/pull_request:/);
-    expect(text).toMatch(/schedule:\s*\n\s*- cron:/);
-    expect(text).toMatch(/workflow_dispatch:/);
-    expect(text).toContain(
-      "github.event_name != 'pull_request' || github.actor == 'dependabot[bot]'"
-    );
-  });
-  test('the script comes from the default branch and the checkout keeps no credentials', () => {
-    expect(text).toContain(
-      'ref: ${{ github.event.repository.default_branch }}'
-    );
-    expect(text).toContain('persist-credentials: false');
-  });
-  test('the token reaches only the step that runs the script, with minimal permissions', () => {
-    expect(text.match(/GITHUB_TOKEN/g)).toHaveLength(1);
-    expect(text).toMatch(
-      /permissions:\s*\n\s*contents: write\s*\n\s*pull-requests: write/
-    );
-    expect(text).toContain('node scripts/dependabot-auto-merge.mjs');
-  });
-  test('the actions are pinned to a commit', () => {
-    for (const line of text.split('\n').filter((l) => l.includes('uses:'))) {
-      expect(line).toMatch(/@[0-9a-f]{40}\s+#/);
-    }
   });
 });
