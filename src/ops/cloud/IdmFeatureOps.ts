@@ -9,7 +9,10 @@ import {
 } from '../../api/cloud/IdmFeatureApi';
 import { State } from '../../shared/State';
 import { FrodoError, isNotFoundError } from '../FrodoError';
-import { getIdmFeatureHandler } from './idmFeature/IdmFeatureHandlers';
+import {
+  getIdmFeatureHandler,
+  listIdmFeatureHandlerIds,
+} from './idmFeature/IdmFeatureHandlers';
 import {
   IdmFeatureDiagnosis,
   IdmFeatureRepairExecutionOptions,
@@ -93,7 +96,8 @@ export type IdmFeature = {
   /**
    * Find out why an IDM tenant-configuration feature reads as not installed or does not work. Read-only: it
    * changes nothing in the tenant. The library has a diagnosis for the feature `aiagent`; for any other feature the
-   * result has `supported: false` and no findings, and only the registry entry is reported.
+   * result has `supported: false` and no findings, and only the registry entry is reported (`canDiagnoseIdmFeature` and
+   * `listDiagnosableIdmFeatures` say which features have a diagnosis, without a request).
    *
    * The result is `{ featureId, supported, installedVersion, availableVersions, findings }`. A finding has an `id`
    * that names the condition (`definitions-cosmetic-drift`, `provider-auth-service-not-set`, `gate-closed`,
@@ -117,8 +121,28 @@ export type IdmFeature = {
    */
   diagnoseIdmFeature(featureId: string): Promise<IdmFeatureDiagnosis>;
   /**
+   * Find out whether the library can diagnose (and repair) an IDM tenant-configuration feature, that is whether
+   * `diagnoseIdmFeature` judges it or only reports its registry entry (`supported: false`). The answer comes from the
+   * library's own list of features it knows (see `listDiagnosableIdmFeatures`): it is synchronous, sends no request and
+   * needs no login, so a caller can ask before it asks the tenant anything. It says what the library knows, not what a
+   * tenant has: a feature the library can diagnose may be absent from a tenant, and a feature the tenant has may be one
+   * the library cannot diagnose.
+   * @param {string} featureId feature id, e.g. 'aiagent'
+   * @returns {boolean} true if the library can diagnose the feature, false for any other id (an empty or unknown one included)
+   */
+  canDiagnoseIdmFeature(featureId: string): boolean;
+  /**
+   * List the ids of the IDM tenant-configuration features that the library can diagnose (and repair): today `aiagent`.
+   * Synchronous, sends no request and needs no login. The list is the library's own registry, so a feature that gets a
+   * diagnosis is in it without a second edit, and `canDiagnoseIdmFeature` is true for exactly the ids in it. Every call
+   * returns a new array that the caller may change.
+   * @returns {string[]} the feature ids
+   */
+  listDiagnosableIdmFeatures(): string[];
+  /**
    * Plan the repair of what `diagnoseIdmFeature` finds wrong with a feature, without writing anything. The library can
-   * repair the feature `aiagent`; for any other feature this throws.
+   * repair the feature `aiagent`; for any other feature this throws (`canDiagnoseIdmFeature` says whether a feature can
+   * be repaired, without a request).
    *
    * The result is a plan: `{ featureId, options, diagnosis, repairable, blockers, steps, backup, normalised,
    * customizations }`. `steps` are the writes, itemised and in the order they run (delete secret store mappings that
@@ -206,6 +230,12 @@ export default (state: State): IdmFeature => {
     },
     async diagnoseIdmFeature(featureId: string): Promise<IdmFeatureDiagnosis> {
       return diagnoseIdmFeature({ featureId, state });
+    },
+    canDiagnoseIdmFeature(featureId: string): boolean {
+      return canDiagnoseIdmFeature({ featureId });
+    },
+    listDiagnosableIdmFeatures(): string[] {
+      return listDiagnosableIdmFeatures();
     },
     async planIdmFeatureRepair(
       featureId: string,
@@ -325,6 +355,28 @@ export async function installIdmFeature({
   } catch (error) {
     throw new FrodoError(`Error installing IDM feature ${featureId}`, error);
   }
+}
+
+/**
+ * Whether the library has a diagnosis (and a repair) for a feature. No request, no state: the registry of handlers
+ * is the only source, the same one `diagnoseIdmFeature`, `planIdmFeatureRepair` and `repairIdmFeature` use.
+ * @param {{ featureId: string }} params the feature id
+ * @returns {boolean} true if the library can diagnose the feature
+ */
+export function canDiagnoseIdmFeature({
+  featureId,
+}: {
+  featureId: string;
+}): boolean {
+  return getIdmFeatureHandler(featureId) !== undefined;
+}
+
+/**
+ * The ids of the features the library can diagnose, from the registry of handlers.
+ * @returns {string[]} the feature ids, a new array on every call
+ */
+export function listDiagnosableIdmFeatures(): string[] {
+  return listIdmFeatureHandlerIds();
 }
 
 export async function diagnoseIdmFeature({
