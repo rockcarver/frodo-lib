@@ -97,3 +97,53 @@ describe('the IDM feature capabilities under the policy presets', () => {
     });
   });
 });
+
+/**
+ * Origin: frodo-lib#1100. `canDiagnoseIdmFeature` and `listDiagnosableIdmFeatures` answer from the library's own
+ * registry, with no request and no login. What a client is told about them has to say so: low risk, read-only,
+ * nothing destructive. The metadata is reviewed by a person (decisions/0001); this test pins what it says.
+ */
+describe('the capabilities that say which features the library can diagnose', () => {
+  const CAN = 'cloud.idmFeature.canDiagnoseIdmFeature';
+  const LIST = 'cloud.idmFeature.listDiagnosableIdmFeatures';
+  const inventory = buildCapabilityInventory(frodo, {
+    includeTopLevelDomains: ['cloud'],
+    includeUtils: false,
+  });
+  const byId = (id: string) =>
+    inventory.find((capability) => capability.id === id)!;
+  const offered = (preset: keyof typeof MCP_POLICY_PRESETS) =>
+    applyCapabilityPolicy(
+      inventory.filter((capability) => [CAN, LIST].includes(capability.id)),
+      MCP_POLICY_PRESETS[preset]
+    )
+      .map((capability) => capability.id)
+      .sort();
+
+  test('both are in the inventory', () => {
+    expect(byId(CAN)).toBeDefined();
+    expect(byId(LIST)).toBeDefined();
+  });
+
+  test.each([CAN, LIST])('%s is a low-risk read that changes nothing', (id) => {
+    expect(byId(id)).toMatchObject({
+      riskClass: 'low',
+      annotations: { readOnlyHint: true, destructiveHint: false },
+    });
+  });
+
+  test('canDiagnoseIdmFeature is a special capability, the list an ordinary list operation', () => {
+    expect(byId(CAN).kind).toBe('special');
+    expect(byId(LIST)).toMatchObject({
+      kind: 'generic',
+      operationType: 'list',
+    });
+  });
+
+  test('every preset offers the list, and every preset but read-only offers canDiagnoseIdmFeature too', () => {
+    expect(offered('read-only')).toEqual([LIST]);
+    for (const preset of ['agentic', 'standard', 'admin'] as const) {
+      expect(offered(preset)).toEqual([CAN, LIST].sort());
+    }
+  });
+});
