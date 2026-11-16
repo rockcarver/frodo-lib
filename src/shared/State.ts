@@ -151,6 +151,31 @@ export type State = {
    * @returns {boolean} true if `setAirGapped(true)` was called
    */
   getAirGapped(): boolean;
+  /**
+   * Let the placeholders `${NAME}` of the files that the library reads (`readJsonFile`, and the readers built on it, with
+   * placeholders resolved) fall back to the environment variables of the process: a placeholder is filled from the
+   * value that this state holds for the name (`setEnv`, `setEnvs`) and, only when the state holds none, from the
+   * variable of that name in the environment of the process. A name that has no value in either still fails with the
+   * error that names the placeholder. An empty value counts as a value.
+   *
+   * Off by default and not persisted: the state does not read the switch from the environment, a connection profile or a
+   * file, so the caller decides every time. It is off because a file that names `${SOME_VARIABLE}` would otherwise copy a
+   * variable of the process into whatever the file is written to, and the library is embedded in programs that run with
+   * environments of their own. It changes nothing for a caller that does not turn it on.
+   *
+   * The reverse direction never reads the process environment, switch or not: an export replaces the values that this
+   * state holds with their `${NAME}` placeholder, and nothing else. The substitution of the configuration objects of
+   * IDM when they are imported (`importConfigEntities`) also uses the values of the state only, because those objects
+   * may legitimately contain `${...}` in the source of a script.
+   * @param {boolean} use true to turn the fallback on
+   */
+  setUseProcessEnvironmentForPlaceholders(use: boolean): void;
+  /**
+   * Whether the fallback of placeholders to the environment of the process is on (see
+   * `setUseProcessEnvironmentForPlaceholders`).
+   * @returns {boolean} true if `setUseProcessEnvironmentForPlaceholders(true)` was called
+   */
+  getUseProcessEnvironmentForPlaceholders(): boolean;
   setCookieName(name: string): void;
   getCookieName(): string;
   setUserSessionTokenMeta(value: UserSessionMetaType): void;
@@ -587,6 +612,12 @@ export default (initialState: StateInterface): State => {
     },
     getAirGapped() {
       return state.airGapped === true;
+    },
+    setUseProcessEnvironmentForPlaceholders(use: boolean) {
+      state.useProcessEnvironmentForPlaceholders = use;
+    },
+    getUseProcessEnvironmentForPlaceholders() {
+      return state.useProcessEnvironmentForPlaceholders === true;
     },
 
     setCookieName(name: string) {
@@ -1113,6 +1144,8 @@ export interface StateInterface {
   adminClientRedirectUri?: string;
   allowInsecureConnection?: boolean;
   airGapped?: boolean;
+  // fill placeholders from the environment of the process (off by default)
+  useProcessEnvironmentForPlaceholders?: boolean;
   // customize authentication
   authenticationHeaderOverrides?: Record<string, string>;
   authenticationService?: string;
