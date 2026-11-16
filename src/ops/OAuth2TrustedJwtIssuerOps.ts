@@ -16,6 +16,21 @@ import { FrodoError, isNotFoundError } from './FrodoError';
 import { routeAgentSection } from './internal/AgentSectionRouting';
 import { type ExportMetaData, type ResultCallback } from './OpsTypes';
 
+/**
+ * Callback that tells the caller which attributes of a trusted jwt issuer were left out. The server refuses an attribute
+ * that it does not know ("Invalid attribute specified."); the library then leaves the unknown top-level attributes out of
+ * a copy of the body and sends it once more (and prints one warning). When the issuer was stored without such attributes,
+ * the callback is called once for that issuer, after the second request has succeeded. It is not called when nothing was
+ * left out, and not when the issuer could not be stored. The callback should not throw: an error it throws ends that call
+ * with that error (an import of several issuers reports it as the failure of that one issuer).
+ * @param {string} issuerId the id of the trusted jwt issuer that was stored without the attributes
+ * @param {string[]} attributes the names of the top-level attributes that were left out (the names the warning prints); a new array that the callback may keep
+ */
+export type OAuth2TrustedJwtIssuerLeftOutAttributesCallback = (
+  issuerId: string,
+  attributes: string[]
+) => void;
+
 export type OAuth2TrustedJwtIssuer = {
   /**
    * Create an empty OAuth2 trusted jwt issuer export template
@@ -36,27 +51,33 @@ export type OAuth2TrustedJwtIssuer = {
     issuerId: string
   ): Promise<OAuth2TrustedJwtIssuerSkeleton>;
   /**
-   * Create OAuth2 trusted jwt issuer
+   * Create OAuth2 trusted jwt issuer. The server refuses an attribute that it does not know: see `updateOAuth2TrustedJwtIssuer`
+   * for what happens then.
    * @param {string} issuerId trusted jwt issuer id
    * @param {any} issuerData trusted jwt issuer object
+   * @param {OAuth2TrustedJwtIssuerLeftOutAttributesCallback} leftOutCallback Optional callback that is told which attributes were left out of the stored issuer
    * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to an trusted jwt issuer object
    */
   createOAuth2TrustedJwtIssuer(
     issuerId: string,
-    issuerData: OAuth2TrustedJwtIssuerSkeleton
+    issuerData: OAuth2TrustedJwtIssuerSkeleton,
+    leftOutCallback?: OAuth2TrustedJwtIssuerLeftOutAttributesCallback
   ): Promise<OAuth2TrustedJwtIssuerSkeleton>;
   /**
    * Update or create OAuth2 trusted jwt issuer. When the server refuses the body with "Invalid attribute specified." and
    * the body has top-level attributes that the server does not list as valid, only those attributes are left out of a
    * copy of the body, which is sent once more, and a warning names them; the object that was passed in is not changed.
    * When no top-level attribute is unknown, nothing is sent a second time and the error says what the server accepts.
+   * A caller that must not store less than it was given passes a `leftOutCallback`: it is told which attributes were left out.
    * @param {string} issuerId trusted jwt issuer id
    * @param {any} issuerData trusted jwt issuer object
+   * @param {OAuth2TrustedJwtIssuerLeftOutAttributesCallback} leftOutCallback Optional callback that is called once, with the id of the issuer and the names of the attributes, when the issuer was stored without attributes of the body
    * @returns {Promise<any>} a promise that resolves to an trusted jwt issuer object
    */
   updateOAuth2TrustedJwtIssuer(
     issuerId: string,
-    issuerData: OAuth2TrustedJwtIssuerSkeleton
+    issuerData: OAuth2TrustedJwtIssuerSkeleton,
+    leftOutCallback?: OAuth2TrustedJwtIssuerLeftOutAttributesCallback
   ): Promise<OAuth2TrustedJwtIssuerSkeleton>;
   /**
    * Delete all OAuth2 trusted jwt issuers. Every issuer is tried: an issuer that cannot be deleted does not stop the others.
@@ -99,34 +120,41 @@ export type OAuth2TrustedJwtIssuer = {
    * @param {string} issuerId trusted jwt issuer id
    * @param {OAuth2TrustedJwtIssuerImportData} importData import data: an export of trusted jwt issuers, or an agent export (4.x) that holds trusted jwt issuers in its agent section
    * @param {OAuth2TrustedJwtIssuerImportOptions} options deprecated, has no effect: a trusted jwt issuer has no scripts
+   * @param {OAuth2TrustedJwtIssuerLeftOutAttributesCallback} leftOutCallback Optional callback that is called once per issuer, with its id and the names of the attributes, when the issuer was stored without attributes of its body (see `updateOAuth2TrustedJwtIssuer`)
    * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to the imported trusted jwt issuer
    */
   importOAuth2TrustedJwtIssuer(
     issuerId: string,
     importData: OAuth2TrustedJwtIssuerImportData,
-    options?: OAuth2TrustedJwtIssuerImportOptions
+    options?: OAuth2TrustedJwtIssuerImportOptions,
+    leftOutCallback?: OAuth2TrustedJwtIssuerLeftOutAttributesCallback
   ): Promise<OAuth2TrustedJwtIssuerSkeleton>;
   /**
    * Import first OAuth2 trusted jwt issuer. The import data is not modified.
    * @param {OAuth2TrustedJwtIssuerImportData} importData import data: an export of trusted jwt issuers, or an agent export (4.x) that holds trusted jwt issuers in its agent section
    * @param {OAuth2TrustedJwtIssuerImportOptions} options deprecated, has no effect: a trusted jwt issuer has no scripts
+   * @param {OAuth2TrustedJwtIssuerLeftOutAttributesCallback} leftOutCallback Optional callback that is called once per issuer, with its id and the names of the attributes, when the issuer was stored without attributes of its body (see `updateOAuth2TrustedJwtIssuer`)
+   * @param {OAuth2TrustedJwtIssuerLeftOutAttributesCallback} leftOutCallback Optional callback that is told which attributes were left out of the stored issuer (see {@link updateOAuth2TrustedJwtIssuer})
    * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to the imported trusted jwt issuer
    */
   importFirstOAuth2TrustedJwtIssuer(
     importData: OAuth2TrustedJwtIssuerImportData,
-    options?: OAuth2TrustedJwtIssuerImportOptions
+    options?: OAuth2TrustedJwtIssuerImportOptions,
+    leftOutCallback?: OAuth2TrustedJwtIssuerLeftOutAttributesCallback
   ): Promise<OAuth2TrustedJwtIssuerSkeleton>;
   /**
    * Import OAuth2 trusted jwt issuers. The import data is not modified. Every issuer is tried: an issuer that cannot be imported does not stop the others. Import data without issuers is an empty import.
    * @param {OAuth2TrustedJwtIssuerImportData} importData import data: an export of trusted jwt issuers, or an agent export (4.x) that holds trusted jwt issuers in its agent section
    * @param {OAuth2TrustedJwtIssuerImportOptions} options deprecated, has no effect: a trusted jwt issuer has no scripts
    * @param {ResultCallback<OAuth2TrustedJwtIssuerSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every issuer is passed to it as it happens (a failed issuer as an error that names it) and a failed issuer does not throw. Without it, the failures are collected and thrown as one error after every issuer was tried.
+   * @param {OAuth2TrustedJwtIssuerLeftOutAttributesCallback} leftOutCallback Optional callback that is called once per issuer, with its id and the names of the attributes, when the issuer was stored without attributes of its body (see `updateOAuth2TrustedJwtIssuer`)
    * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise that resolves to an array of the imported trusted jwt issuers
    */
   importOAuth2TrustedJwtIssuers(
     importData: OAuth2TrustedJwtIssuerImportData,
     options?: OAuth2TrustedJwtIssuerImportOptions,
-    resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>
+    resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>,
+    leftOutCallback?: OAuth2TrustedJwtIssuerLeftOutAttributesCallback
   ): Promise<OAuth2TrustedJwtIssuerSkeleton[]>;
 };
 
@@ -147,15 +175,27 @@ export default (state: State): OAuth2TrustedJwtIssuer => {
     },
     async createOAuth2TrustedJwtIssuer(
       issuerId: string,
-      issuerData: OAuth2TrustedJwtIssuerSkeleton
+      issuerData: OAuth2TrustedJwtIssuerSkeleton,
+      leftOutCallback?: OAuth2TrustedJwtIssuerLeftOutAttributesCallback
     ): Promise<OAuth2TrustedJwtIssuerSkeleton> {
-      return createOAuth2TrustedJwtIssuer({ issuerId, issuerData, state });
+      return createOAuth2TrustedJwtIssuer({
+        issuerId,
+        issuerData,
+        leftOutCallback,
+        state,
+      });
     },
     async updateOAuth2TrustedJwtIssuer(
       issuerId: string,
-      issuerData: OAuth2TrustedJwtIssuerSkeleton
+      issuerData: OAuth2TrustedJwtIssuerSkeleton,
+      leftOutCallback?: OAuth2TrustedJwtIssuerLeftOutAttributesCallback
     ): Promise<OAuth2TrustedJwtIssuerSkeleton> {
-      return updateOAuth2TrustedJwtIssuer({ issuerId, issuerData, state });
+      return updateOAuth2TrustedJwtIssuer({
+        issuerId,
+        issuerData,
+        leftOutCallback,
+        state,
+      });
     },
     async deleteOAuth2TrustedJwtIssuers(
       resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>
@@ -180,27 +220,38 @@ export default (state: State): OAuth2TrustedJwtIssuer => {
     },
     async importOAuth2TrustedJwtIssuer(
       issuerId: string,
-      importData: OAuth2TrustedJwtIssuerImportData
+      importData: OAuth2TrustedJwtIssuerImportData,
+      _options?: OAuth2TrustedJwtIssuerImportOptions,
+      leftOutCallback?: OAuth2TrustedJwtIssuerLeftOutAttributesCallback
     ) {
       return importOAuth2TrustedJwtIssuer({
         issuerId,
         importData,
+        leftOutCallback,
         state,
       });
     },
     async importFirstOAuth2TrustedJwtIssuer(
-      importData: OAuth2TrustedJwtIssuerImportData
+      importData: OAuth2TrustedJwtIssuerImportData,
+      _options?: OAuth2TrustedJwtIssuerImportOptions,
+      leftOutCallback?: OAuth2TrustedJwtIssuerLeftOutAttributesCallback
     ) {
-      return importFirstOAuth2TrustedJwtIssuer({ importData, state });
+      return importFirstOAuth2TrustedJwtIssuer({
+        importData,
+        leftOutCallback,
+        state,
+      });
     },
     async importOAuth2TrustedJwtIssuers(
       importData: OAuth2TrustedJwtIssuerImportData,
       _options?: OAuth2TrustedJwtIssuerImportOptions,
-      resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>
+      resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>,
+      leftOutCallback?: OAuth2TrustedJwtIssuerLeftOutAttributesCallback
     ): Promise<OAuth2TrustedJwtIssuerSkeleton[]> {
       return importOAuth2TrustedJwtIssuers({
         importData,
         resultCallback,
+        leftOutCallback,
         state,
       });
     },
@@ -357,17 +408,22 @@ export async function readOAuth2TrustedJwtIssuer({
 
 /**
  * Create OAuth2 trusted jwt issuer
- * @param {string} issuerId trusted jwt issuer id
- * @param {OAuth2TrustedJwtIssuerSkeleton | NoIdObjectSkeletonInterface} issuerData trusted jwt issuer object
+ * @param {object} params structured and named parameters
+ * @param {string} params.issuerId trusted jwt issuer id
+ * @param {OAuth2TrustedJwtIssuerSkeleton | NoIdObjectSkeletonInterface} params.issuerData trusted jwt issuer object
+ * @param {OAuth2TrustedJwtIssuerLeftOutAttributesCallback} params.leftOutCallback Optional callback that is told which attributes were left out of the stored issuer (see {@link updateOAuth2TrustedJwtIssuer})
+ * @param {State} params.state state object
  * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to an trusted jwt issuer object
  */
 export async function createOAuth2TrustedJwtIssuer({
   issuerId,
   issuerData,
+  leftOutCallback,
   state,
 }: {
   issuerId: string;
   issuerData: OAuth2TrustedJwtIssuerSkeleton | NoIdObjectSkeletonInterface;
+  leftOutCallback?: OAuth2TrustedJwtIssuerLeftOutAttributesCallback;
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerSkeleton> {
   debugMessage({
@@ -387,6 +443,7 @@ export async function createOAuth2TrustedJwtIssuer({
       const result = await updateOAuth2TrustedJwtIssuer({
         issuerId,
         issuerData,
+        leftOutCallback,
         state,
       });
       debugMessage({
@@ -411,17 +468,23 @@ export async function createOAuth2TrustedJwtIssuer({
  * the body has top-level attributes that the server does not list as valid, only those attributes are left out of a
  * copy of the body, which is sent once more, and a warning names them; the object that was passed in is not changed.
  * When no top-level attribute is unknown, nothing is sent a second time and the error says what the server accepts.
- * @param {string} issuerId trusted jwt issuer id
- * @param {any} issuerData trusted jwt issuer object
+ * A caller that must not store less than it was given passes a `leftOutCallback`: it is told which attributes were left out.
+ * @param {object} params structured and named parameters
+ * @param {string} params.issuerId trusted jwt issuer id
+ * @param {any} params.issuerData trusted jwt issuer object
+ * @param {OAuth2TrustedJwtIssuerLeftOutAttributesCallback} params.leftOutCallback Optional callback that is called once, with the id of the issuer and the names of the attributes, when the issuer was stored without attributes of the body. It is called after the second request has succeeded, not when nothing was left out and not when the issuer could not be stored
+ * @param {State} params.state state object
  * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to an trusted jwt issuer object
  */
 export async function updateOAuth2TrustedJwtIssuer({
   issuerId,
   issuerData,
+  leftOutCallback,
   state,
 }: {
   issuerId: string;
   issuerData: OAuth2TrustedJwtIssuerSkeleton | NoIdObjectSkeletonInterface;
+  leftOutCallback?: OAuth2TrustedJwtIssuerLeftOutAttributesCallback;
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerSkeleton> {
   debugMessage({
@@ -471,6 +534,7 @@ export async function updateOAuth2TrustedJwtIssuer({
           error
         );
       }
+      let response: OAuth2TrustedJwtIssuerSkeleton;
       try {
         // Work on a copy: the object of the caller keeps what the server
         // rejected. Only the attributes that the server does not know are
@@ -484,22 +548,26 @@ export async function updateOAuth2TrustedJwtIssuer({
           type: 'warn',
           state,
         });
-        const response = await _putOAuth2TrustedJwtIssuer({
+        response = await _putOAuth2TrustedJwtIssuer({
           id: issuerId,
           issuerData: retryData,
           state,
         });
-        debugMessage({
-          message: `OAuth2TrustedJwtIssuerOps.putOAuth2TrustedJwtIssuer: end`,
-          state,
-        });
-        return response;
       } catch (error) {
         throw new FrodoError(
           `Error updating ${getCurrentRealmName(state) + ' realm'} trusted issuer ${issuerId}`,
           error
         );
       }
+      debugMessage({
+        message: `OAuth2TrustedJwtIssuerOps.putOAuth2TrustedJwtIssuer: end`,
+        state,
+      });
+      // The issuer is stored: tell the caller what is missing from it. This
+      // is outside the try block on purpose, so that a callback that throws
+      // is not reported as a failed update of an issuer that was stored.
+      leftOutCallback?.(issuerId, [...invalidAttributes]);
+      return response;
     } else {
       throw new FrodoError(
         `Error updating ${getCurrentRealmName(state) + ' realm'} trusted issuer ${issuerId}`,
@@ -674,15 +742,18 @@ export async function exportOAuth2TrustedJwtIssuer({
  * Import OAuth2 trusted jwt issuer by ID. The import data is not modified.
  * @param {string} issuerId trusted jwt issuer id
  * @param {OAuth2TrustedJwtIssuerImportData} importData import data: an export of trusted jwt issuers, or an agent export (4.x) that holds trusted jwt issuers in its agent section
+ * @param {OAuth2TrustedJwtIssuerLeftOutAttributesCallback} leftOutCallback Optional callback that is told which attributes were left out of the stored issuer (see {@link updateOAuth2TrustedJwtIssuer})
  * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to the imported trusted jwt issuer
  */
 export async function importOAuth2TrustedJwtIssuer({
   issuerId,
   importData,
+  leftOutCallback,
   state,
 }: {
   issuerId: string;
   importData: OAuth2TrustedJwtIssuerImportData;
+  leftOutCallback?: OAuth2TrustedJwtIssuerLeftOutAttributesCallback;
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerSkeleton> {
   let response = null;
@@ -698,6 +769,7 @@ export async function importOAuth2TrustedJwtIssuer({
         response = await updateOAuth2TrustedJwtIssuer({
           issuerId: id,
           issuerData,
+          leftOutCallback,
           state,
         });
         imported.push(id);
@@ -727,9 +799,11 @@ export async function importOAuth2TrustedJwtIssuer({
  */
 export async function importFirstOAuth2TrustedJwtIssuer({
   importData,
+  leftOutCallback,
   state,
 }: {
   importData: OAuth2TrustedJwtIssuerImportData;
+  leftOutCallback?: OAuth2TrustedJwtIssuerLeftOutAttributesCallback;
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerSkeleton> {
   let response = null;
@@ -744,6 +818,7 @@ export async function importFirstOAuth2TrustedJwtIssuer({
       response = await updateOAuth2TrustedJwtIssuer({
         issuerId: id,
         issuerData,
+        leftOutCallback,
         state,
       });
       imported.push(id);
@@ -770,6 +845,7 @@ export async function importFirstOAuth2TrustedJwtIssuer({
  * @param {object} params structured and named parameters
  * @param {OAuth2TrustedJwtIssuerImportData} params.importData import data: an export of trusted jwt issuers, or an agent export (4.x) that holds trusted jwt issuers in its agent section
  * @param {ResultCallback<OAuth2TrustedJwtIssuerSkeleton>} params.resultCallback Optional callback to process individual results. When given, the outcome of every issuer is passed to it as it happens (a failed issuer as an error that names it) and a failed issuer does not throw. Without it, the failures are collected and thrown as one error after every issuer was tried.
+ * @param {OAuth2TrustedJwtIssuerLeftOutAttributesCallback} params.leftOutCallback Optional callback that is called once per issuer that was stored without attributes of its body, with the id of the issuer and the names of the attributes (see {@link updateOAuth2TrustedJwtIssuer})
  * @param {State} params.state state object
  * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise that resolves to an array of the imported trusted jwt issuers
  * @throws {FrodoError} If one or more issuers cannot be imported and there is no result callback.
@@ -777,10 +853,12 @@ export async function importFirstOAuth2TrustedJwtIssuer({
 export async function importOAuth2TrustedJwtIssuers({
   importData,
   resultCallback,
+  leftOutCallback,
   state,
 }: {
   importData: OAuth2TrustedJwtIssuerImportData;
   resultCallback?: ResultCallback<OAuth2TrustedJwtIssuerSkeleton>;
+  leftOutCallback?: OAuth2TrustedJwtIssuerLeftOutAttributesCallback;
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerSkeleton[]> {
   const response: OAuth2TrustedJwtIssuerSkeleton[] = [];
@@ -800,6 +878,7 @@ export async function importOAuth2TrustedJwtIssuers({
       issuer = await updateOAuth2TrustedJwtIssuer({
         issuerId: id,
         issuerData,
+        leftOutCallback,
         state,
       });
     } catch (error) {

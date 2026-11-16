@@ -934,14 +934,21 @@ describe('MCP capability foundation', () => {
       const rawActualNames = extractParameterNames(
         method as (...args: unknown[]) => unknown
       );
-      // A trailing resultCallback is a JS function reference, not something
-      // an MCP JSON namedArgs payload can ever carry — every bulk
-      // export/delete-style method across the ops layer has one, and
-      // omitting it from the descriptor is correct, not a gap.
-      const actualNames =
-        rawActualNames[rawActualNames.length - 1] === 'resultCallback'
-          ? rawActualNames.slice(0, -1)
-          : rawActualNames;
+      // Trailing callbacks (a resultCallback, a leftOutCallback) are JS
+      // function references, not something an MCP JSON namedArgs payload can
+      // ever carry — every bulk export/delete-style method across the ops
+      // layer has a resultCallback, the trusted JWT issuer writes have a
+      // leftOutCallback (frodo-lib#1107), and omitting them from the
+      // descriptor is correct, not a gap.
+      const actualNames = [...rawActualNames];
+      while (
+        actualNames.length > 0 &&
+        ['resultCallback', 'leftOutCallback'].includes(
+          actualNames[actualNames.length - 1]
+        )
+      ) {
+        actualNames.pop();
+      }
       const declaredNames = parameters
         .slice()
         .sort(

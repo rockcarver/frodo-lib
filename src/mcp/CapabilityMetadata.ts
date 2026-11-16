@@ -2400,6 +2400,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'oauth2oidc.issuer.createOAuth2TrustedJwtIssuer': {
     argumentMode: 'named',
+    excludeParameters: ['leftOutCallback'],
     parameterOverrides: {
       issuerId: {
         description: 'Trusted JWT issuer id to create.',
@@ -2422,6 +2423,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'oauth2oidc.issuer.updateOAuth2TrustedJwtIssuer': {
     argumentMode: 'named',
+    excludeParameters: ['leftOutCallback'],
     parameterOverrides: {
       issuerId: {
         description: 'Trusted JWT issuer id to update.',
@@ -2442,6 +2444,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Update or upsert a trusted JWT issuer. Prefer namedArgs { issuerId, issuerData }. Same trust-anchor exposure as createOAuth2TrustedJwtIssuer.',
   },
+  // The left-out-attributes callback of the issuer writes is a JS function reference like a result callback: no MCP payload carries it.
   // Trust-anchor writes (trusted JWT issuers and CIMD profiles) are reviewed
   // together: create, update and import are all `high`, not `critical`, so that
   // agent-assisted setup stays possible under the `agentic` preset (which
@@ -2449,19 +2452,21 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   // The notes say what the write registers; imports carry the same exposure as
   // the single writes and had no entry before.
   'oauth2oidc.issuer.importOAuth2TrustedJwtIssuer': {
+    excludeParameters: ['leftOutCallback'],
     mutating: true,
     riskClass: 'high',
     notes:
       'Import a trusted JWT issuer from an export. Writes a trust anchor (issuer + public JWKS) accepted for the already-critical RFC 7523 JWT-bearer grant — auth-bypass-adjacent if misconfigured. Same trust-anchor exposure as createOAuth2TrustedJwtIssuer.',
   },
   'oauth2oidc.issuer.importFirstOAuth2TrustedJwtIssuer': {
+    excludeParameters: ['leftOutCallback'],
     mutating: true,
     riskClass: 'high',
     notes:
       'Import the first trusted JWT issuer of an export. Writes a trust anchor (issuer + public JWKS) accepted for the already-critical RFC 7523 JWT-bearer grant — auth-bypass-adjacent if misconfigured. Same trust-anchor exposure as createOAuth2TrustedJwtIssuer.',
   },
   'oauth2oidc.issuer.importOAuth2TrustedJwtIssuers': {
-    excludeParameters: ['resultCallback'],
+    excludeParameters: ['resultCallback', 'leftOutCallback'],
     mutating: true,
     riskClass: 'high',
     notes:
