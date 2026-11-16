@@ -918,7 +918,33 @@ export function readJsonFile({
 }
 
 /**
- * Replace environment placeholders with their resolved values.
+ * The value for the name of a placeholder: the value that the state holds for the name (`setEnv`, `setEnvs`) and,
+ * only when the state holds none and the state's switch is on (`setUseProcessEnvironmentForPlaceholders`), the
+ * variable of that name in the environment of the process. The process environment is an object that inherits from
+ * `Object.prototype`, so only the variables the process itself has count: a name such as `constructor` is no variable.
+ * The value of a variable is never put into a message.
+ * @param {string} name the name of the placeholder, without `${` and `}`
+ * @param {State} state the state that holds the values (and the switch)
+ * @returns {string | undefined} the value (an empty string is a value), or undefined if there is none
+ */
+function placeholderValue(name: string, state: State): string | undefined {
+  const fromState = state.getEnv(name);
+  if (fromState !== undefined) {
+    return fromState;
+  }
+  // optional call: a partial state (a test double, an older embedder) has no switch, which means off
+  if (!state.getUseProcessEnvironmentForPlaceholders?.()) {
+    return undefined;
+  }
+  return Object.prototype.hasOwnProperty.call(process.env, name)
+    ? process.env[name]
+    : undefined;
+}
+
+/**
+ * Replace environment placeholders with their resolved values. A placeholder is filled from the values of the state
+ * (`setEnv`, `setEnvs`); with `setUseProcessEnvironmentForPlaceholders(true)` a name that the state holds no value for is
+ * filled from the environment of the process. A name with no value anywhere fails with an error that names it.
  * @param {string} content the raw file content to resolve placeholders in
  * @returns {string} the content with all placeholders resolved and escaped placeholders unescaped
  */
@@ -946,7 +972,7 @@ export function replaceEnvSpecificValues({
         BASE64_PRE_ENCODED_PREFIX.length
       );
     }
-    const value = state.getEnv(placeholderName);
+    const value = placeholderValue(placeholderName, state);
     if (value === undefined) {
       throw new FrodoError(
         `No value found for placeholder "${placeholderName}"`

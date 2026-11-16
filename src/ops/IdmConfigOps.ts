@@ -1152,6 +1152,14 @@ export async function removeSubConfigEntity({
   }
 }
 
+/**
+ * On export, replace the values that the state holds (`setEnv`, `setEnvs`) in a configuration object with their
+ * `${KEY}` placeholder. Only the values of the state count: the environment of the process is never read in this
+ * direction, whatever `setUseProcessEnvironmentForPlaceholders` says.
+ * @param {IdObjectSkeletonInterface} entity the configuration object
+ * @param {State} state the state that holds the values
+ * @returns {IdObjectSkeletonInterface} the object with the placeholders
+ */
 function substituteEntityWithEnv(
   entity: IdObjectSkeletonInterface,
   state: State
@@ -1169,6 +1177,16 @@ function substituteEntityWithEnv(
   return JSON.parse(configEntityString);
 }
 
+/**
+ * On import, replace the `${KEY}` placeholders of the keys that the state holds (`setEnv`, `setEnvs`) in a configuration
+ * object with their values. Unlike the files that `readJsonFile` resolves, a configuration object of IDM may legitimately
+ * contain `${...}` (the source of a script, a template literal), and a name that the state does not hold is left alone, so
+ * the environment of the process is NOT consulted here, whatever `setUseProcessEnvironmentForPlaceholders` says: a
+ * script that mentions `${HOME}` must not become the home directory of the machine that runs the import.
+ * @param {IdObjectSkeletonInterface} entity the configuration object
+ * @param {State} state the state that holds the values
+ * @returns {IdObjectSkeletonInterface} the object with the values
+ */
 function unSubstituteEntityWithEnv(
   entity: IdObjectSkeletonInterface,
   state: State
