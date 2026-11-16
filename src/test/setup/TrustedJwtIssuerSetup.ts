@@ -89,16 +89,22 @@ export const sparse = (n: number): NoIdObjectSkeletonInterface => ({
   allowedSubjects: { inherited: false, value: [] },
 });
 
-/** The server refuses this attribute */
+/** The server does not know this attribute: the module leaves it out and writes the issuer again, which is accepted */
 export const unknownAttribute = (n: number): NoIdObjectSkeletonInterface => ({
   issuer: `https://issuer${n}.matrix.example.com`,
   bogusAttribute: 'x',
 });
 
-/** The server refuses this group of attributes, whose members the module removes before it tries again */
+/** The server does not know this group: it is one attribute, which the module leaves out as a whole before it writes again */
 export const unknownGroup = (n: number): NoIdObjectSkeletonInterface => ({
   issuer: `https://issuer${n}.matrix.example.com`,
   legacyGroup: { x: 1, y: 2 },
+});
+
+/** The server refuses the VALUE of a known attribute (a status 400 that is not about an unknown attribute: no second write) */
+export const refusedValue = (n: number): NoIdObjectSkeletonInterface => ({
+  issuer: `https://issuer${n}.matrix.example.com`,
+  jwksCacheTimeout: 'abc',
 });
 
 /** The agent type an issuer carries in an export of agents */
@@ -247,6 +253,7 @@ export const requests: {
   method: string;
   path: string;
   headers: Record<string, string>;
+  body?: string;
 }[] = [];
 
 /**
@@ -279,6 +286,7 @@ export function setup() {
       requests.push({
         method: req.method,
         path: req.pathname,
+        body: typeof req.body === 'string' ? req.body : undefined,
         headers: Object.fromEntries(
           Object.entries(req.headers).map(([k, v]) => [
             k.toLowerCase(),

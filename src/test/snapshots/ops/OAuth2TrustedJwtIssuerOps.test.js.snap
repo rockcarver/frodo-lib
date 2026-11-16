@@ -236,78 +236,70 @@ exports[`OAuth2TrustedJwtIssuerOps Cloud Tests createOAuth2TrustedJwtIssuer() 4:
 
 exports[`OAuth2TrustedJwtIssuerOps Cloud Tests createOAuth2TrustedJwtIssuer() 5: Create a trusted JWT issuer with an attribute the server does not know 1`] = `
 {
-  "causes": [
-    {
-      "causes": [
-        {
-          "data": {
-            "code": 400,
-            "detail": {
-              "validAttributes": [
-                "agentgroup",
-                "allowedSubjects",
-                "consentedScopesClaim",
-                "issuer",
-                "jwkSet",
-                "jwkStoreCacheMissCacheTime",
-                "jwksCacheTimeout",
-                "jwksUri",
-                "resourceOwnerIdentityClaim",
-              ],
-            },
-            "message": "Invalid attribute specified.",
-            "reason": "Bad Request",
-          },
-          "message": "Request failed with status code 400",
-          "name": "AxiosError",
-          "status": 400,
-        },
-      ],
-      "message": "Error updating bravo realm trusted issuer FrodoTestIssuerUnknown",
-      "name": "FrodoError",
+  "result": {
+    "hasRevision": true,
+    "id": "FrodoTestIssuerUnknown",
+    "members": [
+      "allowedSubjects",
+      "consentedScopesClaim",
+      "issuer",
+      "jwkSet",
+      "jwkStoreCacheMissCacheTime",
+      "jwksCacheTimeout",
+      "jwksUri",
+      "resourceOwnerIdentityClaim",
+    ],
+    "nulls": [],
+    "type": {
+      "_id": "TrustedJwtIssuer",
+      "collection": true,
+      "name": "OAuth2 Trusted JWT Issuer",
     },
-  ],
-  "message": "Error creating bravo realm trusted issuer FrodoTestIssuerUnknown",
-  "name": "FrodoError",
+    "wrapped": [
+      "allowedSubjects",
+      "consentedScopesClaim",
+      "issuer",
+      "jwkSet",
+      "jwkStoreCacheMissCacheTime",
+      "jwksCacheTimeout",
+      "jwksUri",
+      "resourceOwnerIdentityClaim",
+    ],
+  },
 }
 `;
 
 exports[`OAuth2TrustedJwtIssuerOps Cloud Tests createOAuth2TrustedJwtIssuer() 6: Create a trusted JWT issuer with a group of attributes the server does not know 1`] = `
 {
-  "error": {
-    "causes": [
-      {
-        "causes": [
-          {
-            "data": {
-              "code": 400,
-              "detail": {
-                "validAttributes": [
-                  "agentgroup",
-                  "allowedSubjects",
-                  "consentedScopesClaim",
-                  "issuer",
-                  "jwkSet",
-                  "jwkStoreCacheMissCacheTime",
-                  "jwksCacheTimeout",
-                  "jwksUri",
-                  "resourceOwnerIdentityClaim",
-                ],
-              },
-              "message": "Invalid attribute specified.",
-              "reason": "Bad Request",
-            },
-            "message": "Request failed with status code 400",
-            "name": "AxiosError",
-            "status": 400,
-          },
-        ],
-        "message": "Error updating bravo realm trusted issuer FrodoTestIssuerLegacy",
-        "name": "FrodoError",
-      },
+  "result": {
+    "hasRevision": true,
+    "id": "FrodoTestIssuerLegacy",
+    "members": [
+      "allowedSubjects",
+      "consentedScopesClaim",
+      "issuer",
+      "jwkSet",
+      "jwkStoreCacheMissCacheTime",
+      "jwksCacheTimeout",
+      "jwksUri",
+      "resourceOwnerIdentityClaim",
     ],
-    "message": "Error creating bravo realm trusted issuer FrodoTestIssuerLegacy",
-    "name": "FrodoError",
+    "nulls": [],
+    "type": {
+      "_id": "TrustedJwtIssuer",
+      "collection": true,
+      "name": "OAuth2 Trusted JWT Issuer",
+    },
+    "wrapped": [
+      "allowedSubjects",
+      "consentedScopesClaim",
+      "issuer",
+      "jwkSet",
+      "jwkStoreCacheMissCacheTime",
+      "jwksCacheTimeout",
+      "jwksUri",
+      "resourceOwnerIdentityClaim",
+    ],
   },
 }
 `;
@@ -479,7 +471,9 @@ exports[`OAuth2TrustedJwtIssuerOps Cloud Tests exportOAuth2TrustedJwtIssuers() 1
 [
   "FrodoTestIssuerUpsert",
   "FrodoTestIssuer1",
+  "FrodoTestIssuerLegacy",
   "FrodoTestIssuer2",
+  "FrodoTestIssuerUnknown",
   "FrodoTestIssuer3",
 ]
 `;
@@ -537,12 +531,64 @@ exports[`OAuth2TrustedJwtIssuerOps Cloud Tests exportOAuth2TrustedJwtIssuers() 1
   },
   {
     "hasRevision": true,
+    "id": "FrodoTestIssuerLegacy",
+    "members": [
+      "agentgroup",
+      "allowedSubjects",
+      "consentedScopesClaim",
+      "issuer",
+      "jwkSet",
+      "jwkStoreCacheMissCacheTime",
+      "jwksCacheTimeout",
+      "jwksUri",
+      "resourceOwnerIdentityClaim",
+    ],
+    "nulls": [
+      "agentgroup",
+      "jwkSet",
+      "jwksUri",
+    ],
+    "type": {
+      "_id": "TrustedJwtIssuer",
+      "collection": true,
+      "name": "OAuth2 Trusted JWT Issuer",
+    },
+    "wrapped": [],
+  },
+  {
+    "hasRevision": true,
     "id": "FrodoTestIssuer2",
     "members": [
       "allowedSubjects",
       "issuer",
     ],
     "nulls": [],
+    "type": {
+      "_id": "TrustedJwtIssuer",
+      "collection": true,
+      "name": "OAuth2 Trusted JWT Issuer",
+    },
+    "wrapped": [],
+  },
+  {
+    "hasRevision": true,
+    "id": "FrodoTestIssuerUnknown",
+    "members": [
+      "agentgroup",
+      "allowedSubjects",
+      "consentedScopesClaim",
+      "issuer",
+      "jwkSet",
+      "jwkStoreCacheMissCacheTime",
+      "jwksCacheTimeout",
+      "jwksUri",
+      "resourceOwnerIdentityClaim",
+    ],
+    "nulls": [
+      "agentgroup",
+      "jwkSet",
+      "jwksUri",
+    ],
     "type": {
       "_id": "TrustedJwtIssuer",
       "collection": true,
@@ -588,7 +634,13 @@ exports[`OAuth2TrustedJwtIssuerOps Cloud Tests exportOAuth2TrustedJwtIssuers() 2
     "result": "FrodoTestIssuer1",
   },
   {
+    "result": "FrodoTestIssuerLegacy",
+  },
+  {
     "result": "FrodoTestIssuer2",
+  },
+  {
+    "result": "FrodoTestIssuerUnknown",
   },
   {
     "result": "FrodoTestIssuer3",
@@ -678,39 +730,22 @@ exports[`OAuth2TrustedJwtIssuerOps Cloud Tests importOAuth2TrustedJwtIssuer() 3:
 
 exports[`OAuth2TrustedJwtIssuerOps Cloud Tests importOAuth2TrustedJwtIssuer() 4: Import a trusted JWT issuer with an attribute the server does not know 1`] = `
 {
-  "causes": [
-    {
-      "causes": [
-        {
-          "data": {
-            "code": 400,
-            "detail": {
-              "validAttributes": [
-                "agentgroup",
-                "allowedSubjects",
-                "consentedScopesClaim",
-                "issuer",
-                "jwkSet",
-                "jwkStoreCacheMissCacheTime",
-                "jwksCacheTimeout",
-                "jwksUri",
-                "resourceOwnerIdentityClaim",
-              ],
-            },
-            "message": "Invalid attribute specified.",
-            "reason": "Bad Request",
-          },
-          "message": "Request failed with status code 400",
-          "name": "AxiosError",
-          "status": 400,
-        },
-      ],
-      "message": "Error updating bravo realm trusted issuer FrodoTestIssuerUnknown",
-      "name": "FrodoError",
+  "result": {
+    "hasRevision": true,
+    "id": "FrodoTestIssuerUnknown",
+    "members": [
+      "issuer",
+    ],
+    "nulls": [],
+    "type": {
+      "_id": "TrustedJwtIssuer",
+      "collection": true,
+      "name": "OAuth2 Trusted JWT Issuer",
     },
-  ],
-  "message": "Error importing bravo realm trusted issuer FrodoTestIssuerUnknown",
-  "name": "FrodoError",
+    "wrapped": [
+      "issuer",
+    ],
+  },
 }
 `;
 
@@ -793,20 +828,7 @@ exports[`OAuth2TrustedJwtIssuerOps Cloud Tests importOAuth2TrustedJwtIssuers() 2
             {
               "data": {
                 "code": 400,
-                "detail": {
-                  "validAttributes": [
-                    "agentgroup",
-                    "allowedSubjects",
-                    "consentedScopesClaim",
-                    "issuer",
-                    "jwkSet",
-                    "jwkStoreCacheMissCacheTime",
-                    "jwksCacheTimeout",
-                    "jwksUri",
-                    "resourceOwnerIdentityClaim",
-                  ],
-                },
-                "message": "Invalid attribute specified.",
+                "message": "Invalid attribute value syntax: 'abc' Attribute name: com.forgerock.openam.oauth2provider.jwksCacheTimeout",
                 "reason": "Bad Request",
               },
               "message": "Request failed with status code 400",
@@ -814,11 +836,11 @@ exports[`OAuth2TrustedJwtIssuerOps Cloud Tests importOAuth2TrustedJwtIssuers() 2
               "status": 400,
             },
           ],
-          "message": "Error updating bravo realm trusted issuer FrodoTestIssuerUnknown",
+          "message": "Error updating bravo realm trusted issuer FrodoTestIssuerRefused",
           "name": "FrodoError",
         },
       ],
-      "message": "Error importing bravo realm trusted issuer FrodoTestIssuerUnknown",
+      "message": "Error importing bravo realm trusted issuer FrodoTestIssuerRefused",
       "name": "FrodoError",
     },
   },
@@ -867,20 +889,7 @@ exports[`OAuth2TrustedJwtIssuerOps Cloud Tests importOAuth2TrustedJwtIssuers() 3
             {
               "data": {
                 "code": 400,
-                "detail": {
-                  "validAttributes": [
-                    "agentgroup",
-                    "allowedSubjects",
-                    "consentedScopesClaim",
-                    "issuer",
-                    "jwkSet",
-                    "jwkStoreCacheMissCacheTime",
-                    "jwksCacheTimeout",
-                    "jwksUri",
-                    "resourceOwnerIdentityClaim",
-                  ],
-                },
-                "message": "Invalid attribute specified.",
+                "message": "Invalid attribute value syntax: 'abc' Attribute name: com.forgerock.openam.oauth2provider.jwksCacheTimeout",
                 "reason": "Bad Request",
               },
               "message": "Request failed with status code 400",
@@ -888,11 +897,11 @@ exports[`OAuth2TrustedJwtIssuerOps Cloud Tests importOAuth2TrustedJwtIssuers() 3
               "status": 400,
             },
           ],
-          "message": "Error updating bravo realm trusted issuer FrodoTestIssuerUnknown",
+          "message": "Error updating bravo realm trusted issuer FrodoTestIssuerRefused",
           "name": "FrodoError",
         },
       ],
-      "message": "Error importing bravo realm trusted issuer FrodoTestIssuerUnknown",
+      "message": "Error importing bravo realm trusted issuer FrodoTestIssuerRefused",
       "name": "FrodoError",
     },
   ],
@@ -994,6 +1003,32 @@ exports[`OAuth2TrustedJwtIssuerOps Cloud Tests readOAuth2TrustedJwtIssuers() wit
   },
   {
     "hasRevision": true,
+    "id": "FrodoTestIssuerLegacy",
+    "members": [
+      "agentgroup",
+      "allowedSubjects",
+      "consentedScopesClaim",
+      "issuer",
+      "jwkSet",
+      "jwkStoreCacheMissCacheTime",
+      "jwksCacheTimeout",
+      "jwksUri",
+      "resourceOwnerIdentityClaim",
+    ],
+    "nulls": [
+      "agentgroup",
+      "jwkSet",
+      "jwksUri",
+    ],
+    "type": {
+      "_id": "TrustedJwtIssuer",
+      "collection": true,
+      "name": "OAuth2 Trusted JWT Issuer",
+    },
+    "wrapped": [],
+  },
+  {
+    "hasRevision": true,
     "id": "FrodoTestIssuer2",
     "members": [
       "agentgroup",
@@ -1009,6 +1044,32 @@ exports[`OAuth2TrustedJwtIssuerOps Cloud Tests readOAuth2TrustedJwtIssuers() wit
     "nulls": [
       "agentgroup",
       "jwkSet",
+    ],
+    "type": {
+      "_id": "TrustedJwtIssuer",
+      "collection": true,
+      "name": "OAuth2 Trusted JWT Issuer",
+    },
+    "wrapped": [],
+  },
+  {
+    "hasRevision": true,
+    "id": "FrodoTestIssuerUnknown",
+    "members": [
+      "agentgroup",
+      "allowedSubjects",
+      "consentedScopesClaim",
+      "issuer",
+      "jwkSet",
+      "jwkStoreCacheMissCacheTime",
+      "jwksCacheTimeout",
+      "jwksUri",
+      "resourceOwnerIdentityClaim",
+    ],
+    "nulls": [
+      "agentgroup",
+      "jwkSet",
+      "jwksUri",
     ],
     "type": {
       "_id": "TrustedJwtIssuer",
