@@ -204,29 +204,32 @@ describe('OAuth2TrustedJwtIssuerOps', () => {
           expect(summarizeError(error)).toMatchSnapshot();
         });
 
-        // SKIPPED until it is recorded again on a tenant: the module now leaves out the unknown top-level
-        // attribute and sends the issuer a second time without it, a request that this recording does not hold
-        // (a recording is never edited by hand). Record it, remove the skip and review the snapshot.
-        test.skip('5: Create a trusted JWT issuer with an attribute the server does not know', async () => {
-          const error = await failure(
+        test('5: Create a trusted JWT issuer with an attribute the server does not know', async () => {
+          const outcome = await settle(
             IssuerOps.createOAuth2TrustedJwtIssuer({
               issuerId: 'FrodoTestIssuerUnknown',
               issuerData: TestData.unknownAttribute(5),
               state,
-            })
+            }),
+            TestData.shapeOf
           );
-          // the module tries again without the attributes the server names, which does not help for a plain value
-          expect(
-            TestData.requests.filter((request) => request.method === 'PUT')
-          ).toHaveLength(2);
-          expect(summarizeError(error)).toMatchSnapshot();
+          // the first write is refused for the attribute the server does not know; the module leaves out that
+          // attribute (and nothing else) and writes again, and the second write is accepted
+          const writes = TestData.requests.filter(
+            (request) => request.method === 'PUT'
+          );
+          expect(writes).toHaveLength(2);
+          expect(JSON.parse(writes[0].body)).toHaveProperty('bogusAttribute');
+          expect(JSON.parse(writes[1].body)).not.toHaveProperty(
+            'bogusAttribute'
+          );
+          expect(JSON.parse(writes[1].body)).toHaveProperty('issuer');
+          expect(outcome).toMatchSnapshot();
         });
 
-        // SKIPPED until it is recorded again on a tenant: the module now leaves out the unknown top-level
-        // attribute and sends the issuer a second time without it, a request that this recording does not hold
-        // (a recording is never edited by hand). Record it, remove the skip and review the snapshot.
-        test.skip('6: Create a trusted JWT issuer with a group of attributes the server does not know', async () => {
-          // the module removes the members of the group before it tries again: whatever the server makes of what is left
+        test('6: Create a trusted JWT issuer with a group of attributes the server does not know', async () => {
+          // the group is one attribute that the server does not know: the module leaves it out as a whole before it
+          // writes again, and the second write is accepted
           const outcome = await settle(
             IssuerOps.createOAuth2TrustedJwtIssuer({
               issuerId: 'FrodoTestIssuerLegacy',
@@ -235,10 +238,12 @@ describe('OAuth2TrustedJwtIssuerOps', () => {
             }),
             TestData.shapeOf
           );
-          // the first write is refused, the second one (without the members of the group) is refused too
-          expect(
-            TestData.requests.filter((request) => request.method === 'PUT')
-          ).toHaveLength(2);
+          const writes = TestData.requests.filter(
+            (request) => request.method === 'PUT'
+          );
+          expect(writes).toHaveLength(2);
+          expect(JSON.parse(writes[0].body)).toHaveProperty('legacyGroup');
+          expect(JSON.parse(writes[1].body)).not.toHaveProperty('legacyGroup');
           expect(outcome).toMatchSnapshot();
         });
       });
@@ -443,20 +448,26 @@ describe('OAuth2TrustedJwtIssuerOps', () => {
           expect(summarizeError(error)).toMatchSnapshot();
         });
 
-        // SKIPPED until it is recorded again on a tenant: the module now leaves out the unknown top-level
-        // attribute and sends the issuer a second time without it, a request that this recording does not hold
-        // (a recording is never edited by hand). Record it, remove the skip and review the snapshot.
-        test.skip('4: Import a trusted JWT issuer with an attribute the server does not know', async () => {
-          const error = await failure(
+        test('4: Import a trusted JWT issuer with an attribute the server does not know', async () => {
+          const outcome = await settle(
             IssuerOps.importOAuth2TrustedJwtIssuer({
               issuerId: 'FrodoTestIssuerUnknown',
               importData: importOf({
                 FrodoTestIssuerUnknown: TestData.unknownAttribute(4),
               }),
               state,
-            })
+            }),
+            TestData.shapeOf
           );
-          expect(summarizeError(error)).toMatchSnapshot();
+          // the first write is refused for the attribute the server does not know, the second one has it left out
+          const writes = TestData.requests.filter(
+            (request) => request.method === 'PUT'
+          );
+          expect(writes).toHaveLength(2);
+          expect(JSON.parse(writes[1].body)).not.toHaveProperty(
+            'bogusAttribute'
+          );
+          expect(outcome).toMatchSnapshot();
         });
       });
 
@@ -523,34 +534,29 @@ describe('OAuth2TrustedJwtIssuerOps', () => {
           expect(calls).toMatchSnapshot();
         });
 
-        // SKIPPED until it is recorded again on a tenant: the module now leaves out the unknown top-level
-        // attribute and sends the issuer a second time without it, a request that this recording does not hold
-        // (a recording is never edited by hand). Record it, remove the skip and review the snapshot.
-        test.skip('2: Import trusted JWT issuers (one is refused by the server) with a result callback', async () => {
+        test('2: Import trusted JWT issuers (one is refused by the server) with a result callback', async () => {
           const { calls, callback } = collector<{ _id: string }>((issuer) =>
             TestData.shapeOf(issuer)
           );
           const response = await IssuerOps.importOAuth2TrustedJwtIssuers({
             importData: importOf({
-              FrodoTestIssuerUnknown: TestData.unknownAttribute(2),
+              FrodoTestIssuerRefused: TestData.refusedValue(2),
               [TestData.ids.issuer7]: TestData.withJwksUri(7),
             }),
             resultCallback: callback,
             state,
           });
-          // the callback tells each item as it happens, the failed item as an error that names it
+          // the server refuses the value of one issuer (a refusal that is not about an unknown attribute, so the module
+          // does not try again): the callback tells each item as it happens, the failed item as an error that names it
           expect(response).toHaveLength(1);
           expect(calls).toMatchSnapshot();
         });
 
-        // SKIPPED until it is recorded again on a tenant: the module now leaves out the unknown top-level
-        // attribute and sends the issuer a second time without it, a request that this recording does not hold
-        // (a recording is never edited by hand). Record it, remove the skip and review the snapshot.
-        test.skip('3: Import trusted JWT issuers (one is refused by the server) without a result callback', async () => {
+        test('3: Import trusted JWT issuers (one is refused by the server) without a result callback', async () => {
           const error = await failure(
             IssuerOps.importOAuth2TrustedJwtIssuers({
               importData: importOf({
-                FrodoTestIssuerUnknown: TestData.unknownAttribute(3),
+                FrodoTestIssuerRefused: TestData.refusedValue(3),
                 [TestData.ids.issuer7]: TestData.withJwksUri(7),
               }),
               state,
