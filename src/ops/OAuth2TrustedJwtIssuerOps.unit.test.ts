@@ -1218,3 +1218,294 @@ describe('the result callback of the bulk functions', () => {
     });
   });
 });
+
+describe('the attributes that were left out reach the caller (frodo-lib#1107)', () => {
+  /** The server refuses a body that has the unknown attribute, whatever the issuer, and takes any other. */
+  function serverRefusesUnknownAttribute(): void {
+    putOAuth2TrustedJwtIssuer.mockImplementation(async (args?: any) => {
+      if (Object.keys(args.issuerData).some((key) => /^zz/.test(key))) {
+        throw invalidAttributeError(VALID_ATTRIBUTES);
+      }
+      return args.issuerData;
+    });
+  }
+
+  test('update: one callback, with the id and the names, after the second request has succeeded', async () => {
+    serverRefusesUnknownAttribute();
+    const callsWhenCalled: number[] = [];
+    const leftOutCallback = jest.fn(
+      (_issuerId: string, _attributes: string[]) =>
+        callsWhenCalled.push(putOAuth2TrustedJwtIssuer.mock.calls.length)
+    );
+
+    const response = await updateOAuth2TrustedJwtIssuer({
+      issuerId: 'matrix-issuer',
+      issuerData: wrappedIssuer({ zzUnknownAttribute: { value: 'x' } }),
+      leftOutCallback,
+      state: mockState(),
+    });
+
+    expect(leftOutCallback).toHaveBeenCalledTimes(1);
+    expect(leftOutCallback).toHaveBeenCalledWith('matrix-issuer', [
+      'zzUnknownAttribute',
+    ]);
+    // both requests were made when the callback was called: it follows the stored issuer
+    expect(callsWhenCalled).toEqual([2]);
+    // the answer is the stored issuer without the attribute, as it is without a callback
+    expect(response).toEqual(wrappedIssuer());
+  });
+
+  test('update: every left-out attribute is named, in the order of the body, in an array that the callback may keep and change', async () => {
+    serverRefusesUnknownAttribute();
+    const kept: string[][] = [];
+    const leftOutCallback = (_issuerId: string, attributes: string[]) => {
+      kept.push(attributes);
+      attributes.push('changed by the callback');
+    };
+
+    await updateOAuth2TrustedJwtIssuer({
+      issuerId: 'matrix-issuer',
+      issuerData: wrappedIssuer({
+        zzUnknownAttribute: { value: 'x' },
+        zzOtherAttribute: { value: 'y' },
+      }),
+      leftOutCallback,
+      state: mockState(),
+    });
+    await updateOAuth2TrustedJwtIssuer({
+      issuerId: 'matrix-issuer',
+      issuerData: wrappedIssuer({ zzThird: { value: 'z' } }),
+      leftOutCallback,
+      state: mockState(),
+    });
+
+    expect(kept[0].slice(0, 2)).toEqual([
+      'zzUnknownAttribute',
+      'zzOtherAttribute',
+    ]);
+    // a new array every time: the change of the first call does not reach the second
+    expect(kept[1]).toEqual(['zzThird', 'changed by the callback']);
+    expect(kept[0]).not.toBe(kept[1]);
+  });
+
+  test('update: nothing left out, nothing reported, and the answer is the one without a callback', async () => {
+    const leftOutCallback = jest.fn();
+    const issuerData = wrappedIssuer();
+
+    const withCallback = await updateOAuth2TrustedJwtIssuer({
+      issuerId: 'matrix-issuer',
+      issuerData,
+      leftOutCallback,
+      state: mockState(),
+    });
+    const withoutCallback = await updateOAuth2TrustedJwtIssuer({
+      issuerId: 'matrix-issuer',
+      issuerData,
+      state: mockState(),
+    });
+
+    expect(leftOutCallback).not.toHaveBeenCalled();
+    expect(withCallback).toEqual(withoutCallback);
+    expect(putOAuth2TrustedJwtIssuer).toHaveBeenCalledTimes(2);
+  });
+
+  test('update: the issuer could not be stored (the second request fails): nothing is reported as left out', async () => {
+    putOAuth2TrustedJwtIssuer
+      .mockRejectedValueOnce(invalidAttributeError(VALID_ATTRIBUTES))
+      .mockRejectedValueOnce(requestError(500, 'Internal Server Error'));
+    const leftOutCallback = jest.fn();
+
+    const error = await rejection(() =>
+      updateOAuth2TrustedJwtIssuer({
+        issuerId: 'matrix-issuer',
+        issuerData: wrappedIssuer({ zzUnknownAttribute: { value: 'x' } }),
+        leftOutCallback,
+        state: mockState(),
+      })
+    );
+
+    expect(error.message).toContain('Error updating');
+    expect(leftOutCallback).not.toHaveBeenCalled();
+  });
+
+  test('update: a refusal that names no unknown attribute is no retry and nothing is reported', async () => {
+    putOAuth2TrustedJwtIssuer.mockRejectedValueOnce(
+      invalidAttributeError(VALID_ATTRIBUTES)
+    );
+    const leftOutCallback = jest.fn();
+
+    const error = await rejection(() =>
+      updateOAuth2TrustedJwtIssuer({
+        issuerId: 'matrix-issuer',
+        issuerData: wrappedIssuer(),
+        leftOutCallback,
+        state: mockState(),
+      })
+    );
+
+    expect(error.message).toContain(
+      'none of the attributes of the issuer is unknown'
+    );
+    expect(putOAuth2TrustedJwtIssuer).toHaveBeenCalledTimes(1);
+    expect(leftOutCallback).not.toHaveBeenCalled();
+  });
+
+  test('update: a callback that throws is not turned into a failed update of an issuer that was stored', async () => {
+    serverRefusesUnknownAttribute();
+    const thrown = new Error('the callback of the caller failed');
+
+    const error = await rejection(() =>
+      updateOAuth2TrustedJwtIssuer({
+        issuerId: 'matrix-issuer',
+        issuerData: wrappedIssuer({ zzUnknownAttribute: { value: 'x' } }),
+        leftOutCallback: () => {
+          throw thrown;
+        },
+        state: mockState(),
+      })
+    );
+
+    expect(error).toBe(thrown);
+    // the issuer was stored: the second request succeeded
+    expect(putOAuth2TrustedJwtIssuer).toHaveBeenCalledTimes(2);
+  });
+
+  test('create: the callback is told, like the update that it makes', async () => {
+    serverRefusesUnknownAttribute();
+    getOAuth2TrustedJwtIssuer.mockRejectedValue(requestError(404, 'Not Found'));
+    const leftOutCallback = jest.fn();
+
+    const ops = OAuth2TrustedJwtIssuerOps(mockState());
+    await ops.createOAuth2TrustedJwtIssuer(
+      'matrix-issuer',
+      wrappedIssuer({ zzUnknownAttribute: { value: 'x' } }),
+      leftOutCallback
+    );
+
+    expect(leftOutCallback).toHaveBeenCalledTimes(1);
+    expect(leftOutCallback).toHaveBeenCalledWith('matrix-issuer', [
+      'zzUnknownAttribute',
+    ]);
+  });
+
+  test('the facade of update passes the callback on', async () => {
+    serverRefusesUnknownAttribute();
+    const leftOutCallback = jest.fn();
+
+    const ops = OAuth2TrustedJwtIssuerOps(mockState());
+    await ops.updateOAuth2TrustedJwtIssuer(
+      'matrix-issuer',
+      wrappedIssuer({ zzUnknownAttribute: { value: 'x' } }),
+      leftOutCallback
+    );
+
+    expect(leftOutCallback).toHaveBeenCalledWith('matrix-issuer', [
+      'zzUnknownAttribute',
+    ]);
+  });
+
+  test('import of one issuer by id: told for that issuer only', async () => {
+    serverRefusesUnknownAttribute();
+    const importData = sampleExport('matrix-one', 'matrix-two');
+    (importData.trustedJwtIssuer['matrix-two'] as any).zzUnknownAttribute = {
+      value: 'x',
+    };
+    const leftOutCallback = jest.fn();
+
+    const ops = OAuth2TrustedJwtIssuerOps(mockState());
+    await ops.importOAuth2TrustedJwtIssuer(
+      'matrix-two',
+      importData,
+      undefined,
+      leftOutCallback
+    );
+
+    expect(leftOutCallback).toHaveBeenCalledTimes(1);
+    expect(leftOutCallback).toHaveBeenCalledWith('matrix-two', [
+      'zzUnknownAttribute',
+    ]);
+  });
+
+  test('import of the first issuer: told for the first issuer', async () => {
+    serverRefusesUnknownAttribute();
+    const importData = sampleExport('matrix-one', 'matrix-two');
+    (importData.trustedJwtIssuer['matrix-one'] as any).zzUnknownAttribute = {
+      value: 'x',
+    };
+    const leftOutCallback = jest.fn();
+
+    const ops = OAuth2TrustedJwtIssuerOps(mockState());
+    await ops.importFirstOAuth2TrustedJwtIssuer(
+      importData,
+      undefined,
+      leftOutCallback
+    );
+
+    expect(leftOutCallback).toHaveBeenCalledTimes(1);
+    expect(leftOutCallback).toHaveBeenCalledWith('matrix-one', [
+      'zzUnknownAttribute',
+    ]);
+  });
+
+  test('import of all issuers: once per issuer that was stored without attributes, with its own id and names, and the other callback and the answer are as before', async () => {
+    serverRefusesUnknownAttribute();
+    const importData = sampleExport('matrix-one', 'matrix-two', 'matrix-three');
+    (importData.trustedJwtIssuer['matrix-one'] as any).zzUnknownAttribute = {
+      value: 'x',
+    };
+    (importData.trustedJwtIssuer['matrix-three'] as any).zzOtherAttribute = {
+      value: 'y',
+    };
+    const leftOutCallback = jest.fn();
+    const resultCallback = jest.fn();
+
+    const ops = OAuth2TrustedJwtIssuerOps(mockState());
+    const imported = await ops.importOAuth2TrustedJwtIssuers(
+      importData,
+      undefined,
+      resultCallback,
+      leftOutCallback
+    );
+
+    expect(leftOutCallback.mock.calls).toEqual([
+      ['matrix-one', ['zzUnknownAttribute']],
+      ['matrix-three', ['zzOtherAttribute']],
+    ]);
+    // the clean issuer is not reported, and every issuer is a result as before
+    expect(resultCallback).toHaveBeenCalledTimes(3);
+    expect(
+      resultCallback.mock.calls.every(([error]) => error === undefined)
+    ).toBe(true);
+    expect(imported).toHaveLength(3);
+  });
+
+  test('import of all issuers: an issuer that fails is not reported as stored without attributes', async () => {
+    putOAuth2TrustedJwtIssuer.mockImplementation(async (args?: any) => {
+      if (args.issuerData._id === 'matrix-one') {
+        if ('zzUnknownAttribute' in args.issuerData) {
+          throw invalidAttributeError(VALID_ATTRIBUTES);
+        }
+        throw requestError(500, 'Internal Server Error');
+      }
+      return args.issuerData;
+    });
+    const importData = sampleExport('matrix-one', 'matrix-two');
+    (importData.trustedJwtIssuer['matrix-one'] as any).zzUnknownAttribute = {
+      value: 'x',
+    };
+    const leftOutCallback = jest.fn();
+    const resultCallback = jest.fn();
+
+    const ops = OAuth2TrustedJwtIssuerOps(mockState());
+    await ops.importOAuth2TrustedJwtIssuers(
+      importData,
+      undefined,
+      resultCallback,
+      leftOutCallback
+    );
+
+    expect(leftOutCallback).not.toHaveBeenCalled();
+    expect(resultCallback.mock.calls[0][0]).toBeInstanceOf(FrodoError);
+    expect(resultCallback.mock.calls[1][0]).toBeUndefined();
+  });
+});

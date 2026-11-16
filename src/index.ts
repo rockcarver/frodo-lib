@@ -284,6 +284,7 @@ export type {
   OAuth2TrustedJwtIssuerExportOptions,
   OAuth2TrustedJwtIssuerImportData,
   OAuth2TrustedJwtIssuerImportOptions,
+  OAuth2TrustedJwtIssuerLeftOutAttributesCallback,
 } from './ops/OAuth2TrustedJwtIssuerOps';
 
 export type { AccessTokenMetaType } from './ops/OAuth2OidcOps';
