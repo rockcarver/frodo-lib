@@ -10,6 +10,15 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-47] - 2026-11-16
+
+### Added
+- Introduced the ability for a state to fill placeholders from the process environment. Placeholders `${NAME}` in files read by the library (`readJsonFile` and related readers) can now be filled using environment variables, enhancing flexibility in configuration management (#1110).
+- Enhanced trusted JWT issuer updates to inform the caller about which attributes were omitted during the update process. This feature provides transparency when the server refuses unknown attributes (#1111).
+
+### Fixed
+- Corrected the behavior of `updateOAuth2TrustedJwtIssuer` to ensure it only omits top-level attributes unknown to the server during retries. This fix addresses issues where retries were previously ineffective due to incorrect attribute handling (#1106).
+
 ## [v5.0.0-46] - 2026-11-15
 
 ### Added
@@ -3025,6 +3034,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-47]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-46...v5.0.0-47
 [v5.0.0-46]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-45...v5.0.0-46
 [v5.0.0-45]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-44...v5.0.0-45
 [v5.0.0-44]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-43...v5.0.0-44

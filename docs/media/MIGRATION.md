@@ -228,9 +228,17 @@ releases missed):
   objects in the `importData` of the caller, `updateOAuth2TrustedJwtIssuer` and
   `putOAuth2TrustedJwtIssuer` (api layer) from the object they wrote, and the
   retry after "Invalid attribute specified." from its attributes; they work on
-  copies now. That retry also names every attribute it removes in a warning
-  (it used to say so only in verbose or debug mode), and it no longer takes the
-  elements of an array (`allowedSubjects`) for attributes.
+  copies now. That retry also names the attributes it removes in one warning (it
+  used to say so only in verbose or debug mode). It judges the top-level
+  attributes of the issuer, the level at which the server lists the valid ones: it
+  leaves out only the ones that the server does not list (never `_id` or
+  `_type`) and sends the copy once more. It used to take the members of every
+  attribute for attributes, so that it removed `value` and `inherited` of the
+  wrapped attributes and `_type.name`, left the unknown attribute in place and
+  could not succeed; it no longer takes the elements of an array
+  (`allowedSubjects`) for attributes either. When none of the top-level
+  attributes is unknown, nothing is sent a second time and the error says which
+  attributes the server accepts.
 - `frodo.cloud.log`: the Log API is throttled (Ping documents a limit per
   environment, shared by everything that reads its logs, and the answers report
   it in the `X-RateLimit-*` headers), and the functions now say so.
