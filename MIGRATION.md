@@ -210,8 +210,10 @@ releases missed):
   returned a cookie. `total` is `null` when the platform does not say.
   `cloud.log.tail`, a live cursor, has `returned` and `nextPageToken` and no
   `truncated`. `cloud.log.searchEvents`, which stops at its own `maxEvents`
-  limit, and `role.readInternalRoles` and `role.queryInternalRoles`, which
-  read one request of at most 1000 items, return a plain array; each is
+  limit (it reads whole pages, so it can return more than its limit; the
+  warning says so), and `role.readInternalRoles` and
+  `role.queryInternalRoles`, which read one request of at most 1000 items,
+  return a plain array; each is
   `truncated` with a `total` of `null` when it returns as many items as its
   limit (it may have left more). `cloud.log.searchEvents` counts its limit
   before it removes duplicate events (`dedupeByTransactionId`, on unless it is
@@ -221,6 +223,13 @@ releases missed):
   `dedupeByTransactionId: false` to see whether the limit was reached.
   `idm.managed.queryManagedObjects` now takes `pageToken` as the cookie of its
   one-page query (it ignored it), so its `nextPageToken` can be passed back.
+  `frodo.idm.system.querySystemObjects` and `queryAllSystemObjectIds` now
+  encode the characters of a paged-results cookie that are not safe in a query
+  string (`+`, `/`, `=`, `&`, a `%` that starts no escape) and add the cookie
+  to the request after the URL is formatted; a cookie that IDM has already
+  percent-encoded is sent as it came, so the next page of a connector query is
+  the same request as before. Before, any other cookie was written into the URL
+  as it was, and could end the walk or add a parameter to the request.
   `data` is unchanged, and a result that is not a list, or that the runtime
   cannot read as one, has none of the fields. Before, a cut was reported only
   in `metadata.pagination`. What else changes: the text of
