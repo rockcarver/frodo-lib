@@ -4351,7 +4351,10 @@ function buildSelfCapWarning(
 /**
  * The warning of an array from a capability that stops at a limit of its own
  * and removes duplicates afterwards: it says that the result can be
- * incomplete although it holds fewer items than the limit, and how to be sure.
+ * incomplete although it holds fewer items than the limit, that the count is
+ * not a total, and which argument makes the next result say whether the limit
+ * was reached. It promises no certainty: with the duplicates kept the result
+ * still only says that the limit was reached, not that nothing was left.
  */
 function buildDedupeWarning(
   returned: number,
@@ -4360,7 +4363,7 @@ function buildDedupeWarning(
   selfCap: McpSelfCap
 ): string {
   const dedupeArgument = selfCap.dedupe?.argument;
-  return `Result may be incomplete: the capability ${selfCap.capability} stops at${selfCap.readsWholePages ? ' or after' : ''} its own limit of ${selfCap.cap} events (argument ${selfCap.argument}${describeWholePages(selfCap, 'events')}), counted before duplicate events are removed (argument ${dedupeArgument}, which is on unless you pass false), so a result can be incomplete even when it has fewer than ${selfCap.argument} events. To be sure, pass ${dedupeArgument}: false or narrow the time window, and compare returned with ${selfCap.argument}.${describeCutOfResponse(returned, returnedByCapability, truncation)}`;
+  return `Result may be incomplete: the capability ${selfCap.capability} stops at${selfCap.readsWholePages ? ' or after' : ''} its own limit of ${selfCap.cap} events (argument ${selfCap.argument}${describeWholePages(selfCap, 'events')}), counted before duplicate events are removed (argument ${dedupeArgument}, which is on unless you pass false), so a result can be incomplete even when it has fewer than ${selfCap.argument} events. Do not count or search only this result, and do not use returned as a total. Pass ${dedupeArgument}: false to read a result that says whether the limit was reached.${describeCutOfResponse(returned, returnedByCapability, truncation)}`;
 }
 
 /**

@@ -1082,7 +1082,7 @@ const searchCapWarning = (limit: number, extra = '') =>
 
 /** The warning of a search that removes duplicates after its limit and returned fewer events than the limit. */
 const searchDedupeWarning = (limit: number, extra = '') =>
-  `Result may be incomplete: the capability cloud.log.searchEvents stops at or after its own limit of ${limit} events (argument maxEvents; it reads whole pages, so it can return more events than the limit, and returned says how many it returned), counted before duplicate events are removed (argument dedupeByTransactionId, which is on unless you pass false), so a result can be incomplete even when it has fewer than maxEvents events. To be sure, pass dedupeByTransactionId: false or narrow the time window, and compare returned with maxEvents.${extra}`;
+  `Result may be incomplete: the capability cloud.log.searchEvents stops at or after its own limit of ${limit} events (argument maxEvents; it reads whole pages, so it can return more events than the limit, and returned says how many it returned), counted before duplicate events are removed (argument dedupeByTransactionId, which is on unless you pass false), so a result can be incomplete even when it has fewer than maxEvents events. Do not count or search only this result, and do not use returned as a total. Pass dedupeByTransactionId: false to read a result that says whether the limit was reached.${extra}`;
 
 describe('a search that stops at a limit of its own', () => {
   const searchEvents = (
@@ -1353,6 +1353,19 @@ describe('a search that removes duplicate events after its limit', () => {
       hasMore: true,
     });
     expect(result.metadata?.pagination?.warning).toBe(result.warning);
+  });
+
+  test('T17g: the warning of an uncertain result says not to count it, names the argument that makes the next result say more, and promises no certainty', async () => {
+    const result = await searchEvents(smallItems(500));
+
+    expect(result.warning).toContain('Do not count or search only this result');
+    expect(result.warning).toContain('do not use returned as a total');
+    expect(result.warning).toContain(
+      'Pass dedupeByTransactionId: false to read a result that says whether the limit was reached.'
+    );
+    // a narrower window with deduplication on is just as uncertain, and a count below the limit proves nothing
+    expect(result.warning).not.toMatch(/to be sure|certain|time window/i);
+    expect(result.warning).not.toContain('compare returned');
   });
 
   test('T17f: the limit and the deduplication that apply are the defaults of the descriptor, which is what the call gets', async () => {
