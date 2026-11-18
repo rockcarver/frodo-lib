@@ -405,8 +405,11 @@ releases missed):
   empty value, so a caller that passes `''` is unchanged; the MCP capabilities
   no longer reject a call that leaves them out. The MCP argument `pageToken` is
   now the `cookie` of these two capabilities (before, it was dropped, because
-  only parameters named `pageToken` or `pageCookie` received it). `startTs` and
-  `endTs` stay required.
+  only parameters named `pageToken` or `pageCookie` received it): a `cookie`
+  that the caller gave wins; a `cookie` that is missing, `null` or empty counts
+  as left out, and then `pageToken` is the cookie, unless it is empty too. This
+  holds for named and for positional calls. `startTs` and `endTs` stay
+  required.
 
 **Deprecation**:
 
