@@ -447,6 +447,38 @@ describe('cloud.log.fetch and cloud.log.tail', () => {
       }
     );
 
+    // The table of the parameters that take null belongs to the capability: the
+    // same parameter name of another capability still rejects it.
+    test.each([
+      ['idm.managed.countManagedObjects', { type: 'alpha_user' }],
+      ['idm.managed.queryManagedObjects', { type: 'alpha_user' }],
+      ['idm.managedSystem.countManagedSystemObjects', { type: 'account' }],
+      ['idm.managedSystem.queryManagedSystemObjects', { type: 'account' }],
+    ])(
+      'a null filter of %s is rejected like any null',
+      async (id, namedArgs) => {
+        await rejected(id, 'frodo_dispatch_read_only', {
+          ...namedArgs,
+          filter: null,
+        });
+      }
+    );
+
+    test('no capability but the log reads has a parameter named cookie or txid', () => {
+      // so there is no other capability whose null for them could be tested
+      const names = ['cookie', 'txid'];
+      expect(
+        service.capabilities
+          .filter((capability) =>
+            (capability.parameters ?? []).some(({ name }) =>
+              names.includes(name)
+            )
+          )
+          .map(({ id }) => id)
+          .sort()
+      ).toEqual(['cloud.log.fetch', 'cloud.log.tail']);
+    });
+
     test('the script of evaluateScript and compileScript does not take null', async () => {
       await rejected('idm.script.evaluateScript', 'frodo_dispatch', {
         script: null,
