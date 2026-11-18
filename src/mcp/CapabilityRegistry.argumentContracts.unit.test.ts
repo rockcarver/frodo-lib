@@ -5,9 +5,13 @@
  * A capability descriptor is derived from the TSDoc `@param` tags of its
  * method (see `Help.ts`, which is generated from them). A method whose TSDoc
  * has no `@param` tag gets an empty parameter contract, and the runtime then
- * forwards the whole `namedArgs` object as ONE argument. These tests compare
- * the descriptor with the real signature, so that gap cannot come back, and
- * pin the contract of the capabilities that were repaired.
+ * forwards the whole `namedArgs` object as ONE argument. These tests pin that
+ * no capability advertises an empty contract while its signature has
+ * parameters, and they pin the contract of the capabilities that were
+ * repaired against the real signature. They do not compare every contract
+ * with its signature: a capability whose TSDoc names the parameters in
+ * another order, under other names or leaves an optional one out is not
+ * covered here.
  */
 
 import { frodo } from '../lib/FrodoLib';
@@ -19,15 +23,23 @@ import { buildCapabilityInventory } from './CapabilityRegistry';
 /** Trailing callbacks that a JSON payload cannot carry and the runtime supplies. */
 const TRAILING_CALLBACKS = ['resultCallback', 'leftOutCallback'];
 
+/** A parameter as the signature in the `export type` block declares it. */
+type SignatureParameter = {
+  name: string;
+  optional: boolean;
+  /** Type text; an object literal type is `object`. */
+  type: string;
+};
+
 /**
- * Splits the text between the outer parentheses of a signature at the commas
- * of the top level, ignoring commas inside brackets, braces, generics and
- * function types (`=>` does not close a generic).
+ * Reads the parameters of a signature: splits the text between the outer
+ * parentheses at the commas of the top level, ignoring commas inside brackets,
+ * braces, generics and function types (`=>` does not close a generic).
  *
  * @param signature signature text as written in the `export type` block
- * @returns parameter names in declaration order, without a trailing callback
+ * @returns parameters in declaration order, without a trailing callback
  */
-function signatureParameterNames(signature: string): string[] {
+function signatureParameters(signature: string): SignatureParameter[] {
   const open = signature.indexOf('(');
   if (open === -1) return [];
   let depth = 0;
@@ -59,14 +71,27 @@ function signatureParameterNames(signature: string): string[] {
     }
   }
   if (current.trim()) parts.push(current);
-  const names = parts.map((part) => part.trim().match(/^(\w+)/)?.[1] ?? '');
+  const parameters = parts.map((part): SignatureParameter => {
+    const match = part.trim().match(/^(\w+)(\?)?\s*:\s*([\s\S]*)$/);
+    const type = (match?.[3] ?? '').trim();
+    return {
+      name: match?.[1] ?? '',
+      optional: !!match?.[2],
+      type: type.startsWith('{') ? 'object' : type,
+    };
+  });
   while (
-    names.length > 0 &&
-    TRAILING_CALLBACKS.includes(names[names.length - 1])
+    parameters.length > 0 &&
+    TRAILING_CALLBACKS.includes(parameters[parameters.length - 1].name)
   ) {
-    names.pop();
+    parameters.pop();
   }
-  return names;
+  return parameters;
+}
+
+/** Parameter names of a signature, in declaration order. */
+function signatureParameterNames(signature: string): string[] {
+  return signatureParameters(signature).map(({ name }) => name);
 }
 
 describe('capability argument contracts', () => {
@@ -94,6 +119,19 @@ describe('capability argument contracts', () => {
     ).toEqual(['id']);
   });
 
+  test('signatureParameters reads the optional marker and the type', () => {
+    expect(
+      signatureParameters(
+        'f( script: string, globals?: { [key: string]: any }, list?: string[], cfg: Map<string, number> ): Promise<any>'
+      )
+    ).toEqual([
+      { name: 'script', optional: false, type: 'string' },
+      { name: 'globals', optional: true, type: 'object' },
+      { name: 'list', optional: true, type: 'string[]' },
+      { name: 'cfg', optional: false, type: 'Map<string, number>' },
+    ]);
+  });
+
   test('no capability advertises an empty parameter contract while its signature has parameters', () => {
     // Zero tolerance, no baseline: a capability whose TSDoc has no `@param`
     // tag advertises no parameters although the method takes some, so the
@@ -112,7 +150,7 @@ describe('capability argument contracts', () => {
     expect(violations.sort()).toEqual([]);
   });
 
-  test('the capabilities that had no contract declare their parameters in the order of the signature', () => {
+  test('the capabilities that had no contract declare name, position, type and required flag of every parameter of the signature', () => {
     const repaired = [
       'admin.executeRfc7523AuthZGrantFlow',
       'admin.generateRfc7523AuthZGrantArtefacts',
@@ -135,12 +173,25 @@ describe('capability argument contracts', () => {
     for (const id of repaired) {
       const capability = byId.get(id);
       expect(capability).toBeDefined();
-      const expected = signatureParameterNames(
+      // The expectation comes from the signature text, not from the
+      // descriptor: a parameter that the signature marks optional must be
+      // optional in the contract, and a required one must be required.
+      const expected = signatureParameters(
         getHelpMetadataByMethod(capability?.methodName ?? '')[0].signature
-      );
+      ).map(({ name, optional, type }, position) => ({
+        name,
+        position,
+        required: !optional,
+        type,
+      }));
       const declared = [...(capability?.parameters ?? [])]
         .sort((left, right) => (left.position ?? 0) - (right.position ?? 0))
-        .map(({ name }) => name);
+        .map(({ name, position, required, type }) => ({
+          name,
+          position,
+          required,
+          type,
+        }));
       expect({ id, declared }).toEqual({ id, declared: expected });
       expect(expected.length).toBeGreaterThan(0);
     }
