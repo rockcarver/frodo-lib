@@ -150,51 +150,121 @@ describe('capability argument contracts', () => {
     expect(violations.sort()).toEqual([]);
   });
 
-  test('the capabilities that had no contract declare name, position, type and required flag of every parameter of the signature', () => {
-    const repaired = [
-      'admin.executeRfc7523AuthZGrantFlow',
-      'admin.generateRfc7523AuthZGrantArtefacts',
-      'admin.generateRfc7523ClientAuthNArtefacts',
-      'admin.trainAA',
-      'authz.policySet.createPolicySet',
-      'authz.policySet.deletePolicySet',
-      'cloud.env.readServiceAccountScopes',
-      'idm.crypto.decrypt',
-      'idm.script.compileScript',
-      'idm.script.evaluateScript',
-      'idm.system.readSystemStatus',
-      'oauth2oidc.endpoint.accessToken',
-      'oauth2oidc.endpoint.accessTokenRfc7523AuthZGrant',
-      'oauth2oidc.endpoint.authorize',
-      'oauth2oidc.endpoint.clientCredentialsGrant',
-      'oauth2oidc.endpoint.deviceAuthorizationRequest',
-      'oauth2oidc.endpoint.getTokenInfo',
-    ];
-    for (const id of repaired) {
-      const capability = byId.get(id);
-      expect(capability).toBeDefined();
-      // The expectation comes from the signature text, not from the
-      // descriptor: a parameter that the signature marks optional must be
-      // optional in the contract, and a required one must be required.
-      const expected = signatureParameters(
-        getHelpMetadataByMethod(capability?.methodName ?? '')[0].signature
-      ).map(({ name, optional, type }, position) => ({
-        name,
-        position,
-        required: !optional,
-        type,
-      }));
-      const declared = [...(capability?.parameters ?? [])]
-        .sort((left, right) => (left.position ?? 0) - (right.position ?? 0))
-        .map(({ name, position, required, type }) => ({
-          name,
-          position,
-          required,
-          type,
-        }));
-      expect({ id, declared }).toEqual({ id, declared: expected });
-      expect(expected.length).toBeGreaterThan(0);
-    }
+  describe('the capabilities that had no contract', () => {
+    // The contract of each of the 17, written out as `name?: type` in the order
+    // of the signature of the facade type (`?` for an optional parameter, an
+    // object literal type is `object`). It is stated here on purpose, not read
+    // from the descriptor or from the generated help: a parameter that becomes
+    // required, optional or of another type has to change this table too.
+    const REPAIRED_CONTRACTS: Record<string, string[]> = {
+      'admin.executeRfc7523AuthZGrantFlow': [
+        'clientId: string',
+        'iss: string',
+        'jwk: JwkRsa',
+        'sub: string',
+        'scope?: string[]',
+      ],
+      'admin.generateRfc7523AuthZGrantArtefacts': [
+        'clientId: string',
+        'iss: string',
+        'jwk?: JwkRsa',
+        'sub?: string',
+        'scope?: string[]',
+        'options?: object',
+      ],
+      'admin.generateRfc7523ClientAuthNArtefacts': [
+        'clientId: string',
+        'aud?: string',
+        'jwk?: JwkRsa',
+        'options?: object',
+      ],
+      'admin.trainAA': [
+        'apiKey: string',
+        'apiSecret: string',
+        'customUsernames?: string[]',
+        'customUserAgents?: string[]',
+        'customIPs?: string[]',
+        'loginsPerUser?: number',
+        'service?: string',
+      ],
+      'authz.policySet.createPolicySet': [
+        'policySetData: PolicySetSkeleton',
+        'policySetName?: string',
+      ],
+      'authz.policySet.deletePolicySet': ['policySetName: string'],
+      'cloud.env.readServiceAccountScopes': ['flatten?: boolean'],
+      'idm.crypto.decrypt': ['value: any'],
+      'idm.script.compileScript': ['script: string'],
+      'idm.script.evaluateScript': ['script: string', 'globals?: object'],
+      'idm.system.readSystemStatus': ['systemName: string'],
+      'oauth2oidc.endpoint.accessToken': [
+        'amBaseUrl: string',
+        'data: any',
+        'config: AxiosRequestConfig',
+      ],
+      'oauth2oidc.endpoint.accessTokenRfc7523AuthZGrant': [
+        'clientId: string',
+        'jwt: string',
+        'scope: string[]',
+        'config?: AxiosRequestConfig',
+      ],
+      'oauth2oidc.endpoint.authorize': [
+        'amBaseUrl: string',
+        'data: string',
+        'config: AxiosRequestConfig',
+      ],
+      'oauth2oidc.endpoint.clientCredentialsGrant': [
+        'amBaseUrl: string',
+        'clientId: string',
+        'clientSecret: string',
+        'scope: string',
+      ],
+      'oauth2oidc.endpoint.deviceAuthorizationRequest': [
+        'amBaseUrl: string',
+        'data: string',
+        'config: AxiosRequestConfig',
+      ],
+      'oauth2oidc.endpoint.getTokenInfo': [
+        'amBaseUrl: string',
+        'config: AxiosRequestConfig',
+      ],
+    };
+
+    test.each(Object.entries(REPAIRED_CONTRACTS))(
+      '%s declares name, position, type and required flag of the signature',
+      (id, contract) => {
+        const capability = byId.get(id);
+        expect(capability).toBeDefined();
+        const declared = [...(capability?.parameters ?? [])]
+          .sort((left, right) => (left.position ?? 0) - (right.position ?? 0))
+          .map(
+            ({ name, required, type }) =>
+              `${name}${required ? '' : '?'}: ${type}`
+          );
+        expect(declared).toEqual(contract);
+        expect(
+          (capability?.parameters ?? [])
+            .map(({ position }) => position)
+            .sort((left, right) => (left ?? 0) - (right ?? 0))
+        ).toEqual(contract.map((_, position) => position));
+      }
+    );
+
+    test.each(Object.entries(REPAIRED_CONTRACTS))(
+      '%s: the signature of the facade type is the one the table states',
+      (id, contract) => {
+        const capability = byId.get(id);
+        const signature = getHelpMetadataByMethod(
+          capability?.methodName ?? ''
+        )[0].signature;
+        expect(
+          signatureParameters(signature).map(
+            ({ name, optional, type }) =>
+              `${name}${optional ? '?' : ''}: ${type}`
+          )
+        ).toEqual(contract);
+      }
+    );
   });
 
   describe('idm.script.evaluateScript and idm.script.compileScript', () => {
