@@ -67,12 +67,12 @@ export type Admin = {
     scope?: string[]
   ): Promise<AccessTokenResponseType>;
   /**
-   * Generate the artefacts of RFC 7523 client authentication (private key JWT): a key pair, a signed client authentication JWT and an OAuth2 client. With `options.save` set, the client is also written to the tenant.
+   * Generate the artefacts of RFC 7523 client authentication (private key JWT): a key pair, a client authentication JWT and an OAuth2 client. With `options.save` set, the client is also written to the tenant.
    * @param {string} clientId client id of the OAuth2 client to generate
    * @param {string} aud optional audience of the JWT; the access token URL of the realm when left out
    * @param {JwkRsa} jwk optional RSA JSON web key to use; a new key is generated when left out
    * @param {object} options optional object `{ save: boolean }`; with `save` true the client is created or updated on the tenant (default: `{ save: false }`)
-   * @returns {Promise<object>} a promise that resolves to an object with the key (`jwk`), its public key set (`jwks`), the signed JWT (`jwt`) and the OAuth2 client (`client`)
+   * @returns {Promise<object>} a promise that resolves to an object with the key (`jwk`), its public key set (`jwks`), the client authentication JWT (`jwt`, handed over as a promise: the method does not wait for the signing to finish) and the OAuth2 client (`client`)
    */
   generateRfc7523ClientAuthNArtefacts(
     clientId: string,

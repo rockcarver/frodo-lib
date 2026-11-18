@@ -56,14 +56,14 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Admin",
     methodName: "generateRfc7523ClientAuthNArtefacts",
     signature: "generateRfc7523ClientAuthNArtefacts( clientId: string, aud?: string, jwk?: JwkRsa, options?: { save: boolean } ): Promise<{ jwk: JwkRsa; jwks: JwksInterface; jwt: any; client: OAuth2ClientSkeleton; }>",
-    description: "Generate the artefacts of RFC 7523 client authentication (private key JWT): a key pair, a signed client authentication JWT and an OAuth2 client. With `options.save` set, the client is also written to the tenant.",
+    description: "Generate the artefacts of RFC 7523 client authentication (private key JWT): a key pair, a client authentication JWT and an OAuth2 client. With `options.save` set, the client is also written to the tenant.",
     params: [
       { name: "clientId", type: "string", description: "client id of the OAuth2 client to generate", required: true },
       { name: "aud", type: "string", description: "optional audience of the JWT; the access token URL of the realm when left out", required: false },
       { name: "jwk", type: "JwkRsa", description: "optional RSA JSON web key to use; a new key is generated when left out", required: false },
       { name: "options", type: "object", description: "optional object `{ save: boolean }`; with `save` true the client is created or updated on the tenant (default: `{ save: false }`)", required: false },
     ],
-    returns: "{Promise<object>} a promise that resolves to an object with the key (`jwk`), its public key set (`jwks`), the signed JWT (`jwt`) and the OAuth2 client (`client`)",
+    returns: "{Promise<object>} a promise that resolves to an object with the key (`jwk`), its public key set (`jwks`), the client authentication JWT (`jwt`, handed over as a promise: the method does not wait for the signing to finish) and the OAuth2 client (`client`)",
   },
   {
     typeName: "Admin",
