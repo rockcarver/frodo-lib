@@ -459,9 +459,12 @@ export type McpExecutionPaginationMetadata = {
   returnedCount?: number;
   /**
    * Total number of rows available before truncation, when known. Present
-   * exactly where {@link McpToolExecutionResult.total} is a number: a
-   * capability that stopped at a limit of its own, or cannot say whether it
-   * did, has none, also on the last page of an offset read.
+   * only where {@link McpToolExecutionResult.total} is a number and the
+   * runtime sliced an array or the platform pages the result. Absent for an
+   * array that nothing cut (its `total` is the length of the array, which
+   * `returnedCount` also is), for a capability that stopped at a limit of its
+   * own or cannot say whether it did (also on the last page of an offset
+   * read), and when the platform does not say.
    */
   totalCount?: number;
   /** Requested page size hint, if provided by caller. */
