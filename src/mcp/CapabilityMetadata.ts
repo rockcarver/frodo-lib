@@ -2774,13 +2774,14 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         examples: ['am-core', 'am-authentication,idm-core'],
       },
       cookie: {
-        description: 'Paged-results cookie from a previous tail call.',
+        description:
+          'Optional. Leave it out (or pass an empty string) for the first call. For the next call pass the pagedResultsCookie of the previous result; the pageToken argument is accepted as the same value.',
       },
     },
     supportsPaging: true,
     supportsIncludeTotal: false,
     notes:
-      'Reads the next batch of log events from a live cursor position for the given source(s). No time range or filter; use cloud.log.fetch for bounded/filtered queries and for the event/source taxonomy (identity events, session-granted signal, config-change attribution) documented on that skill. The result carries rateLimit (limit, remaining and resetAt of the Log API, shared by every reader of the logs of the environment); a call that the API rejects for the rate limit fails with the code LOG_API_RATE_LIMITED and is not retried, so wait until rateLimit.resetAt before calling again. Requires a Log API key/secret — see cloud.log.createLogApiKey.',
+      'Reads the next batch of log events from a live cursor position for the given source(s). No time range or filter; use cloud.log.fetch for bounded/filtered queries and for the event/source taxonomy (identity events, session-granted signal, config-change attribution) documented on that skill. The cookie is the paging control of this capability (pageSize and pageOffset do not apply): pass the pagedResultsCookie of the previous result as the second positional argument or as pageToken to read on from there. The result carries rateLimit (limit, remaining and resetAt of the Log API, shared by every reader of the logs of the environment); a call that the API rejects for the rate limit fails with the code LOG_API_RATE_LIMITED and is not retried, so wait until rateLimit.resetAt before calling again. Requires a Log API key/secret — see cloud.log.createLogApiKey.',
   },
   'cloud.log.fetch': {
     operationType: 'search',
@@ -2802,14 +2803,16 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         examples: ['2026-08-15T00:00:00Z'],
       },
       cookie: {
-        description: 'Paged-results cookie from a previous fetch call.',
+        description:
+          'Optional. Leave it out (or pass an empty string) for the first page. For the next page pass the pagedResultsCookie of the previous result; the pageToken argument is accepted as the same value.',
       },
       txid: {
-        description: 'Optional transaction id to narrow the query to.',
+        description:
+          "Optional. Narrows the query to one transaction id; leave out or pass an empty string for no narrowing. The transaction id of a failed call is shown as 'Transaction id' in its error.",
       },
       filter: {
         description:
-          'CREST _queryFilter syntax: a leading-slash field path against the log payload, e.g. /payload/eventName eq "AM-TREE-LOGIN-COMPLETED". Operators: eq, co (contains), sw (starts with), pr (present); combine multiple with "and". Field paths WITHOUT the leading slash (payload.eventName, payload/eventName) or an unprefixed field both fail with an opaque 500 — the leading slash is not optional. Prefer filtering server-side over fetching unfiltered and post-filtering: results are capped by an inline size limit and returned oldest-first within the window, so an unfiltered fetch over a noisy tenant truncates before reaching what you want.',
+          'Optional (leave out or pass an empty string for no filter). CREST _queryFilter syntax: a leading-slash field path against the log payload, e.g. /payload/eventName eq "AM-TREE-LOGIN-COMPLETED". Operators: eq, co (contains), sw (starts with), pr (present); combine multiple with "and". Field paths WITHOUT the leading slash (payload.eventName, payload/eventName) or an unprefixed field both fail with an opaque 500 — the leading slash is not optional. Prefer filtering server-side over fetching unfiltered and post-filtering: results are capped by an inline size limit and returned oldest-first within the window, so an unfiltered fetch over a noisy tenant truncates before reaching what you want.',
         examples: [
           '/payload/eventName eq "AM-TREE-LOGIN-COMPLETED"',
           '/payload/eventName eq "AM-TREE-LOGIN-COMPLETED" and /payload/userId co "o=alpha"',
@@ -2823,6 +2826,10 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       'Queries log events by source, time range, transaction id, and/or filter — the operation for bounded questions like "what were the last N logins" or "who changed journey X". Source taxonomy below combines Ping\'s documented source descriptions (docs.pingidentity.com/pingoneaic/tenants/audit-debug-log-sources.html) with event-level shapes verified live against a real tenant this session — the AM-side entries are directly observed; the IDM-side entries are documented but not yet independently verified against live IDM events, so treat their event-name specifics as provisional until checked.\n' +
       '\n' +
       'Time window limit: startTs..endTs spans wider than ~24 hours fail with an opaque 400, verified live against two different sources (am-config, am-authentication) both with and without a filter — this is a Log API-wide limit, not specific to one source or to filtering. Split any wider question into consecutive ~24h calls yourself using this skill directly, or use cloud.log.searchEvents instead, which does that chunking automatically.\n' +
+      '\n' +
+      'Paging: pageSize and pageOffset do not apply to this capability. The cookie is the paging control: pass the pagedResultsCookie of the previous result as cookie (or as pageToken) to read the next page, and leave it out for the first page.\n' +
+      '\n' +
+      "Timing: log events become readable after an ingestion delay, observed at roughly 1 to 3 minutes. A call made right after the action it should show can return nothing yet, so wait and call again before concluding that an event did not happen. A failed call's transaction id is the txid argument: search am-core with it to find the script error that the response does not carry.\n" +
       '\n' +
       'DEBUG sources — no audit events, troubleshooting only. am-core and idm-core are DEBUG-level in dev/sandbox tenants, WARNING-and-above in staging/production; am-core specifically is where authentication SCRIPT logging output shows up (relevant for "why did this script do X" questions, not identity/change questions). Shape is raw application log lines (`context`/`logger`/`message`/`thread`/`mdc.transactionId`), not the structured audit payload described below. ws-core is the WS-Federation equivalent.\n' +
       '\n' +

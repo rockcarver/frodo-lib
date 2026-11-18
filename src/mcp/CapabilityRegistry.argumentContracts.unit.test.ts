@@ -210,4 +210,38 @@ describe('capability argument contracts', () => {
       expect(exposed('admin')).toBe(true);
     });
   });
+
+  describe('cloud.log.fetch and cloud.log.tail', () => {
+    test('fetch needs a source and a time window, the cookie, the transaction id and the filter are optional', () => {
+      const descriptor = byId.get('cloud.log.fetch');
+      expect(
+        descriptor?.parameters?.map(({ name, required }) => ({
+          name,
+          required,
+        }))
+      ).toEqual([
+        { name: 'source', required: true },
+        { name: 'startTs', required: true },
+        { name: 'endTs', required: true },
+        { name: 'cookie', required: false },
+        { name: 'txid', required: false },
+        { name: 'filter', required: false },
+      ]);
+      expect(descriptor?.supportsPaging).toBe(true);
+    });
+
+    test('tail needs a source, the cookie is optional', () => {
+      const descriptor = byId.get('cloud.log.tail');
+      expect(
+        descriptor?.parameters?.map(({ name, required }) => ({
+          name,
+          required,
+        }))
+      ).toEqual([
+        { name: 'source', required: true },
+        { name: 'cookie', required: false },
+      ]);
+      expect(descriptor?.supportsPaging).toBe(true);
+    });
+  });
 });

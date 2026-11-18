@@ -2944,7 +2944,11 @@ function toInvocationArgs(
   validateInvocationArguments(descriptor, maybeArgs);
 
   if (Array.isArray(maybeArgs.positionalArgs)) {
-    return maybeArgs.positionalArgs;
+    return withPageTokenAsCookie(
+      maybeArgs.positionalArgs,
+      descriptor,
+      maybeArgs.pageToken
+    );
   }
   if (maybeArgs.namedArgs && typeof maybeArgs.namedArgs === 'object') {
     if (descriptor?.parameters && descriptor.parameters.length > 0) {
@@ -2972,6 +2976,47 @@ function toInvocationArgs(
     return [maybeArgs.namedArgs];
   }
   return [];
+}
+
+/**
+ * Fills the `cookie` slot of a positional call from the `pageToken` argument.
+ *
+ * @remarks
+ * A capability whose platform pages the result itself (the log reads) takes
+ * the cursor as a parameter named `cookie`. A named call maps `pageToken` to
+ * it by name (see {@link resolveNamedOrGenericParameterValue}); a positional
+ * call has to do the same, or the token would be dropped without a word. A
+ * cookie that the caller put in the slot wins; the arguments of the caller are
+ * not modified.
+ *
+ * @param positionalArgs Positional arguments of the call.
+ * @param descriptor Descriptor of the capability that is called.
+ * @param pageToken Value of the `pageToken` argument, if any.
+ * @returns The positional arguments, with the slot filled where it was empty.
+ */
+function withPageTokenAsCookie(
+  positionalArgs: unknown[],
+  descriptor: McpCapabilityDescriptor | undefined,
+  pageToken: unknown
+): unknown[] {
+  if (typeof pageToken !== 'string' || pageToken === '') {
+    return positionalArgs;
+  }
+  const slot = descriptor?.parameters?.find(
+    (parameter) => parameter.name === 'cookie'
+  )?.position;
+  if (slot === undefined) {
+    return positionalArgs;
+  }
+  if (positionalArgs[slot] !== undefined && positionalArgs[slot] !== null) {
+    return positionalArgs;
+  }
+  const filled = [...positionalArgs];
+  while (filled.length < slot) {
+    filled.push(undefined);
+  }
+  filled[slot] = pageToken;
+  return filled;
 }
 
 /**
@@ -3100,6 +3145,7 @@ function resolveNamedOrGenericParameterValue(
       return args.pageOffset;
     case 'pageToken':
     case 'pageCookie':
+    case 'cookie':
       return args.pageToken;
     case 'includeTotal':
       return args.includeTotal;

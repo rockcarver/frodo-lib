@@ -275,3 +275,86 @@ describe('every capability that had no parameter contract', () => {
     }
   );
 });
+
+describe('cloud.log.fetch and cloud.log.tail', () => {
+  const window = {
+    source: 'am-core',
+    startTs: '2026-11-17T10:00:00Z',
+    endTs: '2026-11-17T10:05:00Z',
+  };
+
+  test('fetch needs only the source and the time window', async () => {
+    const { handler } = await dispatch('cloud.log.fetch', {
+      namedArgs: window,
+    });
+    expect(handler.mock.calls[0]).toEqual([
+      'am-core',
+      '2026-11-17T10:00:00Z',
+      '2026-11-17T10:05:00Z',
+      undefined,
+      undefined,
+      undefined,
+    ]);
+  });
+
+  test('fetch still accepts empty strings for the optional arguments', async () => {
+    const { handler } = await dispatch('cloud.log.fetch', {
+      namedArgs: { ...window, cookie: '', txid: '', filter: '' },
+    });
+    expect(handler.mock.calls[0].slice(3)).toEqual(['', '', '']);
+  });
+
+  test('fetch still needs the time window', async () => {
+    await expect(
+      dispatch('cloud.log.fetch', { namedArgs: { source: 'am-core' } })
+    ).rejects.toThrow('missing required named argument(s): startTs, endTs');
+  });
+
+  test('the pageToken argument is the cookie of fetch', async () => {
+    const { handler } = await dispatch('cloud.log.fetch', {
+      namedArgs: window,
+      pageToken: 'CK',
+    });
+    expect(handler.mock.calls[0][3]).toBe('CK');
+  });
+
+  test('a cookie in namedArgs wins over the pageToken argument', async () => {
+    const { handler } = await dispatch('cloud.log.fetch', {
+      namedArgs: { ...window, cookie: 'NAMED' },
+      pageToken: 'CK',
+    });
+    expect(handler.mock.calls[0][3]).toBe('NAMED');
+  });
+
+  test('tail needs only the source', async () => {
+    const { handler } = await dispatch('cloud.log.tail', {
+      positionalArgs: ['am-core'],
+    });
+    expect(handler.mock.calls[0]).toEqual(['am-core']);
+  });
+
+  test('the pageToken argument is the cookie of tail', async () => {
+    const { handler } = await dispatch('cloud.log.tail', {
+      positionalArgs: ['am-core'],
+      pageToken: 'CK',
+    });
+    expect(handler.mock.calls[0]).toEqual(['am-core', 'CK']);
+  });
+
+  test('a cookie in positionalArgs wins over the pageToken argument', async () => {
+    const { handler } = await dispatch('cloud.log.tail', {
+      positionalArgs: ['am-core', 'GIVEN'],
+      pageToken: 'CK',
+    });
+    expect(handler.mock.calls[0]).toEqual(['am-core', 'GIVEN']);
+  });
+
+  test('a call without pageToken passes the positional arguments as given', async () => {
+    const args = ['am-core', ''];
+    const { handler } = await dispatch('cloud.log.tail', {
+      positionalArgs: args,
+    });
+    expect(handler.mock.calls[0]).toEqual(['am-core', '']);
+    expect(args).toEqual(['am-core', '']);
+  });
+});
