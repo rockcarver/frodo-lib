@@ -81,6 +81,26 @@ const READ_ONLY_OPERATION_TYPES: McpCapabilityOperationType[] = [
  */
 const LIVE_CURSOR_CAPABILITY_IDS: readonly string[] = ['cloud.log.tail'];
 
+/** The fields that say whether a list or search result is complete, in the order they are serialized. */
+const LIST_COMPLETENESS_FIELDS = [
+  'truncated',
+  'returned',
+  'total',
+  'nextPageOffset',
+  'nextPageToken',
+  'warning',
+] as const;
+
+/** The arguments that page a list or search result. */
+const PAGING_CONTROLS = ['pageSize', 'pageOffset', 'pageToken'] as const;
+
+/**
+ * What `frodo_find_skills` tells the agent when the recommended capability
+ * that it ran returned a result that is not complete.
+ */
+const EXECUTION_TRUNCATED_NEXT_ACTION =
+  'The recommended read-only capability ran, but its result is not complete: execution.truncated is true, execution.data holds execution.returned of execution.total items. Do not answer a question about counts or missing items from it. Read on with execution.nextPageOffset or execution.nextPageToken through frodo_dispatch_read_only, or use a count capability.';
+
 /**
  * Credentials payload for a service-account request context.
  */
@@ -792,12 +812,21 @@ export function createToolRuntime(
       return {
         toolName: request.toolName,
         data: recommendedExecution
-          ? {
-              ...result,
-              nextAction:
-                'Answer the user from execution.data. The recommended read-only skill has already run; do not call any more discovery tools.',
-              execution: recommendedExecution,
-            }
+          ? recommendedExecution.truncated === true
+            ? {
+                // `truncated` is not used here: `total` and `returned` of this
+                // answer already count the capabilities that were found.
+                executionTruncated: true,
+                ...result,
+                nextAction: EXECUTION_TRUNCATED_NEXT_ACTION,
+                execution: recommendedExecution,
+              }
+            : {
+                ...result,
+                nextAction:
+                  'Answer the user from execution.data. The recommended read-only skill has already run; do not call any more discovery tools.',
+                execution: recommendedExecution,
+              }
           : result,
       };
     }
@@ -821,6 +850,12 @@ export function createToolRuntime(
             objectType: descriptor.objectType,
             scope: descriptor.scope,
           },
+          ...(isListOperation(descriptor.operationType) && {
+            paging: buildPagingGuide(
+              paginationWarningThreshold,
+              resultWarningThresholdBytes
+            ),
+          }),
         },
       };
     }
@@ -3761,12 +3796,7 @@ type McpArrayTruncationResult = {
  */
 type McpListCompleteness = Pick<
   McpToolExecutionResult,
-  | 'truncated'
-  | 'returned'
-  | 'total'
-  | 'nextPageOffset'
-  | 'nextPageToken'
-  | 'warning'
+  (typeof LIST_COMPLETENESS_FIELDS)[number]
 >;
 
 /**
@@ -3925,6 +3955,25 @@ function buildPagedTruncationWarning(
       ? 'Pass nextPageToken as pageToken to read on'
       : 'Read on with the paging controls of this capability';
   return `Result is not complete: ${holds}. Do not count or search only this page. ${readOn}, or use a count capability for the exact total.`;
+}
+
+/**
+ * The `paging` block of `frodo_describe_skill` for a list or search
+ * capability: the controls, the fields that say whether a result is complete,
+ * and the limits of the runtime. Built from the runtime's own constants so
+ * that it is not written out by hand for each capability.
+ *
+ * @param maxItems The item ceiling of one response.
+ * @param maxBytes The byte budget of one response.
+ */
+function buildPagingGuide(maxItems: number, maxBytes: number) {
+  return {
+    controls: [...PAGING_CONTROLS],
+    resultFields: [...LIST_COMPLETENESS_FIELDS],
+    defaultMaxBytes: maxBytes,
+    defaultMaxItems: maxItems,
+    note: 'A list or search result says whether it is complete in truncated, returned and total, placed before data. The runtime cuts one response of a list to defaultMaxBytes bytes and defaultMaxItems items, and an explicit pageSize does not raise that limit: read on with pageOffset, from nextPageOffset. A result that the platform pages itself has nextPageToken: pass it as pageToken. A semantic count adds up every realm-qualified type of a family; a list reads one type. Compare a list with a count of the same type and filter; total of a list result is that count.',
+  };
 }
 
 /**

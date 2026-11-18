@@ -698,6 +698,66 @@ describe('results that are not lists', () => {
   });
 });
 
+describe('frodo_find_skills with an executed recommendation', () => {
+  const cloudContext = {
+    auth: { mode: 'state-config', config: { deploymentType: 'cloud' } },
+  } as any;
+
+  async function findAndExecute(list: unknown[]) {
+    const readManagedObjects = jest.fn(async () => list);
+    const runtime = runtimeFor(
+      rootWith('idm.managed.readManagedObjects', readManagedObjects),
+      {
+        managedObjectTypes: ['alpha_user', 'bravo_user'],
+        managedObjectHydrationStatus: 'available',
+        executeRecommendedByDefault: true,
+      }
+    );
+    const found = await runtime.executeTool({
+      toolName: 'frodo_find_skills',
+      arguments: {
+        query: 'list alpha_user',
+        skillIdPrefix: 'idm.managed.readManagedObjects',
+      },
+      context: cloudContext,
+    });
+    return found.data as {
+      executionTruncated?: true;
+      nextAction?: string;
+      execution?: McpToolExecutionResult;
+    };
+  }
+
+  test('T9: an execution that was cut says so, and does not tell the agent to answer from it', async () => {
+    const payload = await findAndExecute(items(195, 2300));
+
+    expect(payload.execution).toMatchObject({
+      truncated: true,
+      returned: 28,
+      total: 195,
+      nextPageOffset: 28,
+    });
+    expect(payload.executionTruncated).toBe(true);
+    expect(payload.nextAction).toContain('not complete');
+    expect(payload.nextAction).toContain('execution.truncated is true');
+    expect(payload.nextAction).toContain('execution.nextPageOffset');
+    expect(payload.nextAction).toContain('frodo_dispatch_read_only');
+    expect(payload.nextAction).not.toContain('Answer the user from');
+    // the first thing of the answer
+    expect(Object.keys(payload)[0]).toBe('executionTruncated');
+  });
+
+  test('T9b: a complete execution keeps the old text and has no executionTruncated', async () => {
+    const payload = await findAndExecute(items(3, 300));
+
+    expect(payload.execution).toMatchObject({ truncated: false, returned: 3 });
+    expect('executionTruncated' in payload).toBe(false);
+    expect(payload.nextAction).toBe(
+      'Answer the user from execution.data. The recommended read-only skill has already run; do not call any more discovery tools.'
+    );
+  });
+});
+
 describe('policy and exposure', () => {
   test('T11: the read-only tool still rejects an update, and the mutating tool still rejects a list', async () => {
     const readOnlyUpdate = dispatch(
@@ -728,5 +788,93 @@ describe('policy and exposure', () => {
       'frodo_dispatch_read_only',
       'frodo_dispatch',
     ]);
+  });
+});
+
+describe('frodo_describe_skill', () => {
+  async function describeSkill(
+    skillId: string,
+    options: McpToolRuntimeOptions = {}
+  ) {
+    const result = await runtimeFor({}, options).executeTool({
+      toolName: 'frodo_describe_skill',
+      arguments: { skillId },
+      context,
+    });
+    return result.data as { descriptor: unknown; paging?: any };
+  }
+
+  test('T12: a list capability has a paging block built from the limits of the runtime', async () => {
+    const described = await describeSkill('authn.journey.readJourneys');
+
+    expect(described.paging).toBeDefined();
+    expect(described.paging.defaultMaxBytes).toBe(65536);
+    expect(described.paging.defaultMaxItems).toBe(1000);
+    expect(described.paging.controls).toEqual([
+      'pageSize',
+      'pageOffset',
+      'pageToken',
+    ]);
+    expect(described.paging.resultFields).toEqual(RESULT_FIELDS);
+    expect(described.paging.note).toContain('truncated');
+    expect(described.paging.note).toContain('nextPageOffset');
+    expect(described.paging.note).toContain('nextPageToken');
+    expect(described.paging.note).toContain('semantic count');
+    expect(Object.keys(described)).toEqual([
+      'descriptor',
+      'supportedSelectors',
+      'paging',
+    ]);
+  });
+
+  test('T12b: the limits in the block follow the options of the runtime', async () => {
+    const described = await describeSkill('authn.journey.readJourneys', {
+      resultWarningThresholdBytes: 2048,
+      paginationWarningThreshold: 25,
+    });
+
+    expect(described.paging.defaultMaxBytes).toBe(2048);
+    expect(described.paging.defaultMaxItems).toBe(25);
+  });
+
+  test('T12c: a search capability has the block too, and a count, a read and a create capability do not', async () => {
+    expect((await describeSkill('cloud.log.fetch')).paging).toBeDefined();
+    for (const id of [
+      'authn.journey.countJourneys',
+      'authn.journey.readJourney',
+      'script.createScript',
+    ]) {
+      expect('paging' in (await describeSkill(id))).toBe(false);
+    }
+  });
+});
+
+describe('the tool descriptions', () => {
+  const tool = (name: string) =>
+    manifest.canonicalTools.find((canonical) => canonical.toolName === name)!;
+
+  test('T13: the read-only dispatch tool says that a list result states whether it is complete, and how to read on', () => {
+    const description = tool('frodo_dispatch_read_only').description;
+
+    expect(description).toContain('truncated, returned and total');
+    expect(description).toContain('before data');
+    expect(description).toContain('pageOffset');
+    expect(description).toContain('nextPageOffset');
+    expect(description).toContain('pageToken');
+    expect(description).toContain('nextPageToken');
+    expect(description).toContain('count capability');
+    // the sentence about a bulk call that failed in part is kept
+    expect(description).toContain('partial: true');
+    expect(description).toContain('itemResults.failures');
+  });
+
+  test('T13b: the list and search descriptions say it too', () => {
+    for (const operationType of ['list', 'search']) {
+      const generic = manifest.genericTools.find(
+        (candidate) => candidate.operationType === operationType
+      );
+      expect(generic?.description).toContain('truncated, returned, total');
+      expect(generic?.description).toContain('pageOffset or pageToken');
+    }
   });
 });
