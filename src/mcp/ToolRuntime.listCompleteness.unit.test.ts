@@ -1179,7 +1179,8 @@ describe('a search that removes duplicate events after its limit', () => {
           }
         : descriptor
     );
-    const method = jest.fn(async (..._args: any[]) => smallItems(700));
+    let events = smallItems(700);
+    const method = jest.fn(async (..._args: any[]) => events);
     const runtime = createToolRuntime(
       buildToolManifest(descriptors),
       descriptors,
@@ -1211,6 +1212,23 @@ describe('a search that removes duplicate events after its limit', () => {
       total: null,
     });
     expect(result.warning).toBe(searchCapWarning(700));
+
+    // below that limit, and with deduplication off by the default of the descriptor: complete
+    events = smallItems(650);
+    const below = await dispatch(runtime, 'cloud.log.searchEvents', {
+      namedArgs: {
+        source: 'am-authentication',
+        startTs: '2026-11-17T10:00:00Z',
+        endTs: '2026-11-17T11:00:00Z',
+      },
+    });
+
+    expect(below).toMatchObject({
+      truncated: false,
+      returned: 650,
+      total: 650,
+    });
+    expect('warning' in below).toBe(false);
   });
 });
 
