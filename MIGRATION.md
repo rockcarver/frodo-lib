@@ -196,6 +196,31 @@ releases missed):
   capability that takes it as its last parameter is rejected as an unknown
   argument. A host that calls the runtime in process and puts a function at the
   position of the callback keeps it.
+- The MCP tool runtime (`createToolRuntime`, `frodo.mcp.createService`) now
+  says in the first fields of a result whether a list or search result is
+  complete (a decision in
+  https://github.com/rockcarver/frodo-lib/blob/main/decisions/core/0025-a-result-that-was-cut-says-so-in-the-first-fields-of-the-result.md,
+  a result that was cut says so in the first fields). The result of a list or
+  search capability has `truncated`, `returned` and `total` before `data`;
+  when `truncated` is `true` it also has `nextPageOffset` (an array result) or
+  `nextPageToken` (a result that the platform pages, such as `cloud.log.fetch`
+  or `idm.system.querySystemObjects`) and a `warning`. `truncated` is `true`
+  whenever items remain beyond `data`: the runtime cut the array to its size
+  budget or its item ceiling, the caller asked for a page, or the platform
+  returned a cookie. `total` is `null` when the platform does not say.
+  `cloud.log.tail`, a live cursor, has `returned` and `nextPageToken` and no
+  `truncated`. `data` is unchanged, and a result that is not a list, or that
+  the runtime cannot read as one, has none of the fields. Before, a cut was
+  reported only in `metadata.pagination`. What else changes: the text of
+  `metadata.pagination.warning` (the new `warning` has the same text);
+  `metadata.pagination.isPartial` is `false` for an array that holds exactly
+  the item ceiling and was not cut (it was `true`); a result that the platform
+  pages reports `isPartial: true` and `hasMore: true` in `metadata.pagination`
+  when it carries a cookie (it was always `false`); `frodo_find_skills` adds
+  `executionTruncated: true` and a different `nextAction` when the capability
+  that it ran returned a cut result; `frodo_describe_skill` returns a `paging`
+  block for list and search capabilities; and the descriptions of
+  `frodo_dispatch_read_only` and of the list and search tools name the fields.
 - `frodo.oauth2oidc.issuer.deleteOAuth2TrustedJwtIssuer`
   (`src/ops/OAuth2TrustedJwtIssuerOps.ts`) now rejects with a `FrodoError`
   that names the realm and the issuer and carries the original error. Before,
