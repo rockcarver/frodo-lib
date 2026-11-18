@@ -626,6 +626,121 @@ describe('the log capabilities', () => {
   });
 });
 
+describe('a search that stops at a limit of its own', () => {
+  const searchEvents = (
+    events: unknown[],
+    namedArgs: Record<string, unknown> = {}
+  ) =>
+    dispatch(
+      runtimeFor(
+        rootWith(
+          'cloud.log.searchEvents',
+          jest.fn(async () => events),
+          withLogApiCredential
+        )
+      ),
+      'cloud.log.searchEvents',
+      {
+        namedArgs: {
+          source: 'am-authentication',
+          startTs: '2026-11-17T10:00:00Z',
+          endTs: '2026-11-17T11:00:00Z',
+          ...namedArgs,
+        },
+      }
+    );
+
+  test('T14: as many events as the default limit: it probably stopped there, so the result is truncated with an unknown total', async () => {
+    const result = await searchEvents(smallItems(1000));
+
+    expect(result.data).toHaveLength(1000);
+    expect(result).toMatchObject({
+      truncated: true,
+      returned: 1000,
+      total: null,
+    });
+    expect('nextPageOffset' in result).toBe(false);
+    expect(result.warning).toBe(
+      'Result is not complete: the capability stopped at its own limit of 1000 items (argument maxEvents), so more items may exist than it returned. Do not count or search only this result. Raise maxEvents or narrow the search to read more.'
+    );
+    expect(result.metadata?.pagination).toMatchObject({
+      isPartial: true,
+      returnedCount: 1000,
+    });
+    expect(result.metadata?.pagination?.warning).toBe(result.warning);
+    expect('hasMore' in (result.metadata?.pagination ?? {})).toBe(false);
+    expect('totalCount' in (result.metadata?.pagination ?? {})).toBe(false);
+    expect(Object.keys(result).indexOf('truncated')).toBeLessThan(
+      Object.keys(result).indexOf('data')
+    );
+  });
+
+  test('T14b: fewer events than the limit: complete', async () => {
+    const result = await searchEvents(smallItems(999));
+
+    expect(result).toMatchObject({
+      truncated: false,
+      returned: 999,
+      total: 999,
+    });
+    expect('warning' in result).toBe(false);
+    expect(result.metadata?.pagination?.isPartial).toBe(false);
+  });
+
+  test('T14c: the limit is the one the caller sent', async () => {
+    const atTheLimit = await searchEvents(smallItems(50), { maxEvents: 50 });
+    const belowTheLimit = await searchEvents(smallItems(49), { maxEvents: 50 });
+    const aboveTheDefault = await searchEvents(smallItems(1000), {
+      maxEvents: 5000,
+    });
+
+    expect(atTheLimit).toMatchObject({
+      truncated: true,
+      returned: 50,
+      total: null,
+    });
+    expect(atTheLimit.warning).toContain(
+      'limit of 50 items (argument maxEvents)'
+    );
+    expect(belowTheLimit).toMatchObject({ truncated: false, total: 49 });
+    expect(aboveTheDefault).toMatchObject({ truncated: false, total: 1000 });
+  });
+
+  test('T14d: a limit of 0 and no events is not a cut', async () => {
+    const result = await searchEvents([], { maxEvents: 0 });
+
+    expect(result).toMatchObject({ truncated: false, returned: 0, total: 0 });
+  });
+
+  test('T14e: a result that the capability limited and that the runtime cut as well says both', async () => {
+    const result = await searchEvents(items(1000, 2300));
+
+    expect(result.data).toHaveLength(28);
+    expect(result).toMatchObject({
+      truncated: true,
+      returned: 28,
+      total: null,
+      nextPageOffset: 28,
+    });
+    expect(result.warning).toBe(
+      'Result is not complete: the capability stopped at its own limit of 1000 items (argument maxEvents), so more items may exist than it returned. Do not count or search only this result. Raise maxEvents or narrow the search to read more. The response was also cut: data holds 28 of the 1000 items that the capability returned. Pass pageOffset: 28 to read the rest of them.'
+    );
+    expect(result.metadata?.pagination).toMatchObject({
+      isPartial: true,
+      hasMore: true,
+      nextPageOffset: 28,
+      returnedCount: 28,
+    });
+    expect('totalCount' in (result.metadata?.pagination ?? {})).toBe(false);
+  });
+
+  test('T14f: a list that does not limit itself is complete at the same size', async () => {
+    const result = await readJourneys(smallItems(1000));
+
+    expect(result).toMatchObject({ truncated: false, total: 1000 });
+  });
+});
+
 describe('results that are not lists', () => {
   test('T10: a count, a read, a create and an update have none of the fields', async () => {
     const countResult = await dispatch(

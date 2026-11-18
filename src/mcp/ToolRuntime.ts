@@ -81,6 +81,19 @@ const READ_ONLY_OPERATION_TYPES: McpCapabilityOperationType[] = [
  */
 const LIVE_CURSOR_CAPABILITY_IDS: readonly string[] = ['cloud.log.tail'];
 
+/**
+ * List and search capabilities that stop at a limit of their own, which the
+ * runtime cannot see in the array that they return: the argument that sets
+ * the limit and the limit that applies when the caller leaves it out. When
+ * such a capability returns as many items as its limit, it probably stopped
+ * there, and the result says so.
+ */
+const SELF_CAPPING_CAPABILITIES: Readonly<
+  Record<string, { argument: string; defaultCap: number }>
+> = {
+  'cloud.log.searchEvents': { argument: 'maxEvents', defaultCap: 1000 },
+};
+
 /** The fields that say whether a list or search result is complete, in the order they are serialized. */
 const LIST_COMPLETENESS_FIELDS = [
   'truncated',
@@ -529,6 +542,10 @@ export type McpToolExecutionResult = {
    * a `result` array and `pagedResultsCookie`, `resultCount` or
    * `totalPagedResults`). Absent for every other result, and for a live cursor
    * (see {@link McpToolExecutionResult.returned}), which is never complete.
+   * A capability that stops at a limit of its own, such as a `maxEvents`
+   * argument, is seen only when it returns as many items as that limit: the
+   * result is then `truncated` with a `total` of `null`, and `warning` names
+   * the argument. More items may exist; the runtime cannot know.
    * Agrees with `metadata.pagination.isPartial`. Not related to `partial`
    * (failed items of a bulk call) nor to `metadata.result.isTruncated` (a host
    * that replaces a result that is too large to send).
@@ -541,9 +558,10 @@ export type McpToolExecutionResult = {
    */
   returned?: number;
   /**
-   * The number of items that exist before any cut, or `null` when the
-   * platform does not say (a paged result with an unknown total). Present
-   * with {@link McpToolExecutionResult.truncated}.
+   * The number of items that exist before any cut, or `null` when it is not
+   * known: the platform does not say (a paged result with an unknown total),
+   * or the capability stopped at a limit of its own. Present with
+   * {@link McpToolExecutionResult.truncated}.
    */
   total?: number | null;
   /**
@@ -1020,7 +1038,8 @@ export function createToolRuntime(
               maxBytes: resultWarningThresholdBytes,
               maxItems: paginationWarningThreshold,
             },
-            LIVE_CURSOR_CAPABILITY_IDS.includes(descriptor.id)
+            LIVE_CURSOR_CAPABILITY_IDS.includes(descriptor.id),
+            resolveSelfCap(descriptor, args as McpGenericExecutionArguments)
           )
         : undefined;
 
@@ -3810,6 +3829,48 @@ type McpListLimits = {
 };
 
 /**
+ * The limit that a self-capping capability applies to one call.
+ */
+type McpSelfCap = {
+  /** The argument that sets the limit. */
+  argument: string;
+  /** The limit that applies to this call. */
+  cap: number;
+};
+
+/**
+ * Resolves the limit that a self-capping capability applies to this call: the
+ * value the caller sent for the argument that sets it, or its default.
+ *
+ * @returns `undefined` for a capability that does not cap itself.
+ */
+function resolveSelfCap(
+  descriptor: McpCapabilityDescriptor,
+  args: McpGenericExecutionArguments
+): McpSelfCap | undefined {
+  const entry = SELF_CAPPING_CAPABILITIES[descriptor.id];
+  if (!entry) {
+    return undefined;
+  }
+  const parameters = descriptor.parameters ?? [];
+  const parameter = parameters.find(
+    (candidate) => candidate.name === entry.argument
+  );
+  const value = Array.isArray(args.positionalArgs)
+    ? parameter
+      ? args.positionalArgs[parameter.position ?? parameters.indexOf(parameter)]
+      : undefined
+    : args.namedArgs?.[entry.argument];
+  return {
+    argument: entry.argument,
+    cap:
+      typeof value === 'number' && Number.isFinite(value)
+        ? value
+        : entry.defaultCap,
+  };
+}
+
+/**
  * Whether results of this operation type are lists that can be cut.
  */
 function isListOperation(operationType: McpCapabilityOperationType): boolean {
@@ -3881,7 +3942,8 @@ function summarizeListResult(
   data: unknown,
   truncation: McpArrayTruncationResult | undefined,
   limits: McpListLimits,
-  liveCursor: boolean
+  liveCursor: boolean,
+  selfCap?: McpSelfCap
 ): McpListCompleteness | undefined {
   if (liveCursor) {
     const page = readPagedResult(data);
@@ -3895,6 +3957,32 @@ function summarizeListResult(
   }
 
   if (Array.isArray(data)) {
+    // What the capability returned, before the runtime cut it to a page.
+    const returnedByCapability = truncation
+      ? truncation.totalCount
+      : data.length;
+    if (
+      selfCap &&
+      returnedByCapability > 0 &&
+      returnedByCapability >= selfCap.cap
+    ) {
+      // The capability stopped at its own limit: the runtime cannot know how
+      // many items there are, only that it may have left some.
+      return {
+        truncated: true,
+        returned: data.length,
+        total: null,
+        ...(truncation?.hasMore && {
+          nextPageOffset: truncation.nextPageOffset,
+        }),
+        warning: buildSelfCapWarning(
+          data.length,
+          returnedByCapability,
+          truncation,
+          selfCap
+        ),
+      };
+    }
     if (!truncation) {
       return { truncated: false, returned: data.length, total: data.length };
     }
@@ -3936,6 +4024,23 @@ function buildArrayTruncationWarning(
 ): string {
   const { returnedCount, totalCount, nextPageOffset } = truncation;
   return `Result is not complete: data holds ${returnedCount} of ${totalCount} items; the other ${totalCount - returnedCount} are not in this response (size limit ${limits.maxBytes} bytes, at most ${limits.maxItems} items per call). Do not count or search only this page. Pass pageOffset: ${nextPageOffset} to read on (pageSize is the maximum number of items you want), or use a count capability for the exact total.`;
+}
+
+/**
+ * The warning of an array that a capability returned after it stopped at a
+ * limit of its own. It says that more may exist, not that they do, and names
+ * the argument that raises the limit.
+ */
+function buildSelfCapWarning(
+  returned: number,
+  returnedByCapability: number,
+  truncation: McpArrayTruncationResult | undefined,
+  selfCap: McpSelfCap
+): string {
+  const stopped = `Result is not complete: the capability stopped at its own limit of ${selfCap.cap} items (argument ${selfCap.argument}), so more items may exist than it returned. Do not count or search only this result. Raise ${selfCap.argument} or narrow the search to read more.`;
+  return truncation?.hasMore
+    ? `${stopped} The response was also cut: data holds ${returned} of the ${returnedByCapability} items that the capability returned. Pass pageOffset: ${truncation.nextPageOffset} to read the rest of them.`
+    : stopped;
 }
 
 /**
@@ -4098,16 +4203,21 @@ function buildPaginationMetadata(
   };
 
   if (truncation) {
+    // a capability that stopped at its own limit has no total to report
+    const truncated =
+      truncation.hasMore || listCompleteness?.truncated === true;
     return {
-      isPartial: truncation.hasMore,
+      isPartial: truncated,
       returnedCount: truncation.returnedCount,
-      totalCount: truncation.totalCount,
+      ...(listCompleteness?.total !== null && {
+        totalCount: truncation.totalCount,
+      }),
       ...requested,
       ...(truncation.hasMore && {
         hasMore: true,
         nextPageOffset: truncation.nextPageOffset,
-        warning: listCompleteness?.warning,
       }),
+      ...(truncated && { warning: listCompleteness?.warning }),
     };
   }
 
@@ -4127,12 +4237,15 @@ function buildPaginationMetadata(
     };
   }
 
-  // An array that no slice was applied to is complete: the runtime read all of
-  // it and kept all of it, however many items that is.
+  // An array that no slice was applied to is complete, however many items that
+  // is: the runtime read all of it and kept all of it. Only a capability that
+  // stopped at its own limit can say otherwise.
+  const selfCapped = listCompleteness?.truncated === true;
   return {
-    isPartial: false,
+    isPartial: selfCapped,
     returnedCount: Array.isArray(data) ? data.length : undefined,
     ...requested,
+    ...(selfCapped && { warning: listCompleteness?.warning }),
   };
 }
 
