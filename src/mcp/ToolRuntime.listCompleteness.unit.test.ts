@@ -752,6 +752,14 @@ const COOKIE_CASES = [
     managedToo: false,
   },
   {
+    // the same, from an encoder that writes lower-case hex digits: an escape is kept as it came
+    name: 'a cookie that IDM has already percent-encoded with lower-case hex digits',
+    issued: ['ab%3d%3d%3a0', 'cd%3d%3d%3a0'],
+    inUrl: ['ab%3d%3d%3a0', 'cd%3d%3d%3a0'],
+    decoded: ['ab==:0', 'cd==:0'],
+    managedToo: false,
+  },
+  {
     name: 'a base64 cookie with +, / and =',
     issued: ['ab+10/cd==', 'xy+20/ef=='],
     inUrl: ['ab%2B10%2Fcd%3D%3D', 'xy%2B20%2Fef%3D%3D'],
@@ -885,6 +893,44 @@ describe('a paged-results cookie in the URL of a query of IDM', () => {
       expect(names(requests[1])).toEqual(
         [...names(requests[0]), '_pagedResultsCookie'].sort()
       );
+    },
+    30000
+  );
+
+  test.each([
+    {
+      method: 'querySystemObjects',
+      call: (instance: ReturnType<typeof idmInstance>) =>
+        instance.idm.system.querySystemObjects(
+          'ldap',
+          'account',
+          'true',
+          undefined,
+          undefined,
+          ''
+        ),
+    },
+    {
+      method: 'queryAllSystemObjectIds',
+      call: (instance: ReturnType<typeof idmInstance>) =>
+        instance.idm.system.queryAllSystemObjectIds(
+          'ldap',
+          'account',
+          undefined,
+          ''
+        ),
+    },
+  ])(
+    'T20e: $method sends no cookie parameter for an empty cookie',
+    async ({ call }) => {
+      current = COOKIE_CASES[1];
+      requests.length = 0;
+
+      const page = await call(idmInstance(host));
+
+      expect(page.result).toHaveLength(2);
+      expect(requests).toHaveLength(1);
+      expect(requests[0]).not.toContain('_pagedResultsCookie');
     },
     30000
   );
