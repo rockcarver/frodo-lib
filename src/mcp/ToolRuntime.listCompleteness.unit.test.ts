@@ -752,14 +752,6 @@ const COOKIE_CASES = [
     managedToo: false,
   },
   {
-    // the same, from an encoder that writes lower-case hex digits: an escape is kept as it came
-    name: 'a cookie that IDM has already percent-encoded with lower-case hex digits',
-    issued: ['ab%3d%3d%3a0', 'cd%3d%3d%3a0'],
-    inUrl: ['ab%3d%3d%3a0', 'cd%3d%3d%3a0'],
-    decoded: ['ab==:0', 'cd==:0'],
-    managedToo: false,
-  },
-  {
     name: 'a base64 cookie with +, / and =',
     issued: ['ab+10/cd==', 'xy+20/ef=='],
     inUrl: ['ab%2B10%2Fcd%3D%3D', 'xy%2B20%2Fef%3D%3D'],
@@ -779,6 +771,14 @@ const COOKIE_CASES = [
     inUrl: ['a%25s%25d', 'b%25j%25%25'],
     decoded: ['a%s%d', 'b%j%%'],
     managedToo: true,
+  },
+  {
+    // the same, from an encoder that writes lower-case hex digits: an escape is kept as it came
+    name: 'a cookie that IDM has already percent-encoded with lower-case hex digits',
+    issued: ['ab%3d%3d%3a0', 'cd%3d%3d%3a0'],
+    inUrl: ['ab%3d%3d%3a0', 'cd%3d%3d%3a0'],
+    decoded: ['ab==:0', 'cd==:0'],
+    managedToo: false,
   },
 ];
 
