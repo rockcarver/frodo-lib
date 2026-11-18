@@ -983,6 +983,16 @@ describe('the tool descriptions', () => {
     expect(description).toContain('itemResults.failures');
   });
 
+  test('T13c: the description of find_skills does not tell the agent to answer from a result that was cut', () => {
+    const description = tool('frodo_find_skills').description;
+
+    expect(description).toContain(
+      'answer from that result without further discovery, unless the answer has executionTruncated: true, in which case read on as its nextAction says'
+    );
+    expect(description).toContain('Search available capabilities');
+    expect(description).not.toContain('skills');
+  });
+
   test('T13b: the list and search descriptions say it too', () => {
     for (const operationType of ['list', 'search']) {
       const generic = manifest.genericTools.find(

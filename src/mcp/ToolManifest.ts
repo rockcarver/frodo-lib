@@ -358,7 +358,7 @@ function buildCanonicalTools(): McpCanonicalTool[] {
     {
       toolName: FIND_SKILLS_TOOL_NAME,
       description:
-        'Search available skills under the active target and profile. A unique deterministic read-only recommendation executes automatically by default and is returned as execution.data; answer from that result without further discovery. Set executeRecommended=false only for diagnostics.',
+        'Search available capabilities under the active target and profile. A unique deterministic read-only recommendation executes automatically by default and is returned as execution.data; answer from that result without further discovery, unless the answer has executionTruncated: true, in which case read on as its nextAction says. Set executeRecommended=false only for diagnostics.',
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
