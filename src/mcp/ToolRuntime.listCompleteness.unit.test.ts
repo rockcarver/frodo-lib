@@ -7,7 +7,7 @@
  * to its item ceiling, or to the page the caller asked for) says so in the first
  * fields of the result: `truncated`, `returned`, `total` and `nextPageOffset` or
  * `nextPageToken`, with a `warning`, placed before `data` (frodo-cli#1373). `data`
- * itself is what it was. These tests pin the fields, their order, the three kinds
+ * itself is what it was. These tests pin the fields, their order, the three shapes
  * of result they are built from (an array, a result that the platform pages, a live
  * cursor), the results that must not get them, and the texts that tell an agent how
  * to read on. Unit test: no recordings, no tenant, fake methods.
@@ -301,7 +301,8 @@ describe('a list result that was read in pages', () => {
     const seen: string[] = [];
     let offset: number | undefined = 0;
     let calls = 0;
-    while (offset !== undefined) {
+    // bounded: a wrong continuation must fail the test, not hang it
+    while (offset !== undefined && calls < 20) {
       const page: McpToolExecutionResult & { data: Array<{ _id: string }> } =
         (await readJourneys(list, { pageOffset: offset })) as any;
       seen.push(...page.data.map((item) => item._id));
@@ -309,6 +310,7 @@ describe('a list result that was read in pages', () => {
       calls += 1;
     }
 
+    expect(offset).toBeUndefined();
     expect(seen).toEqual(list.map((item) => item._id));
     expect(calls).toBe(7);
   });
@@ -528,6 +530,55 @@ describe('a result that the platform pages', () => {
   });
 });
 
+/**
+ * Follows `nextPageToken` from page to page with `pageToken`, for at most
+ * `limit` calls: a continuation that does not advance fails the test instead
+ * of hanging it. Returns the ids of the items of every page, and the number of
+ * calls.
+ */
+async function walkPages(
+  first: () => Promise<McpToolExecutionResult>,
+  next: (token: string) => Promise<McpToolExecutionResult>,
+  limit = 6
+) {
+  const ids: string[] = [];
+  let calls = 1;
+  let result = await first();
+  for (;;) {
+    ids.push(
+      ...(result.data as { result: Array<{ _id: string }> }).result.map(
+        (item) => item._id
+      )
+    );
+    if (result.nextPageToken === undefined || calls >= limit) {
+      break;
+    }
+    result = await next(result.nextPageToken);
+    calls += 1;
+  }
+  return { ids, calls, last: result };
+}
+
+/** Three pages of two items, each reachable only through the cookie of the page before. */
+const PAGES: Record<string, { items: string[]; next: string | null }> = {
+  first: { items: ['a0', 'a1'], next: 'cookie-2' },
+  'cookie-2': { items: ['b0', 'b1'], next: 'cookie-3' },
+  'cookie-3': { items: ['c0', 'c1'], next: null },
+};
+
+/** The paged result that the platform answers for the page the cookie names. */
+const pagedAnswer = (cookie: string | undefined | null) => {
+  const page = PAGES[cookie || 'first'] ?? { items: [], next: null };
+  return {
+    result: page.items.map((_id) => ({ _id })),
+    resultCount: page.items.length,
+    pagedResultsCookie: page.next,
+    totalPagedResultsPolicy: 'NONE',
+    totalPagedResults: -1,
+    remainingPagedResults: -1,
+  };
+};
+
 describe('a one-page managed-object query', () => {
   let server: http.Server;
   let host: string;
@@ -537,17 +588,12 @@ describe('a one-page managed-object query', () => {
     requests = [];
     server = http.createServer((request, response) => {
       requests.push(`${request.method} ${request.url}`);
+      const cookie = new URL(
+        request.url ?? '',
+        'http://127.0.0.1'
+      ).searchParams.get('_pagedResultsCookie');
       response.writeHead(200, { 'content-type': 'application/json' });
-      response.end(
-        JSON.stringify({
-          result: [{ _id: 'u1' }, { _id: 'u2' }],
-          resultCount: 2,
-          pagedResultsCookie: 'mo-cookie',
-          totalPagedResultsPolicy: 'NONE',
-          totalPagedResults: -1,
-          remainingPagedResults: -1,
-        })
-      );
+      response.end(JSON.stringify(pagedAnswer(cookie)));
     });
     await new Promise<void>((resolve) =>
       server.listen(0, '127.0.0.1', () => resolve())
@@ -560,7 +606,7 @@ describe('a one-page managed-object query', () => {
     await new Promise((resolve) => server.close(resolve));
   });
 
-  test('T7f: reports a cookie as a cut, in the same way as the other results the platform pages', async () => {
+  function managedInstance() {
     const instance = FrodoLib({
       host,
       deploymentType: 'cloud',
@@ -576,22 +622,93 @@ describe('a one-page managed-object query', () => {
       expires: Date.now() + 3600 * 1000,
     } as any);
     (instance.login as any).getTokens = async () => undefined;
+    return instance;
+  }
+
+  test('T7f: reports a cookie as a cut, in the same way as the other results the platform pages', async () => {
     requests.length = 0;
 
     const result = await dispatch(
-      runtimeFor(instance),
+      runtimeFor(managedInstance()),
       'idm.managed.queryManagedObjects',
       { namedArgs: { type: 'alpha_user' } }
     );
 
     expect(requests).toHaveLength(1);
+    expect(requests[0]).not.toContain('_pagedResultsCookie');
     expect(result).toMatchObject({
       truncated: true,
       returned: 2,
       total: null,
-      nextPageToken: 'mo-cookie',
+      nextPageToken: 'cookie-2',
     });
   });
+
+  test('T15a: the nextPageToken of a managed-object query, passed back as pageToken, reads the next page and the end', async () => {
+    requests.length = 0;
+    const runtime = runtimeFor(managedInstance());
+    const read = (extra: Record<string, unknown> = {}) =>
+      dispatch(runtime, 'idm.managed.queryManagedObjects', {
+        namedArgs: { type: 'alpha_user' },
+        ...extra,
+      });
+
+    const walked = await walkPages(
+      () => read(),
+      (token) => read({ pageToken: token })
+    );
+
+    expect(walked.ids).toEqual(['a0', 'a1', 'b0', 'b1', 'c0', 'c1']);
+    expect(walked.calls).toBe(3);
+    expect(walked.last).toMatchObject({ truncated: false, returned: 2 });
+    expect('nextPageToken' in walked.last).toBe(false);
+    expect(requests).toHaveLength(3);
+    expect(requests[1]).toContain('_pagedResultsCookie=cookie-2');
+    expect(requests[2]).toContain('_pagedResultsCookie=cookie-3');
+  });
+});
+
+describe('the nextPageToken of the capabilities that the runtime reads', () => {
+  test.each([
+    {
+      id: 'idm.system.querySystemObjects',
+      namedArgs: {
+        systemName: 'ldap',
+        systemObjectType: 'account',
+        filter: 'true',
+      },
+      cookieAt: 5,
+    },
+    {
+      id: 'idm.system.queryAllSystemObjectIds',
+      namedArgs: { systemName: 'ldap', systemObjectType: 'account' },
+      cookieAt: 3,
+    },
+  ])(
+    'T15b: $id: the token, passed back as pageToken, reads the next page and the end',
+    async ({ id, namedArgs, cookieAt }) => {
+      const method = jest.fn(async (...args: any[]) =>
+        pagedAnswer(args[cookieAt])
+      );
+      const runtime = runtimeFor(rootWith(id, method));
+      const read = (extra: Record<string, unknown> = {}) =>
+        dispatch(runtime, id, { namedArgs, ...extra });
+
+      const walked = await walkPages(
+        () => read(),
+        (token) => read({ pageToken: token })
+      );
+
+      expect(walked.ids).toEqual(['a0', 'a1', 'b0', 'b1', 'c0', 'c1']);
+      expect(walked.calls).toBe(3);
+      expect('nextPageToken' in walked.last).toBe(false);
+      expect(method.mock.calls.map((call) => call[cookieAt])).toEqual([
+        undefined,
+        'cookie-2',
+        'cookie-3',
+      ]);
+    }
+  );
 });
 
 describe('the log capabilities', () => {
@@ -847,6 +964,69 @@ describe('a search that stops at a limit of its own', () => {
   });
 });
 
+describe('a read that stops at a limit that it has no argument for', () => {
+  const read = (id: string, list: unknown[], namedArgs?: object) =>
+    dispatch(
+      runtimeFor(
+        rootWith(
+          id,
+          jest.fn(async () => list)
+        )
+      ),
+      id,
+      namedArgs ? { namedArgs } : {}
+    );
+
+  test('T16: role.readInternalRoles with as many roles as its one request holds is truncated, with an unknown total', async () => {
+    const result = await read('role.readInternalRoles', smallItems(1000));
+
+    expect(result).toMatchObject({
+      truncated: true,
+      returned: 1000,
+      total: null,
+    });
+    expect(result.warning).toBe(
+      'Result is not complete: the capability stopped at its own limit of 1000 items, so more items may exist than it returned. Do not count or search only this result. Query with a filter to read more.'
+    );
+    expect(result.metadata?.pagination?.isPartial).toBe(true);
+  });
+
+  test('T16b: role.readInternalRoles with fewer roles is complete', async () => {
+    const result = await read('role.readInternalRoles', smallItems(999));
+
+    expect(result).toMatchObject({
+      truncated: false,
+      returned: 999,
+      total: 999,
+    });
+    expect('warning' in result).toBe(false);
+  });
+
+  test('T16c: role.queryInternalRoles is limited in the same way, and says both when the response was cut too', async () => {
+    const atTheLimit = await read('role.queryInternalRoles', smallItems(1000), {
+      filter: 'true',
+    });
+    const alsoCut = await read('role.queryInternalRoles', items(1000, 300), {
+      filter: 'true',
+    });
+
+    expect(atTheLimit).toMatchObject({
+      truncated: true,
+      returned: 1000,
+      total: null,
+    });
+    expect(alsoCut).toMatchObject({ truncated: true, total: null });
+    expect(alsoCut.returned).toBeLessThan(1000);
+    expect(alsoCut.warning).toContain('stopped at its own limit of 1000 items');
+    expect(alsoCut.warning).toContain(
+      `data holds ${alsoCut.returned} of the 1000 items that the capability returned`
+    );
+    expect(alsoCut.warning).toContain(
+      `Pass pageOffset: ${alsoCut.nextPageOffset} to read the rest of them.`
+    );
+  });
+});
+
 describe('results that are not lists', () => {
   test('T10: a count, a read, a create and an update have none of the fields', async () => {
     const countResult = await dispatch(
@@ -1084,6 +1264,9 @@ describe('the tool descriptions', () => {
     expect(description).toContain('pageToken');
     expect(description).toContain('nextPageToken');
     expect(description).toContain('count capability');
+    expect(description).toContain(
+      'do not count it, and do not conclude that an item does not exist'
+    );
     // the sentence about a bulk call that failed in part is kept
     expect(description).toContain('partial: true');
     expect(description).toContain('itemResults.failures');

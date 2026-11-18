@@ -84,14 +84,17 @@ const LIVE_CURSOR_CAPABILITY_IDS: readonly string[] = ['cloud.log.tail'];
 /**
  * List and search capabilities that stop at a limit of their own, which the
  * runtime cannot see in the array that they return: the argument that sets
- * the limit and the limit that applies when the caller leaves it out. When
- * such a capability returns as many items as its limit, it probably stopped
- * there, and the result says so.
+ * the limit (absent when the limit is fixed) and the limit that applies when
+ * the caller leaves it out. When such a capability returns as many items as
+ * its limit, it probably stopped there, and the result says so.
  */
 const SELF_CAPPING_CAPABILITIES: Readonly<
-  Record<string, { argument: string; defaultCap: number }>
+  Record<string, { argument?: string; defaultCap: number }>
 > = {
   'cloud.log.searchEvents': { argument: 'maxEvents', defaultCap: 1000 },
+  // one request of at most 1000 items: the cookie of the answer is dropped
+  'role.readInternalRoles': { defaultCap: 1000 },
+  'role.queryInternalRoles': { defaultCap: 1000 },
 };
 
 /** The fields that say whether a list or search result is complete, in the order they are serialized. */
@@ -2063,7 +2066,8 @@ async function invokeManagedObjectSearchPage(
     filter: filter ?? 'true',
     fields: Array.isArray(fields) && fields.length > 0 ? fields : ['*'],
     pageSize,
-    pageCookie,
+    // `pageToken` is the cookie that this query handed out as `nextPageToken`
+    pageCookie: pageCookie ?? args.pageToken,
     state: scopedFrodo.state,
   });
 }
@@ -3832,8 +3836,8 @@ type McpListLimits = {
  * The limit that a self-capping capability applies to one call.
  */
 type McpSelfCap = {
-  /** The argument that sets the limit. */
-  argument: string;
+  /** The argument that sets the limit; absent when the limit is fixed. */
+  argument?: string;
   /** The limit that applies to this call. */
   cap: number;
 };
@@ -3851,6 +3855,9 @@ function resolveSelfCap(
   const entry = SELF_CAPPING_CAPABILITIES[descriptor.id];
   if (!entry) {
     return undefined;
+  }
+  if (entry.argument === undefined) {
+    return { cap: entry.defaultCap };
   }
   const parameters = descriptor.parameters ?? [];
   const parameter = parameters.find(
@@ -4037,7 +4044,15 @@ function buildSelfCapWarning(
   truncation: McpArrayTruncationResult | undefined,
   selfCap: McpSelfCap
 ): string {
-  const stopped = `Result is not complete: the capability stopped at its own limit of ${selfCap.cap} items (argument ${selfCap.argument}), so more items may exist than it returned. Do not count or search only this result. Raise ${selfCap.argument} or narrow the search to read more.`;
+  const limit =
+    selfCap.argument === undefined
+      ? `limit of ${selfCap.cap} items`
+      : `limit of ${selfCap.cap} items (argument ${selfCap.argument})`;
+  const readOn =
+    selfCap.argument === undefined
+      ? 'Query with a filter to read more.'
+      : `Raise ${selfCap.argument} or narrow the search to read more.`;
+  const stopped = `Result is not complete: the capability stopped at its own ${limit}, so more items may exist than it returned. Do not count or search only this result. ${readOn}`;
   return truncation?.hasMore
     ? `${stopped} The response was also cut: data holds ${returned} of the ${returnedByCapability} items that the capability returned. Pass pageOffset: ${truncation.nextPageOffset} to read the rest of them.`
     : stopped;
