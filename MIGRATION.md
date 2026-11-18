@@ -465,6 +465,45 @@ releases missed):
   `idm.system.querySystemObjects` and `idm.managed.queryManagedObjects` from
   `pageToken`: an empty `pageCookie` and a non-empty `pageToken` now read the
   page of the token. `startTs` and `endTs` stay required.
+- The MCP capabilities of 25 methods now list the parameters of their
+  signature, by the names of the signature and in its order. Their TSDoc listed
+  the parameters in another order, under other names, with a malformed name or
+  without one of them, so a call with `namedArgs` reached the wrong positions
+  or could not give a parameter; a call with `positionalArgs` is unchanged. A
+  `namedArgs` call that gave the old name of a parameter is now rejected as an
+  unknown named argument. In another order (the arguments of a named call now
+  reach the positions of the signature): `agent.importAgents`,
+  `authn.journey.getTreeDescendents`,
+  `cloud.adminFed.createAdminFederationProvider`,
+  `cloud.iga.certificationTemplate.importCertificationTemplates`,
+  `cloud.iga.event.importEvents`, `cloud.iga.glossary.importGlossarySchemas`,
+  `cloud.iga.requestForm.importRequestForms`,
+  `cloud.iga.requestType.importRequestTypes`,
+  `saml2.circlesOfTrust.importCirclesOfTrust` and
+  `saml2.entityProvider.updateSaml2Provider`. Under other names:
+  `authz.policySet.updatePolicySet` (`importData` is now `policySetData`),
+  `idm.mapping.updateSyncMappings` (`mappingData` is now `mappings`) and
+  `theme.updateThemes` (`allThemesData` and `realm` are now `themeMap`; the
+  method never took a realm). With a malformed name: `idm.crypto.decryptMap`
+  and `idm.crypto.encryptMap` (the name was `{{`, it is `map`) and the six
+  `idm.managed.schema.{create,remove,update}ManagedObjectSchema{Flat,Relationship}Property`
+  capabilities (the optional parameter had brackets in its name, such as
+  `[subProperty]`; it is `subProperty`, `reverse` or `withReverse`). With a
+  parameter that the TSDoc left out: `authz.policy.exportPolicy` (`options`),
+  `idm.managed.queryRelatedManagedObjects` and
+  `idm.managedSystem.queryManagedSystemObjects` (`pageSize`; the `pageSize`
+  argument of a call is the page size of the requests, and every page is still
+  read) and `login.getTokens` (`credentialOverride` is documented, and the
+  capability does not offer it: it selects the credential of the call, so an MCP
+  caller cannot choose it). Their operation type, risk class, `mutating`,
+  `destructive` and the policy presets that expose them are unchanged.
+- `frodo.admin.generateRfc7523ClientAuthNArtefacts` now waits for the signing
+  of the client authentication JWT: `jwt` of its result is the signed token (a
+  string), where it was an unresolved promise that serialises as an empty
+  object, and its `exp` is five minutes after the call, where it was 300, that
+  is seconds since 1970, so the token was expired when it was made. A caller
+  that awaited `jwt` gets the same kind of value as before; the property itself
+  is no longer a promise.
 
 **Deprecation**:
 
