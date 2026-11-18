@@ -460,8 +460,11 @@ releases missed):
   wins; a `cookie` that is missing, `null` or empty counts as left out, and
   then `pageToken` is the cookie, unless it is empty too. A call with an empty
   `cookie` and a non-empty `pageToken` now uses the token, where it used the
-  empty `cookie` before. This holds for named and for positional calls.
-  `startTs` and `endTs` stay required.
+  empty `cookie` before. This holds for named and for positional calls. The
+  same rule fills the `pageCookie` of `idm.system.queryAllSystemObjectIds`,
+  `idm.system.querySystemObjects` and `idm.managed.queryManagedObjects` from
+  `pageToken`: an empty `pageCookie` and a non-empty `pageToken` now read the
+  page of the token. `startTs` and `endTs` stay required.
 
 **Deprecation**:
 
