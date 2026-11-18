@@ -2979,15 +2979,46 @@ function toInvocationArgs(
 }
 
 /**
+ * Name of the parameter that carries the cursor of a capability whose platform
+ * pages the result itself (the log reads).
+ */
+const COOKIE_PARAMETER = 'cookie';
+
+/**
+ * Decides which value the `cookie` parameter of a call gets.
+ *
+ * @remarks
+ * One rule for named and positional calls. A cookie that the caller gave
+ * (anything but `undefined`, `null` or an empty string) wins. A cookie that is
+ * absent, `null` or empty counts as left out, and then the `pageToken`
+ * argument is the cookie, unless it is empty too. When there is nothing to put
+ * in, the value the caller gave is kept as it is.
+ *
+ * @param given Value of the `cookie` parameter in the call, if any.
+ * @param pageToken Value of the `pageToken` argument, if any.
+ * @returns The value for the `cookie` parameter.
+ */
+function resolveCookieValue(given: unknown, pageToken: unknown): unknown {
+  if (given !== undefined && given !== null && given !== '') {
+    return given;
+  }
+  if (typeof pageToken === 'string' && pageToken !== '') {
+    return pageToken;
+  }
+  return given;
+}
+
+/**
  * Fills the `cookie` slot of a positional call from the `pageToken` argument.
  *
  * @remarks
  * A capability whose platform pages the result itself (the log reads) takes
  * the cursor as a parameter named `cookie`. A named call maps `pageToken` to
  * it by name (see {@link resolveNamedOrGenericParameterValue}); a positional
- * call has to do the same, or the token would be dropped without a word. A
- * cookie that the caller put in the slot wins; the arguments of the caller are
- * not modified.
+ * call has to do the same, or the token would be dropped without a word. The
+ * rule for which of the two wins is {@link resolveCookieValue}. A capability
+ * without a `cookie` parameter is left alone, and the arguments of the caller
+ * are never modified.
  *
  * @param positionalArgs Positional arguments of the call.
  * @param descriptor Descriptor of the capability that is called.
@@ -2999,23 +3030,21 @@ function withPageTokenAsCookie(
   descriptor: McpCapabilityDescriptor | undefined,
   pageToken: unknown
 ): unknown[] {
-  if (typeof pageToken !== 'string' || pageToken === '') {
-    return positionalArgs;
-  }
   const slot = descriptor?.parameters?.find(
-    (parameter) => parameter.name === 'cookie'
+    (parameter) => parameter.name === COOKIE_PARAMETER
   )?.position;
   if (slot === undefined) {
     return positionalArgs;
   }
-  if (positionalArgs[slot] !== undefined && positionalArgs[slot] !== null) {
+  const resolved = resolveCookieValue(positionalArgs[slot], pageToken);
+  if (resolved === positionalArgs[slot]) {
     return positionalArgs;
   }
   const filled = [...positionalArgs];
   while (filled.length < slot) {
     filled.push(undefined);
   }
-  filled[slot] = pageToken;
+  filled[slot] = resolved;
   return filled;
 }
 
@@ -3115,6 +3144,10 @@ function validateInvocationArguments(
     if (value === undefined) {
       continue;
     }
+    if (value === null && parameter.name === COOKIE_PARAMETER) {
+      // a JSON payload has no undefined: null leaves the cursor out, like ''
+      continue;
+    }
     validateNamedArgumentValue(descriptor.id, parameter, value);
   }
 }
@@ -3133,6 +3166,9 @@ function resolveNamedOrGenericParameterValue(
   }
 ): unknown {
   const providedValue = args.namedArgs?.[parameter.name];
+  if (parameter.name === COOKIE_PARAMETER) {
+    return resolveCookieValue(providedValue, args.pageToken);
+  }
   if (providedValue !== undefined) {
     return providedValue;
   }
@@ -3145,7 +3181,6 @@ function resolveNamedOrGenericParameterValue(
       return args.pageOffset;
     case 'pageToken':
     case 'pageCookie':
-    case 'cookie':
       return args.pageToken;
     case 'includeTotal':
       return args.includeTotal;
