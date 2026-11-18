@@ -54,9 +54,9 @@ export type PolicySet = {
    */
   readPolicySet(policySetName: string): Promise<PolicySetSkeleton>;
   /**
-   * Create policy set
+   * Create policy set. With a policy set name, the policy set is written under that name with an update (PUT) request, which replaces an existing policy set of that name.
    * @param {PolicySetSkeleton} policySetData policy set object
-   * @param {string} policySetName optional policy set name; when given, the policy set is written under this name
+   * @param {string} policySetName optional policy set name; when given, the policy set is written under this name by an update request instead of being created
    * @returns {Promise<PolicySetSkeleton>} a promise that resolves to the created policy set object
    */
   createPolicySet(

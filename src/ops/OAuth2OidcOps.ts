@@ -86,7 +86,7 @@ export type OAuth2Oidc = {
     config?: AxiosRequestConfig
   ): Promise<AccessTokenMetaType>;
   /**
-   * Get information about the access token that the request config carries
+   * Get token information from the OAuth2 token info endpoint. The request is a GET that carries the credential of the current session; the request config can add or override headers.
    * @param {string} amBaseUrl access management base URL
    * @param {AxiosRequestConfig} config axios request config object
    * @returns {Promise<TokenInfoResponseType>} a promise resolving to the token information

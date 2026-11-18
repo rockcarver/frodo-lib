@@ -32,7 +32,7 @@ export type Admin = {
    * @param {string} clientId client id of the OAuth2 client to generate (the trusted JWT issuer is named after it)
    * @param {string} iss issuer of the JWT assertions that the trusted JWT issuer accepts
    * @param {JwkRsa} jwk optional RSA JSON web key to use; a new key is generated when left out
-   * @param {string} sub optional subject that the trusted JWT issuer is allowed to assert; no subject is allowed when left out
+   * @param {string} sub optional subject to put in the allowed subjects of the trusted JWT issuer; the list of allowed subjects is empty when left out
    * @param {string[]} scope optional scopes of the OAuth2 client (default: fr:am:*, fr:idm:*, openid)
    * @param {object} options optional object `{ save: boolean }`; with `save` true the client and the trusted JWT issuer are created or updated on the tenant (default: `{ save: false }`)
    * @returns {Promise<object>} a promise that resolves to an object with the key (`jwk`), its public key set (`jwks`), the OAuth2 client (`client`) and the trusted JWT issuer (`issuer`)
@@ -86,13 +86,13 @@ export type Admin = {
     client: OAuth2ClientSkeleton;
   }>;
   /**
-   * Generate sample login data for Autonomous Access by sending simulated login requests with random user names, IP addresses and user agents.
+   * Generate sample login data for Autonomous Access by sending simulated login requests with random user names, IP addresses and user agents. The call sends `loginsPerUser` login requests for each of 200 user names, 20,000 requests with the default, to the tenant.
    * @param {string} apiKey API key to send with every simulated login request
    * @param {string} apiSecret API secret to send with every simulated login request
    * @param {string[]} customUsernames optional user names to use in addition to the built-in ones
    * @param {string[]} customUserAgents optional user agent strings to use in addition to the built-in ones
    * @param {string[]} customIPs optional IP addresses to use in addition to the built-in ones
-   * @param {number} loginsPerUser optional number of logins to simulate per user (default: 100)
+   * @param {number} loginsPerUser optional number of login requests to send per user name, for each of 200 user names (default: 100)
    * @param {string} service optional name of the authentication journey to log in with (default: Frodo-Train-AA)
    * @returns {Promise<void>} a promise that resolves when all login requests were sent
    */
