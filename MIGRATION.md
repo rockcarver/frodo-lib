@@ -489,14 +489,20 @@ releases missed):
   `idm.managed.schema.{create,remove,update}ManagedObjectSchema{Flat,Relationship}Property`
   capabilities (the optional parameter had brackets in its name, such as
   `[subProperty]`; it is `subProperty`, `reverse` or `withReverse`). With a
-  parameter that the TSDoc left out: `authz.policy.exportPolicy` (`options`),
-  `idm.managed.queryRelatedManagedObjects` and
-  `idm.managedSystem.queryManagedSystemObjects` (`pageSize`; the `pageSize`
-  argument of a call is the page size of the requests, and every page is still
-  read) and `login.getTokens` (`credentialOverride` is documented, and the
-  capability does not offer it: it selects the credential of the call, so an MCP
-  caller cannot choose it). Their operation type, risk class, `mutating`,
-  `destructive` and the policy presets that expose them are unchanged.
+  parameter that the TSDoc left out: `authz.policy.exportPolicy` (`options`,
+  which is now an argument), and `idm.managed.queryRelatedManagedObjects` and
+  `idm.managedSystem.queryManagedSystemObjects` (`pageSize`) and
+  `login.getTokens` (`credentialOverride`), which are documented in the TSDoc
+  and are not arguments of the capability: the capability does not offer such a
+  parameter, and a call that gives it, by name or by position, is rejected
+  before the method is called (a `positionalArgs` array that reaches the
+  position of the parameter, for these three capabilities; the length of
+  `positionalArgs` is still not checked for any other capability). A positional
+  call that gave a fifth value to `idm.managed.queryRelatedManagedObjects` or a
+  fourth to `idm.managedSystem.queryManagedSystemObjects`, the page size of
+  their requests, is rejected now. The `pageSize` argument of a dispatch call
+  is what it was: it cuts the result. The operation type, risk class,
+  `mutating`, `destructive` and the policy presets of all 25 are unchanged.
 - `frodo.admin.generateRfc7523ClientAuthNArtefacts` now waits for the signing
   of the client authentication JWT: `jwt` of its result is the signed token (a
   string), where it was an unresolved promise that serialises as an empty
