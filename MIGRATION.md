@@ -209,7 +209,11 @@ releases missed):
   budget or its item ceiling, the caller asked for a page, or the platform
   returned a cookie. `total` is `null` when the platform does not say.
   `cloud.log.tail`, a live cursor, has `returned` and `nextPageToken` and no
-  `truncated`. `data` is unchanged, and a result that is not a list, or that
+  `truncated`. `cloud.log.searchEvents`, which stops at its own `maxEvents`
+  limit and returns a plain array, is `truncated` with a `total` of `null`
+  when it returns that many events (it may have left more); a search that
+  removes duplicate events after it stopped can return fewer and is not seen.
+  `data` is unchanged, and a result that is not a list, or that
   the runtime cannot read as one, has none of the fields. Before, a cut was
   reported only in `metadata.pagination`. What else changes: the text of
   `metadata.pagination.warning` (the new `warning` has the same text);
