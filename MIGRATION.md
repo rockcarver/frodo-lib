@@ -402,14 +402,17 @@ releases missed):
 - `frodo.cloud.log.fetch` takes `cookie`, `txid` and `filter` as optional
   parameters (`cookie?: string`, `txid?: string`, `filter?: string`), and
   `frodo.cloud.log.tail` takes `cookie?: string`. The code already ignored an
-  empty value, so a caller that passes `''` is unchanged; the MCP capabilities
-  no longer reject a call that leaves them out. The MCP argument `pageToken` is
-  now the `cookie` of these two capabilities (before, it was dropped, because
-  only parameters named `pageToken` or `pageCookie` received it): a `cookie`
-  that the caller gave wins; a `cookie` that is missing, `null` or empty counts
-  as left out, and then `pageToken` is the cookie, unless it is empty too. This
-  holds for named and for positional calls. `startTs` and `endTs` stay
-  required.
+  empty value, so a caller that passes `''` is unchanged (unless it also sends
+  a `pageToken`, see below); the MCP capabilities no longer reject a call that
+  leaves them out, and they accept `null` for them, which counts as left out
+  like an empty string. The MCP argument `pageToken` is now the `cookie` of
+  these two capabilities (before, it was dropped, because only parameters named
+  `pageToken` or `pageCookie` received it): a `cookie` that the caller gave
+  wins; a `cookie` that is missing, `null` or empty counts as left out, and
+  then `pageToken` is the cookie, unless it is empty too. A call with an empty
+  `cookie` and a non-empty `pageToken` now uses the token, where it used the
+  empty `cookie` before. This holds for named and for positional calls.
+  `startTs` and `endTs` stay required.
 
 **Deprecation**:
 
