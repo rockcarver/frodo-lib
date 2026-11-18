@@ -27,6 +27,16 @@ import OAUTH2_CLIENT from './templates/OAuth2ClientTemplate.json' with { type: '
 import OAUTH2_ISSUER from './templates/OAuth2TrustedJwtIssuerTemplate.json' with { type: 'json' };
 
 export type Admin = {
+  /**
+   * Generate the artefacts of an RFC 7523 JWT-bearer authorization grant: a key pair, an OAuth2 client and a trusted JWT issuer. With `options.save` set, the client and the trusted JWT issuer are also written to the tenant.
+   * @param {string} clientId client id of the OAuth2 client to generate (the trusted JWT issuer is named after it)
+   * @param {string} iss issuer of the JWT assertions that the trusted JWT issuer accepts
+   * @param {JwkRsa} jwk optional RSA JSON web key to use; a new key is generated when left out
+   * @param {string} sub optional subject that the trusted JWT issuer is allowed to assert; no subject is allowed when left out
+   * @param {string[]} scope optional scopes of the OAuth2 client (default: fr:am:*, fr:idm:*, openid)
+   * @param {object} options optional object `{ save: boolean }`; with `save` true the client and the trusted JWT issuer are created or updated on the tenant (default: `{ save: false }`)
+   * @returns {Promise<object>} a promise that resolves to an object with the key (`jwk`), its public key set (`jwks`), the OAuth2 client (`client`) and the trusted JWT issuer (`issuer`)
+   */
   generateRfc7523AuthZGrantArtefacts(
     clientId: string,
     iss: string,
@@ -40,6 +50,15 @@ export type Admin = {
     client: OAuth2ClientSkeleton;
     issuer: OAuth2TrustedJwtIssuerSkeleton;
   }>;
+  /**
+   * Execute an RFC 7523 JWT-bearer authorization grant: sign a JWT assertion and exchange it for an access token.
+   * @param {string} clientId client id of the OAuth2 client to request the access token for
+   * @param {string} iss issuer of the JWT assertion
+   * @param {JwkRsa} jwk RSA JSON web key that signs the assertion
+   * @param {string} sub subject of the JWT assertion
+   * @param {string[]} scope optional scopes to request (default: fr:am:*, fr:idm:*, openid)
+   * @returns {Promise<AccessTokenResponseType>} a promise that resolves to the access token response
+   */
   executeRfc7523AuthZGrantFlow(
     clientId: string,
     iss: string,
@@ -47,6 +66,14 @@ export type Admin = {
     sub: string,
     scope?: string[]
   ): Promise<AccessTokenResponseType>;
+  /**
+   * Generate the artefacts of RFC 7523 client authentication (private key JWT): a key pair, a signed client authentication JWT and an OAuth2 client. With `options.save` set, the client is also written to the tenant.
+   * @param {string} clientId client id of the OAuth2 client to generate
+   * @param {string} aud optional audience of the JWT; the access token URL of the realm when left out
+   * @param {JwkRsa} jwk optional RSA JSON web key to use; a new key is generated when left out
+   * @param {object} options optional object `{ save: boolean }`; with `save` true the client is created or updated on the tenant (default: `{ save: false }`)
+   * @returns {Promise<object>} a promise that resolves to an object with the key (`jwk`), its public key set (`jwks`), the signed JWT (`jwt`) and the OAuth2 client (`client`)
+   */
   generateRfc7523ClientAuthNArtefacts(
     clientId: string,
     aud?: string,
@@ -58,6 +85,17 @@ export type Admin = {
     jwt: any;
     client: OAuth2ClientSkeleton;
   }>;
+  /**
+   * Generate sample login data for Autonomous Access by sending simulated login requests with random user names, IP addresses and user agents.
+   * @param {string} apiKey API key to send with every simulated login request
+   * @param {string} apiSecret API secret to send with every simulated login request
+   * @param {string[]} customUsernames optional user names to use in addition to the built-in ones
+   * @param {string[]} customUserAgents optional user agent strings to use in addition to the built-in ones
+   * @param {string[]} customIPs optional IP addresses to use in addition to the built-in ones
+   * @param {number} loginsPerUser optional number of logins to simulate per user (default: 100)
+   * @param {string} service optional name of the authentication journey to log in with (default: Frodo-Train-AA)
+   * @returns {Promise<void>} a promise that resolves when all login requests were sent
+   */
   trainAA(
     apiKey: string,
     apiSecret: string,

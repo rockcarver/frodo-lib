@@ -14,7 +14,8 @@ import { FrodoError } from '../FrodoError';
 export type EnvServiceAccountScopes = {
   /**
    * Read available service account scopes
-   * @returns {Promise<SSOCookieConfig>} a promise that resolves to an array of ServiceAccountScope objects or a flattened array of scope strings
+   * @param {boolean} flatten true to return a flat array of scope names instead of the nested scope objects (default: false)
+   * @returns {Promise<ServiceAccountScope[] | string[]>} a promise that resolves to an array of ServiceAccountScope objects or a flattened array of scope strings
    */
   readServiceAccountScopes(
     flatten?: boolean
@@ -44,7 +45,8 @@ export function flattenScopes(scopes: ServiceAccountScope[]): string[] {
 
 /**
  * Read available service account scopes
- * @returns {Promise<SSOCookieConfig>} a promise that resolves to an array of ServiceAccountScope objects or a flattened array of scope strings
+ * @param {boolean} flatten true to return a flat array of scope names instead of the nested scope objects (default: false)
+ * @returns {Promise<ServiceAccountScope[] | string[]>} a promise that resolves to an array of ServiceAccountScope objects or a flattened array of scope strings
  */
 export async function readServiceAccountScopes({
   flatten = false,

@@ -8,12 +8,15 @@ import { FrodoError } from './FrodoError';
 export type IdmScript = {
   /**
    * Compile a JS script
+   * @param {string} script script source text as a plain string
    * @returns {Promise<string | object>} a promise resolving to 'true' or an error message
    */
   compileScript(script: string): Promise<string | object>;
   /**
    * Run a JS script
-   * @returns {Promise<SystemStatusInterface[]>} a promise resolving to the script result
+   * @param {string} script script source text as a plain string
+   * @param {object} globals optional object whose properties become global variables of the script
+   * @returns {Promise<any>} a promise resolving to the script result
    */
   evaluateScript(
     script: string,

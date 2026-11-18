@@ -40,6 +40,7 @@ export type IdmSystem = {
   readAvailableConnectors(): Promise<SystemStatusInterface[]>;
   /**
    * Read system/connector status
+   * @param {string} systemName name of system/connector
    * @returns {Promise<SystemStatusInterface>} a promise resolving to a system status object
    */
   readSystemStatus(systemName: string): Promise<SystemStatusInterface>;

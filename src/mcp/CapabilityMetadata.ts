@@ -3499,13 +3499,35 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     mutating: true,
     destructive: true,
     riskClass: 'critical',
+    parameterOverrides: {
+      script: {
+        description:
+          'The JavaScript source text as a plain string, for example "1 + 1". Not an object: do not send the IDM request body ({type, source}); the capability builds that body itself.',
+        schema: { type: 'string' },
+        examples: ['1 + 1'],
+      },
+      globals: {
+        description:
+          'Optional object whose properties become global variables of the script.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+    },
     notes:
-      'Executes arbitrary script against the tenant — equivalent to a remote code execution capability.',
+      "Executes arbitrary script against the tenant — equivalent to a remote code execution capability. Pass namedArgs { script, globals? } or positionalArgs [script, globals]. A script that is not a string is rejected before the call; IDM would answer 'Expecting a java.lang.String but got LinkedHashMap'.",
   },
   'idm.script.compileScript': {
     mutating: false,
     riskClass: 'medium',
-    notes: 'Syntax-checks a script without executing it.',
+    parameterOverrides: {
+      script: {
+        description:
+          'The JavaScript source text as a plain string, for example "1 + 1". Not an object: do not send the IDM request body ({type, source}); the capability builds that body itself.',
+        schema: { type: 'string' },
+        examples: ['1 + 1'],
+      },
+    },
+    notes:
+      'Syntax-checks a script without executing it. Pass namedArgs { script } or positionalArgs [script]; a script that is not a string is rejected before the call.',
   },
 
   'idm.system.runSystemScript': {

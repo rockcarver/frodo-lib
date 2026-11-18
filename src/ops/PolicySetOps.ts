@@ -53,6 +53,12 @@ export type PolicySet = {
    * @returns {Promise<PolicySetSkeleton>} a promise that resolves to a policy set object
    */
   readPolicySet(policySetName: string): Promise<PolicySetSkeleton>;
+  /**
+   * Create policy set
+   * @param {PolicySetSkeleton} policySetData policy set object
+   * @param {string} policySetName optional policy set name; when given, the policy set is written under this name
+   * @returns {Promise<PolicySetSkeleton>} a promise that resolves to the created policy set object
+   */
   createPolicySet(
     policySetData: PolicySetSkeleton,
     policySetName?: string
@@ -67,6 +73,11 @@ export type PolicySet = {
     policySetData: PolicySetSkeleton,
     policySetName?: string
   ): Promise<PolicySetSkeleton | null>;
+  /**
+   * Delete policy set
+   * @param {string} policySetName policy set name
+   * @returns {Promise<PolicySetSkeleton>} a promise that resolves to the deleted policy set object
+   */
   deletePolicySet(policySetName: string): Promise<PolicySetSkeleton>;
   /**
    * Export policy set
