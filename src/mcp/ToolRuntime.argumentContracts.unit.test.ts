@@ -91,8 +91,9 @@ const REPAIRED_CAPABILITIES: Record<string, string[]> = {
  * other names, with a malformed name or without one of them (the second
  * group), with the parameter names of the signature in declaration order,
  * written out here by hand. Trailing callbacks are not parameters of a
- * capability, and `credentialOverride` of `login.getTokens` is not offered to
- * an MCP caller (see below).
+ * capability, and the parameters that the metadata leaves out of the arguments
+ * of a capability (`credentialOverride` of `login.getTokens`, `pageSize` of the
+ * two queries that read every page) are not in the lists (see below).
  */
 const MISMATCHED_CAPABILITIES: Record<string, string[]> = {
   'agent.importAgents': ['importData', 'globalConfig'],
@@ -146,7 +147,6 @@ const MISMATCHED_CAPABILITIES: Record<string, string[]> = {
     'id',
     'relationship',
     'fields',
-    'pageSize',
   ],
   'idm.managed.schema.createManagedObjectSchemaFlatProperty': [
     'type',
@@ -182,12 +182,7 @@ const MISMATCHED_CAPABILITIES: Record<string, string[]> = {
     'changedFields',
     'withReverse',
   ],
-  'idm.managedSystem.queryManagedSystemObjects': [
-    'type',
-    'filter',
-    'fields',
-    'pageSize',
-  ],
+  'idm.managedSystem.queryManagedSystemObjects': ['type', 'filter', 'fields'],
   'idm.mapping.updateSyncMappings': ['mappings'],
   'saml2.circlesOfTrust.importCirclesOfTrust': [
     'importData',
@@ -508,30 +503,26 @@ describe('every capability whose contract differed from its signature', () => {
       expect(handler).not.toHaveBeenCalled();
     }
   );
-
-  test('the top-level pageSize is the pageSize parameter of the queries that have one', async () => {
-    const { handler } = await dispatch(
-      'idm.managedSystem.queryManagedSystemObjects',
-      {
-        namedArgs: { type: 'svcacct' },
-        pageSize: 25,
-      }
-    );
-    expect(handler.mock.calls[0]).toEqual([
-      'svcacct',
-      undefined,
-      undefined,
-      25,
-    ]);
-  });
 });
 
-describe('login.getTokens', () => {
-  const descriptor = () =>
-    service.capabilities.find((c) => c.id === 'login.getTokens');
+/**
+ * A parameter that the capability metadata leaves out of the arguments of a
+ * capability (`excludeParameters`) is documented in the TSDoc of the method
+ * and cannot be supplied by any route: not by name and not by position.
+ */
+describe('a parameter that a capability leaves out of its arguments', () => {
+  const getTokensOffered = [false, true, ['cloud'], null, false, null];
 
-  test('credentialOverride, which selects the credential of the call, is not a parameter of the capability', () => {
-    expect(descriptor()?.parameters?.map(({ name }) => name)).toEqual([
+  /** The calls of the method behind the capability, without the runtime's own login. */
+  function methodCalls(handler: Handler): unknown[][] {
+    return handler.mock.calls.filter((call) => call.length > 0);
+  }
+
+  test('login.getTokens does not list credentialOverride', () => {
+    const descriptor = service.capabilities.find(
+      (c) => c.id === 'login.getTokens'
+    );
+    expect(descriptor?.parameters?.map(({ name }) => name)).toEqual([
       'forceLoginAsUser',
       'autoRefresh',
       'types',
@@ -541,7 +532,7 @@ describe('login.getTokens', () => {
     ]);
   });
 
-  test('a named call that gives credentialOverride is rejected before the method is called', async () => {
+  test('a named call that gives it is rejected before the method is called', async () => {
     const getTokens: Handler = jest.fn(async () => undefined);
     currentFake = fakeInstance('login.getTokens', getTokens);
     await expect(
@@ -554,14 +545,153 @@ describe('login.getTokens', () => {
         context: { auth: { mode: 'state-config', config: {} } },
       })
     ).rejects.toThrow('does not accept named argument(s) credentialOverride');
-    expect(getTokens).not.toHaveBeenCalledWith(
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'svcacct'
+    expect(methodCalls(getTokens).some((call) => call.length >= 7)).toBe(false);
+  });
+
+  test('a positional call with exactly the offered values still reaches the method', async () => {
+    const { handler } = await dispatch('login.getTokens', {
+      positionalArgs: getTokensOffered,
+    });
+    expect(methodCalls(handler)).toContainEqual(getTokensOffered);
+  });
+
+  test.each([[[true]], [getTokensOffered.slice(0, 3)]])(
+    'a positional call with fewer values %p still reaches the method',
+    async (positionalArgs) => {
+      const { handler } = await dispatch('login.getTokens', {
+        positionalArgs,
+      });
+      expect(methodCalls(handler)).toContainEqual(positionalArgs);
+    }
+  );
+
+  test.each([
+    ['a seventh value', [...getTokensOffered, 'svcacct']],
+    ['a seventh value of any type', [...getTokensOffered, { any: 'thing' }]],
+    ['a seventh null', [...getTokensOffered, null]],
+    ['a seventh undefined', [...getTokensOffered, undefined]],
+    ['twelve values', [...getTokensOffered, 1, 2, 3, 4, 5, 6]],
+  ])(
+    'a positional call with %s is rejected before the method is called',
+    async (_label, positionalArgs) => {
+      const handler: Handler = jest.fn(async () => undefined);
+      currentFake = fakeInstance('login.getTokens', handler);
+      await expect(
+        service.executeTool({
+          toolName: 'frodo_dispatch',
+          arguments: { skillId: 'login.getTokens', positionalArgs },
+          context: { auth: { mode: 'state-config', config: {} } },
+        })
+      ).rejects.toThrow(
+        "descriptor 'login.getTokens' does not accept positionalArgs at position(s) 6"
+      );
+      expect(methodCalls(handler)).toEqual([]);
+    }
+  );
+
+  test('a call that sends positionalArgs and namedArgs is rejected too', async () => {
+    const handler: Handler = jest.fn(async () => undefined);
+    currentFake = fakeInstance('login.getTokens', handler);
+    await expect(
+      service.executeTool({
+        toolName: 'frodo_dispatch',
+        arguments: {
+          skillId: 'login.getTokens',
+          positionalArgs: [...getTokensOffered, 'svcacct'],
+          namedArgs: { forceLoginAsUser: true },
+        },
+        context: { auth: { mode: 'state-config', config: {} } },
+      })
+    ).rejects.toThrow('does not accept positionalArgs at position(s) 6');
+    expect(methodCalls(handler)).toEqual([]);
+  });
+
+  test('a capability that leaves out nothing but its callback keeps taking more positional values than its contract', async () => {
+    // Only a capability with an excluded parameter has the rule: there is no
+    // general check of the length of positionalArgs.
+    const { handler } = await dispatch('idm.script.evaluateScript', {
+      positionalArgs: ['1+1', undefined, 'extra'],
+    });
+    expect(handler.mock.calls[0]).toEqual(['1+1', undefined, 'extra']);
+    const bulk = await dispatch('agent.importAgents', {
+      positionalArgs: [{ agent: {} }, true, 'extra'],
+    });
+    expect(bulk.handler).toHaveBeenCalledTimes(1);
+  });
+
+  describe('pageSize of the two queries that read every page', () => {
+    const queries: Array<
+      [string, string[], Record<string, unknown>, unknown[]]
+    > = [
+      [
+        'idm.managed.queryRelatedManagedObjects',
+        ['type', 'id', 'relationship', 'fields'],
+        { type: 'alpha_role', id: 'r1', relationship: 'members' },
+        ['alpha_role', 'r1', 'members', undefined],
+      ],
+      [
+        'idm.managedSystem.queryManagedSystemObjects',
+        ['type', 'filter', 'fields'],
+        { type: 'svcacct' },
+        ['svcacct', undefined, undefined],
+      ],
+    ];
+
+    test.each(queries)('%s does not list pageSize', (id, names) => {
+      const descriptor = service.capabilities.find((c) => c.id === id);
+      expect(descriptor?.parameters?.map(({ name }) => name)).toEqual(names);
+    });
+
+    test.each(queries)(
+      '%s: a named pageSize is rejected',
+      async (id, _names, namedArgs) => {
+        const handler: Handler = jest.fn(async () => undefined);
+        currentFake = fakeInstance(id, handler);
+        await expect(
+          service.executeTool({
+            toolName: 'frodo_dispatch_read_only',
+            arguments: {
+              skillId: id,
+              namedArgs: { ...namedArgs, pageSize: 5 },
+            },
+            context: { auth: { mode: 'state-config', config: {} } },
+          })
+        ).rejects.toThrow('does not accept named argument(s) pageSize');
+        expect(methodCalls(handler)).toEqual([]);
+      }
+    );
+
+    test.each(queries)(
+      '%s: a positional value for pageSize is rejected, a call without it works',
+      async (id, names, namedArgs) => {
+        const handler: Handler = jest.fn(async () => undefined);
+        currentFake = fakeInstance(id, handler);
+        await expect(
+          service.executeTool({
+            toolName: 'frodo_dispatch_read_only',
+            arguments: {
+              skillId: id,
+              positionalArgs: [...names.map((n) => namedArgs[n] ?? null), 5],
+            },
+            context: { auth: { mode: 'state-config', config: {} } },
+          })
+        ).rejects.toThrow(
+          `descriptor '${id}' does not accept positionalArgs at position(s) ${names.length}`
+        );
+        expect(methodCalls(handler)).toEqual([]);
+
+        const values = Object.values(namedArgs);
+        const ok = await dispatch(id, { positionalArgs: values });
+        expect(ok.handler.mock.calls[0]).toEqual(values);
+      }
+    );
+
+    test.each(queries)(
+      '%s: the pageSize argument of the call is not handed to the method',
+      async (id, _names, namedArgs, expected) => {
+        const { handler } = await dispatch(id, { namedArgs, pageSize: 25 });
+        expect(handler.mock.calls[0]).toEqual(expected);
+      }
     );
   });
 });

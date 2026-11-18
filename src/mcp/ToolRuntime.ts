@@ -22,7 +22,11 @@ import type { BrowserLoginPromptHandler } from '../ops/BrowserAuthenticateOps';
 import { determineCallerTrustTier } from '../ops/CallerTrustTierOps';
 import { FrodoError } from '../ops/FrodoError';
 import { StateInterface } from '../shared/State';
-import { findResultCallbackPosition } from './CapabilityRegistry';
+import {
+  findExcludedParameters,
+  findResultCallbackPosition,
+  findSuppliedExcludedPositions,
+} from './CapabilityRegistry';
 import {
   describeCapabilityRouting,
   McpCapabilityRoutingStatus,
@@ -3309,6 +3313,10 @@ function validateInvocationArguments(
     );
   }
 
+  if (hasPositional) {
+    validateExcludedPositions(descriptor, args.positionalArgs as unknown[]);
+  }
+
   if (hasPositional && descriptor.parameters) {
     validatePositionalArguments(
       descriptor,
@@ -3443,6 +3451,46 @@ function validateNamedArgumentValue(
     parameter.schema ?? inferSchemaFromParameterType(parameter.type),
     `named argument '${parameter.name}'`
   );
+}
+
+/**
+ * Rejects a positional call that supplies a parameter which the capability
+ * leaves out of its arguments.
+ *
+ * @remarks
+ * A parameter that the capability metadata excludes is documented in the TSDoc
+ * of the method and is not an argument of the capability: it cannot be given
+ * by name (an unknown named argument is rejected) and so it cannot be given by
+ * position either. Only a capability with such a parameter has this rule; for
+ * every other capability the length of `positionalArgs` is not checked.
+ *
+ * @param descriptor Descriptor of the capability that is called.
+ * @param positionalArgs Positional arguments of the call.
+ */
+function validateExcludedPositions(
+  descriptor: McpCapabilityDescriptor,
+  positionalArgs: unknown[]
+): void {
+  const excluded = findExcludedParameters(descriptor.id, descriptor.methodName);
+  if (excluded.length === 0) {
+    return;
+  }
+  const lastOffered = Math.max(
+    -1,
+    ...(descriptor.parameters ?? []).map(
+      (parameter) => parameter.position ?? -1
+    )
+  );
+  const supplied = findSuppliedExcludedPositions(
+    positionalArgs,
+    excluded.map((parameter) => parameter.position ?? -1),
+    lastOffered
+  );
+  if (supplied.length > 0) {
+    throw new FrodoError(
+      `MCP runtime error: descriptor '${descriptor.id}' does not accept positionalArgs at position(s) ${supplied.join(', ')}: ${supplied.length === 1 ? 'that position is' : 'those positions are'} not an argument of this capability. Allowed parameters: ${formatDescriptorParameters(descriptor)}.`
+    );
+  }
 }
 
 /**
