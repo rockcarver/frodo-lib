@@ -530,6 +530,22 @@ describe('a result that the platform pages', () => {
   });
 });
 
+/** A cloud instance of the library with a bearer token that carries the IDM scope, for the host of a loopback server. */
+function idmInstance(host: string) {
+  const instance = FrodoLib({ host, deploymentType: 'cloud', realm: 'alpha' });
+  instance.state.setUseTokenCache(false);
+  instance.state.setCookieName('iPlanetDirectoryPro');
+  instance.state.setBearerTokenMeta({
+    access_token: 'demo-access-token',
+    token_type: 'Bearer',
+    scope: 'fr:idm:*',
+    expires_in: 3600,
+    expires: Date.now() + 3600 * 1000,
+  } as any);
+  (instance.login as any).getTokens = async () => undefined;
+  return instance;
+}
+
 /**
  * Follows `nextPageToken` from page to page with `pageToken`, for at most
  * `limit` calls: a continuation that does not advance fails the test instead
@@ -606,30 +622,11 @@ describe('a one-page managed-object query', () => {
     await new Promise((resolve) => server.close(resolve));
   });
 
-  function managedInstance() {
-    const instance = FrodoLib({
-      host,
-      deploymentType: 'cloud',
-      realm: 'alpha',
-    });
-    instance.state.setUseTokenCache(false);
-    instance.state.setCookieName('iPlanetDirectoryPro');
-    instance.state.setBearerTokenMeta({
-      access_token: 'demo-access-token',
-      token_type: 'Bearer',
-      scope: 'fr:idm:*',
-      expires_in: 3600,
-      expires: Date.now() + 3600 * 1000,
-    } as any);
-    (instance.login as any).getTokens = async () => undefined;
-    return instance;
-  }
-
   test('T7f: reports a cookie as a cut, in the same way as the other results the platform pages', async () => {
     requests.length = 0;
 
     const result = await dispatch(
-      runtimeFor(managedInstance()),
+      runtimeFor(idmInstance(host)),
       'idm.managed.queryManagedObjects',
       { namedArgs: { type: 'alpha_user' } }
     );
@@ -646,7 +643,7 @@ describe('a one-page managed-object query', () => {
 
   test('T15a: the nextPageToken of a managed-object query, passed back as pageToken, reads the next page and the end', async () => {
     requests.length = 0;
-    const runtime = runtimeFor(managedInstance());
+    const runtime = runtimeFor(idmInstance(host));
     const read = (extra: Record<string, unknown> = {}) =>
       dispatch(runtime, 'idm.managed.queryManagedObjects', {
         namedArgs: { type: 'alpha_user' },
@@ -737,6 +734,183 @@ describe('a recommended execution of a managed-object query', () => {
       await new Promise((resolve) => server.close(resolve));
     }
   });
+});
+
+/**
+ * The cookies that a query of IDM can hand out, and what the request that
+ * carries them back has to look like. The server below decodes the query string
+ * as a servlet container does (a raw `+` becomes a space), so a cookie that is
+ * not encoded properly is not found and the walk ends early.
+ */
+const COOKIE_CASES = [
+  {
+    // what IDM answers for a connector query: already percent-encoded
+    name: 'a cookie that IDM has already percent-encoded',
+    issued: ['fHwAAAAAAJiWlA%3D%3D%3A0', 'fHwAAAAAAJiWlQ%3D%3D%3A0'],
+    inUrl: ['fHwAAAAAAJiWlA%3D%3D%3A0', 'fHwAAAAAAJiWlQ%3D%3D%3A0'],
+    decoded: ['fHwAAAAAAJiWlA==:0', 'fHwAAAAAAJiWlQ==:0'],
+    managedToo: false,
+  },
+  {
+    name: 'a base64 cookie with +, / and =',
+    issued: ['ab+10/cd==', 'xy+20/ef=='],
+    inUrl: ['ab%2B10%2Fcd%3D%3D', 'xy%2B20%2Fef%3D%3D'],
+    decoded: ['ab+10/cd==', 'xy+20/ef=='],
+    managedToo: true,
+  },
+  {
+    name: 'a cookie that would add a parameter to the request',
+    issued: ['p2&_pageSize=1', 'p3&_queryFilter=false'],
+    inUrl: ['p2%26_pageSize%3D1', 'p3%26_queryFilter%3Dfalse'],
+    decoded: ['p2&_pageSize=1', 'p3&_queryFilter=false'],
+    managedToo: true,
+  },
+  {
+    name: 'a cookie with characters that a format string would read',
+    issued: ['a%s%d', 'b%j%%'],
+    inUrl: ['a%25s%25d', 'b%25j%25%25'],
+    decoded: ['a%s%d', 'b%j%%'],
+    managedToo: true,
+  },
+];
+
+describe('a paged-results cookie in the URL of a query of IDM', () => {
+  let server: http.Server;
+  let host: string;
+  let requests: string[];
+  let current: (typeof COOKIE_CASES)[number];
+
+  beforeAll(async () => {
+    requests = [];
+    server = http.createServer((request, response) => {
+      requests.push(request.url ?? '');
+      const params = new URL(request.url ?? '', 'http://127.0.0.1')
+        .searchParams;
+      const cookies = params.getAll('_pagedResultsCookie');
+      // no cookie: the first page; one cookie that the server handed out: the page after it; anything else is unknown
+      const position =
+        cookies.length === 0
+          ? 0
+          : cookies.length === 1 && current.decoded.includes(cookies[0])
+            ? current.decoded.indexOf(cookies[0]) + 1
+            : -1;
+      const items = [
+        ['a0', 'a1'],
+        ['b0', 'b1'],
+        ['c0', 'c1'],
+      ][position];
+      response.writeHead(items ? 200 : 400, {
+        'content-type': 'application/json',
+      });
+      response.end(
+        JSON.stringify(
+          items
+            ? {
+                result: items.map((_id) => ({ _id })),
+                resultCount: items.length,
+                pagedResultsCookie: current.issued[position] ?? null,
+                totalPagedResultsPolicy: 'NONE',
+                totalPagedResults: -1,
+                remainingPagedResults: -1,
+              }
+            : { code: 400, message: 'unknown cookie' }
+        )
+      );
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, '127.0.0.1', () => resolve())
+    );
+    host = `http://127.0.0.1:${(server.address() as AddressInfo).port}/am`;
+  });
+
+  afterAll(async () => {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  const capabilities = [
+    {
+      id: 'idm.system.querySystemObjects',
+      namedArgs: {
+        systemName: 'ldap',
+        systemObjectType: 'account',
+        filter: 'true',
+      },
+    },
+    {
+      id: 'idm.system.queryAllSystemObjectIds',
+      namedArgs: { systemName: 'ldap', systemObjectType: 'account' },
+    },
+    {
+      id: 'idm.managed.queryManagedObjects',
+      namedArgs: { type: 'alpha_user' },
+    },
+  ];
+
+  const cases = capabilities.flatMap((capability) =>
+    COOKIE_CASES.filter(
+      (cookieCase) =>
+        cookieCase.managedToo || capability.id.startsWith('idm.system.')
+    ).map((cookieCase) => ({ capability, cookieCase }))
+  );
+
+  test.each(cases)(
+    'T20: $capability.id walks to the end with $cookieCase.name, and the cookie is in the request as the platform needs it',
+    async ({ capability, cookieCase }) => {
+      current = cookieCase;
+      requests.length = 0;
+      const runtime = runtimeFor(idmInstance(host));
+      const read = (extra: Record<string, unknown> = {}) =>
+        dispatch(runtime, capability.id, {
+          namedArgs: capability.namedArgs,
+          ...extra,
+        });
+
+      const walked = await walkPages(
+        () => read(),
+        (token) => read({ pageToken: token })
+      );
+
+      expect(walked.ids).toEqual(['a0', 'a1', 'b0', 'b1', 'c0', 'c1']);
+      expect(walked.calls).toBe(3);
+      expect(requests).toHaveLength(3);
+      const rawCookie = (url: string) =>
+        /[?&]_pagedResultsCookie=([^&]*)/.exec(url)?.[1];
+      expect(rawCookie(requests[0])).toBeUndefined();
+      expect(rawCookie(requests[1])).toBe(cookieCase.inUrl[0]);
+      expect(rawCookie(requests[2])).toBe(cookieCase.inUrl[1]);
+      // one cookie and nothing else added: the request has the parameters of the first one, plus the cookie
+      const names = (url: string) =>
+        [...new URL(url, 'http://127.0.0.1').searchParams.keys()].sort();
+      expect(names(requests[1])).toEqual(
+        [...names(requests[0]), '_pagedResultsCookie'].sort()
+      );
+    },
+    30000
+  );
+
+  test('T20b: a cookie with a character that cannot be encoded is replaced, not thrown', async () => {
+    current = {
+      ...COOKIE_CASES[1],
+      issued: ['q\ud800q', 'xy+20/ef=='],
+      decoded: ['q�q', 'xy+20/ef=='],
+    };
+    requests.length = 0;
+    const runtime = runtimeFor(idmInstance(host));
+
+    const second = await dispatch(runtime, 'idm.system.querySystemObjects', {
+      namedArgs: {
+        systemName: 'ldap',
+        systemObjectType: 'account',
+        filter: 'true',
+      },
+      pageToken: 'q\ud800q',
+    });
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toContain('_pagedResultsCookie=q%EF%BF%BDq');
+    expect(second.returned).toBe(2);
+  }, 30000);
 });
 
 describe('the nextPageToken of the capabilities that the runtime reads', () => {
@@ -882,11 +1056,11 @@ describe('the log capabilities', () => {
 
 /** The warning of a self-capping search that stopped at its limit. */
 const searchCapWarning = (limit: number, extra = '') =>
-  `Result is not complete: the capability cloud.log.searchEvents stopped at its own limit of ${limit} items (argument maxEvents), so more items may exist than it returned. Do not count or search only this result. Raise maxEvents or narrow the search to read more.${extra}`;
+  `Result is not complete: the capability cloud.log.searchEvents stopped at or after its own limit of ${limit} items (argument maxEvents; it reads whole pages, so it can return more items than the limit, and returned says how many it returned), so more items may exist than it returned. Do not count or search only this result. Raise maxEvents or narrow the search to read more.${extra}`;
 
 /** The warning of a search that removes duplicates after its limit and returned fewer events than the limit. */
 const searchDedupeWarning = (limit: number, extra = '') =>
-  `Result may be incomplete: the capability cloud.log.searchEvents stops at its own limit of ${limit} events (argument maxEvents), counted before duplicate events are removed (argument dedupeByTransactionId, which is on unless you pass false), so a result can be incomplete even when it has fewer than maxEvents events. To be sure, pass dedupeByTransactionId: false or narrow the time window, and compare returned with maxEvents.${extra}`;
+  `Result may be incomplete: the capability cloud.log.searchEvents stops at or after its own limit of ${limit} events (argument maxEvents; it reads whole pages, so it can return more events than the limit, and returned says how many it returned), counted before duplicate events are removed (argument dedupeByTransactionId, which is on unless you pass false), so a result can be incomplete even when it has fewer than maxEvents events. To be sure, pass dedupeByTransactionId: false or narrow the time window, and compare returned with maxEvents.${extra}`;
 
 describe('a search that stops at a limit of its own', () => {
   const searchEvents = (
@@ -1353,6 +1527,21 @@ describe('the real search of events against a loopback Log API', () => {
       total: null,
     });
     expect(result.warning).toBe(searchCapWarning(1000));
+  }, 30000);
+
+  test('T18e: a limit below the size of a page: the search reads the whole page, returns more than the limit, and the warning says so', async () => {
+    const { result, pages } = await search(
+      { pageSize: 500 },
+      { maxEvents: 100, dedupeByTransactionId: false }
+    );
+
+    expect(pages).toBe(1);
+    expect(result.returned).toBe(500);
+    expect(result).toMatchObject({ truncated: true, total: null });
+    expect(result.warning).toBe(searchCapWarning(100));
+    expect(result.warning).toContain(
+      'it reads whole pages, so it can return more items than the limit, and returned says how many it returned'
+    );
   }, 30000);
 
   test('T18d: a search that reads every event is complete without deduplication, and warns with it', async () => {

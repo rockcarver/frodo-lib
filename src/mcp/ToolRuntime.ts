@@ -90,6 +90,9 @@ const LIVE_CURSOR_CAPABILITY_IDS: readonly string[] = ['cloud.log.tail'];
  * a capability returns as many items as its limit, it probably stopped there,
  * and the result says so.
  *
+ * `readsWholePages` says that the capability checks its limit after it read a
+ * whole page, so that it can return more items than the limit.
+ *
  * `dedupeArgument` names an argument that, unless it is `false`, makes the
  * capability remove duplicate items after it stopped: the count it returns is
  * then no proof that the limit was not reached, and below the limit the result
@@ -104,12 +107,14 @@ const SELF_CAPPING_CAPABILITIES: Readonly<
       fixedCap?: number;
       readOn?: string;
       dedupeArgument?: string;
+      readsWholePages?: boolean;
     }
   >
 > = {
   'cloud.log.searchEvents': {
     argument: 'maxEvents',
     dedupeArgument: 'dedupeByTransactionId',
+    readsWholePages: true,
   },
   // one request of at most one page of the internal object api: the cookie of the answer is dropped
   'role.readInternalRoles': {
@@ -3880,6 +3885,8 @@ type McpSelfCap = {
   readOn?: string;
   /** The argument that removes duplicates after the limit, and whether it is on. */
   dedupe?: { argument: string; on: boolean };
+  /** Whether the capability reads whole pages, so that it can return more than the limit. */
+  readsWholePages?: boolean;
 };
 
 /**
@@ -3926,6 +3933,7 @@ function resolveSelfCap(
     capability: descriptor.id,
     argument: entry.argument,
     cap,
+    ...(entry.readsWholePages && { readsWholePages: true }),
     ...(entry.dedupeArgument !== undefined && {
       dedupe: {
         argument: entry.dedupeArgument,
@@ -4124,6 +4132,16 @@ function describeCutOfResponse(
 }
 
 /**
+ * What a warning says about a capability that reads whole pages: it can return
+ * more items than its limit, and `returned` is what it returned.
+ */
+function describeWholePages(selfCap: McpSelfCap, noun: string): string {
+  return selfCap.readsWholePages
+    ? `; it reads whole pages, so it can return more ${noun} than the limit, and returned says how many it returned`
+    : '';
+}
+
+/**
  * The warning of an array that a capability returned after it stopped at a
  * limit of its own. It says that more may exist, not that they do, and how to
  * read on.
@@ -4137,12 +4155,12 @@ function buildSelfCapWarning(
   const limit =
     selfCap.argument === undefined
       ? `limit of ${selfCap.cap} items`
-      : `limit of ${selfCap.cap} items (argument ${selfCap.argument})`;
+      : `limit of ${selfCap.cap} items (argument ${selfCap.argument}${describeWholePages(selfCap, 'items')})`;
   const readOn =
     selfCap.argument === undefined
       ? (selfCap.readOn ?? 'Narrow the query to read the rest.')
       : `Raise ${selfCap.argument} or narrow the search to read more.`;
-  return `Result is not complete: the capability ${selfCap.capability} stopped at its own ${limit}, so more items may exist than it returned. Do not count or search only this result. ${readOn}${describeCutOfResponse(returned, returnedByCapability, truncation)}`;
+  return `Result is not complete: the capability ${selfCap.capability} stopped at${selfCap.readsWholePages ? ' or after' : ''} its own ${limit}, so more items may exist than it returned. Do not count or search only this result. ${readOn}${describeCutOfResponse(returned, returnedByCapability, truncation)}`;
 }
 
 /**
@@ -4157,7 +4175,7 @@ function buildDedupeWarning(
   selfCap: McpSelfCap
 ): string {
   const dedupeArgument = selfCap.dedupe?.argument;
-  return `Result may be incomplete: the capability ${selfCap.capability} stops at its own limit of ${selfCap.cap} events (argument ${selfCap.argument}), counted before duplicate events are removed (argument ${dedupeArgument}, which is on unless you pass false), so a result can be incomplete even when it has fewer than ${selfCap.argument} events. To be sure, pass ${dedupeArgument}: false or narrow the time window, and compare returned with ${selfCap.argument}.${describeCutOfResponse(returned, returnedByCapability, truncation)}`;
+  return `Result may be incomplete: the capability ${selfCap.capability} stops at${selfCap.readsWholePages ? ' or after' : ''} its own limit of ${selfCap.cap} events (argument ${selfCap.argument}${describeWholePages(selfCap, 'events')}), counted before duplicate events are removed (argument ${dedupeArgument}, which is on unless you pass false), so a result can be incomplete even when it has fewer than ${selfCap.argument} events. To be sure, pass ${dedupeArgument}: false or narrow the time window, and compare returned with ${selfCap.argument}.${describeCutOfResponse(returned, returnedByCapability, truncation)}`;
 }
 
 /**
