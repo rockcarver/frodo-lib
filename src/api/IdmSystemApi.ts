@@ -172,6 +172,34 @@ export async function runSystemScript({
   return data;
 }
 
+/**
+ * The paged results cookie of a system query as the value of a query string
+ * parameter.
+ *
+ * @remarks
+ * IDM answers a connector query with a cookie that is already percent-encoded
+ * (`...%3D%3A0`), and the next request has to carry it as it came: an escape
+ * that is there is kept. Every other character that is not safe in a query
+ * value, and a `%` that does not start an escape, is encoded, so that a cookie
+ * cannot change or add a parameter of the request.
+ *
+ * @param {string} cookie paged results cookie
+ * @returns {string} the cookie, safe in a query string
+ */
+function encodePagedResultsCookie(cookie: string): string {
+  return cookie.replace(
+    /%(?![0-9A-Fa-f]{2})|[^A-Za-z0-9\-._~%]/gu,
+    (character) => {
+      try {
+        return encodeURIComponent(character);
+      } catch {
+        // a lone surrogate cannot be encoded: replace it
+        return '%EF%BF%BD';
+      }
+    }
+  );
+}
+
 //?_queryId=query-all-ids&_pageSize=/lmextuserCustomer sw '6'&_totalPagedResultsPolicy=EXACT
 export async function queryAllSystemObjectIds({
   systemName,
@@ -189,15 +217,17 @@ export async function queryAllSystemObjectIds({
   const pagingParams = pageSize
     ? `&_pageSize=${pageSize}&_totalPagedResultsPolicy=EXACT`
     : '';
-  const urlTemplate = pageCookie
-    ? `${systemQueryAllUrlTemplate}${pagingParams}&_pagedResultsCookie=${pageCookie}`
-    : `${systemQueryAllUrlTemplate}${pagingParams}`;
-  const urlString = util.format(
-    urlTemplate,
-    getIdmBaseUrl(state),
-    systemName,
-    systemObjectType
-  );
+  // the cookie is added after the format: it must not be read as a format
+  const urlString =
+    util.format(
+      `${systemQueryAllUrlTemplate}${pagingParams}`,
+      getIdmBaseUrl(state),
+      systemName,
+      systemObjectType
+    ) +
+    (pageCookie
+      ? `&_pagedResultsCookie=${encodePagedResultsCookie(pageCookie)}`
+      : '');
   const { data } = await generateIdmApi({
     requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     state,
@@ -226,16 +256,20 @@ export async function querySystemObjects({
   const pagingParams = pageSize
     ? `&_pageSize=${pageSize}&_totalPagedResultsPolicy=EXACT`
     : '';
-  const urlTemplate = pageCookie
-    ? `${systemQueryByFilterUrlTemplate}${pagingParams}${fieldsParam}&_pagedResultsCookie=${pageCookie}`
-    : `${systemQueryByFilterUrlTemplate}${pagingParams}${fieldsParam}`;
-  const urlString = util.format(
-    urlTemplate,
-    getIdmBaseUrl(state),
-    systemName,
-    systemObjectType,
-    decodeURIComponent(filter) === filter ? encodeURIComponent(filter) : filter
-  );
+  // the cookie is added after the format: it must not be read as a format
+  const urlString =
+    util.format(
+      `${systemQueryByFilterUrlTemplate}${pagingParams}${fieldsParam}`,
+      getIdmBaseUrl(state),
+      systemName,
+      systemObjectType,
+      decodeURIComponent(filter) === filter
+        ? encodeURIComponent(filter)
+        : filter
+    ) +
+    (pageCookie
+      ? `&_pagedResultsCookie=${encodePagedResultsCookie(pageCookie)}`
+      : '');
   const { data } = await generateIdmApi({
     requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     requestOverride: {},

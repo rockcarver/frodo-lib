@@ -13,6 +13,7 @@
  * the established Frodo factory helpers (`createInstance*`).
  */
 
+import { DEFAULT_PAGE_SIZE as INTERNAL_OBJECT_PAGE_SIZE } from '../api/InternalObjectApi';
 import * as ManagedObjectApi from '../api/ManagedObjectApi';
 import { getIdmServerVersionInfo } from '../api/ServerInfoApi';
 import type { Frodo } from '../lib/FrodoLib';
@@ -73,6 +74,79 @@ const READ_ONLY_OPERATION_TYPES: McpCapabilityOperationType[] = [
   'list',
   'search',
 ];
+
+/**
+ * Capabilities whose result is the next batch from a position in a live
+ * stream. Such a result is never complete, so it carries `returned` and
+ * `nextPageToken` but no `truncated`.
+ */
+const LIVE_CURSOR_CAPABILITY_IDS: readonly string[] = ['cloud.log.tail'];
+
+/**
+ * List and search capabilities that stop at a limit of their own, which the
+ * runtime cannot see in the array that they return. The limit is set by an
+ * argument whose default is read from the descriptor, so that the runtime
+ * compares with the limit that the call really got, or it is fixed. When such
+ * a capability returns as many items as its limit, it probably stopped there,
+ * and the result says so.
+ *
+ * `readsWholePages` says that the capability checks its limit after it read a
+ * whole page, so that it can return more items than the limit.
+ *
+ * `dedupeArgument` names an argument that, unless it is `false`, makes the
+ * capability remove duplicate items after it stopped: the count it returns is
+ * then no proof that the limit was not reached, and below the limit the result
+ * says neither that it is complete nor that it is not (`truncated` and `total`
+ * are left out, and the warning says why).
+ */
+const SELF_CAPPING_CAPABILITIES: Readonly<
+  Record<
+    string,
+    {
+      argument?: string;
+      fixedCap?: number;
+      readOn?: string;
+      dedupeArgument?: string;
+      readsWholePages?: boolean;
+    }
+  >
+> = {
+  'cloud.log.searchEvents': {
+    argument: 'maxEvents',
+    dedupeArgument: 'dedupeByTransactionId',
+    readsWholePages: true,
+  },
+  // one request of at most one page of the internal object api: the cookie of the answer is dropped
+  'role.readInternalRoles': {
+    fixedCap: INTERNAL_OBJECT_PAGE_SIZE,
+    readOn:
+      'Use role.queryInternalRoles with a filter that matches fewer roles to read the rest.',
+  },
+  'role.queryInternalRoles': {
+    fixedCap: INTERNAL_OBJECT_PAGE_SIZE,
+    readOn: 'Narrow the filter to read the rest.',
+  },
+};
+
+/** The fields that say whether a list or search result is complete, in the order they are serialized. */
+const LIST_COMPLETENESS_FIELDS = [
+  'truncated',
+  'returned',
+  'total',
+  'nextPageOffset',
+  'nextPageToken',
+  'warning',
+] as const;
+
+/** The arguments that page a list or search result. */
+const PAGING_CONTROLS = ['pageSize', 'pageOffset', 'pageToken'] as const;
+
+/**
+ * What `frodo_find_skills` tells the agent when the recommended capability
+ * that it ran returned a result that is not complete.
+ */
+const EXECUTION_TRUNCATED_NEXT_ACTION =
+  'The recommended read-only capability ran, but its result is not complete: execution.truncated is true, execution.data holds execution.returned of execution.total items (execution.total is null when the number is not known). Do not answer a question about counts or missing items from it. Read on with execution.nextPageOffset or execution.nextPageToken through frodo_dispatch_read_only, or use a count capability; if neither is present, read execution.warning.';
 
 /**
  * Credentials payload for a service-account request context.
@@ -370,15 +444,18 @@ export type McpDispatchExecutionArguments = {
  *
  * @remarks
  * When {@link McpExecutionPaginationMetadata.hasMore} is present, the result
- * was actually sliced by the runtime's default response-size safety net (see
- * `applyResponseSizeLimit`) before being returned — not just flagged as
- * possibly truncated. `nextPageOffset` is always a usable continuation value
- * in that case.
+ * is not complete: either the runtime's default response-size safety net (see
+ * `applyResponseSizeLimit`) or the caller's own page size sliced an array
+ * before it was returned, or a result that the platform pages says that more
+ * follow. For an array, `nextPageOffset` is always a usable continuation
+ * value in that case. `isPartial` is `true` exactly when
+ * {@link McpToolExecutionResult.truncated} is, so it is `false` when that
+ * field is absent because the capability cannot say; `warning` then says so.
  */
 export type McpExecutionPaginationMetadata = {
-  /** Whether the result appears to be truncated/paginated. */
+  /** Whether the result is cut: more items exist than `data` holds. */
   isPartial: boolean;
-  /** Number of rows returned when the payload is an array. */
+  /** Number of rows returned, when the payload is an array or a platform-paged result. */
   returnedCount?: number;
   /** Total number of rows available before truncation, when known. */
   totalCount?: number;
@@ -487,6 +564,65 @@ export type McpToolExecutionResult = {
   toolName: string;
   /** Descriptor id backing the execution, if applicable. */
   descriptorId?: string;
+  /**
+   * `true` when `data` holds fewer items than exist, whoever asked for that
+   * page (the runtime's size budget or item ceiling, the caller's own
+   * `pageSize`, or a platform cursor that says more follow); `false` when
+   * `data` holds everything that remains. Placed before `data` so that it is
+   * the first thing a reader of the serialized result meets.
+   *
+   * @remarks
+   * Present only on the result of a list or search capability whose result
+   * the runtime can read: an array, or a platform-paged result (an object with
+   * a `result` array and `pagedResultsCookie`, `resultCount` or
+   * `totalPagedResults`). Absent for every other result, and for a live cursor
+   * (see {@link McpToolExecutionResult.returned}), which is never complete.
+   * A capability that stops at a limit of its own, such as a `maxEvents`
+   * argument, is seen only when it returns as many items as that limit: the
+   * result is then `truncated` with a `total` of `null`, and `warning` names
+   * the capability and the argument. More items may exist; the runtime cannot
+   * know. When such a capability also removes duplicates after it stopped
+   * (`cloud.log.searchEvents` unless `dedupeByTransactionId` is `false`), a
+   * count below the limit proves nothing: `truncated` and `total` are then
+   * absent, unless the runtime cut the response itself, and `warning` always
+   * says why.
+   * Agrees with `metadata.pagination.isPartial`. Not related to `partial`
+   * (failed items of a bulk call) nor to `metadata.result.isTruncated` (a host
+   * that replaces a result that is too large to send).
+   */
+  truncated?: boolean;
+  /**
+   * The number of items in `data`: the length of the array, or of the `result`
+   * array of a platform-paged result. Present with {@link McpToolExecutionResult.truncated},
+   * for a live cursor, which has no `truncated`, and for a capability that
+   * cannot say whether it stopped at its own limit.
+   */
+  returned?: number;
+  /**
+   * The number of items that exist before any cut, or `null` when it is not
+   * known: the platform does not say (a paged result with an unknown total),
+   * or the capability stopped at a limit of its own. Present with
+   * {@link McpToolExecutionResult.truncated}.
+   */
+  total?: number | null;
+  /**
+   * Pass as `pageOffset` to read the next page of an array result. Present
+   * only when `truncated` is `true` and the result is an array.
+   */
+  nextPageOffset?: number;
+  /**
+   * Pass as `pageToken` to read the next page of a result that the platform
+   * pages itself (the paged-results cookie). Present when the platform
+   * returned a cookie: when `truncated` is `true`, and for a live cursor.
+   */
+  nextPageToken?: string;
+  /**
+   * One imperative sentence that says the result is not complete (or may not
+   * be) and how to read on. Present when `truncated` is `true`, and when the
+   * capability cannot say whether it stopped at its own limit; the same text
+   * as `metadata.pagination.warning`.
+   */
+  warning?: string;
   /** Underlying method result payload. */
   data: unknown;
   /** Optional execution metadata for scope and pagination diagnostics. */
@@ -529,15 +665,17 @@ export type McpToolRuntimeOptions = {
     frodoRoot: Frodo
   ) => Frodo | Promise<Frodo>;
   /**
-   * Optional heuristic threshold used to flag potentially paginated array
-   * responses when no explicit pagination controls were provided.
+   * Optional item ceiling of one list or search response: it is the page size
+   * when the caller does not ask for one. A result that holds more items is
+   * cut, and says so (`truncated`).
    *
    * Defaults to `1000`.
    */
   paginationWarningThreshold?: number;
   /**
-   * Optional payload size threshold used to flag large inline responses and
-   * produce actionable summary metadata for agents.
+   * Optional byte budget of one list or search response, which is also the
+   * size from which a payload is flagged as large. A list that does not fit is
+   * cut, and says so (`truncated`); an explicit page size does not raise it.
    *
    * Defaults to `65536` bytes.
    */
@@ -734,12 +872,21 @@ export function createToolRuntime(
       return {
         toolName: request.toolName,
         data: recommendedExecution
-          ? {
-              ...result,
-              nextAction:
-                'Answer the user from execution.data. The recommended read-only skill has already run; do not call any more discovery tools.',
-              execution: recommendedExecution,
-            }
+          ? recommendedExecution.truncated === true
+            ? {
+                // `truncated` is not used here: `total` and `returned` of this
+                // answer already count the capabilities that were found.
+                executionTruncated: true,
+                ...result,
+                nextAction: EXECUTION_TRUNCATED_NEXT_ACTION,
+                execution: recommendedExecution,
+              }
+            : {
+                ...result,
+                nextAction:
+                  'Answer the user from execution.data. The recommended read-only skill has already run; do not call any more discovery tools.',
+                execution: recommendedExecution,
+              }
           : result,
       };
     }
@@ -763,6 +910,12 @@ export function createToolRuntime(
             objectType: descriptor.objectType,
             scope: descriptor.scope,
           },
+          ...(isListOperation(descriptor.operationType) && {
+            paging: buildPagingGuide(
+              paginationWarningThreshold,
+              resultWarningThresholdBytes
+            ),
+          }),
         },
       };
     }
@@ -915,14 +1068,31 @@ export function createToolRuntime(
           )
         : { data: methodResult, truncation: undefined };
 
+      // What says whether `data` is everything there is. It is built from the
+      // same facts as `metadata.pagination`, so the two cannot disagree, and
+      // it is spread before `data` so that it is the first thing a reader of
+      // the serialized result meets.
+      const listCompleteness = isListOperation(descriptor.operationType)
+        ? summarizeListResult(
+            responseData,
+            truncation,
+            {
+              maxBytes: resultWarningThresholdBytes,
+              maxItems: paginationWarningThreshold,
+            },
+            LIVE_CURSOR_CAPABILITY_IDS.includes(descriptor.id),
+            resolveSelfCap(descriptor, args as McpGenericExecutionArguments)
+          )
+        : undefined;
+
       const metadata = buildGenericExecutionMetadata(
         responseData,
         args as McpGenericExecutionArguments,
         descriptor.operationType,
         contextForExecution,
-        paginationWarningThreshold,
         resultWarningThresholdBytes,
-        truncation
+        truncation,
+        listCompleteness
       );
 
       const itemResults = collection?.collector.results();
@@ -930,6 +1100,7 @@ export function createToolRuntime(
       return {
         toolName: request.toolName,
         descriptorId: descriptor.id,
+        ...listCompleteness,
         data: responseData,
         ...(metadata ? { metadata } : {}),
         ...(itemResults
@@ -1934,7 +2105,8 @@ async function invokeManagedObjectSearchPage(
     filter: filter ?? 'true',
     fields: Array.isArray(fields) && fields.length > 0 ? fields : ['*'],
     pageSize,
-    pageCookie,
+    // `pageToken` is the cookie that this query handed out as `nextPageToken`
+    pageCookie: pageCookie ?? args.pageToken,
     state: scopedFrodo.state,
   });
 }
@@ -3678,23 +3850,25 @@ function resolveDescriptorMethod(
  *   when the caller already applied it. `data` must be the (possibly
  *   sliced) value actually being returned, not the pre-truncation original —
  *   metadata describes what the caller receives.
+ * @param listCompleteness What {@link summarizeListResult} made of the same
+ *   data, for list and search calls whose result the runtime can read.
  */
 function buildGenericExecutionMetadata(
   data: unknown,
   args: McpGenericExecutionArguments,
   operationType: McpCapabilityOperationType,
   context: McpRuntimeRequestContext,
-  paginationWarningThreshold: number,
   resultWarningThresholdBytes: number,
-  truncation?: McpArrayTruncationResult
+  truncation?: McpArrayTruncationResult,
+  listCompleteness?: McpListCompleteness
 ): McpToolExecutionMetadata | undefined {
   const scope = buildScopeMetadata(data, args, context);
   const pagination = buildPaginationMetadata(
     data,
     args,
     operationType,
-    paginationWarningThreshold,
-    truncation
+    truncation,
+    listCompleteness
   );
   const result = buildResultMetadata(
     data,
@@ -3857,6 +4031,369 @@ type McpArrayTruncationResult = {
 };
 
 /**
+ * The fields of a result that say whether `data` is everything there is.
+ */
+type McpListCompleteness = Pick<
+  McpToolExecutionResult,
+  (typeof LIST_COMPLETENESS_FIELDS)[number]
+>;
+
+/**
+ * The limits that cut one response, as they appear in the warning.
+ */
+type McpListLimits = {
+  /** Byte budget of one response. */
+  maxBytes: number;
+  /** Item ceiling of one response. */
+  maxItems: number;
+};
+
+/**
+ * The limit that a self-capping capability applies to one call.
+ */
+type McpSelfCap = {
+  /** The capability, named in the warnings. */
+  capability: string;
+  /** The argument that sets the limit; absent when the limit is fixed. */
+  argument?: string;
+  /** The limit that applies to this call. */
+  cap: number;
+  /** What to do to read the rest, for a capability with a fixed limit. */
+  readOn?: string;
+  /** The argument that removes duplicates after the limit, and whether it is on. */
+  dedupe?: { argument: string; on: boolean };
+  /** Whether the capability reads whole pages, so that it can return more than the limit. */
+  readsWholePages?: boolean;
+};
+
+/**
+ * Resolves the limit that a self-capping capability applies to this call: the
+ * value the caller sent for the argument that sets it, or its default.
+ *
+ * @returns `undefined` for a capability that does not cap itself.
+ */
+function resolveSelfCap(
+  descriptor: McpCapabilityDescriptor,
+  args: McpGenericExecutionArguments
+): McpSelfCap | undefined {
+  const entry = SELF_CAPPING_CAPABILITIES[descriptor.id];
+  if (!entry) {
+    return undefined;
+  }
+  if (entry.argument === undefined) {
+    return entry.fixedCap === undefined
+      ? undefined
+      : {
+          capability: descriptor.id,
+          cap: entry.fixedCap,
+          ...(entry.readOn !== undefined && { readOn: entry.readOn }),
+        };
+  }
+  // the value that the call gets: what the caller sent, else the default of the descriptor
+  const valueOf = (name: string): unknown => {
+    const parameters = descriptor.parameters ?? [];
+    const parameter = parameters.find((candidate) => candidate.name === name);
+    const sent = Array.isArray(args.positionalArgs)
+      ? parameter
+        ? args.positionalArgs[
+            parameter.position ?? parameters.indexOf(parameter)
+          ]
+        : undefined
+      : args.namedArgs?.[name];
+    return sent ?? parameter?.defaultValue;
+  };
+  const cap = valueOf(entry.argument);
+  if (typeof cap !== 'number' || !Number.isFinite(cap)) {
+    return undefined;
+  }
+  return {
+    capability: descriptor.id,
+    argument: entry.argument,
+    cap,
+    ...(entry.readsWholePages && { readsWholePages: true }),
+    ...(entry.dedupeArgument !== undefined && {
+      dedupe: {
+        argument: entry.dedupeArgument,
+        on: valueOf(entry.dedupeArgument) !== false,
+      },
+    }),
+  };
+}
+
+/**
+ * Whether results of this operation type are lists that can be cut.
+ */
+function isListOperation(operationType: McpCapabilityOperationType): boolean {
+  return operationType === 'list' || operationType === 'search';
+}
+
+/**
+ * Reads a result that the platform pages itself (a CREST paged result): an
+ * object with a `result` array and at least one of the paging fields.
+ *
+ * @returns The items, the cookie that continues the query (when there is
+ *   one), the total (`null` when the platform does not say) and the number of
+ *   remaining items (`-1` when unknown); `undefined` for any other shape.
+ */
+function readPagedResult(data: unknown):
+  | {
+      items: unknown[];
+      cookie?: string;
+      total: number | null;
+      remaining: number;
+    }
+  | undefined {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return undefined;
+  }
+  const candidate = data as Record<string, unknown>;
+  if (
+    !Array.isArray(candidate.result) ||
+    !(
+      'pagedResultsCookie' in candidate ||
+      'resultCount' in candidate ||
+      'totalPagedResults' in candidate
+    )
+  ) {
+    return undefined;
+  }
+  const { pagedResultsCookie, totalPagedResults, remainingPagedResults } =
+    candidate;
+  return {
+    items: candidate.result,
+    ...(typeof pagedResultsCookie === 'string' &&
+      pagedResultsCookie.length > 0 && { cookie: pagedResultsCookie }),
+    total:
+      typeof totalPagedResults === 'number' && totalPagedResults >= 0
+        ? totalPagedResults
+        : null,
+    remaining:
+      typeof remainingPagedResults === 'number' ? remainingPagedResults : -1,
+  };
+}
+
+/**
+ * Says whether the data of a list or search result is everything there is.
+ *
+ * @remarks
+ * Knows three shapes: an array (complete unless `truncation` says the runtime
+ * cut it or the caller asked for a page that is followed by more), a result
+ * that the platform pages (complete unless it carries a cookie or says that
+ * results remain), and, for a live cursor, a batch that has no end. Any other
+ * shape is left alone: nothing is claimed about a result that cannot be read.
+ *
+ * @param data The data that is returned (sliced, when it was cut).
+ * @param truncation The result of {@link applyResponseSizeLimit}; absent when
+ *   no slice was applied, which means the whole array is returned.
+ * @param limits The limits that cut one response, named in the warning.
+ * @param liveCursor Whether the capability returns a position in a live stream.
+ */
+function summarizeListResult(
+  data: unknown,
+  truncation: McpArrayTruncationResult | undefined,
+  limits: McpListLimits,
+  liveCursor: boolean,
+  selfCap?: McpSelfCap
+): McpListCompleteness | undefined {
+  if (liveCursor) {
+    const page = readPagedResult(data);
+    const returned = Array.isArray(data) ? data.length : page?.items.length;
+    return returned === undefined
+      ? undefined
+      : {
+          returned,
+          ...(page?.cookie !== undefined && { nextPageToken: page.cookie }),
+        };
+  }
+
+  if (Array.isArray(data)) {
+    // What the capability returned, before the runtime cut it to a page.
+    const returnedByCapability = truncation
+      ? truncation.totalCount
+      : data.length;
+    if (selfCap && returnedByCapability > 0) {
+      if (returnedByCapability >= selfCap.cap) {
+        // The capability stopped at its own limit: the runtime cannot know how
+        // many items there are, only that it may have left some.
+        return {
+          truncated: true,
+          returned: data.length,
+          total: null,
+          ...(truncation?.hasMore && {
+            nextPageOffset: truncation.nextPageOffset,
+          }),
+          warning: buildSelfCapWarning(
+            data.length,
+            returnedByCapability,
+            truncation,
+            selfCap
+          ),
+        };
+      }
+      if (selfCap.dedupe?.on) {
+        // The limit counts the items before the duplicates were removed, so a
+        // count below the limit does not show that the limit was not reached.
+        // What the runtime cut itself, it knows.
+        const warning = buildDedupeWarning(
+          data.length,
+          returnedByCapability,
+          truncation,
+          selfCap
+        );
+        return truncation?.hasMore
+          ? {
+              truncated: true,
+              returned: data.length,
+              total: null,
+              nextPageOffset: truncation.nextPageOffset,
+              warning,
+            }
+          : { returned: data.length, warning };
+      }
+    }
+    if (!truncation) {
+      return { truncated: false, returned: data.length, total: data.length };
+    }
+    return {
+      truncated: truncation.hasMore,
+      returned: truncation.returnedCount,
+      total: truncation.totalCount,
+      ...(truncation.hasMore && {
+        nextPageOffset: truncation.nextPageOffset,
+        warning: buildArrayTruncationWarning(truncation, limits),
+      }),
+    };
+  }
+
+  const page = readPagedResult(data);
+  if (!page) {
+    return undefined;
+  }
+  const returned = page.items.length;
+  const truncated = page.cookie !== undefined || page.remaining > 0;
+  return {
+    truncated,
+    returned,
+    total: page.total,
+    ...(page.cookie !== undefined && { nextPageToken: page.cookie }),
+    ...(truncated && {
+      warning: buildPagedTruncationWarning(returned, page.total, page.cookie),
+    }),
+  };
+}
+
+/**
+ * The warning of an array result that was cut: how much `data` holds, the
+ * limits, and how to read on.
+ */
+function buildArrayTruncationWarning(
+  truncation: McpArrayTruncationResult,
+  limits: McpListLimits
+): string {
+  const { returnedCount, totalCount, nextPageOffset } = truncation;
+  return `Result is not complete: data holds ${returnedCount} of ${totalCount} items; the other ${totalCount - returnedCount} are not in this response (size limit ${limits.maxBytes} bytes, at most ${limits.maxItems} items per call). Do not count or search only this page. Pass pageOffset: ${nextPageOffset} to read on (pageSize is the maximum number of items you want), or use a count capability for the exact total.`;
+}
+
+/**
+ * What the warning of a self-capping capability adds when the runtime also cut
+ * the response to a page.
+ */
+function describeCutOfResponse(
+  returned: number,
+  returnedByCapability: number,
+  truncation: McpArrayTruncationResult | undefined
+): string {
+  return truncation?.hasMore
+    ? ` The response was also cut: data holds ${returned} of the ${returnedByCapability} items that the capability returned. Pass pageOffset: ${truncation.nextPageOffset} to read the rest of them.`
+    : '';
+}
+
+/**
+ * What a warning says about a capability that reads whole pages: it can return
+ * more items than its limit, and `returned` is what it returned.
+ */
+function describeWholePages(selfCap: McpSelfCap, noun: string): string {
+  return selfCap.readsWholePages
+    ? `; it reads whole pages, so it can return more ${noun} than the limit, and returned says how many it returned`
+    : '';
+}
+
+/**
+ * The warning of an array that a capability returned after it stopped at a
+ * limit of its own. It says that more may exist, not that they do, and how to
+ * read on.
+ */
+function buildSelfCapWarning(
+  returned: number,
+  returnedByCapability: number,
+  truncation: McpArrayTruncationResult | undefined,
+  selfCap: McpSelfCap
+): string {
+  const limit =
+    selfCap.argument === undefined
+      ? `limit of ${selfCap.cap} items`
+      : `limit of ${selfCap.cap} items (argument ${selfCap.argument}${describeWholePages(selfCap, 'items')})`;
+  const readOn =
+    selfCap.argument === undefined
+      ? (selfCap.readOn ?? 'Narrow the query to read the rest.')
+      : `Raise ${selfCap.argument} or narrow the search to read more.`;
+  return `Result is not complete: the capability ${selfCap.capability} stopped at${selfCap.readsWholePages ? ' or after' : ''} its own ${limit}, so more items may exist than it returned. Do not count or search only this result. ${readOn}${describeCutOfResponse(returned, returnedByCapability, truncation)}`;
+}
+
+/**
+ * The warning of an array from a capability that stops at a limit of its own
+ * and removes duplicates afterwards: it says that the result can be
+ * incomplete although it holds fewer items than the limit, and how to be sure.
+ */
+function buildDedupeWarning(
+  returned: number,
+  returnedByCapability: number,
+  truncation: McpArrayTruncationResult | undefined,
+  selfCap: McpSelfCap
+): string {
+  const dedupeArgument = selfCap.dedupe?.argument;
+  return `Result may be incomplete: the capability ${selfCap.capability} stops at${selfCap.readsWholePages ? ' or after' : ''} its own limit of ${selfCap.cap} events (argument ${selfCap.argument}${describeWholePages(selfCap, 'events')}), counted before duplicate events are removed (argument ${dedupeArgument}, which is on unless you pass false), so a result can be incomplete even when it has fewer than ${selfCap.argument} events. To be sure, pass ${dedupeArgument}: false or narrow the time window, and compare returned with ${selfCap.argument}.${describeCutOfResponse(returned, returnedByCapability, truncation)}`;
+}
+
+/**
+ * The warning of a result that the platform pages and that has more pages.
+ */
+function buildPagedTruncationWarning(
+  returned: number,
+  total: number | null,
+  cookie: string | undefined
+): string {
+  const holds =
+    total === null
+      ? `data.result holds ${returned} items and more exist`
+      : `data.result holds ${returned} of ${total} items; the other ${total - returned} are not in this response`;
+  const readOn =
+    cookie !== undefined
+      ? 'Pass nextPageToken as pageToken to read on'
+      : 'Read on with the paging controls of this capability';
+  return `Result is not complete: ${holds}. Do not count or search only this page. ${readOn}, or use a count capability for the exact total.`;
+}
+
+/**
+ * The `paging` block of `frodo_describe_skill` for a list or search
+ * capability: the controls, the fields that say whether a result is complete,
+ * and the limits of the runtime. Built from the runtime's own constants so
+ * that it is not written out by hand for each capability.
+ *
+ * @param maxItems The item ceiling of one response.
+ * @param maxBytes The byte budget of one response.
+ */
+function buildPagingGuide(maxItems: number, maxBytes: number) {
+  return {
+    controls: [...PAGING_CONTROLS],
+    resultFields: [...LIST_COMPLETENESS_FIELDS],
+    defaultMaxBytes: maxBytes,
+    defaultMaxItems: maxItems,
+    note: 'A list or search result says whether it is complete in truncated, returned and total, placed before data. The runtime cuts one response of a list to defaultMaxBytes bytes and defaultMaxItems items, and an explicit pageSize does not raise that limit: read on with pageOffset, from nextPageOffset. A result that the platform pages itself has nextPageToken: pass it as pageToken. A semantic count adds up every realm-qualified type of a family; a list reads one type. Compare a list with a count of the same type and filter; total of a list result is that count.',
+  };
+}
+
+/**
  * Applies a default response-size safety net to array-shaped list/search
  * results before they are serialized back over MCP.
  *
@@ -3952,65 +4489,80 @@ function applyResponseSizeLimit(
  * Produces pagination diagnostics for list/search style calls.
  *
  * @param truncation When provided, reflects an actual slice already applied
- *   by {@link applyResponseSizeLimit} — takes priority over the heuristic
- *   "looks truncated" guess below, which only fires as a fallback for
- *   non-array or non list/search results this function is otherwise called
- *   with.
+ *   by {@link applyResponseSizeLimit}.
+ * @param listCompleteness What {@link summarizeListResult} made of the data,
+ *   when it could read it. For a list that no slice was applied to, and for a
+ *   result that the platform pages, it is the truth about whether `data` is
+ *   everything: the diagnostics report the same, so that they and the fields
+ *   of the result itself never disagree.
  */
 function buildPaginationMetadata(
   data: unknown,
   args: McpGenericExecutionArguments,
   operationType: McpCapabilityOperationType,
-  paginationWarningThreshold: number,
-  truncation?: McpArrayTruncationResult
+  truncation?: McpArrayTruncationResult,
+  listCompleteness?: McpListCompleteness
 ): McpExecutionPaginationMetadata | undefined {
-  if (operationType !== 'list' && operationType !== 'search') {
+  if (!isListOperation(operationType)) {
     return undefined;
   }
 
-  if (truncation) {
-    const metadata: McpExecutionPaginationMetadata = {
-      isPartial: truncation.hasMore,
-      returnedCount: truncation.returnedCount,
-      totalCount: truncation.totalCount,
-      requestedPageSize: args.pageSize,
-      requestedPageOffset: args.pageOffset,
-      requestedPageToken: args.pageToken,
-      includeTotalRequested: args.includeTotal,
-      ...(truncation.hasMore && {
-        hasMore: true,
-        nextPageOffset: truncation.nextPageOffset,
-      }),
-    };
-    if (truncation.hasMore) {
-      metadata.warning = `Result truncated to ${truncation.returnedCount} of ${truncation.totalCount} items to stay within the MCP response size limit. Pass pageOffset: ${truncation.nextPageOffset} to continue.`;
-    }
-    return metadata;
-  }
-
-  const returnedCount = Array.isArray(data) ? data.length : undefined;
-  const looksTruncatedByThreshold =
-    returnedCount !== undefined &&
-    returnedCount >= paginationWarningThreshold &&
-    args.pageSize === undefined &&
-    args.pageOffset === undefined &&
-    args.pageToken === undefined;
-
-  const metadata: McpExecutionPaginationMetadata = {
-    isPartial: looksTruncatedByThreshold,
-    returnedCount,
+  const requested = {
     requestedPageSize: args.pageSize,
     requestedPageOffset: args.pageOffset,
     requestedPageToken: args.pageToken,
     includeTotalRequested: args.includeTotal,
   };
 
-  if (looksTruncatedByThreshold) {
-    metadata.warning =
-      'Result appears to be paginated/truncated at default page size. Provide explicit paging controls or use a count-capable operation for exact totals.';
+  if (truncation) {
+    // a capability that stopped at its own limit has no total to report
+    const truncated =
+      truncation.hasMore || listCompleteness?.truncated === true;
+    return {
+      isPartial: truncated,
+      returnedCount: truncation.returnedCount,
+      ...(listCompleteness?.total !== null && {
+        totalCount: truncation.totalCount,
+      }),
+      ...requested,
+      ...(truncation.hasMore && {
+        hasMore: true,
+        nextPageOffset: truncation.nextPageOffset,
+      }),
+      ...(listCompleteness?.warning !== undefined && {
+        warning: listCompleteness.warning,
+      }),
+    };
   }
 
-  return metadata;
+  if (!Array.isArray(data) && listCompleteness) {
+    // a result that the platform pages, or a live cursor
+    return {
+      isPartial: listCompleteness.truncated === true,
+      returnedCount: listCompleteness.returned,
+      ...(typeof listCompleteness.total === 'number' && {
+        totalCount: listCompleteness.total,
+      }),
+      ...requested,
+      ...(listCompleteness.truncated === true && {
+        hasMore: true,
+        warning: listCompleteness.warning,
+      }),
+    };
+  }
+
+  // An array that no slice was applied to is complete, however many items that
+  // is: the runtime read all of it and kept all of it. Only a capability that
+  // stopped at its own limit can say otherwise.
+  const selfCapped = listCompleteness?.truncated === true;
+  return {
+    isPartial: selfCapped,
+    returnedCount: Array.isArray(data) ? data.length : undefined,
+    ...requested,
+    ...(listCompleteness?.warning !== undefined && {
+      warning: listCompleteness.warning,
+    }),
+  };
 }
 
 /**
