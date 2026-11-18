@@ -141,7 +141,13 @@ describe('capability argument contracts', () => {
     const violations: string[] = [];
     for (const capability of inventory) {
       const docs = getHelpMetadataByMethod(capability.methodName);
-      if (docs.length === 0) continue;
+      if (docs.length === 0) {
+        // A method without a help entry has no parameters in its contract
+        // either, and nothing here can tell what its signature is: that is
+        // the defect too, not an exemption.
+        violations.push(`${capability.id}: no help entry`);
+        continue;
+      }
       const expected = signatureParameterNames(docs[0].signature);
       if (expected.length > 0 && (capability.parameters ?? []).length === 0) {
         violations.push(`${capability.id}(${expected.join(', ')})`);
