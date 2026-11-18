@@ -457,7 +457,12 @@ export type McpExecutionPaginationMetadata = {
   isPartial: boolean;
   /** Number of rows returned, when the payload is an array or a platform-paged result. */
   returnedCount?: number;
-  /** Total number of rows available before truncation, when known. */
+  /**
+   * Total number of rows available before truncation, when known. Present
+   * exactly where {@link McpToolExecutionResult.total} is a number: a
+   * capability that stopped at a limit of its own, or cannot say whether it
+   * did, has none, also on the last page of an offset read.
+   */
   totalCount?: number;
   /** Requested page size hint, if provided by caller. */
   requestedPageSize?: number;
@@ -4526,13 +4531,16 @@ function buildPaginationMetadata(
   };
 
   if (truncation) {
-    // a capability that stopped at its own limit has no total to report
+    // a total is reported only where the result itself has one: a capability
+    // that stopped at its own limit, and one that cannot tell whether it did
+    // (`total` is `null` or absent), have none, and the count of what the
+    // capability returned is not one
     const truncated =
       truncation.hasMore || listCompleteness?.truncated === true;
     return {
       isPartial: truncated,
       returnedCount: truncation.returnedCount,
-      ...(listCompleteness?.total !== null && {
+      ...(typeof listCompleteness?.total === 'number' && {
         totalCount: truncation.totalCount,
       }),
       ...requested,

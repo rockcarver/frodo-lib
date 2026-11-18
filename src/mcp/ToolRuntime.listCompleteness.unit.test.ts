@@ -1087,7 +1087,8 @@ const searchDedupeWarning = (limit: number, extra = '') =>
 describe('a search that stops at a limit of its own', () => {
   const searchEvents = (
     events: unknown[],
-    namedArgs: Record<string, unknown> = {}
+    namedArgs: Record<string, unknown> = {},
+    paging: Record<string, unknown> = {}
   ) =>
     dispatch(
       runtimeFor(
@@ -1105,6 +1106,7 @@ describe('a search that stops at a limit of its own', () => {
           endTs: '2026-11-17T11:00:00Z',
           ...namedArgs,
         },
+        ...paging,
       }
     );
 
@@ -1248,6 +1250,25 @@ describe('a search that stops at a limit of its own', () => {
     expect(result.warning).toBe(searchCapWarning(50));
   });
 
+  test('T14h: the last page of an offset read of a search that stopped at its limit is still truncated, and the nested metadata has no total either', async () => {
+    const result = await searchEvents(
+      smallItems(1000),
+      { dedupeByTransactionId: false },
+      { pageOffset: 995, pageSize: 10 }
+    );
+
+    expect(result.data).toHaveLength(5);
+    expect(result).toMatchObject({ truncated: true, returned: 5, total: null });
+    expect('nextPageOffset' in result).toBe(false);
+    expect(result.warning).toBe(searchCapWarning(1000));
+    expect(result.metadata?.pagination).toMatchObject({
+      isPartial: true,
+      returnedCount: 5,
+      warning: result.warning,
+    });
+    expect('totalCount' in (result.metadata?.pagination ?? {})).toBe(false);
+  });
+
   test('T14f: a list that does not limit itself is complete at the same size', async () => {
     const result = await readJourneys(smallItems(1000));
 
@@ -1258,7 +1279,8 @@ describe('a search that stops at a limit of its own', () => {
 describe('a search that removes duplicate events after its limit', () => {
   const searchEvents = (
     events: unknown[],
-    namedArgs: Record<string, unknown> = {}
+    namedArgs: Record<string, unknown> = {},
+    paging: Record<string, unknown> = {}
   ) =>
     dispatch(
       runtimeFor(
@@ -1276,6 +1298,7 @@ describe('a search that removes duplicate events after its limit', () => {
           endTs: '2026-11-17T11:00:00Z',
           ...namedArgs,
         },
+        ...paging,
       }
     );
 
@@ -1366,6 +1389,53 @@ describe('a search that removes duplicate events after its limit', () => {
     // a narrower window with deduplication on is just as uncertain, and a count below the limit proves nothing
     expect(result.warning).not.toMatch(/to be sure|certain|time window/i);
     expect(result.warning).not.toContain('compare returned');
+  });
+
+  test('T17h: the last page of an offset read of an uncertain result says nothing about a total, at the top and in the nested metadata, and keeps the warning in both', async () => {
+    const result = await searchEvents(
+      smallItems(500),
+      {},
+      { pageOffset: 495, pageSize: 10 }
+    );
+
+    expect(result.data).toHaveLength(5);
+    expect(Object.keys(result)).toEqual([
+      'toolName',
+      'descriptorId',
+      'returned',
+      'warning',
+      'data',
+      'metadata',
+    ]);
+    expect(result.returned).toBe(5);
+    expect(result.warning).toBe(searchDedupeWarning(1000));
+    expect(result.metadata?.pagination).toMatchObject({
+      isPartial: false,
+      returnedCount: 5,
+      warning: result.warning,
+    });
+    expect('totalCount' in (result.metadata?.pagination ?? {})).toBe(false);
+  });
+
+  test('T17i: a page in the middle of an offset read of an uncertain result is truncated with an unknown total, and the nested metadata has no total', async () => {
+    const result = await searchEvents(
+      smallItems(500),
+      {},
+      { pageOffset: 100, pageSize: 10 }
+    );
+
+    expect(result).toMatchObject({
+      truncated: true,
+      returned: 10,
+      total: null,
+      nextPageOffset: 110,
+    });
+    expect(result.metadata?.pagination).toMatchObject({
+      isPartial: true,
+      hasMore: true,
+      returnedCount: 10,
+    });
+    expect('totalCount' in (result.metadata?.pagination ?? {})).toBe(false);
   });
 
   test('T17f: the limit and the deduplication that apply are the defaults of the descriptor, which is what the call gets', async () => {
