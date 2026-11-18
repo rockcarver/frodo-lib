@@ -213,8 +213,12 @@ releases missed):
   limit, and `role.readInternalRoles` and `role.queryInternalRoles`, which
   read one request of at most 1000 items, return a plain array; each is
   `truncated` with a `total` of `null` when it returns as many items as its
-  limit (it may have left more), and a search that removes duplicate events
-  after it stopped can return fewer and is not seen.
+  limit (it may have left more). `cloud.log.searchEvents` counts its limit
+  before it removes duplicate events (`dedupeByTransactionId`, on unless it is
+  `false`), so with deduplication a count below the limit proves nothing: the
+  result then has `returned` and a `warning` that says so, and no `truncated`
+  and no `total` (unless the runtime cut the response itself); pass
+  `dedupeByTransactionId: false` to see whether the limit was reached.
   `idm.managed.queryManagedObjects` now takes `pageToken` as the cookie of its
   one-page query (it ignored it), so its `nextPageToken` can be passed back.
   `data` is unchanged, and a result that is not a list, or that the runtime
@@ -226,8 +230,9 @@ releases missed):
   pages reports `isPartial: true` and `hasMore: true` in `metadata.pagination`
   when it carries a cookie (it was always `false`); `frodo_find_skills` adds
   `executionTruncated: true` and a different `nextAction` when the capability
-  that it ran returned a cut result; `frodo_describe_skill` returns a `paging`
-  block for list and search capabilities; and the descriptions of
+  that it ran returned a cut result (the `nextAction` also says what to read
+  when `total` is `null`); `frodo_describe_skill` returns a `paging` block for
+  list and search capabilities; and the descriptions of
   `frodo_dispatch_read_only` and of the list and search capabilities name the
   fields; the description of `frodo_find_skills` says to read on when the answer
   has `executionTruncated`.
