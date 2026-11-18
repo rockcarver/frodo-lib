@@ -376,6 +376,100 @@ describe('cloud.log.fetch and cloud.log.tail', () => {
     });
   });
 
+  // txid and filter are optional strings like the cookie: undefined, null and
+  // an empty string all mean left out, and a value that the caller gave is
+  // passed on. A pageToken has no effect on them.
+  describe.each([
+    ['txid', 4],
+    ['filter', 5],
+  ])('%s of fetch, named', (name, index) => {
+    test.each([
+      ['not given', {}, undefined, undefined],
+      ['undefined', { [name]: undefined }, undefined, undefined],
+      ['null', { [name]: null }, undefined, null],
+      ['empty', { [name]: '' }, undefined, ''],
+      ['given', { [name]: 'GIVEN' }, undefined, 'GIVEN'],
+      ['null, with a pageToken', { [name]: null }, 'CK', null],
+      ['given, with a pageToken', { [name]: 'GIVEN' }, 'CK', 'GIVEN'],
+    ])('%s', async (_cell, extra, pageToken, expected) => {
+      const { handler } = await dispatch('cloud.log.fetch', {
+        namedArgs: { ...window, ...extra },
+        ...(pageToken === undefined ? {} : { pageToken }),
+      });
+      expect(handler.mock.calls[0]).toHaveLength(6);
+      expect(handler.mock.calls[0][index]).toBe(expected);
+    });
+  });
+
+  describe('what null and a wrong type are not for', () => {
+    async function rejected(
+      id: string,
+      toolName: string,
+      namedArgs: Record<string, unknown>
+    ) {
+      const handler: Handler = jest.fn(async () => undefined);
+      currentFake = fakeInstance(id, handler);
+      await expect(
+        service.executeTool({
+          toolName,
+          arguments: { skillId: id, namedArgs },
+          context: { auth: { mode: 'state-config', config: {} } },
+        })
+      ).rejects.toThrow('must be string');
+      expect(handler).not.toHaveBeenCalled();
+    }
+
+    test('a required parameter of fetch does not take null', async () => {
+      await rejected('cloud.log.fetch', 'frodo_dispatch_read_only', {
+        ...window,
+        startTs: null,
+      });
+      await rejected('cloud.log.fetch', 'frodo_dispatch_read_only', {
+        ...window,
+        source: null,
+      });
+    });
+
+    test.each([['cookie'], ['txid'], ['filter']])(
+      'the optional %s of fetch does not take a number or an object',
+      async (name) => {
+        await rejected('cloud.log.fetch', 'frodo_dispatch_read_only', {
+          ...window,
+          [name]: 5,
+        });
+        await rejected('cloud.log.fetch', 'frodo_dispatch_read_only', {
+          ...window,
+          [name]: {},
+        });
+      }
+    );
+
+    test('the script of evaluateScript and compileScript does not take null', async () => {
+      await rejected('idm.script.evaluateScript', 'frodo_dispatch', {
+        script: null,
+      });
+      await rejected('idm.script.compileScript', 'frodo_dispatch', {
+        script: null,
+      });
+    });
+
+    test('the optional globals of evaluateScript does not take null', async () => {
+      const handler: Handler = jest.fn(async () => undefined);
+      currentFake = fakeInstance('idm.script.evaluateScript', handler);
+      await expect(
+        service.executeTool({
+          toolName: 'frodo_dispatch',
+          arguments: {
+            skillId: 'idm.script.evaluateScript',
+            namedArgs: { script: '1+1', globals: null },
+          },
+          context: { auth: { mode: 'state-config', config: {} } },
+        })
+      ).rejects.toThrow("named argument 'globals'");
+      expect(handler).not.toHaveBeenCalled();
+    });
+  });
+
   describe('the cookie of tail, positional', () => {
     test.each([
       ['no cookie, no token', ['am-core'], undefined, ['am-core']],

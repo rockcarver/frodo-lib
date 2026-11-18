@@ -2985,6 +2985,32 @@ function toInvocationArgs(
 const COOKIE_PARAMETER = 'cookie';
 
 /**
+ * Optional string parameters of the log reads for which `null` means the same
+ * as `undefined` or an empty string: left out. A JSON payload has no
+ * `undefined`, so `null` is how a caller leaves such a parameter out, and the
+ * log API treats an empty value as an absent one. A required parameter and
+ * the parameters of every other capability still reject `null`.
+ */
+const NULL_MEANS_LEFT_OUT: Readonly<Record<string, readonly string[]>> = {
+  'cloud.log.fetch': [COOKIE_PARAMETER, 'txid', 'filter'],
+  'cloud.log.tail': [COOKIE_PARAMETER],
+};
+
+/**
+ * Tells whether a `null` for this parameter counts as left out (see
+ * {@link NULL_MEANS_LEFT_OUT}).
+ */
+function nullMeansLeftOut(
+  descriptor: McpCapabilityDescriptor,
+  parameter: McpCapabilityParameter
+): boolean {
+  return (
+    !parameter.required &&
+    (NULL_MEANS_LEFT_OUT[descriptor.id] ?? []).includes(parameter.name)
+  );
+}
+
+/**
  * Decides which value the `cookie` parameter of a call gets.
  *
  * @remarks
@@ -3144,8 +3170,7 @@ function validateInvocationArguments(
     if (value === undefined) {
       continue;
     }
-    if (value === null && parameter.name === COOKIE_PARAMETER) {
-      // a JSON payload has no undefined: null leaves the cursor out, like ''
+    if (value === null && nullMeansLeftOut(descriptor, parameter)) {
       continue;
     }
     validateNamedArgumentValue(descriptor.id, parameter, value);
