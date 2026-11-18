@@ -800,6 +800,46 @@ describe('a search that stops at a limit of its own', () => {
     expect('totalCount' in (result.metadata?.pagination ?? {})).toBe(false);
   });
 
+  test('T14g: the limit is also read from a positional call', async () => {
+    // the capability itself takes named arguments only: let a copy of its descriptor take both
+    const descriptors = inventory.map((descriptor) =>
+      descriptor.id === 'cloud.log.searchEvents'
+        ? { ...descriptor, argumentMode: 'mixed' as const }
+        : descriptor
+    );
+    const runtime = createToolRuntime(
+      buildToolManifest(descriptors),
+      descriptors,
+      {} as any,
+      {
+        resolveFrodoForRequest: () =>
+          rootWith(
+            'cloud.log.searchEvents',
+            jest.fn(async () => smallItems(50)),
+            withLogApiCredential
+          ) as any,
+      }
+    );
+
+    const result = await dispatch(runtime, 'cloud.log.searchEvents', {
+      positionalArgs: [
+        'am-authentication',
+        '2026-11-17T10:00:00Z',
+        '2026-11-17T11:00:00Z',
+        undefined,
+        undefined,
+        50,
+      ],
+    });
+
+    expect(result).toMatchObject({
+      truncated: true,
+      returned: 50,
+      total: null,
+    });
+    expect(result.warning).toContain('limit of 50 items');
+  });
+
   test('T14f: a list that does not limit itself is complete at the same size', async () => {
     const result = await readJourneys(smallItems(1000));
 
