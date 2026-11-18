@@ -213,6 +213,13 @@ describe('positionalArgs', () => {
     expect(handler.mock.calls[0]).toEqual(['1+1']);
   });
 
+  test('an undefined for an optional parameter, from a host that calls in process, is not checked against its schema', async () => {
+    const { handler } = await dispatch('idm.script.evaluateScript', {
+      positionalArgs: ['1+1', undefined],
+    });
+    expect(handler.mock.calls[0]).toEqual(['1+1', undefined]);
+  });
+
   test('a null for an optional parameter is not checked against its schema', async () => {
     const { handler } = await dispatch('idm.script.evaluateScript', {
       positionalArgs: ['1+1', null],
