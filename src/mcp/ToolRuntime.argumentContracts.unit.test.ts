@@ -8,8 +8,11 @@
  * the signature, a value that has an explicit schema is checked, and the
  * `pageToken` argument is the cookie of a capability that has no `pageToken`
  * parameter (frodo-cli#1373). No tenant and no recording: the method behind
- * every capability is a fake that records its arguments.
+ * every capability is a fake that records its arguments, except in the last
+ * block, which reads the log capabilities page by page from a loopback server.
  */
+import http from 'http';
+import { AddressInfo } from 'net';
 import { jest } from '@jest/globals';
 import { frodo } from '../lib/FrodoLib';
 import { createMcpService, type McpService } from './McpService';
@@ -524,5 +527,195 @@ describe('cloud.log.fetch and cloud.log.tail', () => {
       await dispatch('cloud.log.tail', { positionalArgs });
       expect(positionalArgs).toEqual(['am-core', '']);
     });
+  });
+});
+
+// The queries of IDM take their cursor as pageCookie. The pageToken argument
+// fills it by the same rule as the cookie of the log reads: a cookie that the
+// caller gave wins, a missing, null or empty one is replaced by the token.
+describe('the pageCookie of a system query', () => {
+  // the queries of IDM that take a pageCookie accept named arguments only
+  test.each([
+    ['named, no cookie, token', { pageCookie: undefined }, 'CK', 'CK'],
+    ['named, empty cookie, token', { pageCookie: '' }, 'CK', 'CK'],
+    ['named, given cookie, token', { pageCookie: 'GIVEN' }, 'CK', 'GIVEN'],
+    ['named, empty cookie, empty token', { pageCookie: '' }, '', ''],
+    ['named, no cookie, no token', {}, undefined, undefined],
+  ])('%s', async (_cell, extra, pageToken, expected) => {
+    const { handler } = await dispatch('idm.system.querySystemObjects', {
+      namedArgs: {
+        systemName: 'system',
+        systemObjectType: 'object',
+        filter: 'true',
+        ...extra,
+      },
+      ...(pageToken === undefined ? {} : { pageToken }),
+    });
+    expect(handler.mock.calls[0]).toHaveLength(6);
+    expect(handler.mock.calls[0][5]).toBe(expected);
+  });
+});
+
+// The log reads with the completeness fields of a list result: a page that has
+// a next page says so in nextPageToken, and that token, passed back as
+// pageToken, reads the next page. The real library answers from a loopback
+// server that stands in for the Log API; nothing else is faked.
+describe('walking the pages of the log reads with nextPageToken', () => {
+  /** Three pages of two events, each reachable through the cookie of the page before. */
+  const PAGES: Record<string, { payloads: string[]; next: string | null }> = {
+    first: { payloads: ['e0', 'e1'], next: 'cookie-2/+=' },
+    'cookie-2/+=': { payloads: ['e2', 'e3'], next: 'cookie-3 %' },
+    'cookie-3 %': { payloads: ['e4', 'e5'], next: null },
+  };
+  const window = {
+    source: 'am-core',
+    startTs: '2026-11-17T10:00:00Z',
+    endTs: '2026-11-17T10:05:00Z',
+  };
+  let server: http.Server;
+  let instance: ReturnType<typeof frodo.createInstance>;
+  let requests: string[];
+
+  beforeAll(async () => {
+    requests = [];
+    server = http.createServer((request, response) => {
+      requests.push(`${request.method} ${request.url}`);
+      const cookie = new URL(
+        request.url ?? '',
+        'http://127.0.0.1'
+      ).searchParams.get('_pagedResultsCookie');
+      const page = PAGES[cookie || 'first'] ?? { payloads: [], next: null };
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(
+        JSON.stringify({
+          result: page.payloads.map((payload) => ({
+            payload,
+            timestamp: '2026-11-17T10:00:00Z',
+            type: 'text/plain',
+            source: 'am-core',
+          })),
+          resultCount: page.payloads.length,
+          pagedResultsCookie: page.next,
+          totalPagedResultsPolicy: 'NONE',
+          totalPagedResults: -1,
+          remainingPagedResults: -1,
+        })
+      );
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, '127.0.0.1', () => resolve())
+    );
+    instance = frodo.createInstance({
+      host: `http://127.0.0.1:${(server.address() as AddressInfo).port}/am`,
+      deploymentType: 'cloud',
+      realm: 'alpha',
+      logApiKey: 'key-id',
+      logApiSecret: 'key-secret',
+    });
+    // the loopback server knows the log endpoints only: no login
+    (
+      instance.login as unknown as { getTokens: () => Promise<void> }
+    ).getTokens = async () => undefined;
+  });
+
+  afterAll(async () => {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  /** One call through the real runtime, answered by the instance of this block. */
+  async function read(id: string, args: Record<string, unknown>) {
+    currentFake = instance;
+    return service.executeTool({
+      toolName: 'frodo_dispatch_read_only',
+      arguments: { skillId: id, ...args },
+      context: { auth: { mode: 'state-config', config: {} } },
+    });
+  }
+
+  /** The payloads of the events of a page. */
+  const payloadsOf = (result: McpToolExecutionResult) =>
+    (result.data as { result: Array<{ payload: string }> }).result.map(
+      ({ payload }) => payload
+    );
+
+  test('fetch: the token of each page, passed back as pageToken, reads the next page and the end', async () => {
+    requests.length = 0;
+    const payloads: string[] = [];
+    const pages: McpToolExecutionResult[] = [];
+    let result = await read('cloud.log.fetch', { namedArgs: window });
+    // a bounded walk: a token that does not advance fails the test, it does not hang it
+    for (let calls = 1; calls <= 5; calls++) {
+      pages.push(result);
+      payloads.push(...payloadsOf(result));
+      if (result.nextPageToken === undefined) break;
+      result = await read('cloud.log.fetch', {
+        namedArgs: window,
+        pageToken: result.nextPageToken,
+      });
+    }
+
+    expect(payloads).toEqual(['e0', 'e1', 'e2', 'e3', 'e4', 'e5']);
+    expect(pages).toHaveLength(3);
+    expect(pages[0]).toMatchObject({
+      truncated: true,
+      returned: 2,
+      total: null,
+      nextPageToken: 'cookie-2/+=',
+    });
+    expect(pages[2]).toMatchObject({ truncated: false, returned: 2 });
+    expect('nextPageToken' in pages[2]).toBe(false);
+    expect(requests).toHaveLength(3);
+    expect(requests[0]).toContain('/monitoring/logs?source=am-core');
+    expect(requests[0]).not.toContain('_pagedResultsCookie');
+    expect(requests[1]).toContain(
+      `_pagedResultsCookie=${encodeURIComponent('cookie-2/+=')}`
+    );
+    expect(requests[2]).toContain(
+      `_pagedResultsCookie=${encodeURIComponent('cookie-3 %')}`
+    );
+  });
+
+  test('tail: the token of each page, passed back as pageToken to a positional call, reads the next page and the end', async () => {
+    requests.length = 0;
+    const payloads: string[] = [];
+    const pages: McpToolExecutionResult[] = [];
+    let result = await read('cloud.log.tail', { positionalArgs: ['am-core'] });
+    for (let calls = 1; calls <= 5; calls++) {
+      pages.push(result);
+      payloads.push(...payloadsOf(result));
+      if (result.nextPageToken === undefined) break;
+      result = await read('cloud.log.tail', {
+        positionalArgs: ['am-core'],
+        pageToken: result.nextPageToken,
+      });
+    }
+
+    expect(payloads).toEqual(['e0', 'e1', 'e2', 'e3', 'e4', 'e5']);
+    expect(pages).toHaveLength(3);
+    // a live cursor is never complete: it has returned and nextPageToken, no truncated
+    expect(pages[0]).toMatchObject({
+      returned: 2,
+      nextPageToken: 'cookie-2/+=',
+    });
+    expect('truncated' in pages[0]).toBe(false);
+    expect(requests).toHaveLength(3);
+    expect(requests[0]).toContain('/monitoring/logs/tail?source=am-core');
+    expect(requests[1]).toContain(
+      `_pagedResultsCookie=${encodeURIComponent('cookie-2/+=')}`
+    );
+  });
+
+  test('fetch: a pageToken that the caller sends with an empty cookie reads the next page', async () => {
+    requests.length = 0;
+    const result = await read('cloud.log.fetch', {
+      namedArgs: { ...window, cookie: '' },
+      pageToken: 'cookie-2/+=',
+    });
+    expect(payloadsOf(result)).toEqual(['e2', 'e3']);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toContain(
+      `_pagedResultsCookie=${encodeURIComponent('cookie-2/+=')}`
+    );
   });
 });

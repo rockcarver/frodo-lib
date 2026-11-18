@@ -2106,7 +2106,8 @@ async function invokeManagedObjectSearchPage(
     fields: Array.isArray(fields) && fields.length > 0 ? fields : ['*'],
     pageSize,
     // `pageToken` is the cookie that this query handed out as `nextPageToken`
-    pageCookie: pageCookie ?? args.pageToken,
+    pageCookie: resolveCookieValue(pageCookie, args.pageToken) as
+      string | undefined,
     state: scopedFrodo.state,
   });
 }
@@ -3157,6 +3158,14 @@ function toInvocationArgs(
 const COOKIE_PARAMETER = 'cookie';
 
 /**
+ * The names under which a capability takes that cursor: `cookie` for the log
+ * reads, `pageCookie` for the queries of IDM. Every one of them is filled by
+ * the `pageToken` argument with the same rule ({@link resolveCookieValue}), so
+ * that no capability gets a cursor twice and none gets it by another rule.
+ */
+const COOKIE_PARAMETERS: readonly string[] = [COOKIE_PARAMETER, 'pageCookie'];
+
+/**
  * Optional string parameters of the log reads for which `null` means the same
  * as `undefined` or an empty string: left out. A JSON payload has no
  * `undefined`, so `null` is how a caller leaves such a parameter out, and the
@@ -3228,8 +3237,8 @@ function withPageTokenAsCookie(
   descriptor: McpCapabilityDescriptor | undefined,
   pageToken: unknown
 ): unknown[] {
-  const slot = descriptor?.parameters?.find(
-    (parameter) => parameter.name === COOKIE_PARAMETER
+  const slot = descriptor?.parameters?.find((parameter) =>
+    COOKIE_PARAMETERS.includes(parameter.name)
   )?.position;
   if (slot === undefined) {
     return positionalArgs;
@@ -3363,7 +3372,7 @@ function resolveNamedOrGenericParameterValue(
   }
 ): unknown {
   const providedValue = args.namedArgs?.[parameter.name];
-  if (parameter.name === COOKIE_PARAMETER) {
+  if (COOKIE_PARAMETERS.includes(parameter.name)) {
     return resolveCookieValue(providedValue, args.pageToken);
   }
   if (providedValue !== undefined) {
@@ -3377,7 +3386,6 @@ function resolveNamedOrGenericParameterValue(
     case 'offset':
       return args.pageOffset;
     case 'pageToken':
-    case 'pageCookie':
       return args.pageToken;
     case 'includeTotal':
       return args.includeTotal;
