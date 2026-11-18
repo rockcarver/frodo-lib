@@ -101,8 +101,8 @@ export type CirclesOfTrust = {
   ): Promise<CircleOfTrustSkeleton>;
   /**
    * Import all circles of trust
-   * @param {string[]} entityProviders filter by entity providers
    * @param {CirclesOfTrustExportInterface} importData Import data
+   * @param {string[]} entityProviders filter by entity providers
    * @param {ResultCallback<CircleOfTrustSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every circle of trust that was created or updated is passed to it as it happens (a failed circle of trust as an error that names it) and a failed circle of trust does not throw: the circles of trust that could be imported are returned. A circle of trust that is filtered out or does not need updating is not reported. Without it, the failures are collected and thrown as one error after every circle of trust was tried. Failing to read the entity providers always throws.
    * @returns {Promise<CircleOfTrustSkeleton[]>} a promise resolving to an array of circle of trust objects that were created or updated. Note: If a circle of trust already exists and does not need updating, it is omitted from the response array.
    */

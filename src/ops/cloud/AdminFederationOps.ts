@@ -32,8 +32,8 @@ export type AdminFederation = {
   /**
    * Create admin federation provider
    * @param {string} providerType social identity provider type
-   * @param {string} providerId social identity provider id/name
    * @param {SocialIdpSkeleton} providerData social identity provider data
+   * @param {string} providerId social identity provider id/name
    * @returns {Promise<SocialIdpSkeleton>} a promise that resolves a social admin federation object
    */
   createAdminFederationProvider(

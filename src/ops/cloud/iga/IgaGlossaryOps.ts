@@ -88,10 +88,10 @@ export type Glossary = {
   ): Promise<GlossarySchemaItemSkeleton<any>>;
   /**
    * Import glossary schemas
+   * @param {GlossarySchemaExportInterface} importData glossary schema import data
    * @param {string} glossaryId The glossary schema id.  If supplied, only the glossary schema of that id is imported. Takes priority over glossaryName/objectType if they are all provided.
    * @param {string} glossaryName The glossary schema name. If supplied along with the objectType, only the glossary schema of that name/objectType is imported.
    * @param {GlossaryObjectType} objectType the glossary schema object type
-   * @param {GlossarySchemaExportInterface} importData glossary schema import data
    * @param {GlossarySchemaImportOptions} options import options
    * @param {ResultCallback<GlossarySchemaItemSkeleton>} resultCallback Optional callback to process individual results
    * @returns {Promise<GlossarySchemaItemSkeleton[]>} the imported glossary schemas

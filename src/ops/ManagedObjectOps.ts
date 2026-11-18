@@ -184,6 +184,7 @@ export type ManagedObject = {
    * @param {string} id managed object id
    * @param {string} relationship name of the relationship to query, e.g. "members" for team membership relationships
    * @param {string[]} fields array of fields to return
+   * @param {number} pageSize page size: the number of objects that one request reads. Every page is read, so the result is not limited to it.
    * @return {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of managed objects
    */
   queryRelatedManagedObjects(

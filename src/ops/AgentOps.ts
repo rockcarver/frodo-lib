@@ -95,8 +95,8 @@ export type Agent = {
   ): Promise<AgentExportInterface>;
   /**
    * Import agents. The import data is usually read from an agent export file.
-   * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
    * @param {AgentExportInterface} importData agent import data.
+   * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
    * @param {ResultCallback<AgentSkeleton>} resultCallback Optional callback to process individual results. When given, the outcome of every agent is passed to it as it happens (a failed agent as an error that names the agent and its type) and a failed agent does not throw. Without it, the failures are collected and thrown as one error after every agent was tried.
    * @returns {Promise<AgentSkeleton[]>} The agents that were imported.
    */

@@ -105,9 +105,9 @@ export type CertificationTemplate = {
   ): Promise<CertificationTemplateSkeleton>;
   /**
    * Import certification templates
+   * @param {CertificationTemplateExportInterface} importData certification template import data
    * @param {string} templateId The certification template id. If supplied, only the certification template of that id is imported. Takes priority over templateName if it is provided.
    * @param {string} templateName The certification template name. If supplied, only the certification template of that name is imported.
-   * @param {CertificationTemplateExportInterface} importData certification template import data
    * @param {CertificationTemplateImportOptions} options import options
    * @param {ResultCallback<CertificationTemplateSkeleton>} resultCallback Optional callback to process individual results
    * @returns {Promise<CertificationTemplateSkeleton[]>} the imported certification templates

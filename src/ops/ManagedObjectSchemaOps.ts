@@ -164,7 +164,7 @@ export type ManagedObjectSchemaOps = {
    * @param {string} type managed object type, e.g. alpha_user or user
    * @param {string} propertyName schema property name, e.g. custom_merchantId
    * @param {ManagedObjectSchemaPropertyFields} fields the property's field values
-   * @param {string} [subProperty] dot-path to nest the new property under an existing object property beneath propertyName, e.g. "address.street"
+   * @param {string} subProperty dot-path to nest the new property under an existing object property beneath propertyName, e.g. "address.street"
    * @returns {Promise<Record<string, unknown>>} a promise that resolves to the written property definition
    */
   createManagedObjectSchemaFlatProperty(
@@ -186,7 +186,7 @@ export type ManagedObjectSchemaOps = {
    * @param {string} type managed object type, e.g. alpha_user or user
    * @param {string} propertyName schema property name, e.g. custom_merchantId
    * @param {Partial<ManagedObjectSchemaPropertyFields>} changedFields only the field overrides to apply
-   * @param {string} [subProperty] dot-path to a nested property beneath propertyName, e.g. "address.street"
+   * @param {string} subProperty dot-path to a nested property beneath propertyName, e.g. "address.street"
    * @returns {Promise<{ current: Record<string, unknown>; propertyData: Record<string, unknown> }>} a promise that resolves to the property's prior and newly-written definitions
    */
   updateManagedObjectSchemaFlatProperty(
@@ -207,7 +207,7 @@ export type ManagedObjectSchemaOps = {
    * property doesn't exist at that path.
    * @param {string} type managed object type, e.g. alpha_user or user
    * @param {string} propertyName schema property name, e.g. custom_merchantId
-   * @param {string} [subProperty] dot-path to a nested property beneath propertyName, e.g. "address.street"
+   * @param {string} subProperty dot-path to a nested property beneath propertyName, e.g. "address.street"
    * @returns {Promise<Record<string, unknown>>} a promise that resolves to the removed property definition
    */
   removeManagedObjectSchemaFlatProperty(
@@ -268,7 +268,7 @@ export type ManagedObjectSchemaOps = {
    * @param {string} type managed object type, e.g. alpha_aiagentprivilege
    * @param {string} propertyName relationship property name, e.g. agent
    * @param {ManagedObjectSchemaRelationshipPropertyFields} fields the forward side's field values
-   * @param {ManagedObjectSchemaRelationshipReverseFields} [reverse] the reverse side's field values, if creating both sides
+   * @param {ManagedObjectSchemaRelationshipReverseFields} reverse the reverse side's field values, if creating both sides
    * @returns {Promise<Record<string, unknown>>} a promise that resolves to the written forward-side definition
    */
   createManagedObjectSchemaRelationshipProperty(
@@ -293,7 +293,7 @@ export type ManagedObjectSchemaOps = {
    * @param {string} type managed object type, e.g. alpha_aiagentprivilege
    * @param {string} propertyName relationship property name, e.g. agent
    * @param {Partial<ManagedObjectSchemaRelationshipPropertyFields>} changedFields only the field overrides to apply
-   * @param {boolean} [withReverse] true to also update the inferred reverse side
+   * @param {boolean} withReverse true to also update the inferred reverse side
    * @returns {Promise<{ forward: Record<string, unknown>; reverse?: { type: string; propertyName: string; propertyData: Record<string, unknown> } }>} a promise that resolves to the written definition(s)
    */
   updateManagedObjectSchemaRelationshipProperty(
@@ -320,7 +320,7 @@ export type ManagedObjectSchemaOps = {
    * reached, and is treated as success, not surfaced as an error.
    * @param {string} type managed object type, e.g. alpha_aiagentprivilege
    * @param {string} propertyName relationship property name, e.g. agent
-   * @param {boolean} [withReverse] true to also delete the inferred reverse side
+   * @param {boolean} withReverse true to also delete the inferred reverse side
    * @returns {Promise<{ current: Record<string, unknown>; reverse?: { type: string; propertyName: string; current: Record<string, unknown> } }>} a promise that resolves to the removed definition(s)
    */
   removeManagedObjectSchemaRelationshipProperty(

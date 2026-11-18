@@ -3578,6 +3578,10 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'login.getTokens': {
     mutating: false,
     riskClass: 'critical',
+    // credentialOverride picks the credential the call authenticates with: a
+    // caller of this capability must not choose it, so it is in the TSDoc of
+    // the method and not offered as an argument.
+    excludeParameters: ['credentialOverride'],
     notes:
       'Returns live bearer/session tokens for the current identity. Kept in the inventory at critical risk rather than excluded; only reachable under policies that do not deny critical risk (e.g. admin).',
   },

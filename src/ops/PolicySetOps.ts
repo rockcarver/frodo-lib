@@ -65,8 +65,8 @@ export type PolicySet = {
   ): Promise<PolicySetSkeleton>;
   /**
    * Update policy set
-   * @param {PolicySetExportInterface} importData import data
-   * @param {string} policySetName optional policy set name
+   * @param {PolicySetSkeleton} policySetData policy set object
+   * @param {string} policySetName optional policy set name; when it is not given, the name of the policy set object is used
    * @returns {Promise<PolicySetSkeleton | null>} the updated policy set, or null if no update was made
    */
   updatePolicySet(

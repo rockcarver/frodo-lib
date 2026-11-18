@@ -94,8 +94,7 @@ export type Theme = {
   ): Promise<ThemeSkeleton>;
   /**
    * Update all themes
-   * @param {Map<string, ThemeSkeleton>} allThemesData themes object containing all themes for all realms
-   * @param {string} realm realm name
+   * @param {Record<string, ThemeSkeleton>} themeMap themes of the current realm by theme id. A theme with the id of an existing theme replaces it, any other theme is added, and no existing theme is removed. When one of them is the default theme, no other theme is.
    * @returns {Promise<Map<string, ThemeSkeleton>>} a promise that resolves to a themes object
    */
   updateThemes(

@@ -64,9 +64,9 @@ export type Mapping = {
     mappingData: MappingSkeleton
   ): Promise<MappingSkeleton>;
   /**
-   * Update or create mappings in sync.json (legacy)
-   * @param {MappingSkeleton} mappingData mapping object
-   * @returns {Promise<MappingSkeleton>} a promise that resolves to an mapping object
+   * Update or create mappings in sync.json (legacy). The array is written as the `mappings` of the `sync` configuration object with an update (PUT) request, which replaces that object: a mapping that the array leaves out is not kept.
+   * @param {MappingSkeleton[]} mappings array of mapping objects
+   * @returns {Promise<MappingSkeleton[]>} a promise that resolves to an array of mapping objects
    */
   updateSyncMappings(mappings: MappingSkeleton[]): Promise<MappingSkeleton[]>;
   /**

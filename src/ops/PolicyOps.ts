@@ -83,6 +83,7 @@ export type Policy = {
   /**
    * Export policy
    * @param {string} policyId policy id/name
+   * @param {PolicyExportOptions} options export options
    * @returns {Promise<PolicyExportInterface>} a promise that resolves to a PolicyExportInterface object
    */
   exportPolicy(
