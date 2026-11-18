@@ -1256,8 +1256,14 @@ describe('a search that stops at a limit of its own', () => {
     expect('totalCount' in (result.metadata?.pagination ?? {})).toBe(false);
   });
 
-  test('T14g: the limit is also read from a positional call', async () => {
-    // the capability itself takes named arguments only: let a copy of its descriptor take both
+  /**
+   * A search over `events` through a runtime in which the capability takes
+   * positional arguments too: the capability itself takes named arguments
+   * only, so a copy of its descriptor takes both. The positional values are
+   * source, startTs, endTs, eventNames, principal, maxEvents and
+   * dedupeByTransactionId.
+   */
+  const positionalSearch = (events: unknown[]) => {
     const descriptors = inventory.map((descriptor) =>
       descriptor.id === 'cloud.log.searchEvents'
         ? { ...descriptor, argumentMode: 'mixed' as const }
@@ -1271,22 +1277,27 @@ describe('a search that stops at a limit of its own', () => {
         resolveFrodoForRequest: () =>
           rootWith(
             'cloud.log.searchEvents',
-            jest.fn(async () => smallItems(50)),
+            jest.fn(async () => events),
             withLogApiCredential
           ) as any,
       }
     );
+    return (maxEvents?: unknown, dedupeByTransactionId?: unknown) =>
+      dispatch(runtime, 'cloud.log.searchEvents', {
+        positionalArgs: [
+          'am-authentication',
+          '2026-11-17T10:00:00Z',
+          '2026-11-17T11:00:00Z',
+          undefined,
+          undefined,
+          maxEvents,
+          dedupeByTransactionId,
+        ],
+      });
+  };
 
-    const result = await dispatch(runtime, 'cloud.log.searchEvents', {
-      positionalArgs: [
-        'am-authentication',
-        '2026-11-17T10:00:00Z',
-        '2026-11-17T11:00:00Z',
-        undefined,
-        undefined,
-        50,
-      ],
-    });
+  test('T14g: the limit is also read from a positional call', async () => {
+    const result = await positionalSearch(smallItems(50))(50);
 
     expect(result).toMatchObject({
       truncated: true,
@@ -1294,6 +1305,55 @@ describe('a search that stops at a limit of its own', () => {
       total: null,
     });
     expect(result.warning).toBe(searchCapWarning(50));
+  });
+
+  test.each([
+    {
+      name: 'the seventh positional value switches deduplication off: below the limit the result is complete',
+      limit: 100,
+      dedupe: false,
+      expected: { truncated: false, returned: 40, total: 40 },
+      warning: undefined,
+    },
+    {
+      name: 'a seventh value that is left out is the default of the descriptor, which is on',
+      limit: 100,
+      dedupe: undefined,
+      expected: { returned: 40 },
+      warning: searchDedupeWarning(100),
+    },
+    {
+      name: 'a seventh value of true is on',
+      limit: 100,
+      dedupe: true,
+      expected: { returned: 40 },
+      warning: searchDedupeWarning(100),
+    },
+    {
+      name: 'a seventh value that is not false counts as on, as the operations function reads it',
+      limit: 100,
+      dedupe: 0,
+      expected: { returned: 40 },
+      warning: searchDedupeWarning(100),
+    },
+  ])('T14i: $name', async ({ limit, dedupe, expected, warning }) => {
+    const result = await positionalSearch(smallItems(40))(limit, dedupe);
+
+    expect(result).toMatchObject(expected);
+    if (warning === undefined) {
+      expect('warning' in result).toBe(false);
+    } else {
+      expect('truncated' in result).toBe(false);
+      expect('total' in result).toBe(false);
+      expect(result.warning).toBe(warning);
+    }
+  });
+
+  test('T14j: a limit that is not a number is not applied: the result is read as that of a capability that does not limit itself (a documented limit, unreachable for the shipped capability, which refuses such a value)', async () => {
+    const result = await positionalSearch(smallItems(50))('50', false);
+
+    expect(result).toMatchObject({ truncated: false, returned: 50, total: 50 });
+    expect('warning' in result).toBe(false);
   });
 
   test('T14h: the last page of an offset read of a search that stopped at its limit is still truncated, and the nested metadata has no total either', async () => {

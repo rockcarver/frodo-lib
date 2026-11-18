@@ -4083,7 +4083,20 @@ type McpSelfCap = {
  * Resolves the limit that a self-capping capability applies to this call: the
  * value the caller sent for the argument that sets it, or its default.
  *
- * @returns `undefined` for a capability that does not cap itself.
+ * @remarks
+ * Deduplication counts as on for every value but `false`, which is how the
+ * operations function reads it (it removes duplicates for any truthy value, so
+ * the runtime never believes it is off when it is on).
+ *
+ * A limit that is not a finite number cannot be compared with the number of
+ * items, so the rule is not applied and the result is read as that of a
+ * capability that does not limit itself. This cannot happen for the shipped
+ * capabilities: they take named arguments, and a named value that is not an
+ * integer is refused before the capability runs. A host that brings its own
+ * descriptors and takes the limit as a positional value can reach it.
+ *
+ * @returns `undefined` for a capability that does not cap itself, and for a
+ *   limit that is not a finite number.
  */
 function resolveSelfCap(
   descriptor: McpCapabilityDescriptor,
