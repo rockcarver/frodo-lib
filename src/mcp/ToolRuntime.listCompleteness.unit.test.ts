@@ -381,7 +381,9 @@ describe('a result that the platform pages', () => {
       nextPageToken: 'abc',
     });
     expect('nextPageOffset' in result).toBe(false);
-    expect(result.warning).toContain('pageToken');
+    expect(result.warning).toBe(
+      'Result is not complete: data.result holds 10 items and more exist. Do not count or search only this page. Pass nextPageToken as pageToken to read on, or use a count capability for the exact total.'
+    );
     expect(result.warning).not.toContain('abc');
     expect(result.metadata?.pagination).toMatchObject({
       isPartial: true,
@@ -426,7 +428,9 @@ describe('a result that the platform pages', () => {
       total: 120,
       nextPageToken: 'def',
     });
-    expect(result.warning).toContain('10 of 120');
+    expect(result.warning).toBe(
+      'Result is not complete: data.result holds 10 of 120 items; the other 110 are not in this response. Do not count or search only this page. Pass nextPageToken as pageToken to read on, or use a count capability for the exact total.'
+    );
     expect(result.metadata?.pagination).toMatchObject({
       isPartial: true,
       totalCount: 120,
@@ -448,6 +452,68 @@ describe('a result that the platform pages', () => {
       total: null,
     });
     expect('nextPageToken' in result).toBe(false);
+    expect(result.warning).toBe(
+      'Result is not complete: data.result holds 10 items and more exist. Do not count or search only this page. Read on with the paging controls of this capability, or use a count capability for the exact total.'
+    );
+  });
+
+  test.each([
+    {
+      name: 'an exact total of 0 is a total, and nothing remains: complete',
+      page: {
+        result: [],
+        pagedResultsCookie: null,
+        totalPagedResults: 0,
+        remainingPagedResults: 0,
+      },
+      expected: { truncated: false, returned: 0, total: 0 },
+    },
+    {
+      name: 'remaining results of 0 and no cookie: complete',
+      page: {
+        result: ten,
+        pagedResultsCookie: null,
+        totalPagedResults: 10,
+        remainingPagedResults: 0,
+      },
+      expected: { truncated: false, returned: 10, total: 10 },
+    },
+    {
+      name: 'an empty cookie is no cookie: complete, no token',
+      page: {
+        result: ten,
+        pagedResultsCookie: '',
+        totalPagedResults: -1,
+        remainingPagedResults: -1,
+      },
+      expected: { truncated: false, returned: 10, total: null },
+    },
+    {
+      name: 'a result is paged when it has resultCount alone',
+      page: { result: ten, resultCount: 10 },
+      expected: { truncated: false, returned: 10, total: null },
+    },
+    {
+      name: 'a result is paged when it has totalPagedResults alone',
+      page: { result: ten, totalPagedResults: 10 },
+      expected: { truncated: false, returned: 10, total: 10 },
+    },
+    {
+      name: 'a result is paged when it has pagedResultsCookie alone',
+      page: { result: ten, pagedResultsCookie: 'only-a-cookie' },
+      expected: {
+        truncated: true,
+        returned: 10,
+        total: null,
+        nextPageToken: 'only-a-cookie',
+      },
+    },
+  ])('T7g: $name', async ({ page, expected }) => {
+    const result = await systemObjects(page as object);
+
+    expect(result).toMatchObject(expected);
+    expect('nextPageToken' in result).toBe('nextPageToken' in expected);
+    expect('warning' in result).toBe(expected.truncated);
   });
 
   test('T7e: an object that holds a result array but is not a paged result gets no fields', async () => {
@@ -995,11 +1061,11 @@ describe('the tool descriptions', () => {
 
   test('T13b: the list and search descriptions say it too', () => {
     for (const operationType of ['list', 'search']) {
-      const generic = manifest.genericTools.find(
+      const listTool = manifest.genericTools.find(
         (candidate) => candidate.operationType === operationType
       );
-      expect(generic?.description).toContain('truncated, returned, total');
-      expect(generic?.description).toContain('pageOffset or pageToken');
+      expect(listTool?.description).toContain('truncated, returned, total');
+      expect(listTool?.description).toContain('pageOffset or pageToken');
     }
   });
 });
