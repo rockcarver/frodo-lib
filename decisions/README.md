@@ -60,7 +60,7 @@ A decision that binds more than one repository is a core record: the same file i
 | 0003 | [Method documentation is generated from TSDoc](0003-method-documentation-is-generated-from-tsdoc.md) | accepted |
 | 0004 | [frodo-lib has an api layer, an ops layer and a facade, with shared code below them](0004-layers-and-dependency-direction.md) | accepted |
 | 0005 | [Every platform object kind is an api module plus an ops module with one fixed shape](0005-module-placement-and-anatomy.md) | accepted |
-| 0006 | [Facade methods follow the CRUDQ naming convention](0006-crudq-naming-for-facade-methods.md) | accepted |
+| 0006 | [Facade methods follow the CRUDQ naming convention](0006-crudq-naming-for-facade-methods.md) | superseded by 0019 |
 | 0007 | [The api layer is named after the HTTP operation, the ops layer after CRUDQ](0007-api-layer-names-follow-the-http-operation.md) | accepted |
 | 0008 | [Ops code throws FrodoError and prints through Console.ts](0008-errors-are-frodoerrors-and-output-goes-through-console.md) | accepted |
 | 0009 | [Tests sit next to the module, in two kinds, and run on the sources](0009-tests-sit-next-to-the-code-and-replay-recorded-traffic.md) | accepted |
@@ -73,3 +73,4 @@ A decision that binds more than one repository is a core record: the same file i
 | 0016 | [Files shared by processes are written safely and reading never writes](0016-files-shared-by-processes-are-written-safely-and-reading-never-writes.md) | accepted |
 | 0017 | [Proxy support is guarded by a short named set of tests, not by running the suite through a proxy](0017-proxy-support-is-guarded-by-a-short-named-set-of-tests.md) | accepted |
 | 0018 | [The access profile and the pre-flight scope check share one set of rules](0018-the-access-profile-and-the-preflight-check-share-one-set-of-rules.md) | accepted |
+| 0019 | [Facade methods follow the CRUDQ naming convention, with pull and push for file sets](0019-crudq-naming-for-facade-methods-with-pull-and-push.md) | accepted |
