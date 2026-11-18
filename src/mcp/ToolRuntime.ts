@@ -2106,7 +2106,8 @@ async function invokeManagedObjectSearchPage(
     fields: Array.isArray(fields) && fields.length > 0 ? fields : ['*'],
     pageSize,
     // `pageToken` is the cookie that this query handed out as `nextPageToken`
-    pageCookie: pageCookie ?? args.pageToken,
+    pageCookie: resolveCookieValue(pageCookie, args.pageToken) as
+      string | undefined,
     state: scopedFrodo.state,
   });
 }
@@ -3116,7 +3117,11 @@ function toInvocationArgs(
   validateInvocationArguments(descriptor, maybeArgs);
 
   if (Array.isArray(maybeArgs.positionalArgs)) {
-    return maybeArgs.positionalArgs;
+    return withPageTokenAsCookie(
+      maybeArgs.positionalArgs,
+      descriptor,
+      maybeArgs.pageToken
+    );
   }
   if (maybeArgs.namedArgs && typeof maybeArgs.namedArgs === 'object') {
     if (descriptor?.parameters && descriptor.parameters.length > 0) {
@@ -3144,6 +3149,110 @@ function toInvocationArgs(
     return [maybeArgs.namedArgs];
   }
   return [];
+}
+
+/**
+ * Name of the parameter that carries the cursor of a capability whose platform
+ * pages the result itself (the log reads).
+ */
+const COOKIE_PARAMETER = 'cookie';
+
+/**
+ * The names under which a capability takes that cursor: `cookie` for the log
+ * reads, `pageCookie` for the queries of IDM. Every one of them is filled by
+ * the `pageToken` argument with the same rule ({@link resolveCookieValue}), so
+ * that no capability gets a cursor twice and none gets it by another rule.
+ */
+const COOKIE_PARAMETERS: readonly string[] = [COOKIE_PARAMETER, 'pageCookie'];
+
+/**
+ * Optional string parameters of the log reads for which `null` means the same
+ * as `undefined` or an empty string: left out. A JSON payload has no
+ * `undefined`, so `null` is how a caller leaves such a parameter out, and the
+ * log API treats an empty value as an absent one. A required parameter and
+ * the parameters of every other capability still reject `null`.
+ */
+const NULL_MEANS_LEFT_OUT: Readonly<Record<string, readonly string[]>> = {
+  'cloud.log.fetch': [COOKIE_PARAMETER, 'txid', 'filter'],
+  'cloud.log.tail': [COOKIE_PARAMETER],
+};
+
+/**
+ * Tells whether a `null` for this parameter counts as left out (see
+ * {@link NULL_MEANS_LEFT_OUT}).
+ */
+function nullMeansLeftOut(
+  descriptor: McpCapabilityDescriptor,
+  parameter: McpCapabilityParameter
+): boolean {
+  return (
+    !parameter.required &&
+    (NULL_MEANS_LEFT_OUT[descriptor.id] ?? []).includes(parameter.name)
+  );
+}
+
+/**
+ * Decides which value the `cookie` parameter of a call gets.
+ *
+ * @remarks
+ * One rule for named and positional calls. A cookie that the caller gave
+ * (anything but `undefined`, `null` or an empty string) wins. A cookie that is
+ * absent, `null` or empty counts as left out, and then the `pageToken`
+ * argument is the cookie, unless it is empty too. When there is nothing to put
+ * in, the value the caller gave is kept as it is.
+ *
+ * @param given Value of the `cookie` parameter in the call, if any.
+ * @param pageToken Value of the `pageToken` argument, if any.
+ * @returns The value for the `cookie` parameter.
+ */
+function resolveCookieValue(given: unknown, pageToken: unknown): unknown {
+  if (given !== undefined && given !== null && given !== '') {
+    return given;
+  }
+  if (typeof pageToken === 'string' && pageToken !== '') {
+    return pageToken;
+  }
+  return given;
+}
+
+/**
+ * Fills the `cookie` slot of a positional call from the `pageToken` argument.
+ *
+ * @remarks
+ * A capability whose platform pages the result itself (the log reads) takes
+ * the cursor as a parameter named `cookie`. A named call maps `pageToken` to
+ * it by name (see {@link resolveNamedOrGenericParameterValue}); a positional
+ * call has to do the same, or the token would be dropped without a word. The
+ * rule for which of the two wins is {@link resolveCookieValue}. A capability
+ * without a `cookie` parameter is left alone, and the arguments of the caller
+ * are never modified.
+ *
+ * @param positionalArgs Positional arguments of the call.
+ * @param descriptor Descriptor of the capability that is called.
+ * @param pageToken Value of the `pageToken` argument, if any.
+ * @returns The positional arguments, with the slot filled where it was empty.
+ */
+function withPageTokenAsCookie(
+  positionalArgs: unknown[],
+  descriptor: McpCapabilityDescriptor | undefined,
+  pageToken: unknown
+): unknown[] {
+  const slot = descriptor?.parameters?.find((parameter) =>
+    COOKIE_PARAMETERS.includes(parameter.name)
+  )?.position;
+  if (slot === undefined) {
+    return positionalArgs;
+  }
+  const resolved = resolveCookieValue(positionalArgs[slot], pageToken);
+  if (resolved === positionalArgs[slot]) {
+    return positionalArgs;
+  }
+  const filled = [...positionalArgs];
+  while (filled.length < slot) {
+    filled.push(undefined);
+  }
+  filled[slot] = resolved;
+  return filled;
 }
 
 /**
@@ -3200,6 +3309,14 @@ function validateInvocationArguments(
     );
   }
 
+  if (hasPositional && descriptor.parameters) {
+    validatePositionalArguments(
+      descriptor,
+      descriptor.parameters,
+      args.positionalArgs as unknown[]
+    );
+  }
+
   if (
     !hasNamed ||
     !descriptor.parameters ||
@@ -3234,6 +3351,9 @@ function validateInvocationArguments(
     if (value === undefined) {
       continue;
     }
+    if (value === null && nullMeansLeftOut(descriptor, parameter)) {
+      continue;
+    }
     validateNamedArgumentValue(descriptor.id, parameter, value);
   }
 }
@@ -3252,6 +3372,9 @@ function resolveNamedOrGenericParameterValue(
   }
 ): unknown {
   const providedValue = args.namedArgs?.[parameter.name];
+  if (COOKIE_PARAMETERS.includes(parameter.name)) {
+    return resolveCookieValue(providedValue, args.pageToken);
+  }
   if (providedValue !== undefined) {
     return providedValue;
   }
@@ -3263,7 +3386,6 @@ function resolveNamedOrGenericParameterValue(
     case 'offset':
       return args.pageOffset;
     case 'pageToken':
-    case 'pageCookie':
       return args.pageToken;
     case 'includeTotal':
       return args.includeTotal;
@@ -3314,8 +3436,71 @@ function validateNamedArgumentValue(
   parameter: McpCapabilityParameter,
   value: unknown
 ): void {
-  const schema =
-    parameter.schema ?? inferSchemaFromParameterType(parameter.type);
+  validateArgumentValue(
+    descriptorId,
+    parameter,
+    value,
+    parameter.schema ?? inferSchemaFromParameterType(parameter.type),
+    `named argument '${parameter.name}'`
+  );
+}
+
+/**
+ * Validates the positional arguments of a call against the parameters whose
+ * schema was set explicitly in the capability metadata.
+ *
+ * @remarks
+ * A schema that is only inferred from the declared type of a parameter is not
+ * enforced for a positional call: positional callers have always been able to
+ * pass any value for such a parameter, and the method decides. A parameter
+ * with an explicit schema is a deliberate statement about the shape of the
+ * value, so it holds for both ways of calling. `null` and `undefined` are not
+ * checked: a JSON payload has no `undefined`, so `null` is how a caller skips
+ * an optional parameter.
+ *
+ * @param descriptor Descriptor of the capability that is called.
+ * @param parameters Declared parameters of the capability.
+ * @param positionalArgs Positional arguments of the call.
+ */
+function validatePositionalArguments(
+  descriptor: McpCapabilityDescriptor,
+  parameters: McpCapabilityParameter[],
+  positionalArgs: unknown[]
+): void {
+  for (const parameter of parameters) {
+    const index = parameter.position;
+    if (
+      !parameter.schema ||
+      index === undefined ||
+      index >= positionalArgs.length
+    ) {
+      continue;
+    }
+    const value = positionalArgs[index];
+    if (value === undefined || value === null) {
+      continue;
+    }
+    validateArgumentValue(
+      descriptor.id,
+      parameter,
+      value,
+      parameter.schema,
+      `positionalArgs[${index}] ('${parameter.name}')`
+    );
+  }
+}
+
+/**
+ * Checks one argument value against a schema and throws a message that names
+ * the argument, the problems, the expected shape and an example.
+ */
+function validateArgumentValue(
+  descriptorId: string,
+  parameter: McpCapabilityParameter,
+  value: unknown,
+  schema: McpCapabilityParameterSchema | undefined,
+  label: string
+): void {
   if (!schema) {
     return;
   }
@@ -3332,7 +3517,7 @@ function validateNamedArgumentValue(
       : '';
 
   throw new FrodoError(
-    `MCP runtime error: descriptor '${descriptorId}' received invalid value for named argument '${parameter.name}': ${problems.join('; ')}; expected ${expected}.${exampleText}`
+    `MCP runtime error: descriptor '${descriptorId}' received invalid value for ${label}: ${problems.join('; ')}; expected ${expected}.${exampleText}`
   );
 }
 

@@ -209,7 +209,7 @@ export async function deleteLogApiKey({
 /**
  * Tail logs
  * @param {string} source log source(s) to tail
- * @param {string} cookie paged results cookie
+ * @param {string} cookie optional paged results cookie of the previous call; leave out for the first call
  * @returns {Promise<LogEventsPage>} promise resolving to paged log event result, with the rate limit state of the answer
  */
 export async function tail({
@@ -218,7 +218,7 @@ export async function tail({
   state,
 }: {
   source: string;
-  cookie: string;
+  cookie?: string;
   state: State;
 }): Promise<LogEventsPage> {
   let urlString = util.format(
@@ -240,12 +240,12 @@ export async function tail({
 
 /**
  * Fetch logs
- * @param {string} source log source(s) to tail
+ * @param {string} source log source(s) to query
  * @param {string} startTs start timestamp
  * @param {string} endTs end timestamp
- * @param {string} cookie paged results cookie
- * @param {string} transactionId transaction id
- * @param {string} queryFilter query filter
+ * @param {string} cookie optional paged results cookie of the previous page
+ * @param {string} txid optional transaction id to narrow the query to
+ * @param {string} filter optional query filter
  * @returns {Promise<LogEventsPage>} promise resolving to paged log event result, with the rate limit state of the answer
  */
 export async function fetch({
@@ -260,9 +260,9 @@ export async function fetch({
   source: string;
   startTs: string;
   endTs: string;
-  cookie: string;
-  txid: string;
-  filter: string;
+  cookie?: string;
+  txid?: string;
+  filter?: string;
   state: State;
 }): Promise<LogEventsPage> {
   let urlString = util.format(

@@ -130,10 +130,10 @@ export type Log = {
    * has the code `LOG_API_RATE_LIMITED` and, if the answer carried the `X-RateLimit-*` headers, `rateLimit`, whose
    * `resetAt` is when the window resets. The caller that polls owns the waiting.
    * @param {string} source log source(s) to tail
-   * @param {string} cookie paged results cookie
+   * @param {string} cookie optional paged results cookie of the previous call; leave out for the first call
    * @returns {Promise<LogEventsPage>} promise resolving to paged log event result; `rateLimit` holds the rate limit state that the answer reported (limit, remaining requests, reset time), if it carried the headers
    */
-  tail(source: string, cookie: string): Promise<LogEventsPage>;
+  tail(source: string, cookie?: string): Promise<LogEventsPage>;
   /**
    * Creates a stateful, deduped consumer of `tail()` -- everything a caller
    * doing a live polling loop (e.g. an interactive follow-style view) needs
@@ -165,21 +165,21 @@ export type Log = {
    * answer says when that is (`Retry-After` or `X-RateLimit-Reset`). Otherwise, and when the second request is
    * rejected too, the call ends with a `FrodoError` that has the code `LOG_API_RATE_LIMITED` and, if the answer
    * carried the `X-RateLimit-*` headers, `rateLimit`.
-   * @param {string} source log source(s) to tail
+   * @param {string} source log source(s) to query
    * @param {string} startTs start timestamp
    * @param {string} endTs end timestamp
-   * @param {string} cookie paged results cookie
-   * @param {string} txid transaction id
-   * @param {string} filter query filter
+   * @param {string} cookie optional paged results cookie of the previous page; leave out for the first page
+   * @param {string} txid optional transaction id to narrow the query to; leave out for no narrowing
+   * @param {string} filter optional query filter; leave out for no filter
    * @returns {Promise<LogEventsPage>} promise resolving to paged log event result; `rateLimit` holds the rate limit state that the answer reported (limit, remaining requests, reset time), if it carried the headers
    */
   fetch(
     source: string,
     startTs: string,
     endTs: string,
-    cookie: string,
-    txid: string,
-    filter: string
+    cookie?: string,
+    txid?: string,
+    filter?: string
   ): Promise<LogEventsPage>;
   /**
    * Search audit events by event name(s) and/or principal, across the full time
@@ -238,7 +238,7 @@ export default (state: State): Log => {
     async deleteLogApiKeys(): Promise<LogApiKey[]> {
       return deleteLogApiKeys({ state });
     },
-    tail(source: string, cookie: string): Promise<LogEventsPage> {
+    tail(source: string, cookie?: string): Promise<LogEventsPage> {
       return tail({ source, cookie, state });
     },
     createLogTailStream(source: string): LogTailStream {
@@ -248,9 +248,9 @@ export default (state: State): Log => {
       source: string,
       startTs: string,
       endTs: string,
-      cookie: string,
-      txid: string,
-      filter: string
+      cookie?: string,
+      txid?: string,
+      filter?: string
     ): Promise<LogEventsPage> {
       return fetch({ source, startTs, endTs, cookie, txid, filter, state });
     },
@@ -685,7 +685,7 @@ export async function deleteLogApiKeys({
 /**
  * Tail logs
  * @param {string} source log source(s) to tail
- * @param {string} cookie paged results cookie
+ * @param {string} cookie optional paged results cookie of the previous call; leave out for the first call
  * @returns {Promise<LogEventsPage>} promise resolving to paged log event result, with the rate limit state of the answer
  */
 export async function tail({
@@ -694,7 +694,7 @@ export async function tail({
   state,
 }: {
   source: string;
-  cookie: string;
+  cookie?: string;
   state: State;
 }): Promise<LogEventsPage> {
   try {
@@ -779,12 +779,12 @@ export function createLogTailStream({
 
 /**
  * Fetch logs
- * @param {string} source log source(s) to tail
+ * @param {string} source log source(s) to query
  * @param {string} startTs start timestamp
  * @param {string} endTs end timestamp
- * @param {string} cookie paged results cookie
- * @param {string} txid transaction id
- * @param {string} filter query filter
+ * @param {string} cookie optional paged results cookie of the previous page; leave out for the first page
+ * @param {string} txid optional transaction id to narrow the query to; leave out for no narrowing
+ * @param {string} filter optional query filter; leave out for no filter
  * @returns {Promise<LogEventsPage>} promise resolving to paged log event result, with the rate limit state of the answer
  */
 export async function fetch({
@@ -799,9 +799,9 @@ export async function fetch({
   source: string;
   startTs: string;
   endTs: string;
-  cookie: string;
-  txid: string;
-  filter: string;
+  cookie?: string;
+  txid?: string;
+  filter?: string;
   state: State;
 }): Promise<LogEventsPage> {
   try {

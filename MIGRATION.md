@@ -417,6 +417,54 @@ releases missed):
   Re-add such connection profiles (`frodo.conn.saveConnectionProfile`, or
   `frodo conn save` of frodo-cli), or copy the file to `Connections.json`
   yourself.
+- The MCP capabilities of 17 methods now list the parameters of their
+  signature, where their TSDoc had no `@param` tags and their descriptor listed
+  none. A call with `namedArgs` was forwarded as ONE object in place of the
+  arguments (`idm.script.evaluateScript` received `{ script: "1+1" }` and IDM
+  answered "Expecting a java.lang.String but got LinkedHashMap"); it now maps
+  every name to its position, like a call with `positionalArgs`, which is
+  unchanged. The capabilities are `admin.executeRfc7523AuthZGrantFlow`,
+  `admin.generateRfc7523AuthZGrantArtefacts`,
+  `admin.generateRfc7523ClientAuthNArtefacts`, `admin.trainAA`,
+  `authz.policySet.createPolicySet`, `authz.policySet.deletePolicySet`,
+  `cloud.env.readServiceAccountScopes`, `idm.crypto.decrypt`,
+  `idm.script.compileScript`, `idm.script.evaluateScript`,
+  `idm.system.readSystemStatus`, `oauth2oidc.endpoint.accessToken`,
+  `oauth2oidc.endpoint.accessTokenRfc7523AuthZGrant`,
+  `oauth2oidc.endpoint.authorize`, `oauth2oidc.endpoint.clientCredentialsGrant`,
+  `oauth2oidc.endpoint.deviceAuthorizationRequest` and
+  `oauth2oidc.endpoint.getTokenInfo`. Their operation type, risk class,
+  `mutating`, `destructive` and the policy presets that expose them are
+  unchanged. `cloud.env.readServiceAccountScopes` and
+  `idm.system.readSystemStatus` took no arguments at all before (any argument
+  was rejected); they now take `flatten` and `systemName`. The parameter of
+  `frodo.idm.crypto.decrypt` is named `value` and typed `any` in the facade
+  type (it was `script: string`, which the method never used); a call is
+  unchanged. `idm.script.evaluateScript` and `idm.script.compileScript` reject a
+  `script` that is not a string, for named and positional calls, before the
+  call is made.
+- The MCP runtime checks `positionalArgs` against the parameters whose schema
+  the capability metadata sets explicitly (a value that is `null` or missing is
+  skipped), as it already did for `namedArgs`. A schema that is only inferred
+  from the declared type of a parameter is still not enforced for a positional
+  call.
+- `frodo.cloud.log.fetch` takes `cookie`, `txid` and `filter` as optional
+  parameters (`cookie?: string`, `txid?: string`, `filter?: string`), and
+  `frodo.cloud.log.tail` takes `cookie?: string`. The code already ignored an
+  empty value, so a caller that passes `''` is unchanged (unless it also sends
+  a `pageToken`, see below); the MCP capabilities no longer reject a call that
+  leaves them out, and they accept `null` for them, which counts as left out
+  like an empty string. The MCP argument `pageToken` is now the `cookie` of
+  these two capabilities (before, it was dropped, because only parameters named
+  `pageToken` or `pageCookie` received it): a `cookie` that the caller gave
+  wins; a `cookie` that is missing, `null` or empty counts as left out, and
+  then `pageToken` is the cookie, unless it is empty too. A call with an empty
+  `cookie` and a non-empty `pageToken` now uses the token, where it used the
+  empty `cookie` before. This holds for named and for positional calls. The
+  same rule fills the `pageCookie` of `idm.system.queryAllSystemObjectIds`,
+  `idm.system.querySystemObjects` and `idm.managed.queryManagedObjects` from
+  `pageToken`: an empty `pageCookie` and a non-empty `pageToken` now read the
+  page of the token. `startTs` and `endTs` stay required.
 
 **Deprecation**:
 

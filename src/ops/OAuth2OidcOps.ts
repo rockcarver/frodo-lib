@@ -47,31 +47,74 @@ export type AccessTokenMetaType = AccessTokenResponseType & {
 };
 
 export type OAuth2Oidc = {
+  /**
+   * Send an authorization request to the OAuth2 authorize endpoint
+   * @param {string} amBaseUrl access management base URL
+   * @param {string} data body form data
+   * @param {AxiosRequestConfig} config axios request config object
+   * @returns {Promise<AxiosResponse<any, any>>} a promise resolving to the response of the authorization server
+   */
   authorize(
     amBaseUrl: string,
     data: string,
     config: AxiosRequestConfig
   ): Promise<AxiosResponse<any, any>>;
+  /**
+   * Request an access token from the OAuth2 access token endpoint
+   * @param {string} amBaseUrl access management base URL
+   * @param {any} data body form data
+   * @param {AxiosRequestConfig} config axios request config object
+   * @returns {Promise<AccessTokenMetaType>} a promise resolving to the access token response, with the time at which the token expires
+   */
   accessToken(
     amBaseUrl: string,
     data: any,
     config: AxiosRequestConfig
   ): Promise<AccessTokenMetaType>;
+  /**
+   * Request an access token with an RFC 7523 JWT-bearer authorization grant
+   * @param {string} clientId client id of the OAuth2 client
+   * @param {string} jwt signed JWT assertion
+   * @param {string[]} scope scopes to request
+   * @param {AxiosRequestConfig} config optional axios request config object
+   * @returns {Promise<AccessTokenMetaType>} a promise resolving to the access token response, with the time at which the token expires
+   */
   accessTokenRfc7523AuthZGrant(
     clientId: string,
     jwt: string,
     scope: string[],
     config?: AxiosRequestConfig
   ): Promise<AccessTokenMetaType>;
+  /**
+   * Get token information from the OAuth2 token info endpoint. The request is a GET that carries the credential of the current session; the request config can add or override headers.
+   * @param {string} amBaseUrl access management base URL
+   * @param {AxiosRequestConfig} config axios request config object
+   * @returns {Promise<TokenInfoResponseType>} a promise resolving to the token information
+   */
   getTokenInfo(
     amBaseUrl: string,
     config: AxiosRequestConfig
   ): Promise<TokenInfoResponseType>;
+  /**
+   * Start an OAuth2 device authorization (RFC 8628)
+   * @param {string} amBaseUrl access management base URL
+   * @param {string} data body form data
+   * @param {AxiosRequestConfig} config axios request config object
+   * @returns {Promise<DeviceAuthorizationResponseType>} a promise resolving to the device code and user code pair
+   */
   deviceAuthorizationRequest(
     amBaseUrl: string,
     data: string,
     config: AxiosRequestConfig
   ): Promise<DeviceAuthorizationResponseType>;
+  /**
+   * Request an access token with the client credentials grant
+   * @param {string} amBaseUrl access management base URL
+   * @param {string} clientId client id
+   * @param {string} clientSecret client secret
+   * @param {string} scope space-delimited scope list
+   * @returns {Promise<AccessTokenMetaType>} a promise resolving to the access token response, with the time at which the token expires
+   */
   clientCredentialsGrant(
     amBaseUrl: string,
     clientId: string,

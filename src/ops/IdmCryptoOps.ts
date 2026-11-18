@@ -23,9 +23,10 @@ export type IdmCrypto = {
   encryptMap(map: { [key: string]: any }): Promise<{ [key: string]: any }>;
   /**
    * Decrypt a value
-   * @returns {Promise<SystemStatusInterface[]>} a promise resolving to the decrypted value
+   * @param {any} value value to decrypt
+   * @returns {Promise<any>} a promise resolving to the decrypted value
    */
-  decrypt(script: string): Promise<any>;
+  decrypt(value: any): Promise<any>;
   /**
    * Decrypt a map of values
    * @param {{ [key: string]: any }} map map of values to decrypt
