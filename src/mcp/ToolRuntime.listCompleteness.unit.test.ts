@@ -671,9 +671,14 @@ describe('a one-page managed-object query', () => {
 describe('a recommended execution of a managed-object query', () => {
   test('T9c: the cut execution of a query with an unknown total is marked, and its nextAction says how to read on', async () => {
     // the runtime reads the page through the api layer: serve it from a loopback server
+    // a server that ends: a page for a cookie, the last one without a cookie
     const server = http.createServer((request, response) => {
+      const cookie = new URL(
+        request.url ?? '',
+        'http://127.0.0.1'
+      ).searchParams.get('_pagedResultsCookie');
       response.writeHead(200, { 'content-type': 'application/json' });
-      response.end(JSON.stringify(pagedAnswer(undefined)));
+      response.end(JSON.stringify(pagedAnswer(cookie)));
     });
     await new Promise<void>((resolve) =>
       server.listen(0, '127.0.0.1', () => resolve())
