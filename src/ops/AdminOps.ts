@@ -72,7 +72,7 @@ export type Admin = {
    * @param {string} aud optional audience of the JWT; the access token URL of the realm when left out
    * @param {JwkRsa} jwk optional RSA JSON web key to use; a new key is generated when left out
    * @param {object} options optional object `{ save: boolean }`; with `save` true the client is created or updated on the tenant (default: `{ save: false }`)
-   * @returns {Promise<object>} a promise that resolves to an object with the key (`jwk`), its public key set (`jwks`), the client authentication JWT (`jwt`, handed over as a promise: the method does not wait for the signing to finish) and the OAuth2 client (`client`)
+   * @returns {Promise<object>} a promise that resolves to an object with the key (`jwk`), its public key set (`jwks`), the client authentication JWT (`jwt`, signed with that key and valid for 5 minutes) and the OAuth2 client (`client`)
    */
   generateRfc7523ClientAuthNArtefacts(
     clientId: string,
@@ -1893,11 +1893,13 @@ export async function generateRfc7523ClientAuthNArtefacts({
     iss,
     sub,
     aud,
-    exp: 60 * 5,
+
+    // Expires 5 minutes in the future, expressed as number of seconds since EPOCH
+    exp: Math.floor(new Date().getTime() / 1000 + 60 * 5),
   };
 
   // create and sign JWT
-  const jwt = createSignedJwtToken(payload, jwk);
+  const jwt = await createSignedJwtToken(payload, jwk);
 
   // create oauth2 client
   const clientData: OAuth2ClientSkeleton = cloneDeep(OAUTH2_CLIENT);
