@@ -668,6 +668,72 @@ describe('a one-page managed-object query', () => {
   });
 });
 
+describe('a recommended execution of a managed-object query', () => {
+  test('T9c: the cut execution of a query with an unknown total is marked, and its nextAction says how to read on', async () => {
+    // the runtime reads the page through the api layer: serve it from a loopback server
+    const server = http.createServer((request, response) => {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify(pagedAnswer(undefined)));
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, '127.0.0.1', () => resolve())
+    );
+    try {
+      const instance = FrodoLib({
+        host: `http://127.0.0.1:${(server.address() as AddressInfo).port}/am`,
+        deploymentType: 'cloud',
+        realm: 'alpha',
+      });
+      instance.state.setUseTokenCache(false);
+      instance.state.setCookieName('iPlanetDirectoryPro');
+      instance.state.setBearerTokenMeta({
+        access_token: 'demo-access-token',
+        token_type: 'Bearer',
+        scope: 'fr:idm:*',
+        expires_in: 3600,
+        expires: Date.now() + 3600 * 1000,
+      } as any);
+      (instance.login as any).getTokens = async () => undefined;
+      const runtime = runtimeFor(instance, {
+        managedObjectTypes: ['alpha_user'],
+        managedObjectHydrationStatus: 'available',
+        executeRecommendedByDefault: true,
+      });
+
+      const found = await runtime.executeTool({
+        toolName: 'frodo_find_skills',
+        arguments: {
+          query: 'query alpha_user',
+          skillIdPrefix: 'idm.managed.queryManagedObjects',
+        },
+        context: {
+          auth: { mode: 'state-config', config: { deploymentType: 'cloud' } },
+        } as any,
+      });
+      const payload = found.data as {
+        executionTruncated?: true;
+        nextAction?: string;
+        execution?: McpToolExecutionResult;
+      };
+
+      expect(payload.execution).toMatchObject({
+        truncated: true,
+        returned: 2,
+        total: null,
+        nextPageToken: 'cookie-2',
+      });
+      expect(payload.executionTruncated).toBe(true);
+      expect(payload.nextAction).toContain(
+        '(execution.total is null when the number is not known)'
+      );
+      expect(payload.nextAction).toContain('execution.nextPageToken');
+    } finally {
+      server.closeAllConnections();
+      await new Promise((resolve) => server.close(resolve));
+    }
+  });
+});
+
 describe('the nextPageToken of the capabilities that the runtime reads', () => {
   test.each([
     {
@@ -809,6 +875,14 @@ describe('the log capabilities', () => {
   });
 });
 
+/** The warning of a self-capping search that stopped at its limit. */
+const searchCapWarning = (limit: number, extra = '') =>
+  `Result is not complete: the capability cloud.log.searchEvents stopped at its own limit of ${limit} items (argument maxEvents), so more items may exist than it returned. Do not count or search only this result. Raise maxEvents or narrow the search to read more.${extra}`;
+
+/** The warning of a search that removes duplicates after its limit and returned fewer events than the limit. */
+const searchDedupeWarning = (limit: number, extra = '') =>
+  `Result may be incomplete: the capability cloud.log.searchEvents stops at its own limit of ${limit} events (argument maxEvents), counted before duplicate events are removed (argument dedupeByTransactionId, which is on unless you pass false), so a result can be incomplete even when it has fewer than maxEvents events. To be sure, pass dedupeByTransactionId: false or narrow the time window, and compare returned with maxEvents.${extra}`;
+
 describe('a search that stops at a limit of its own', () => {
   const searchEvents = (
     events: unknown[],
@@ -843,9 +917,7 @@ describe('a search that stops at a limit of its own', () => {
       total: null,
     });
     expect('nextPageOffset' in result).toBe(false);
-    expect(result.warning).toBe(
-      'Result is not complete: the capability stopped at its own limit of 1000 items (argument maxEvents), so more items may exist than it returned. Do not count or search only this result. Raise maxEvents or narrow the search to read more.'
-    );
+    expect(result.warning).toBe(searchCapWarning(1000));
     expect(result.metadata?.pagination).toMatchObject({
       isPartial: true,
       returnedCount: 1000,
@@ -858,8 +930,10 @@ describe('a search that stops at a limit of its own', () => {
     );
   });
 
-  test('T14b: fewer events than the limit: complete', async () => {
-    const result = await searchEvents(smallItems(999));
+  test('T14b: fewer events than the limit, without deduplication: complete', async () => {
+    const result = await searchEvents(smallItems(999), {
+      dedupeByTransactionId: false,
+    });
 
     expect(result).toMatchObject({
       truncated: false,
@@ -871,10 +945,18 @@ describe('a search that stops at a limit of its own', () => {
   });
 
   test('T14c: the limit is the one the caller sent', async () => {
-    const atTheLimit = await searchEvents(smallItems(50), { maxEvents: 50 });
-    const belowTheLimit = await searchEvents(smallItems(49), { maxEvents: 50 });
+    const noDedupe = { dedupeByTransactionId: false };
+    const atTheLimit = await searchEvents(smallItems(50), {
+      maxEvents: 50,
+      ...noDedupe,
+    });
+    const belowTheLimit = await searchEvents(smallItems(49), {
+      maxEvents: 50,
+      ...noDedupe,
+    });
     const aboveTheDefault = await searchEvents(smallItems(1000), {
       maxEvents: 5000,
+      ...noDedupe,
     });
 
     expect(atTheLimit).toMatchObject({
@@ -882,17 +964,22 @@ describe('a search that stops at a limit of its own', () => {
       returned: 50,
       total: null,
     });
-    expect(atTheLimit.warning).toContain(
-      'limit of 50 items (argument maxEvents)'
-    );
+    expect(atTheLimit.warning).toBe(searchCapWarning(50));
     expect(belowTheLimit).toMatchObject({ truncated: false, total: 49 });
     expect(aboveTheDefault).toMatchObject({ truncated: false, total: 1000 });
   });
 
-  test('T14d: a limit of 0 and no events is not a cut', async () => {
-    const result = await searchEvents([], { maxEvents: 0 });
+  test('T14d: no events is no cut, whatever the limit and the deduplication', async () => {
+    for (const namedArgs of [
+      { maxEvents: 0 },
+      {},
+      { dedupeByTransactionId: false },
+    ]) {
+      const result = await searchEvents([], namedArgs);
 
-    expect(result).toMatchObject({ truncated: false, returned: 0, total: 0 });
+      expect(result).toMatchObject({ truncated: false, returned: 0, total: 0 });
+      expect('warning' in result).toBe(false);
+    }
   });
 
   test('T14e: a result that the capability limited and that the runtime cut as well says both', async () => {
@@ -906,7 +993,10 @@ describe('a search that stops at a limit of its own', () => {
       nextPageOffset: 28,
     });
     expect(result.warning).toBe(
-      'Result is not complete: the capability stopped at its own limit of 1000 items (argument maxEvents), so more items may exist than it returned. Do not count or search only this result. Raise maxEvents or narrow the search to read more. The response was also cut: data holds 28 of the 1000 items that the capability returned. Pass pageOffset: 28 to read the rest of them.'
+      searchCapWarning(
+        1000,
+        ' The response was also cut: data holds 28 of the 1000 items that the capability returned. Pass pageOffset: 28 to read the rest of them.'
+      )
     );
     expect(result.metadata?.pagination).toMatchObject({
       isPartial: true,
@@ -954,7 +1044,7 @@ describe('a search that stops at a limit of its own', () => {
       returned: 50,
       total: null,
     });
-    expect(result.warning).toContain('limit of 50 items');
+    expect(result.warning).toBe(searchCapWarning(50));
   });
 
   test('T14f: a list that does not limit itself is complete at the same size', async () => {
@@ -962,6 +1052,302 @@ describe('a search that stops at a limit of its own', () => {
 
     expect(result).toMatchObject({ truncated: false, total: 1000 });
   });
+});
+
+describe('a search that removes duplicate events after its limit', () => {
+  const searchEvents = (
+    events: unknown[],
+    namedArgs: Record<string, unknown> = {}
+  ) =>
+    dispatch(
+      runtimeFor(
+        rootWith(
+          'cloud.log.searchEvents',
+          jest.fn(async () => events),
+          withLogApiCredential
+        )
+      ),
+      'cloud.log.searchEvents',
+      {
+        namedArgs: {
+          source: 'am-authentication',
+          startTs: '2026-11-17T10:00:00Z',
+          endTs: '2026-11-17T11:00:00Z',
+          ...namedArgs,
+        },
+      }
+    );
+
+  test('T17: with deduplication (the default) a count below the limit proves nothing: no truncated, no total, a warning that says why', async () => {
+    const result = await searchEvents(smallItems(500));
+
+    expect(result.data).toHaveLength(500);
+    expect(Object.keys(result)).toEqual([
+      'toolName',
+      'descriptorId',
+      'returned',
+      'warning',
+      'data',
+      'metadata',
+    ]);
+    expect(result.returned).toBe(500);
+    expect(result.warning).toBe(searchDedupeWarning(1000));
+    expect(result.metadata?.pagination?.isPartial).toBe(false);
+    expect(result.metadata?.pagination?.warning).toBe(result.warning);
+    expect('totalCount' in (result.metadata?.pagination ?? {})).toBe(false);
+  });
+
+  test('T17b: the same when the caller asks for deduplication, and with the limit the caller sent', async () => {
+    const asked = await searchEvents(smallItems(40), {
+      dedupeByTransactionId: true,
+      maxEvents: 50,
+    });
+
+    expect(asked.returned).toBe(40);
+    expect('truncated' in asked).toBe(false);
+    expect('total' in asked).toBe(false);
+    expect(asked.warning).toBe(searchDedupeWarning(50));
+  });
+
+  test('T17c: without deduplication the count is the count of the search: below the limit it is complete', async () => {
+    const result = await searchEvents(smallItems(500), {
+      dedupeByTransactionId: false,
+    });
+
+    expect(result).toMatchObject({
+      truncated: false,
+      returned: 500,
+      total: 500,
+    });
+    expect('warning' in result).toBe(false);
+  });
+
+  test('T17d: at the limit the result is truncated whatever the deduplication: duplicates are only removed, never added', async () => {
+    const result = await searchEvents(smallItems(1000), {
+      dedupeByTransactionId: true,
+    });
+
+    expect(result).toMatchObject({
+      truncated: true,
+      returned: 1000,
+      total: null,
+    });
+    expect(result.warning).toBe(searchCapWarning(1000));
+  });
+
+  test('T17e: when the runtime cut the response too, that is known: truncated, an unknown total, the offset, and both warnings', async () => {
+    const result = await searchEvents(items(500, 300));
+
+    expect(result.returned).toBeLessThan(500);
+    expect(result).toMatchObject({ truncated: true, total: null });
+    expect(result.nextPageOffset).toBe(result.returned);
+    expect(result.warning).toBe(
+      searchDedupeWarning(
+        1000,
+        ` The response was also cut: data holds ${result.returned} of the 500 items that the capability returned. Pass pageOffset: ${result.nextPageOffset} to read the rest of them.`
+      )
+    );
+    expect(result.metadata?.pagination).toMatchObject({
+      isPartial: true,
+      hasMore: true,
+    });
+    expect(result.metadata?.pagination?.warning).toBe(result.warning);
+  });
+
+  test('T17f: the limit and the deduplication that apply are the defaults of the descriptor, which is what the call gets', async () => {
+    const shipped = inventory.find(
+      (descriptor) => descriptor.id === 'cloud.log.searchEvents'
+    )!;
+    const defaultOf = (name: string) =>
+      shipped.parameters?.find((parameter) => parameter.name === name)
+        ?.defaultValue;
+    expect(defaultOf('maxEvents')).toBe(1000);
+    expect(defaultOf('dedupeByTransactionId')).toBe(true);
+
+    // a descriptor with other defaults: the call gets them, and the result compares with them
+    const descriptors = inventory.map((descriptor) =>
+      descriptor.id === 'cloud.log.searchEvents'
+        ? {
+            ...descriptor,
+            parameters: descriptor.parameters?.map((parameter) =>
+              parameter.name === 'maxEvents'
+                ? { ...parameter, defaultValue: 700 }
+                : parameter.name === 'dedupeByTransactionId'
+                  ? { ...parameter, defaultValue: false }
+                  : parameter
+            ),
+          }
+        : descriptor
+    );
+    const method = jest.fn(async (..._args: any[]) => smallItems(700));
+    const runtime = createToolRuntime(
+      buildToolManifest(descriptors),
+      descriptors,
+      {} as any,
+      {
+        resolveFrodoForRequest: () =>
+          rootWith(
+            'cloud.log.searchEvents',
+            method,
+            withLogApiCredential
+          ) as any,
+      }
+    );
+
+    const result = await dispatch(runtime, 'cloud.log.searchEvents', {
+      namedArgs: {
+        source: 'am-authentication',
+        startTs: '2026-11-17T10:00:00Z',
+        endTs: '2026-11-17T11:00:00Z',
+      },
+    });
+
+    // the arguments are source, startTs, endTs, eventNames, principal, maxEvents, dedupeByTransactionId
+    expect(method.mock.calls[0][5]).toBe(700);
+    expect(method.mock.calls[0][6]).toBe(false);
+    expect(result).toMatchObject({
+      truncated: true,
+      returned: 700,
+      total: null,
+    });
+    expect(result.warning).toBe(searchCapWarning(700));
+  });
+});
+
+describe('the real search of events against a loopback Log API', () => {
+  let server: http.Server;
+  let host: string;
+  let upstream = { pageSize: 500, events: 5000, pairs: false };
+  let pagesServed = 0;
+
+  beforeAll(async () => {
+    server = http.createServer((request, response) => {
+      if (!request.url?.startsWith('/monitoring/logs?')) {
+        response.writeHead(404);
+        response.end('{}');
+        return;
+      }
+      const start = pagesServed * upstream.pageSize;
+      pagesServed += 1;
+      const count = Math.max(
+        0,
+        Math.min(upstream.pageSize, upstream.events - start)
+      );
+      const result = Array.from({ length: count }, (_, index) => {
+        const event = start + index;
+        // small events, so that 1000 of them stay below the size budget of one response
+        return {
+          payload: {
+            transactionId: `tx-${upstream.pairs ? Math.floor(event / 2) : event}`,
+          },
+        };
+      });
+      const more = start + count < upstream.events;
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(
+        JSON.stringify({
+          result,
+          resultCount: count,
+          pagedResultsCookie: more ? 'MORE' : null,
+          totalPagedResultsPolicy: 'NONE',
+          totalPagedResults: -1,
+          remainingPagedResults: -1,
+        })
+      );
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, '127.0.0.1', () => resolve())
+    );
+    host = `http://127.0.0.1:${(server.address() as AddressInfo).port}/am`;
+  });
+
+  afterAll(async () => {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  async function search(
+    shape: Partial<typeof upstream>,
+    namedArgs: Record<string, unknown> = {}
+  ) {
+    upstream = { pageSize: 500, events: 5000, pairs: false, ...shape };
+    pagesServed = 0;
+    const instance = FrodoLib({
+      host,
+      deploymentType: 'cloud',
+      realm: 'alpha',
+    });
+    instance.state.setUseTokenCache(false);
+    instance.state.setLogApiKey('key');
+    instance.state.setLogApiSecret('secret');
+    (instance.login as any).getTokens = async () => undefined;
+    const result = await dispatch(
+      runtimeFor(instance),
+      'cloud.log.searchEvents',
+      {
+        namedArgs: {
+          source: 'am-core',
+          startTs: '2026-11-17T10:00:00Z',
+          endTs: '2026-11-17T10:30:00Z',
+          ...namedArgs,
+        },
+      }
+    );
+    return { result, pages: pagesServed };
+  }
+
+  test('T18: the default limit of the real search is the one the runtime compares with: 1000 events, then it stops', async () => {
+    const { result, pages } = await search({});
+
+    expect(pages).toBe(2);
+    expect(result).toMatchObject({
+      truncated: true,
+      returned: 1000,
+      total: null,
+    });
+    expect(result.warning).toBe(searchCapWarning(1000));
+  }, 30000);
+
+  test('T18b: events that share transaction ids: with deduplication the search stops at the limit and the result is not called complete', async () => {
+    const { result, pages } = await search({ pairs: true });
+
+    expect(pages).toBe(2);
+    expect(result.returned).toBe(500);
+    expect('truncated' in result).toBe(false);
+    expect('total' in result).toBe(false);
+    expect(result.warning).toBe(searchDedupeWarning(1000));
+  }, 30000);
+
+  test('T18c: the same search without deduplication shows that the limit was reached', async () => {
+    const { result } = await search(
+      { pairs: true },
+      { dedupeByTransactionId: false }
+    );
+
+    expect(result).toMatchObject({
+      truncated: true,
+      returned: 1000,
+      total: null,
+    });
+    expect(result.warning).toBe(searchCapWarning(1000));
+  }, 30000);
+
+  test('T18d: a search that reads every event is complete without deduplication, and warns with it', async () => {
+    const plain = await search(
+      { events: 40 },
+      { dedupeByTransactionId: false }
+    );
+    const deduped = await search({ events: 40 });
+
+    expect(plain.result).toMatchObject({
+      truncated: false,
+      returned: 40,
+      total: 40,
+    });
+    expect(deduped.result.returned).toBe(40);
+    expect('truncated' in deduped.result).toBe(false);
+    expect(deduped.result.warning).toBe(searchDedupeWarning(1000));
+  }, 30000);
 });
 
 describe('a read that stops at a limit that it has no argument for', () => {
@@ -977,7 +1363,7 @@ describe('a read that stops at a limit that it has no argument for', () => {
       namedArgs ? { namedArgs } : {}
     );
 
-  test('T16: role.readInternalRoles with as many roles as its one request holds is truncated, with an unknown total', async () => {
+  test('T16: role.readInternalRoles with as many roles as its one request holds is truncated, with an unknown total, and the warning names the capability to use', async () => {
     const result = await read('role.readInternalRoles', smallItems(1000));
 
     expect(result).toMatchObject({
@@ -986,7 +1372,7 @@ describe('a read that stops at a limit that it has no argument for', () => {
       total: null,
     });
     expect(result.warning).toBe(
-      'Result is not complete: the capability stopped at its own limit of 1000 items, so more items may exist than it returned. Do not count or search only this result. Query with a filter to read more.'
+      'Result is not complete: the capability role.readInternalRoles stopped at its own limit of 1000 items, so more items may exist than it returned. Do not count or search only this result. Use role.queryInternalRoles with a filter that matches fewer roles to read the rest.'
     );
     expect(result.metadata?.pagination?.isPartial).toBe(true);
   });
@@ -1002,7 +1388,7 @@ describe('a read that stops at a limit that it has no argument for', () => {
     expect('warning' in result).toBe(false);
   });
 
-  test('T16c: role.queryInternalRoles is limited in the same way, and says both when the response was cut too', async () => {
+  test('T16c: role.queryInternalRoles is limited in the same way, tells the agent to narrow the filter, and says both when the response was cut too', async () => {
     const atTheLimit = await read('role.queryInternalRoles', smallItems(1000), {
       filter: 'true',
     });
@@ -1015,9 +1401,14 @@ describe('a read that stops at a limit that it has no argument for', () => {
       returned: 1000,
       total: null,
     });
+    expect(atTheLimit.warning).toBe(
+      'Result is not complete: the capability role.queryInternalRoles stopped at its own limit of 1000 items, so more items may exist than it returned. Do not count or search only this result. Narrow the filter to read the rest.'
+    );
     expect(alsoCut).toMatchObject({ truncated: true, total: null });
     expect(alsoCut.returned).toBeLessThan(1000);
-    expect(alsoCut.warning).toContain('stopped at its own limit of 1000 items');
+    expect(alsoCut.warning).toContain(
+      'the capability role.queryInternalRoles stopped at its own limit of 1000 items'
+    );
     expect(alsoCut.warning).toContain(
       `data holds ${alsoCut.returned} of the 1000 items that the capability returned`
     );
@@ -1142,6 +1533,10 @@ describe('frodo_find_skills with an executed recommendation', () => {
     expect(payload.nextAction).toContain('not complete');
     expect(payload.nextAction).toContain('execution.truncated is true');
     expect(payload.nextAction).toContain('execution.nextPageOffset');
+    expect(payload.nextAction).toContain(
+      '(execution.total is null when the number is not known)'
+    );
+    expect(payload.nextAction).toContain('read execution.warning');
     expect(payload.nextAction).toContain('frodo_dispatch_read_only');
     expect(payload.nextAction).not.toContain('Answer the user from');
     // the first thing of the answer
@@ -1156,6 +1551,53 @@ describe('frodo_find_skills with an executed recommendation', () => {
     expect(payload.nextAction).toBe(
       'Answer the user from execution.data. The recommended read-only skill has already run; do not call any more discovery tools.'
     );
+  });
+});
+
+describe('what frodo_find_skills may execute on its own', () => {
+  test('T19: only a managed-object query, which hands out a token, is a recommended execution with an unknown total; no other capability whose total is unknown is', async () => {
+    const cloudContext = {
+      auth: { mode: 'state-config', config: { deploymentType: 'cloud' } },
+    } as any;
+    const runtime = runtimeFor(
+      {},
+      {
+        managedObjectTypes: ['alpha_user', 'alpha_role'],
+        managedObjectHydrationStatus: 'available',
+      }
+    );
+    const recommended = new Set<string>();
+    for (const descriptor of inventory.filter(
+      (candidate) =>
+        candidate.operationType === 'list' ||
+        candidate.operationType === 'search'
+    )) {
+      for (const query of ['list alpha_user', 'list internal roles']) {
+        const found = await runtime.executeTool({
+          toolName: 'frodo_find_skills',
+          arguments: {
+            query,
+            skillIdPrefix: descriptor.id,
+            includeIncompatible: true,
+            executeRecommended: false,
+          },
+          context: cloudContext,
+        });
+        const skillId = (
+          found.data as {
+            recommendedDispatch?: { arguments: { skillId?: string } };
+          }
+        ).recommendedDispatch?.arguments.skillId;
+        if (skillId) {
+          recommended.add(skillId);
+        }
+      }
+    }
+
+    expect([...recommended].sort()).toEqual([
+      'idm.managed.queryManagedObjects',
+      'idm.managed.readManagedObjects',
+    ]);
   });
 });
 

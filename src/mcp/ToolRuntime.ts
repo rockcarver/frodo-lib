@@ -13,6 +13,7 @@
  * the established Frodo factory helpers (`createInstance*`).
  */
 
+import { DEFAULT_PAGE_SIZE as INTERNAL_OBJECT_PAGE_SIZE } from '../api/InternalObjectApi';
 import * as ManagedObjectApi from '../api/ManagedObjectApi';
 import { getIdmServerVersionInfo } from '../api/ServerInfoApi';
 import type { Frodo } from '../lib/FrodoLib';
@@ -83,18 +84,43 @@ const LIVE_CURSOR_CAPABILITY_IDS: readonly string[] = ['cloud.log.tail'];
 
 /**
  * List and search capabilities that stop at a limit of their own, which the
- * runtime cannot see in the array that they return: the argument that sets
- * the limit (absent when the limit is fixed) and the limit that applies when
- * the caller leaves it out. When such a capability returns as many items as
- * its limit, it probably stopped there, and the result says so.
+ * runtime cannot see in the array that they return. The limit is set by an
+ * argument whose default is read from the descriptor, so that the runtime
+ * compares with the limit that the call really got, or it is fixed. When such
+ * a capability returns as many items as its limit, it probably stopped there,
+ * and the result says so.
+ *
+ * `dedupeArgument` names an argument that, unless it is `false`, makes the
+ * capability remove duplicate items after it stopped: the count it returns is
+ * then no proof that the limit was not reached, and below the limit the result
+ * says neither that it is complete nor that it is not (`truncated` and `total`
+ * are left out, and the warning says why).
  */
 const SELF_CAPPING_CAPABILITIES: Readonly<
-  Record<string, { argument?: string; defaultCap: number }>
+  Record<
+    string,
+    {
+      argument?: string;
+      fixedCap?: number;
+      readOn?: string;
+      dedupeArgument?: string;
+    }
+  >
 > = {
-  'cloud.log.searchEvents': { argument: 'maxEvents', defaultCap: 1000 },
-  // one request of at most 1000 items: the cookie of the answer is dropped
-  'role.readInternalRoles': { defaultCap: 1000 },
-  'role.queryInternalRoles': { defaultCap: 1000 },
+  'cloud.log.searchEvents': {
+    argument: 'maxEvents',
+    dedupeArgument: 'dedupeByTransactionId',
+  },
+  // one request of at most one page of the internal object api: the cookie of the answer is dropped
+  'role.readInternalRoles': {
+    fixedCap: INTERNAL_OBJECT_PAGE_SIZE,
+    readOn:
+      'Use role.queryInternalRoles with a filter that matches fewer roles to read the rest.',
+  },
+  'role.queryInternalRoles': {
+    fixedCap: INTERNAL_OBJECT_PAGE_SIZE,
+    readOn: 'Narrow the filter to read the rest.',
+  },
 };
 
 /** The fields that say whether a list or search result is complete, in the order they are serialized. */
@@ -115,7 +141,7 @@ const PAGING_CONTROLS = ['pageSize', 'pageOffset', 'pageToken'] as const;
  * that it ran returned a result that is not complete.
  */
 const EXECUTION_TRUNCATED_NEXT_ACTION =
-  'The recommended read-only capability ran, but its result is not complete: execution.truncated is true, execution.data holds execution.returned of execution.total items. Do not answer a question about counts or missing items from it. Read on with execution.nextPageOffset or execution.nextPageToken through frodo_dispatch_read_only, or use a count capability.';
+  'The recommended read-only capability ran, but its result is not complete: execution.truncated is true, execution.data holds execution.returned of execution.total items (execution.total is null when the number is not known). Do not answer a question about counts or missing items from it. Read on with execution.nextPageOffset or execution.nextPageToken through frodo_dispatch_read_only, or use a count capability; if neither is present, read execution.warning.';
 
 /**
  * Credentials payload for a service-account request context.
@@ -418,7 +444,8 @@ export type McpDispatchExecutionArguments = {
  * before it was returned, or a result that the platform pages says that more
  * follow. For an array, `nextPageOffset` is always a usable continuation
  * value in that case. `isPartial` is `true` exactly when
- * {@link McpToolExecutionResult.truncated} is.
+ * {@link McpToolExecutionResult.truncated} is, so it is `false` when that
+ * field is absent because the capability cannot say; `warning` then says so.
  */
 export type McpExecutionPaginationMetadata = {
   /** Whether the result is cut: more items exist than `data` holds. */
@@ -548,7 +575,12 @@ export type McpToolExecutionResult = {
    * A capability that stops at a limit of its own, such as a `maxEvents`
    * argument, is seen only when it returns as many items as that limit: the
    * result is then `truncated` with a `total` of `null`, and `warning` names
-   * the argument. More items may exist; the runtime cannot know.
+   * the capability and the argument. More items may exist; the runtime cannot
+   * know. When such a capability also removes duplicates after it stopped
+   * (`cloud.log.searchEvents` unless `dedupeByTransactionId` is `false`), a
+   * count below the limit proves nothing: `truncated` and `total` are then
+   * absent, unless the runtime cut the response itself, and `warning` always
+   * says why.
    * Agrees with `metadata.pagination.isPartial`. Not related to `partial`
    * (failed items of a bulk call) nor to `metadata.result.isTruncated` (a host
    * that replaces a result that is too large to send).
@@ -557,7 +589,8 @@ export type McpToolExecutionResult = {
   /**
    * The number of items in `data`: the length of the array, or of the `result`
    * array of a platform-paged result. Present with {@link McpToolExecutionResult.truncated},
-   * and for a live cursor, which has no `truncated`.
+   * for a live cursor, which has no `truncated`, and for a capability that
+   * cannot say whether it stopped at its own limit.
    */
   returned?: number;
   /**
@@ -579,9 +612,10 @@ export type McpToolExecutionResult = {
    */
   nextPageToken?: string;
   /**
-   * One imperative sentence that says the result is not complete and how to
-   * read on. Present only when `truncated` is `true`; the same text as
-   * `metadata.pagination.warning`.
+   * One imperative sentence that says the result is not complete (or may not
+   * be) and how to read on. Present when `truncated` is `true`, and when the
+   * capability cannot say whether it stopped at its own limit; the same text
+   * as `metadata.pagination.warning`.
    */
   warning?: string;
   /** Underlying method result payload. */
@@ -3836,10 +3870,16 @@ type McpListLimits = {
  * The limit that a self-capping capability applies to one call.
  */
 type McpSelfCap = {
+  /** The capability, named in the warnings. */
+  capability: string;
   /** The argument that sets the limit; absent when the limit is fixed. */
   argument?: string;
   /** The limit that applies to this call. */
   cap: number;
+  /** What to do to read the rest, for a capability with a fixed limit. */
+  readOn?: string;
+  /** The argument that removes duplicates after the limit, and whether it is on. */
+  dedupe?: { argument: string; on: boolean };
 };
 
 /**
@@ -3857,23 +3897,41 @@ function resolveSelfCap(
     return undefined;
   }
   if (entry.argument === undefined) {
-    return { cap: entry.defaultCap };
+    return entry.fixedCap === undefined
+      ? undefined
+      : {
+          capability: descriptor.id,
+          cap: entry.fixedCap,
+          ...(entry.readOn !== undefined && { readOn: entry.readOn }),
+        };
   }
-  const parameters = descriptor.parameters ?? [];
-  const parameter = parameters.find(
-    (candidate) => candidate.name === entry.argument
-  );
-  const value = Array.isArray(args.positionalArgs)
-    ? parameter
-      ? args.positionalArgs[parameter.position ?? parameters.indexOf(parameter)]
-      : undefined
-    : args.namedArgs?.[entry.argument];
+  // the value that the call gets: what the caller sent, else the default of the descriptor
+  const valueOf = (name: string): unknown => {
+    const parameters = descriptor.parameters ?? [];
+    const parameter = parameters.find((candidate) => candidate.name === name);
+    const sent = Array.isArray(args.positionalArgs)
+      ? parameter
+        ? args.positionalArgs[
+            parameter.position ?? parameters.indexOf(parameter)
+          ]
+        : undefined
+      : args.namedArgs?.[name];
+    return sent ?? parameter?.defaultValue;
+  };
+  const cap = valueOf(entry.argument);
+  if (typeof cap !== 'number' || !Number.isFinite(cap)) {
+    return undefined;
+  }
   return {
+    capability: descriptor.id,
     argument: entry.argument,
-    cap:
-      typeof value === 'number' && Number.isFinite(value)
-        ? value
-        : entry.defaultCap,
+    cap,
+    ...(entry.dedupeArgument !== undefined && {
+      dedupe: {
+        argument: entry.dedupeArgument,
+        on: valueOf(entry.dedupeArgument) !== false,
+      },
+    }),
   };
 }
 
@@ -3968,27 +4026,45 @@ function summarizeListResult(
     const returnedByCapability = truncation
       ? truncation.totalCount
       : data.length;
-    if (
-      selfCap &&
-      returnedByCapability > 0 &&
-      returnedByCapability >= selfCap.cap
-    ) {
-      // The capability stopped at its own limit: the runtime cannot know how
-      // many items there are, only that it may have left some.
-      return {
-        truncated: true,
-        returned: data.length,
-        total: null,
-        ...(truncation?.hasMore && {
-          nextPageOffset: truncation.nextPageOffset,
-        }),
-        warning: buildSelfCapWarning(
+    if (selfCap && returnedByCapability > 0) {
+      if (returnedByCapability >= selfCap.cap) {
+        // The capability stopped at its own limit: the runtime cannot know how
+        // many items there are, only that it may have left some.
+        return {
+          truncated: true,
+          returned: data.length,
+          total: null,
+          ...(truncation?.hasMore && {
+            nextPageOffset: truncation.nextPageOffset,
+          }),
+          warning: buildSelfCapWarning(
+            data.length,
+            returnedByCapability,
+            truncation,
+            selfCap
+          ),
+        };
+      }
+      if (selfCap.dedupe?.on) {
+        // The limit counts the items before the duplicates were removed, so a
+        // count below the limit does not show that the limit was not reached.
+        // What the runtime cut itself, it knows.
+        const warning = buildDedupeWarning(
           data.length,
           returnedByCapability,
           truncation,
           selfCap
-        ),
-      };
+        );
+        return truncation?.hasMore
+          ? {
+              truncated: true,
+              returned: data.length,
+              total: null,
+              nextPageOffset: truncation.nextPageOffset,
+              warning,
+            }
+          : { returned: data.length, warning };
+      }
     }
     if (!truncation) {
       return { truncated: false, returned: data.length, total: data.length };
@@ -4034,9 +4110,23 @@ function buildArrayTruncationWarning(
 }
 
 /**
+ * What the warning of a self-capping capability adds when the runtime also cut
+ * the response to a page.
+ */
+function describeCutOfResponse(
+  returned: number,
+  returnedByCapability: number,
+  truncation: McpArrayTruncationResult | undefined
+): string {
+  return truncation?.hasMore
+    ? ` The response was also cut: data holds ${returned} of the ${returnedByCapability} items that the capability returned. Pass pageOffset: ${truncation.nextPageOffset} to read the rest of them.`
+    : '';
+}
+
+/**
  * The warning of an array that a capability returned after it stopped at a
- * limit of its own. It says that more may exist, not that they do, and names
- * the argument that raises the limit.
+ * limit of its own. It says that more may exist, not that they do, and how to
+ * read on.
  */
 function buildSelfCapWarning(
   returned: number,
@@ -4050,12 +4140,24 @@ function buildSelfCapWarning(
       : `limit of ${selfCap.cap} items (argument ${selfCap.argument})`;
   const readOn =
     selfCap.argument === undefined
-      ? 'Query with a filter to read more.'
+      ? (selfCap.readOn ?? 'Narrow the query to read the rest.')
       : `Raise ${selfCap.argument} or narrow the search to read more.`;
-  const stopped = `Result is not complete: the capability stopped at its own ${limit}, so more items may exist than it returned. Do not count or search only this result. ${readOn}`;
-  return truncation?.hasMore
-    ? `${stopped} The response was also cut: data holds ${returned} of the ${returnedByCapability} items that the capability returned. Pass pageOffset: ${truncation.nextPageOffset} to read the rest of them.`
-    : stopped;
+  return `Result is not complete: the capability ${selfCap.capability} stopped at its own ${limit}, so more items may exist than it returned. Do not count or search only this result. ${readOn}${describeCutOfResponse(returned, returnedByCapability, truncation)}`;
+}
+
+/**
+ * The warning of an array from a capability that stops at a limit of its own
+ * and removes duplicates afterwards: it says that the result can be
+ * incomplete although it holds fewer items than the limit, and how to be sure.
+ */
+function buildDedupeWarning(
+  returned: number,
+  returnedByCapability: number,
+  truncation: McpArrayTruncationResult | undefined,
+  selfCap: McpSelfCap
+): string {
+  const dedupeArgument = selfCap.dedupe?.argument;
+  return `Result may be incomplete: the capability ${selfCap.capability} stops at its own limit of ${selfCap.cap} events (argument ${selfCap.argument}), counted before duplicate events are removed (argument ${dedupeArgument}, which is on unless you pass false), so a result can be incomplete even when it has fewer than ${selfCap.argument} events. To be sure, pass ${dedupeArgument}: false or narrow the time window, and compare returned with ${selfCap.argument}.${describeCutOfResponse(returned, returnedByCapability, truncation)}`;
 }
 
 /**
@@ -4232,7 +4334,9 @@ function buildPaginationMetadata(
         hasMore: true,
         nextPageOffset: truncation.nextPageOffset,
       }),
-      ...(truncated && { warning: listCompleteness?.warning }),
+      ...(listCompleteness?.warning !== undefined && {
+        warning: listCompleteness.warning,
+      }),
     };
   }
 
@@ -4260,7 +4364,9 @@ function buildPaginationMetadata(
     isPartial: selfCapped,
     returnedCount: Array.isArray(data) ? data.length : undefined,
     ...requested,
-    ...(selfCapped && { warning: listCompleteness?.warning }),
+    ...(listCompleteness?.warning !== undefined && {
+      warning: listCompleteness.warning,
+    }),
   };
 }
 
