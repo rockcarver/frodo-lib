@@ -772,6 +772,14 @@ const COOKIE_CASES = [
     decoded: ['a%s%d', 'b%j%%'],
     managedToo: true,
   },
+  {
+    // the same, from an encoder that writes lower-case hex digits: an escape is kept as it came
+    name: 'a cookie that IDM has already percent-encoded with lower-case hex digits',
+    issued: ['ab%3d%3d%3a0', 'cd%3d%3d%3a0'],
+    inUrl: ['ab%3d%3d%3a0', 'cd%3d%3d%3a0'],
+    decoded: ['ab==:0', 'cd==:0'],
+    managedToo: false,
+  },
 ];
 
 describe('a paged-results cookie in the URL of a query of IDM', () => {
@@ -885,6 +893,44 @@ describe('a paged-results cookie in the URL of a query of IDM', () => {
       expect(names(requests[1])).toEqual(
         [...names(requests[0]), '_pagedResultsCookie'].sort()
       );
+    },
+    30000
+  );
+
+  test.each([
+    {
+      method: 'querySystemObjects',
+      call: (instance: ReturnType<typeof idmInstance>) =>
+        instance.idm.system.querySystemObjects(
+          'ldap',
+          'account',
+          'true',
+          undefined,
+          undefined,
+          ''
+        ),
+    },
+    {
+      method: 'queryAllSystemObjectIds',
+      call: (instance: ReturnType<typeof idmInstance>) =>
+        instance.idm.system.queryAllSystemObjectIds(
+          'ldap',
+          'account',
+          undefined,
+          ''
+        ),
+    },
+  ])(
+    'T20e: $method sends no cookie parameter for an empty cookie',
+    async ({ call }) => {
+      current = COOKIE_CASES[1];
+      requests.length = 0;
+
+      const page = await call(idmInstance(host));
+
+      expect(page.result).toHaveLength(2);
+      expect(requests).toHaveLength(1);
+      expect(requests[0]).not.toContain('_pagedResultsCookie');
     },
     30000
   );
@@ -1082,12 +1128,13 @@ const searchCapWarning = (limit: number, extra = '') =>
 
 /** The warning of a search that removes duplicates after its limit and returned fewer events than the limit. */
 const searchDedupeWarning = (limit: number, extra = '') =>
-  `Result may be incomplete: the capability cloud.log.searchEvents stops at or after its own limit of ${limit} events (argument maxEvents; it reads whole pages, so it can return more events than the limit, and returned says how many it returned), counted before duplicate events are removed (argument dedupeByTransactionId, which is on unless you pass false), so a result can be incomplete even when it has fewer than maxEvents events. To be sure, pass dedupeByTransactionId: false or narrow the time window, and compare returned with maxEvents.${extra}`;
+  `Result may be incomplete: the capability cloud.log.searchEvents stops at or after its own limit of ${limit} events (argument maxEvents; it reads whole pages, so it can return more events than the limit, and returned says how many it returned), counted before duplicate events are removed (argument dedupeByTransactionId, which is on unless you pass false), so a result can be incomplete even when it has fewer than maxEvents events. Do not count or search only this result, and do not use returned as a total. Pass dedupeByTransactionId: false to read a result that says whether the limit was reached.${extra}`;
 
 describe('a search that stops at a limit of its own', () => {
   const searchEvents = (
     events: unknown[],
-    namedArgs: Record<string, unknown> = {}
+    namedArgs: Record<string, unknown> = {},
+    paging: Record<string, unknown> = {}
   ) =>
     dispatch(
       runtimeFor(
@@ -1105,6 +1152,7 @@ describe('a search that stops at a limit of its own', () => {
           endTs: '2026-11-17T11:00:00Z',
           ...namedArgs,
         },
+        ...paging,
       }
     );
 
@@ -1208,8 +1256,14 @@ describe('a search that stops at a limit of its own', () => {
     expect('totalCount' in (result.metadata?.pagination ?? {})).toBe(false);
   });
 
-  test('T14g: the limit is also read from a positional call', async () => {
-    // the capability itself takes named arguments only: let a copy of its descriptor take both
+  /**
+   * A search over `events` through a runtime in which the capability takes
+   * positional arguments too: the capability itself takes named arguments
+   * only, so a copy of its descriptor takes both. The positional values are
+   * source, startTs, endTs, eventNames, principal, maxEvents and
+   * dedupeByTransactionId.
+   */
+  const positionalSearch = (events: unknown[]) => {
     const descriptors = inventory.map((descriptor) =>
       descriptor.id === 'cloud.log.searchEvents'
         ? { ...descriptor, argumentMode: 'mixed' as const }
@@ -1223,22 +1277,27 @@ describe('a search that stops at a limit of its own', () => {
         resolveFrodoForRequest: () =>
           rootWith(
             'cloud.log.searchEvents',
-            jest.fn(async () => smallItems(50)),
+            jest.fn(async () => events),
             withLogApiCredential
           ) as any,
       }
     );
+    return (maxEvents?: unknown, dedupeByTransactionId?: unknown) =>
+      dispatch(runtime, 'cloud.log.searchEvents', {
+        positionalArgs: [
+          'am-authentication',
+          '2026-11-17T10:00:00Z',
+          '2026-11-17T11:00:00Z',
+          undefined,
+          undefined,
+          maxEvents,
+          dedupeByTransactionId,
+        ],
+      });
+  };
 
-    const result = await dispatch(runtime, 'cloud.log.searchEvents', {
-      positionalArgs: [
-        'am-authentication',
-        '2026-11-17T10:00:00Z',
-        '2026-11-17T11:00:00Z',
-        undefined,
-        undefined,
-        50,
-      ],
-    });
+  test('T14g: the limit is also read from a positional call', async () => {
+    const result = await positionalSearch(smallItems(50))(50);
 
     expect(result).toMatchObject({
       truncated: true,
@@ -1246,6 +1305,74 @@ describe('a search that stops at a limit of its own', () => {
       total: null,
     });
     expect(result.warning).toBe(searchCapWarning(50));
+  });
+
+  test.each([
+    {
+      name: 'the seventh positional value switches deduplication off: below the limit the result is complete',
+      limit: 100,
+      dedupe: false,
+      expected: { truncated: false, returned: 40, total: 40 },
+      warning: undefined,
+    },
+    {
+      name: 'a seventh value that is left out is the default of the descriptor, which is on',
+      limit: 100,
+      dedupe: undefined,
+      expected: { returned: 40 },
+      warning: searchDedupeWarning(100),
+    },
+    {
+      name: 'a seventh value of true is on',
+      limit: 100,
+      dedupe: true,
+      expected: { returned: 40 },
+      warning: searchDedupeWarning(100),
+    },
+    {
+      name: 'a seventh value that is not false counts as on, as the operations function reads it',
+      limit: 100,
+      dedupe: 0,
+      expected: { returned: 40 },
+      warning: searchDedupeWarning(100),
+    },
+  ])('T14i: $name', async ({ limit, dedupe, expected, warning }) => {
+    const result = await positionalSearch(smallItems(40))(limit, dedupe);
+
+    expect(result).toMatchObject(expected);
+    if (warning === undefined) {
+      expect('warning' in result).toBe(false);
+    } else {
+      expect('truncated' in result).toBe(false);
+      expect('total' in result).toBe(false);
+      expect(result.warning).toBe(warning);
+    }
+  });
+
+  test('T14j: a limit that is not a number is not applied: the result is read as that of a capability that does not limit itself (a documented limit, unreachable for the shipped capability, which refuses such a value)', async () => {
+    const result = await positionalSearch(smallItems(50))('50', false);
+
+    expect(result).toMatchObject({ truncated: false, returned: 50, total: 50 });
+    expect('warning' in result).toBe(false);
+  });
+
+  test('T14h: the last page of an offset read of a search that stopped at its limit is still truncated, and the nested metadata has no total either', async () => {
+    const result = await searchEvents(
+      smallItems(1000),
+      { dedupeByTransactionId: false },
+      { pageOffset: 995, pageSize: 10 }
+    );
+
+    expect(result.data).toHaveLength(5);
+    expect(result).toMatchObject({ truncated: true, returned: 5, total: null });
+    expect('nextPageOffset' in result).toBe(false);
+    expect(result.warning).toBe(searchCapWarning(1000));
+    expect(result.metadata?.pagination).toMatchObject({
+      isPartial: true,
+      returnedCount: 5,
+      warning: result.warning,
+    });
+    expect('totalCount' in (result.metadata?.pagination ?? {})).toBe(false);
   });
 
   test('T14f: a list that does not limit itself is complete at the same size', async () => {
@@ -1258,7 +1385,8 @@ describe('a search that stops at a limit of its own', () => {
 describe('a search that removes duplicate events after its limit', () => {
   const searchEvents = (
     events: unknown[],
-    namedArgs: Record<string, unknown> = {}
+    namedArgs: Record<string, unknown> = {},
+    paging: Record<string, unknown> = {}
   ) =>
     dispatch(
       runtimeFor(
@@ -1276,6 +1404,7 @@ describe('a search that removes duplicate events after its limit', () => {
           endTs: '2026-11-17T11:00:00Z',
           ...namedArgs,
         },
+        ...paging,
       }
     );
 
@@ -1353,6 +1482,66 @@ describe('a search that removes duplicate events after its limit', () => {
       hasMore: true,
     });
     expect(result.metadata?.pagination?.warning).toBe(result.warning);
+  });
+
+  test('T17g: the warning of an uncertain result says not to count it, names the argument that makes the next result say more, and promises no certainty', async () => {
+    const result = await searchEvents(smallItems(500));
+
+    expect(result.warning).toContain('Do not count or search only this result');
+    expect(result.warning).toContain('do not use returned as a total');
+    expect(result.warning).toContain(
+      'Pass dedupeByTransactionId: false to read a result that says whether the limit was reached.'
+    );
+    // a narrower window with deduplication on is just as uncertain, and a count below the limit proves nothing
+    expect(result.warning).not.toMatch(/to be sure|certain|time window/i);
+    expect(result.warning).not.toContain('compare returned');
+  });
+
+  test('T17h: the last page of an offset read of an uncertain result says nothing about a total, at the top and in the nested metadata, and keeps the warning in both', async () => {
+    const result = await searchEvents(
+      smallItems(500),
+      {},
+      { pageOffset: 495, pageSize: 10 }
+    );
+
+    expect(result.data).toHaveLength(5);
+    expect(Object.keys(result)).toEqual([
+      'toolName',
+      'descriptorId',
+      'returned',
+      'warning',
+      'data',
+      'metadata',
+    ]);
+    expect(result.returned).toBe(5);
+    expect(result.warning).toBe(searchDedupeWarning(1000));
+    expect(result.metadata?.pagination).toMatchObject({
+      isPartial: false,
+      returnedCount: 5,
+      warning: result.warning,
+    });
+    expect('totalCount' in (result.metadata?.pagination ?? {})).toBe(false);
+  });
+
+  test('T17i: a page in the middle of an offset read of an uncertain result is truncated with an unknown total, and the nested metadata has no total', async () => {
+    const result = await searchEvents(
+      smallItems(500),
+      {},
+      { pageOffset: 100, pageSize: 10 }
+    );
+
+    expect(result).toMatchObject({
+      truncated: true,
+      returned: 10,
+      total: null,
+      nextPageOffset: 110,
+    });
+    expect(result.metadata?.pagination).toMatchObject({
+      isPartial: true,
+      hasMore: true,
+      returnedCount: 10,
+    });
+    expect('totalCount' in (result.metadata?.pagination ?? {})).toBe(false);
   });
 
   test('T17f: the limit and the deduplication that apply are the defaults of the descriptor, which is what the call gets', async () => {
