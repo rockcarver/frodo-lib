@@ -210,12 +210,16 @@ releases missed):
   returned a cookie. `total` is `null` when the platform does not say.
   `cloud.log.tail`, a live cursor, has `returned` and `nextPageToken` and no
   `truncated`. `cloud.log.searchEvents`, which stops at its own `maxEvents`
-  limit and returns a plain array, is `truncated` with a `total` of `null`
-  when it returns that many events (it may have left more); a search that
-  removes duplicate events after it stopped can return fewer and is not seen.
-  `data` is unchanged, and a result that is not a list, or that
-  the runtime cannot read as one, has none of the fields. Before, a cut was
-  reported only in `metadata.pagination`. What else changes: the text of
+  limit, and `role.readInternalRoles` and `role.queryInternalRoles`, which
+  read one request of at most 1000 items, return a plain array; each is
+  `truncated` with a `total` of `null` when it returns as many items as its
+  limit (it may have left more), and a search that removes duplicate events
+  after it stopped can return fewer and is not seen.
+  `idm.managed.queryManagedObjects` now takes `pageToken` as the cookie of its
+  one-page query (it ignored it), so its `nextPageToken` can be passed back.
+  `data` is unchanged, and a result that is not a list, or that the runtime
+  cannot read as one, has none of the fields. Before, a cut was reported only
+  in `metadata.pagination`. What else changes: the text of
   `metadata.pagination.warning` (the new `warning` has the same text);
   `metadata.pagination.isPartial` is `false` for an array that holds exactly
   the item ceiling and was not cut (it was `true`); a result that the platform
@@ -224,7 +228,9 @@ releases missed):
   `executionTruncated: true` and a different `nextAction` when the capability
   that it ran returned a cut result; `frodo_describe_skill` returns a `paging`
   block for list and search capabilities; and the descriptions of
-  `frodo_dispatch_read_only` and of the list and search tools name the fields.
+  `frodo_dispatch_read_only` and of the list and search capabilities name the
+  fields; the description of `frodo_find_skills` says to read on when the answer
+  has `executionTruncated`.
 - `frodo.oauth2oidc.issuer.deleteOAuth2TrustedJwtIssuer`
   (`src/ops/OAuth2TrustedJwtIssuerOps.ts`) now rejects with a `FrodoError`
   that names the realm and the issuer and carries the original error. Before,
