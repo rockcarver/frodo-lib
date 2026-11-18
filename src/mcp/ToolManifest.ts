@@ -54,6 +54,12 @@ const DISPATCH_READ_ONLY_TOOL_NAME = 'frodo_dispatch_read_only' as const;
 const DISPATCH_TOOL_NAME = 'frodo_dispatch' as const;
 
 /**
+ * What every list or search description says about a result that was cut.
+ */
+const COMPLETENESS_SENTENCE =
+  'A list or search result says whether it is complete (truncated, returned, total): when truncated is true, read on with pageOffset or pageToken or use a count capability, and do not conclude that something is missing from one page.';
+
+/**
  * Human-readable descriptions keyed by operation type.
  * Used when registering generic tools with an MCP runtime.
  */
@@ -67,9 +73,8 @@ const GENERIC_TOOL_DESCRIPTIONS: Record<McpCapabilityOperationType, string> = {
     'Update an existing domain object in a Ping AM/IDM domain. Use frodo_discover for the exact parameter contract when available.',
   delete:
     'Delete a domain object by identifier or name from a Ping AM/IDM domain. Use frodo_discover for the exact parameter contract when available.',
-  list: 'List domain objects of a given type in a Ping AM/IDM domain. Results may be paginated; do not infer totals from a single response page. Provide explicit realm scoping where supported and use frodo_discover for details.',
-  search:
-    'Search for domain objects matching a query in a Ping AM/IDM domain. Results may be paginated; do not infer totals from a single response page. Not every domain/objectType supports search — call frodo_discover first and inspect explicit operation support details.',
+  list: `List domain objects of a given type in a Ping AM/IDM domain. ${COMPLETENESS_SENTENCE} Provide explicit realm scoping where supported and use frodo_discover for details.`,
+  search: `Search for domain objects matching a query in a Ping AM/IDM domain. ${COMPLETENESS_SENTENCE} Not every domain/objectType supports search — call frodo_discover first and inspect explicit operation support details.`,
   export:
     'Export domain objects of the specified type to a portable configuration bundle. Use frodo_discover for scope, payload-shape, and parameter guidance.',
   import:
@@ -353,7 +358,7 @@ function buildCanonicalTools(): McpCanonicalTool[] {
     {
       toolName: FIND_SKILLS_TOOL_NAME,
       description:
-        'Search available skills under the active target and profile. A unique deterministic read-only recommendation executes automatically by default and is returned as execution.data; answer from that result without further discovery. Set executeRecommended=false only for diagnostics.',
+        'Search available capabilities under the active target and profile. A unique deterministic read-only recommendation executes automatically by default and is returned as execution.data; answer from that result without further discovery, unless the answer has executionTruncated: true, in which case read on as its nextAction says. Set executeRecommended=false only for diagnostics.',
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -375,7 +380,7 @@ function buildCanonicalTools(): McpCanonicalTool[] {
     {
       toolName: DISPATCH_READ_ONLY_TOOL_NAME,
       description:
-        'Execute a read-only skill (count/read/list/search). Prefer the exact tool name and arguments returned as recommendedDispatch by frodo_find_skills. If the result has partial: true, some items failed: data holds the rest and itemResults.failures says why.',
+        'Execute a read-only capability (count/read/list/search). Prefer the exact tool name and arguments returned as recommendedDispatch by frodo_find_skills. A list or search result states whether it is complete in the fields truncated, returned and total that come before data. When truncated is true, data holds only the first returned of total items: do not count it, and do not conclude that an item does not exist. Read on with pageOffset (from nextPageOffset) and optionally pageSize, or pageToken (from nextPageToken); use a count capability for an exact total. If the result has partial: true, some items failed: data holds the rest and itemResults.failures says why.',
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,

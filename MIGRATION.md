@@ -196,6 +196,55 @@ releases missed):
   capability that takes it as its last parameter is rejected as an unknown
   argument. A host that calls the runtime in process and puts a function at the
   position of the callback keeps it.
+- The MCP tool runtime (`createToolRuntime`, `frodo.mcp.createService`) now
+  says in the first fields of a result whether a list or search result is
+  complete (a decision in
+  https://github.com/rockcarver/frodo-lib/blob/main/decisions/core/0025-a-result-that-was-cut-says-so-in-the-first-fields-of-the-result.md,
+  a result that was cut says so in the first fields). The result of a list or
+  search capability has `truncated`, `returned` and `total` before `data`;
+  when `truncated` is `true` it also has `nextPageOffset` (an array result) or
+  `nextPageToken` (a result that the platform pages, such as `cloud.log.fetch`
+  or `idm.system.querySystemObjects`) and a `warning`. `truncated` is `true`
+  whenever items remain beyond `data`: the runtime cut the array to its size
+  budget or its item ceiling, the caller asked for a page, or the platform
+  returned a cookie. `total` is `null` when the platform does not say.
+  `cloud.log.tail`, a live cursor, has `returned` and `nextPageToken` and no
+  `truncated`. `cloud.log.searchEvents`, which stops at its own `maxEvents`
+  limit (it reads whole pages, so it can return more than its limit; the
+  warning says so), and `role.readInternalRoles` and
+  `role.queryInternalRoles`, which read one request of at most 1000 items,
+  return a plain array; each is
+  `truncated` with a `total` of `null` when it returns as many items as its
+  limit (it may have left more). `cloud.log.searchEvents` counts its limit
+  before it removes duplicate events (`dedupeByTransactionId`, on unless it is
+  `false`), so with deduplication a count below the limit proves nothing: the
+  result then has `returned` and a `warning` that says so, and no `truncated`
+  and no `total` (unless the runtime cut the response itself); pass
+  `dedupeByTransactionId: false` to see whether the limit was reached.
+  `idm.managed.queryManagedObjects` now takes `pageToken` as the cookie of its
+  one-page query (it ignored it), so its `nextPageToken` can be passed back.
+  `frodo.idm.system.querySystemObjects` and `queryAllSystemObjectIds` now
+  encode the characters of a paged-results cookie that are not safe in a query
+  string (`+`, `/`, `=`, `&`, a `%` that starts no escape) and add the cookie
+  to the request after the URL is formatted; a cookie that IDM has already
+  percent-encoded is sent as it came, so the next page of a connector query is
+  the same request as before. Before, any other cookie was written into the URL
+  as it was, and could end the walk or add a parameter to the request.
+  `data` is unchanged, and a result that is not a list, or that the runtime
+  cannot read as one, has none of the fields. Before, a cut was reported only
+  in `metadata.pagination`. What else changes: the text of
+  `metadata.pagination.warning` (the new `warning` has the same text);
+  `metadata.pagination.isPartial` is `false` for an array that holds exactly
+  the item ceiling and was not cut (it was `true`); a result that the platform
+  pages reports `isPartial: true` and `hasMore: true` in `metadata.pagination`
+  when it carries a cookie (it was always `false`); `frodo_find_skills` adds
+  `executionTruncated: true` and a different `nextAction` when the capability
+  that it ran returned a cut result (the `nextAction` also says what to read
+  when `total` is `null`); `frodo_describe_skill` returns a `paging` block for
+  list and search capabilities; and the descriptions of
+  `frodo_dispatch_read_only` and of the list and search capabilities name the
+  fields; the description of `frodo_find_skills` says to read on when the answer
+  has `executionTruncated`.
 - `frodo.oauth2oidc.issuer.deleteOAuth2TrustedJwtIssuer`
   (`src/ops/OAuth2TrustedJwtIssuerOps.ts`) now rejects with a `FrodoError`
   that names the realm and the issuer and carries the original error. Before,
