@@ -219,6 +219,33 @@ describe('positionalArgs', () => {
     });
     expect(handler.mock.calls[0]).toEqual(['1+1', null]);
   });
+
+  test('a value that breaks an explicit schema is rejected before the method is called', async () => {
+    const handler: Handler = jest.fn(async () => undefined);
+    currentFake = fakeInstance('idm.script.evaluateScript', handler);
+    await expect(
+      service.executeTool({
+        toolName: 'frodo_dispatch',
+        arguments: {
+          skillId: 'idm.script.evaluateScript',
+          positionalArgs: [{ type: 'text/javascript', source: '1+1' }],
+        },
+        context: { auth: { mode: 'state-config', config: {} } },
+      })
+    ).rejects.toThrow(
+      "received invalid value for positionalArgs[0] ('script'): must be string"
+    );
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  test('a value is not checked against a parameter that has no explicit schema', async () => {
+    // idm.system.readSystemStatus declares systemName: string through its
+    // TSDoc only; a positional call keeps reaching the method unchecked.
+    const { handler } = await dispatch('idm.system.readSystemStatus', {
+      positionalArgs: [42],
+    });
+    expect(handler.mock.calls[0]).toEqual([42]);
+  });
 });
 
 describe('every capability that had no parameter contract', () => {

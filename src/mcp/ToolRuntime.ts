@@ -3028,6 +3028,14 @@ function validateInvocationArguments(
     );
   }
 
+  if (hasPositional && descriptor.parameters) {
+    validatePositionalArguments(
+      descriptor,
+      descriptor.parameters,
+      args.positionalArgs as unknown[]
+    );
+  }
+
   if (
     !hasNamed ||
     !descriptor.parameters ||
@@ -3142,8 +3150,71 @@ function validateNamedArgumentValue(
   parameter: McpCapabilityParameter,
   value: unknown
 ): void {
-  const schema =
-    parameter.schema ?? inferSchemaFromParameterType(parameter.type);
+  validateArgumentValue(
+    descriptorId,
+    parameter,
+    value,
+    parameter.schema ?? inferSchemaFromParameterType(parameter.type),
+    `named argument '${parameter.name}'`
+  );
+}
+
+/**
+ * Validates the positional arguments of a call against the parameters whose
+ * schema was set explicitly in the capability metadata.
+ *
+ * @remarks
+ * A schema that is only inferred from the declared type of a parameter is not
+ * enforced for a positional call: positional callers have always been able to
+ * pass any value for such a parameter, and the method decides. A parameter
+ * with an explicit schema is a deliberate statement about the shape of the
+ * value, so it holds for both ways of calling. `null` and `undefined` are not
+ * checked: a JSON payload has no `undefined`, so `null` is how a caller skips
+ * an optional parameter.
+ *
+ * @param descriptor Descriptor of the capability that is called.
+ * @param parameters Declared parameters of the capability.
+ * @param positionalArgs Positional arguments of the call.
+ */
+function validatePositionalArguments(
+  descriptor: McpCapabilityDescriptor,
+  parameters: McpCapabilityParameter[],
+  positionalArgs: unknown[]
+): void {
+  for (const parameter of parameters) {
+    const index = parameter.position;
+    if (
+      !parameter.schema ||
+      index === undefined ||
+      index >= positionalArgs.length
+    ) {
+      continue;
+    }
+    const value = positionalArgs[index];
+    if (value === undefined || value === null) {
+      continue;
+    }
+    validateArgumentValue(
+      descriptor.id,
+      parameter,
+      value,
+      parameter.schema,
+      `positionalArgs[${index}] ('${parameter.name}')`
+    );
+  }
+}
+
+/**
+ * Checks one argument value against a schema and throws a message that names
+ * the argument, the problems, the expected shape and an example.
+ */
+function validateArgumentValue(
+  descriptorId: string,
+  parameter: McpCapabilityParameter,
+  value: unknown,
+  schema: McpCapabilityParameterSchema | undefined,
+  label: string
+): void {
   if (!schema) {
     return;
   }
@@ -3160,7 +3231,7 @@ function validateNamedArgumentValue(
       : '';
 
   throw new FrodoError(
-    `MCP runtime error: descriptor '${descriptorId}' received invalid value for named argument '${parameter.name}': ${problems.join('; ')}; expected ${expected}.${exampleText}`
+    `MCP runtime error: descriptor '${descriptorId}' received invalid value for ${label}: ${problems.join('; ')}; expected ${expected}.${exampleText}`
   );
 }
 
