@@ -911,6 +911,28 @@ describe('a paged-results cookie in the URL of a query of IDM', () => {
     expect(requests[0]).toContain('_pagedResultsCookie=q%EF%BF%BDq');
     expect(second.returned).toBe(2);
   }, 30000);
+
+  test('T20c: a cookie with a character outside the basic plane is encoded as one character', async () => {
+    current = {
+      ...COOKIE_CASES[1],
+      issued: ['a\u{1F600}', 'xy+20/ef=='],
+      decoded: ['a\u{1F600}', 'xy+20/ef=='],
+    };
+    requests.length = 0;
+    const runtime = runtimeFor(idmInstance(host));
+
+    const second = await dispatch(runtime, 'idm.system.querySystemObjects', {
+      namedArgs: {
+        systemName: 'ldap',
+        systemObjectType: 'account',
+        filter: 'true',
+      },
+      pageToken: 'a\u{1F600}',
+    });
+
+    expect(requests[0]).toContain('_pagedResultsCookie=a%F0%9F%98%80');
+    expect(second.returned).toBe(2);
+  }, 30000);
 });
 
 describe('the nextPageToken of the capabilities that the runtime reads', () => {
