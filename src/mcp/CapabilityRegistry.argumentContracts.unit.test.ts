@@ -5,20 +5,21 @@
  * A capability descriptor is derived from the TSDoc `@param` tags of its
  * method (see `Help.ts`, which is generated from them). A method whose TSDoc
  * has no `@param` tag gets an empty parameter contract, and the runtime then
- * forwards the whole `namedArgs` object as ONE argument. These tests pin that
- * no capability advertises an empty contract while its signature has
- * parameters, and they pin the contract of the capabilities that were
- * repaired against the real signature. They do not compare every contract
- * with its signature: a capability whose TSDoc names the parameters in
- * another order, under other names or leaves an optional one out is not
- * covered here.
+ * forwards the whole `namedArgs` object as ONE argument; a method whose TSDoc
+ * names the parameters in another order, under other names or leaves one out
+ * gets its named arguments in the wrong positions or not at all. These tests
+ * pin that the parameter names of every descriptor equal the names of the
+ * signature in the order of the signature, with no baseline and no
+ * exemption list, and they pin the contract of the capabilities that were
+ * repaired against the real signature.
  */
 
 import { frodo } from '../lib/FrodoLib';
 import { getHelpMetadataByMethod } from '../utils/HelpUtils';
-import { CAPABILITY_META } from './CapabilityMetadata';
+import { CAPABILITY_META, resolveCapabilityMeta } from './CapabilityMetadata';
 import { applyCapabilityPolicy, MCP_POLICY_PRESETS } from './CapabilityPolicy';
 import { buildCapabilityInventory } from './CapabilityRegistry';
+import type { McpCapabilityParameter } from './CapabilityTypes';
 
 /** Trailing callbacks that a JSON payload cannot carry and the runtime supplies. */
 const TRAILING_CALLBACKS = ['resultCallback', 'leftOutCallback'];
@@ -94,6 +95,49 @@ function signatureParameterNames(signature: string): string[] {
   return signatureParameters(signature).map(({ name }) => name);
 }
 
+/**
+ * Parameters of a signature that a descriptor leaves out on purpose besides
+ * the trailing callbacks, as `<capability id>.<parameter name>`, each with the
+ * reason.
+ */
+const NOT_EXPOSED: Record<string, string> = {
+  'login.getTokens.credentialOverride':
+    'selects which credential the call uses: a caller must not choose it, so it is documented in the signature and left out of the arguments of the capability',
+};
+
+/**
+ * Compares the parameters a descriptor declares with the signature.
+ *
+ * @param declared parameters of the descriptor
+ * @param signatureNames parameter names of the signature, in order, without a trailing callback
+ * @param notExposed names of signature parameters the descriptor leaves out on purpose
+ * @returns `undefined` when they agree, otherwise a description of the first difference
+ */
+function contractDifference(
+  declared: McpCapabilityParameter[],
+  signatureNames: string[],
+  notExposed: string[] = []
+): string | undefined {
+  const expected = signatureNames.filter((name) => !notExposed.includes(name));
+  const ordered = [...declared].sort(
+    (left, right) => (left.position ?? 0) - (right.position ?? 0)
+  );
+  const names = ordered.map(({ name }) => name);
+  if (names.join(',') !== expected.join(',')) {
+    return `descriptor [${names.join(', ')}] but signature [${expected.join(', ')}]`;
+  }
+  for (const parameter of ordered) {
+    // A named call is mapped to the position of the parameter: it has to be
+    // the position the signature has, also when a parameter before it is left
+    // out of the descriptor.
+    const position = signatureNames.indexOf(parameter.name);
+    if (parameter.position !== position) {
+      return `${parameter.name} is at position ${parameter.position} but the signature has it at ${position}`;
+    }
+  }
+  return undefined;
+}
+
 describe('capability argument contracts', () => {
   const inventory = buildCapabilityInventory(frodo, { includeUtils: false });
   const byId = new Map(
@@ -132,12 +176,89 @@ describe('capability argument contracts', () => {
     ]);
   });
 
-  test('no capability advertises an empty parameter contract while its signature has parameters', () => {
-    // Zero tolerance, no baseline: a capability whose TSDoc has no `@param`
-    // tag advertises no parameters although the method takes some, so the
-    // runtime forwards namedArgs as ONE object instead of mapping them to the
-    // parameters (frodo-cli#1373). The signature is the one the generator
-    // read from the `export type` block, the same text `required` comes from.
+  test('contractDifference compares names in signature order and positions', () => {
+    const parameter = (
+      name: string,
+      position: number
+    ): McpCapabilityParameter => ({
+      name,
+      type: 'string',
+      required: true,
+      position,
+    });
+    const signature = ['importData', 'globalConfig', 'options'];
+    expect(
+      contractDifference(
+        [
+          parameter('importData', 0),
+          parameter('globalConfig', 1),
+          parameter('options', 2),
+        ],
+        signature
+      )
+    ).toBeUndefined();
+    // another order, the way the TSDoc of agent.importAgents had it
+    expect(
+      contractDifference(
+        [
+          parameter('globalConfig', 0),
+          parameter('importData', 1),
+          parameter('options', 2),
+        ],
+        signature
+      )
+    ).toMatch(/descriptor \[globalConfig, importData, options\]/);
+    // a malformed name, the way the TSDoc of idm.crypto.decryptMap had it
+    expect(contractDifference([parameter('{{', 0)], ['value'])).toMatch(
+      /descriptor \[\{\{\]/
+    );
+    // a parameter missing from the end, and an extra one
+    expect(
+      contractDifference(
+        [parameter('importData', 0), parameter('globalConfig', 1)],
+        signature
+      )
+    ).toMatch(/signature \[importData, globalConfig, options\]/);
+    expect(
+      contractDifference([parameter('importData', 0)], ['importData'])
+    ).toBeUndefined();
+    expect(
+      contractDifference(
+        [parameter('importData', 0), parameter('extra', 1)],
+        ['importData']
+      )
+    ).toMatch(/descriptor \[importData, extra\]/);
+    // a parameter left out on purpose is not expected, and the others keep
+    // the position of the signature
+    expect(
+      contractDifference(
+        [parameter('a', 0), parameter('c', 2)],
+        ['a', 'b', 'c'],
+        ['b']
+      )
+    ).toBeUndefined();
+    expect(
+      contractDifference(
+        [parameter('a', 0), parameter('c', 1)],
+        ['a', 'b', 'c'],
+        ['b']
+      )
+    ).toMatch(/c is at position 1 but the signature has it at 2/);
+    // the same names in another case or an extra parameter are differences
+    expect(
+      contractDifference([parameter('Value', 0)], ['value'])
+    ).toBeDefined();
+  });
+
+  test('the parameter names of every descriptor equal the names of its signature, in order', () => {
+    // Zero tolerance, no baseline: the contract of a capability is the TSDoc
+    // `@param` list of its method, and the runtime maps a named call to the
+    // positions and the names of that list (frodo-cli#1373). So the names of
+    // the descriptor, in position order, have to be the names of the
+    // signature that the generator read from the `export type` block (the
+    // same text `required` comes from), apart from the parameters that the
+    // metadata leaves out on purpose (the trailing callbacks that a JSON
+    // payload cannot carry, and the entries of NOT_EXPOSED below).
     const violations: string[] = [];
     for (const capability of inventory) {
       const docs = getHelpMetadataByMethod(capability.methodName);
@@ -148,12 +269,53 @@ describe('capability argument contracts', () => {
         violations.push(`${capability.id}: no help entry`);
         continue;
       }
-      const expected = signatureParameterNames(docs[0].signature);
-      if (expected.length > 0 && (capability.parameters ?? []).length === 0) {
-        violations.push(`${capability.id}(${expected.join(', ')})`);
+      const signatureNames = signatureParameterNames(docs[0].signature);
+      // What the TSDoc lists is what the descriptor is derived from: every
+      // parameter of the signature, also the one that is not offered to an MCP
+      // caller, has a tag, in the order of the signature.
+      const documented = docs[0].params.map(({ name }) => name);
+      while (
+        documented.length > signatureNames.length &&
+        TRAILING_CALLBACKS.includes(documented[documented.length - 1])
+      ) {
+        documented.pop();
       }
+      if (documented.join(',') !== signatureNames.join(',')) {
+        violations.push(
+          `${capability.id}: TSDoc [${documented.join(', ')}] but signature [${signatureNames.join(', ')}]`
+        );
+      }
+      const notExposed = [
+        ...(resolveCapabilityMeta(capability.id)?.excludeParameters ?? []),
+      ];
+      const difference = contractDifference(
+        capability.parameters ?? [],
+        signatureNames,
+        notExposed
+      );
+      if (difference) violations.push(`${capability.id}: ${difference}`);
     }
     expect(violations.sort()).toEqual([]);
+  });
+
+  test('only the trailing callbacks and the entries of NOT_EXPOSED are left out of a descriptor', () => {
+    // A parameter that the metadata excludes is an argument that an MCP
+    // caller cannot set, so each one has to be named here with its reason.
+    // A trailing callback is not a JSON value; there is no other kind of
+    // exclusion in the metadata.
+    const excluded: string[] = [];
+    for (const [id, meta] of Object.entries(CAPABILITY_META)) {
+      for (const name of meta.excludeParameters ?? []) {
+        if (!TRAILING_CALLBACKS.includes(name)) {
+          excluded.push(`${id}.${name}`);
+        }
+      }
+    }
+    expect(excluded.sort()).toEqual(Object.keys(NOT_EXPOSED).sort());
+    for (const [id, reason] of Object.entries(NOT_EXPOSED)) {
+      expect(reason.length).toBeGreaterThan(20);
+      expect(id.split('.').length).toBeGreaterThan(2);
+    }
   });
 
   describe('the capabilities that had no contract', () => {

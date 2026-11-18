@@ -86,6 +86,121 @@ const REPAIRED_CAPABILITIES: Record<string, string[]> = {
   'oauth2oidc.endpoint.getTokenInfo': ['amBaseUrl', 'config'],
 };
 
+/**
+ * The capabilities whose TSDoc named the parameters in another order, under
+ * other names, with a malformed name or without one of them (the second
+ * group), with the parameter names of the signature in declaration order,
+ * written out here by hand. Trailing callbacks are not parameters of a
+ * capability, and `credentialOverride` of `login.getTokens` is not offered to
+ * an MCP caller (see below).
+ */
+const MISMATCHED_CAPABILITIES: Record<string, string[]> = {
+  'agent.importAgents': ['importData', 'globalConfig'],
+  'authn.journey.getTreeDescendents': [
+    'treeExport',
+    'resolveTreeExport',
+    'resolvedTreeIds',
+  ],
+  'authz.policy.exportPolicy': ['policyId', 'options'],
+  'authz.policySet.updatePolicySet': ['policySetData', 'policySetName'],
+  'cloud.adminFed.createAdminFederationProvider': [
+    'providerType',
+    'providerData',
+    'providerId',
+  ],
+  'cloud.iga.certificationTemplate.importCertificationTemplates': [
+    'importData',
+    'templateId',
+    'templateName',
+    'options',
+  ],
+  'cloud.iga.event.importEvents': [
+    'importData',
+    'eventId',
+    'eventName',
+    'options',
+  ],
+  'cloud.iga.glossary.importGlossarySchemas': [
+    'importData',
+    'glossaryId',
+    'glossaryName',
+    'objectType',
+    'options',
+  ],
+  'cloud.iga.requestForm.importRequestForms': [
+    'importData',
+    'formId',
+    'formName',
+    'options',
+  ],
+  'cloud.iga.requestType.importRequestTypes': [
+    'importData',
+    'typeId',
+    'typeName',
+    'options',
+  ],
+  'idm.crypto.decryptMap': ['map'],
+  'idm.crypto.encryptMap': ['map'],
+  'idm.managed.queryRelatedManagedObjects': [
+    'type',
+    'id',
+    'relationship',
+    'fields',
+    'pageSize',
+  ],
+  'idm.managed.schema.createManagedObjectSchemaFlatProperty': [
+    'type',
+    'propertyName',
+    'fields',
+    'subProperty',
+  ],
+  'idm.managed.schema.createManagedObjectSchemaRelationshipProperty': [
+    'type',
+    'propertyName',
+    'fields',
+    'reverse',
+  ],
+  'idm.managed.schema.removeManagedObjectSchemaFlatProperty': [
+    'type',
+    'propertyName',
+    'subProperty',
+  ],
+  'idm.managed.schema.removeManagedObjectSchemaRelationshipProperty': [
+    'type',
+    'propertyName',
+    'withReverse',
+  ],
+  'idm.managed.schema.updateManagedObjectSchemaFlatProperty': [
+    'type',
+    'propertyName',
+    'changedFields',
+    'subProperty',
+  ],
+  'idm.managed.schema.updateManagedObjectSchemaRelationshipProperty': [
+    'type',
+    'propertyName',
+    'changedFields',
+    'withReverse',
+  ],
+  'idm.managedSystem.queryManagedSystemObjects': [
+    'type',
+    'filter',
+    'fields',
+    'pageSize',
+  ],
+  'idm.mapping.updateSyncMappings': ['mappings'],
+  'saml2.circlesOfTrust.importCirclesOfTrust': [
+    'importData',
+    'entityProviders',
+  ],
+  'saml2.entityProvider.updateSaml2Provider': [
+    'location',
+    'providerData',
+    'entityId',
+  ],
+  'theme.updateThemes': ['themeMap'],
+};
+
 /** Operation types that only `frodo_dispatch_read_only` accepts. */
 const READ_ONLY_TYPES = ['count', 'read', 'search', 'list'];
 
@@ -155,6 +270,17 @@ async function dispatch(
     context: { auth: { mode: 'state-config', config: {} } },
   });
   return { handler, result };
+}
+
+/**
+ * The arguments of a call without the trailing functions: the runtime puts its
+ * own callback after the arguments of a capability that collects the results
+ * of an import, and a JSON payload cannot carry one.
+ */
+function withoutTrailingCallbacks(call: unknown[]): unknown[] {
+  const args = [...call];
+  while (typeof args[args.length - 1] === 'function') args.pop();
+  return args;
 }
 
 /** A value of the type a parameter declares, distinct for every parameter. */
@@ -315,6 +441,129 @@ describe('every capability that had no parameter contract', () => {
       );
     }
   );
+});
+
+describe('every capability whose contract differed from its signature', () => {
+  test.each(Object.entries(MISMATCHED_CAPABILITIES))(
+    '%s: namedArgs reach the method by the names and in the order of its signature',
+    async (id, names) => {
+      const descriptor = service.capabilities.find((c) => c.id === id);
+      expect(descriptor).toBeDefined();
+      const declared = [...(descriptor?.parameters ?? [])].sort(
+        (left, right) => (left.position ?? 0) - (right.position ?? 0)
+      );
+      expect(declared.map(({ name }) => name)).toEqual(names);
+
+      const values = declared.map(({ name, type }) => sentinel(name, type));
+      const namedArgs = Object.fromEntries(
+        declared.map(({ name }, index) => [name, values[index]])
+      );
+
+      const named = await dispatch(id, { namedArgs });
+      expect(named.handler).toHaveBeenCalledTimes(1);
+      // the same arguments, in the same positions, as a positional call
+      const positional = await dispatch(id, { positionalArgs: values });
+      expect(withoutTrailingCallbacks(named.handler.mock.calls[0])).toEqual(
+        values
+      );
+      expect(withoutTrailingCallbacks(named.handler.mock.calls[0])).toEqual(
+        withoutTrailingCallbacks(positional.handler.mock.calls[0])
+      );
+    }
+  );
+
+  test('a named call that gives one parameter reaches its position of the signature, not the position in the old order', async () => {
+    // agent.importAgents(importData, globalConfig): the TSDoc had them the
+    // other way round, so `globalConfig: true` used to arrive as importData.
+    const { handler } = await dispatch('agent.importAgents', {
+      namedArgs: { importData: { agent: {} }, globalConfig: true },
+    });
+    expect(withoutTrailingCallbacks(handler.mock.calls[0])).toEqual([
+      { agent: {} },
+      true,
+    ]);
+  });
+
+  test.each([
+    ['authz.policySet.updatePolicySet', 'importData'],
+    ['idm.mapping.updateSyncMappings', 'mappingData'],
+    ['theme.updateThemes', 'allThemesData'],
+    ['idm.crypto.decryptMap', '{{'],
+    [
+      'idm.managed.schema.createManagedObjectSchemaFlatProperty',
+      '[subProperty]',
+    ],
+  ])(
+    '%s: the stale parameter name %s is rejected, not mapped',
+    async (id, stale) => {
+      const handler: Handler = jest.fn(async () => undefined);
+      currentFake = fakeInstance(id, handler);
+      await expect(
+        service.executeTool({
+          toolName: 'frodo_dispatch',
+          arguments: { skillId: id, namedArgs: { [stale]: 'x' } },
+          context: { auth: { mode: 'state-config', config: {} } },
+        })
+      ).rejects.toThrow(`does not accept named argument(s) ${stale}`);
+      expect(handler).not.toHaveBeenCalled();
+    }
+  );
+
+  test('the top-level pageSize is the pageSize parameter of the queries that have one', async () => {
+    const { handler } = await dispatch(
+      'idm.managedSystem.queryManagedSystemObjects',
+      {
+        namedArgs: { type: 'svcacct' },
+        pageSize: 25,
+      }
+    );
+    expect(handler.mock.calls[0]).toEqual([
+      'svcacct',
+      undefined,
+      undefined,
+      25,
+    ]);
+  });
+});
+
+describe('login.getTokens', () => {
+  const descriptor = () =>
+    service.capabilities.find((c) => c.id === 'login.getTokens');
+
+  test('credentialOverride, which selects the credential of the call, is not a parameter of the capability', () => {
+    expect(descriptor()?.parameters?.map(({ name }) => name)).toEqual([
+      'forceLoginAsUser',
+      'autoRefresh',
+      'types',
+      'callbackHandler',
+      'useDeviceFlow',
+      'promptHandler',
+    ]);
+  });
+
+  test('a named call that gives credentialOverride is rejected before the method is called', async () => {
+    const getTokens: Handler = jest.fn(async () => undefined);
+    currentFake = fakeInstance('login.getTokens', getTokens);
+    await expect(
+      service.executeTool({
+        toolName: 'frodo_dispatch',
+        arguments: {
+          skillId: 'login.getTokens',
+          namedArgs: { credentialOverride: 'svcacct' },
+        },
+        context: { auth: { mode: 'state-config', config: {} } },
+      })
+    ).rejects.toThrow('does not accept named argument(s) credentialOverride');
+    expect(getTokens).not.toHaveBeenCalledWith(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'svcacct'
+    );
+  });
 });
 
 describe('cloud.log.fetch and cloud.log.tail', () => {
