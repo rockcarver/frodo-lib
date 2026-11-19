@@ -91,9 +91,9 @@ export type RequestType = {
   ): Promise<RequestTypeSkeleton>;
   /**
    * Import request types
+   * @param {RequestTypeExportInterface} importData request type import data
    * @param {string} typeId The request type id. If supplied, only the request type of that id is imported. Takes priority over typeName if they are all provided.
    * @param {string} typeName The request type display name. If supplied, only the request type of that display name is imported.
-   * @param {RequestTypeExportInterface} importData request type import data
    * @param {RequestTypeImportOptions} options import options
    * @param {ResultCallback<RequestTypeSkeleton>} resultCallback Optional callback to process individual results
    * @returns {Promise<RequestTypeSkeleton[]>} the imported request types

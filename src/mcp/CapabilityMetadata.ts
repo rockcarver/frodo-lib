@@ -1079,6 +1079,12 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       "Reads a single relationship schema property via the dedicated v2 API (requires IDM 7.5+), returning null instead of throwing when the property doesn't exist — a confirmed 404 reliably means absence; any other failure still propagates. Read-only counterpart to idm.managed.schema.readManagedObjectSchemaProperty, which throws on a missing property instead.",
   },
+  'idm.managed.queryRelatedManagedObjects': {
+    // pageSize is the size of the requests of a read that goes through every
+    // page; the runtime's own pageSize argument cuts the result, so it is not
+    // an argument of the capability: no route supplies it.
+    excludeParameters: ['pageSize'],
+  },
   'idm.managed.readRelationship': {
     operationType: 'read',
     objectType: 'Relationship',
@@ -1469,6 +1475,10 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'idm.managedSystem.queryManagedSystemObjects': {
     riskClass: 'critical',
     trustTier: 'full-trust',
+    // pageSize is the size of the requests of a read that goes through every
+    // page; the runtime's own pageSize argument cuts the result, so it is not
+    // an argument of the capability: no route supplies it.
+    excludeParameters: ['pageSize'],
     notes:
       'Search managed system objects of a type (teammember or svcacct) — can reveal tenant-admin or service-account membership. Admin-only regardless of read-only intent.',
   },
@@ -3578,6 +3588,9 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'login.getTokens': {
     mutating: false,
     riskClass: 'critical',
+    // credentialOverride is in the TSDoc of the method and is not an argument
+    // of the capability: no route supplies it, by name or by position.
+    excludeParameters: ['credentialOverride'],
     notes:
       'Returns live bearer/session tokens for the current identity. Kept in the inventory at critical risk rather than excluded; only reachable under policies that do not deny critical risk (e.g. admin).',
   },

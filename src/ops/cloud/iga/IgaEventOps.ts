@@ -94,9 +94,9 @@ export type IgaEvent = {
   ): Promise<EventSkeleton>;
   /**
    * Import events
+   * @param {EventExportInterface} importData Event import data
    * @param {string} eventId The event id. If supplied, only the event of that id is imported. Takes priority over eventName if it is provided.
    * @param {string} eventName The event name. If supplied, only the event(s) of that name is imported.
-   * @param {EventExportInterface} importData Event import data
    * @param {EventImportOptions} options Import options
    * @param {ResultCallback<EventSkeleton>} resultCallback Optional callback to process individual results
    * @returns {Promise<EventSkeleton[]>} The imported events

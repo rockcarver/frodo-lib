@@ -126,6 +126,7 @@ export type Authenticate = {
    * @param {CallbackHandler} callbackHandler fills callback input in place, synchronously or asynchronously; returned or resolved values are ignored (see CallbackHandler)
    * @param {boolean} useDeviceFlow only consulted when a loaded connection profile prefers browser login (`preferredCredential: 'browser'`, or the legacy `authMode: 'interactive'` for a profile predating that field) — falls back to the profile's own `preferredDeviceFlow` when not explicitly passed; see `getTokensInteractive()` (default: false)
    * @param {BrowserLoginPromptHandler} promptHandler required only when a loaded connection profile prefers browser login; every other case ignores it
+   * @param {'user' | 'svcacct' | 'amster' | 'browser'} credentialOverride Not offered over MCP: the call uses the credential of the configuration.
    * @returns {Promise<Tokens>} object containing the tokens
    */
   getTokens(

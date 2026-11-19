@@ -67,8 +67,8 @@ export type Saml2 = {
   /**
    * Update SAML2 entity provider
    * @param {Saml2ProiderLocation} location Entity provider location (hosted or remote)
-   * @param {string} entityId SAML2 entity id
    * @param {Saml2ProviderSkeleton} providerData Object representing a SAML entity provider
+   * @param {string} entityId SAML2 entity id
    * @returns {Promise<Saml2ProviderSkeleton>} a promise that resolves to a saml2 entity provider object
    */
   updateSaml2Provider(

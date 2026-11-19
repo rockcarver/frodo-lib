@@ -302,8 +302,8 @@ export type Journey = {
    * sub-journey that cannot be resolved appears as a leaf. Each sub-journey is
    * resolved at most once per call.
    * @param {SingleTreeExportInterface} treeExport single tree export
-   * @param {string[]} resolvedTreeIds list of tree ids that are listed as leaves and not expanded (the list is not modified)
    * @param {TreeExportResolverInterface} resolveTreeExport tree export resolver callback function
+   * @param {string[]} resolvedTreeIds list of tree ids that are listed as leaves and not expanded (the list is not modified)
    * @returns {Promise<TreeDependencyMapInterface>} a promise that resolves to a tree dependency map
    */
   getTreeDescendents(

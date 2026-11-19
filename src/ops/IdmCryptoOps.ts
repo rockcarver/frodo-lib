@@ -17,7 +17,7 @@ export type IdmCrypto = {
   encrypt(value: any): Promise<any>;
   /**
    * Encrypt a map of values
-   * @param {{ [key: string]: any }} map map of values to encrypt
+   * @param {object} map map of values to encrypt
    * @returns {Promise<{ [key: string]: any }>} a promise resolving to a map of encrypted values
    */
   encryptMap(map: { [key: string]: any }): Promise<{ [key: string]: any }>;
@@ -29,7 +29,7 @@ export type IdmCrypto = {
   decrypt(value: any): Promise<any>;
   /**
    * Decrypt a map of values
-   * @param {{ [key: string]: any }} map map of values to decrypt
+   * @param {object} map map of values to decrypt
    * @returns {Promise<{ [key: string]: any }>} a promise resolving to a map of decrypted values
    */
   decryptMap(map: { [key: string]: any }): Promise<{ [key: string]: any }>;

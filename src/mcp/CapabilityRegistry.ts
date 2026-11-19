@@ -202,6 +202,77 @@ function shouldIncludeMethod(path: string[]): boolean {
 export const RESULT_CALLBACK_PARAMETER = 'resultCallback';
 
 /**
+ * Callbacks that an MCP JSON payload cannot carry: the runtime or the registry
+ * supplies them, and they are not "left out of the arguments" in the sense of
+ * {@link findExcludedParameters}.
+ */
+const CALLBACK_PARAMETERS: readonly string[] = [
+  RESULT_CALLBACK_PARAMETER,
+  'leftOutCallback',
+];
+
+/**
+ * Finds the parameters of a facade method that its capability leaves out of
+ * its arguments on purpose (`excludeParameters` of the capability metadata),
+ * with the position that the signature gives them.
+ *
+ * @remarks
+ * The trailing callbacks are not among them: they are supplied by the runtime.
+ * A parameter in this list is documented in the TSDoc of the method and is not
+ * an argument of the capability, so no route may supply it.
+ *
+ * @param capabilityId Full dot-path id of the capability.
+ * @param methodName Bare method name to look up.
+ * @returns The excluded parameters in signature order, or an empty list.
+ */
+export function findExcludedParameters(
+  capabilityId: string,
+  methodName: string
+): McpCapabilityParameter[] {
+  const excluded = (
+    resolveCapabilityMeta(capabilityId)?.excludeParameters ?? []
+  ).filter((name) => !CALLBACK_PARAMETERS.includes(name));
+  if (excluded.length === 0) {
+    return [];
+  }
+  return (deriveParametersFromHelp(methodName) ?? []).filter((parameter) =>
+    excluded.includes(parameter.name)
+  );
+}
+
+/**
+ * Says which excluded positions a positional call supplies.
+ *
+ * @remarks
+ * An excluded position after the last offered parameter is supplied by any
+ * array that reaches it, `null` and `undefined` included: such a value is one
+ * more value than the capability offers. An excluded position in front of an
+ * offered parameter is a placeholder that the caller has to write to reach the
+ * parameter behind it, so only a value that is neither `null` nor `undefined`
+ * supplies it.
+ *
+ * @param positionalArgs Positional arguments of the call.
+ * @param excludedPositions Positions of the parameters that the capability leaves out.
+ * @param lastOfferedPosition Position of the last parameter that the capability offers, `-1` for none.
+ * @returns The excluded positions that the call supplies, in ascending order.
+ */
+export function findSuppliedExcludedPositions(
+  positionalArgs: unknown[],
+  excludedPositions: number[],
+  lastOfferedPosition: number
+): number[] {
+  return excludedPositions
+    .filter(
+      (position) =>
+        position < positionalArgs.length &&
+        (position > lastOfferedPosition ||
+          (positionalArgs[position] !== null &&
+            positionalArgs[position] !== undefined))
+    )
+    .sort((left, right) => left - right);
+}
+
+/**
  * Finds where a facade method takes its result callback.
  *
  * @remarks

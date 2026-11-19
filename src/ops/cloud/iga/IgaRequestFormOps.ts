@@ -92,9 +92,9 @@ export type RequestForm = {
   ): Promise<RequestFormSkeleton>;
   /**
    * Import request forms
+   * @param {RequestFormExportInterface} importData request form import data
    * @param {string} formId The request form id. If supplied, only the request form of that id is imported. Takes priority over formName if it is provided.
    * @param {string} formName The request form name. If supplied, only the request form(s) of that name is imported.
-   * @param {RequestFormExportInterface} importData request form import data
    * @param {RequestFormImportOptions} options import options
    * @param {ResultCallback<RequestFormSkeleton>} resultCallback Optional callback to process individual results
    * @returns {Promise<RequestFormSkeleton[]>} the imported request forms

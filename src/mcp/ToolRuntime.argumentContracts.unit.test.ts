@@ -86,6 +86,116 @@ const REPAIRED_CAPABILITIES: Record<string, string[]> = {
   'oauth2oidc.endpoint.getTokenInfo': ['amBaseUrl', 'config'],
 };
 
+/**
+ * The capabilities whose TSDoc named the parameters in another order, under
+ * other names, with a malformed name or without one of them (the second
+ * group), with the parameter names of the signature in declaration order,
+ * written out here by hand. Trailing callbacks are not parameters of a
+ * capability, and the parameters that the metadata leaves out of the arguments
+ * of a capability (`credentialOverride` of `login.getTokens`, `pageSize` of the
+ * two queries that read every page) are not in the lists (see below).
+ */
+const MISMATCHED_CAPABILITIES: Record<string, string[]> = {
+  'agent.importAgents': ['importData', 'globalConfig'],
+  'authn.journey.getTreeDescendents': [
+    'treeExport',
+    'resolveTreeExport',
+    'resolvedTreeIds',
+  ],
+  'authz.policy.exportPolicy': ['policyId', 'options'],
+  'authz.policySet.updatePolicySet': ['policySetData', 'policySetName'],
+  'cloud.adminFed.createAdminFederationProvider': [
+    'providerType',
+    'providerData',
+    'providerId',
+  ],
+  'cloud.iga.certificationTemplate.importCertificationTemplates': [
+    'importData',
+    'templateId',
+    'templateName',
+    'options',
+  ],
+  'cloud.iga.event.importEvents': [
+    'importData',
+    'eventId',
+    'eventName',
+    'options',
+  ],
+  'cloud.iga.glossary.importGlossarySchemas': [
+    'importData',
+    'glossaryId',
+    'glossaryName',
+    'objectType',
+    'options',
+  ],
+  'cloud.iga.requestForm.importRequestForms': [
+    'importData',
+    'formId',
+    'formName',
+    'options',
+  ],
+  'cloud.iga.requestType.importRequestTypes': [
+    'importData',
+    'typeId',
+    'typeName',
+    'options',
+  ],
+  'idm.crypto.decryptMap': ['map'],
+  'idm.crypto.encryptMap': ['map'],
+  'idm.managed.queryRelatedManagedObjects': [
+    'type',
+    'id',
+    'relationship',
+    'fields',
+  ],
+  'idm.managed.schema.createManagedObjectSchemaFlatProperty': [
+    'type',
+    'propertyName',
+    'fields',
+    'subProperty',
+  ],
+  'idm.managed.schema.createManagedObjectSchemaRelationshipProperty': [
+    'type',
+    'propertyName',
+    'fields',
+    'reverse',
+  ],
+  'idm.managed.schema.removeManagedObjectSchemaFlatProperty': [
+    'type',
+    'propertyName',
+    'subProperty',
+  ],
+  'idm.managed.schema.removeManagedObjectSchemaRelationshipProperty': [
+    'type',
+    'propertyName',
+    'withReverse',
+  ],
+  'idm.managed.schema.updateManagedObjectSchemaFlatProperty': [
+    'type',
+    'propertyName',
+    'changedFields',
+    'subProperty',
+  ],
+  'idm.managed.schema.updateManagedObjectSchemaRelationshipProperty': [
+    'type',
+    'propertyName',
+    'changedFields',
+    'withReverse',
+  ],
+  'idm.managedSystem.queryManagedSystemObjects': ['type', 'filter', 'fields'],
+  'idm.mapping.updateSyncMappings': ['mappings'],
+  'saml2.circlesOfTrust.importCirclesOfTrust': [
+    'importData',
+    'entityProviders',
+  ],
+  'saml2.entityProvider.updateSaml2Provider': [
+    'location',
+    'providerData',
+    'entityId',
+  ],
+  'theme.updateThemes': ['themeMap'],
+};
+
 /** Operation types that only `frodo_dispatch_read_only` accepts. */
 const READ_ONLY_TYPES = ['count', 'read', 'search', 'list'];
 
@@ -155,6 +265,17 @@ async function dispatch(
     context: { auth: { mode: 'state-config', config: {} } },
   });
   return { handler, result };
+}
+
+/**
+ * The arguments of a call without the trailing functions: the runtime puts its
+ * own callback after the arguments of a capability that collects the results
+ * of an import, and a JSON payload cannot carry one.
+ */
+function withoutTrailingCallbacks(call: unknown[]): unknown[] {
+  const args = [...call];
+  while (typeof args[args.length - 1] === 'function') args.pop();
+  return args;
 }
 
 /** A value of the type a parameter declares, distinct for every parameter. */
@@ -315,6 +436,264 @@ describe('every capability that had no parameter contract', () => {
       );
     }
   );
+});
+
+describe('every capability whose contract differed from its signature', () => {
+  test.each(Object.entries(MISMATCHED_CAPABILITIES))(
+    '%s: namedArgs reach the method by the names and in the order of its signature',
+    async (id, names) => {
+      const descriptor = service.capabilities.find((c) => c.id === id);
+      expect(descriptor).toBeDefined();
+      const declared = [...(descriptor?.parameters ?? [])].sort(
+        (left, right) => (left.position ?? 0) - (right.position ?? 0)
+      );
+      expect(declared.map(({ name }) => name)).toEqual(names);
+
+      const values = declared.map(({ name, type }) => sentinel(name, type));
+      const namedArgs = Object.fromEntries(
+        declared.map(({ name }, index) => [name, values[index]])
+      );
+
+      const named = await dispatch(id, { namedArgs });
+      expect(named.handler).toHaveBeenCalledTimes(1);
+      // the same arguments, in the same positions, as a positional call
+      const positional = await dispatch(id, { positionalArgs: values });
+      expect(withoutTrailingCallbacks(named.handler.mock.calls[0])).toEqual(
+        values
+      );
+      expect(withoutTrailingCallbacks(named.handler.mock.calls[0])).toEqual(
+        withoutTrailingCallbacks(positional.handler.mock.calls[0])
+      );
+    }
+  );
+
+  test('a named call that gives one parameter reaches its position of the signature, not the position in the old order', async () => {
+    // agent.importAgents(importData, globalConfig): the TSDoc had them the
+    // other way round, so `globalConfig: true` used to arrive as importData.
+    const { handler } = await dispatch('agent.importAgents', {
+      namedArgs: { importData: { agent: {} }, globalConfig: true },
+    });
+    expect(withoutTrailingCallbacks(handler.mock.calls[0])).toEqual([
+      { agent: {} },
+      true,
+    ]);
+  });
+
+  test.each([
+    ['authz.policySet.updatePolicySet', 'importData'],
+    ['idm.mapping.updateSyncMappings', 'mappingData'],
+    ['theme.updateThemes', 'allThemesData'],
+    ['idm.crypto.decryptMap', '{{'],
+    [
+      'idm.managed.schema.createManagedObjectSchemaFlatProperty',
+      '[subProperty]',
+    ],
+  ])(
+    '%s: the stale parameter name %s is rejected, not mapped',
+    async (id, stale) => {
+      const handler: Handler = jest.fn(async () => undefined);
+      currentFake = fakeInstance(id, handler);
+      await expect(
+        service.executeTool({
+          toolName: 'frodo_dispatch',
+          arguments: { skillId: id, namedArgs: { [stale]: 'x' } },
+          context: { auth: { mode: 'state-config', config: {} } },
+        })
+      ).rejects.toThrow(`does not accept named argument(s) ${stale}`);
+      expect(handler).not.toHaveBeenCalled();
+    }
+  );
+});
+
+/**
+ * A parameter that the capability metadata leaves out of the arguments of a
+ * capability (`excludeParameters`) is documented in the TSDoc of the method
+ * and cannot be supplied by any route: not by name and not by position.
+ */
+describe('a parameter that a capability leaves out of its arguments', () => {
+  const getTokensOffered = [false, true, ['cloud'], null, false, null];
+
+  /** The calls of the method behind the capability, without the runtime's own login. */
+  function methodCalls(handler: Handler): unknown[][] {
+    return handler.mock.calls.filter((call) => call.length > 0);
+  }
+
+  test('login.getTokens does not list credentialOverride', () => {
+    const descriptor = service.capabilities.find(
+      (c) => c.id === 'login.getTokens'
+    );
+    expect(descriptor?.parameters?.map(({ name }) => name)).toEqual([
+      'forceLoginAsUser',
+      'autoRefresh',
+      'types',
+      'callbackHandler',
+      'useDeviceFlow',
+      'promptHandler',
+    ]);
+  });
+
+  test('a named call that gives it is rejected before the method is called', async () => {
+    const getTokens: Handler = jest.fn(async () => undefined);
+    currentFake = fakeInstance('login.getTokens', getTokens);
+    await expect(
+      service.executeTool({
+        toolName: 'frodo_dispatch',
+        arguments: {
+          skillId: 'login.getTokens',
+          namedArgs: { credentialOverride: 'svcacct' },
+        },
+        context: { auth: { mode: 'state-config', config: {} } },
+      })
+    ).rejects.toThrow('does not accept named argument(s) credentialOverride');
+    expect(methodCalls(getTokens).some((call) => call.length >= 7)).toBe(false);
+  });
+
+  test('a positional call with exactly the offered values still reaches the method', async () => {
+    const { handler } = await dispatch('login.getTokens', {
+      positionalArgs: getTokensOffered,
+    });
+    expect(methodCalls(handler)).toContainEqual(getTokensOffered);
+  });
+
+  test.each([[[true]], [getTokensOffered.slice(0, 3)]])(
+    'a positional call with fewer values %p still reaches the method',
+    async (positionalArgs) => {
+      const { handler } = await dispatch('login.getTokens', {
+        positionalArgs,
+      });
+      expect(methodCalls(handler)).toContainEqual(positionalArgs);
+    }
+  );
+
+  test.each([
+    ['a seventh value', [...getTokensOffered, 'svcacct']],
+    ['a seventh value of any type', [...getTokensOffered, { any: 'thing' }]],
+    ['a seventh null', [...getTokensOffered, null]],
+    ['a seventh undefined', [...getTokensOffered, undefined]],
+    ['twelve values', [...getTokensOffered, 1, 2, 3, 4, 5, 6]],
+  ])(
+    'a positional call with %s is rejected before the method is called',
+    async (_label, positionalArgs) => {
+      const handler: Handler = jest.fn(async () => undefined);
+      currentFake = fakeInstance('login.getTokens', handler);
+      await expect(
+        service.executeTool({
+          toolName: 'frodo_dispatch',
+          arguments: { skillId: 'login.getTokens', positionalArgs },
+          context: { auth: { mode: 'state-config', config: {} } },
+        })
+      ).rejects.toThrow(
+        "descriptor 'login.getTokens' does not accept positionalArgs at position(s) 6"
+      );
+      expect(methodCalls(handler)).toEqual([]);
+    }
+  );
+
+  test('a call that sends positionalArgs and namedArgs is rejected too', async () => {
+    const handler: Handler = jest.fn(async () => undefined);
+    currentFake = fakeInstance('login.getTokens', handler);
+    await expect(
+      service.executeTool({
+        toolName: 'frodo_dispatch',
+        arguments: {
+          skillId: 'login.getTokens',
+          positionalArgs: [...getTokensOffered, 'svcacct'],
+          namedArgs: { forceLoginAsUser: true },
+        },
+        context: { auth: { mode: 'state-config', config: {} } },
+      })
+    ).rejects.toThrow('does not accept positionalArgs at position(s) 6');
+    expect(methodCalls(handler)).toEqual([]);
+  });
+
+  test('a capability that leaves out nothing but its callback keeps taking more positional values than its contract', async () => {
+    // Only a capability with an excluded parameter has the rule: there is no
+    // general check of the length of positionalArgs.
+    const { handler } = await dispatch('idm.script.evaluateScript', {
+      positionalArgs: ['1+1', undefined, 'extra'],
+    });
+    expect(handler.mock.calls[0]).toEqual(['1+1', undefined, 'extra']);
+    const bulk = await dispatch('agent.importAgents', {
+      positionalArgs: [{ agent: {} }, true, 'extra'],
+    });
+    expect(bulk.handler).toHaveBeenCalledTimes(1);
+  });
+
+  describe('pageSize of the two queries that read every page', () => {
+    const queries: Array<
+      [string, string[], Record<string, unknown>, unknown[]]
+    > = [
+      [
+        'idm.managed.queryRelatedManagedObjects',
+        ['type', 'id', 'relationship', 'fields'],
+        { type: 'alpha_role', id: 'r1', relationship: 'members' },
+        ['alpha_role', 'r1', 'members', undefined],
+      ],
+      [
+        'idm.managedSystem.queryManagedSystemObjects',
+        ['type', 'filter', 'fields'],
+        { type: 'svcacct' },
+        ['svcacct', undefined, undefined],
+      ],
+    ];
+
+    test.each(queries)('%s does not list pageSize', (id, names) => {
+      const descriptor = service.capabilities.find((c) => c.id === id);
+      expect(descriptor?.parameters?.map(({ name }) => name)).toEqual(names);
+    });
+
+    test.each(queries)(
+      '%s: a named pageSize is rejected',
+      async (id, _names, namedArgs) => {
+        const handler: Handler = jest.fn(async () => undefined);
+        currentFake = fakeInstance(id, handler);
+        await expect(
+          service.executeTool({
+            toolName: 'frodo_dispatch_read_only',
+            arguments: {
+              skillId: id,
+              namedArgs: { ...namedArgs, pageSize: 5 },
+            },
+            context: { auth: { mode: 'state-config', config: {} } },
+          })
+        ).rejects.toThrow('does not accept named argument(s) pageSize');
+        expect(methodCalls(handler)).toEqual([]);
+      }
+    );
+
+    test.each(queries)(
+      '%s: a positional value for pageSize is rejected, a call without it works',
+      async (id, names, namedArgs) => {
+        const handler: Handler = jest.fn(async () => undefined);
+        currentFake = fakeInstance(id, handler);
+        await expect(
+          service.executeTool({
+            toolName: 'frodo_dispatch_read_only',
+            arguments: {
+              skillId: id,
+              positionalArgs: [...names.map((n) => namedArgs[n] ?? null), 5],
+            },
+            context: { auth: { mode: 'state-config', config: {} } },
+          })
+        ).rejects.toThrow(
+          `descriptor '${id}' does not accept positionalArgs at position(s) ${names.length}`
+        );
+        expect(methodCalls(handler)).toEqual([]);
+
+        const values = Object.values(namedArgs);
+        const ok = await dispatch(id, { positionalArgs: values });
+        expect(ok.handler.mock.calls[0]).toEqual(values);
+      }
+    );
+
+    test.each(queries)(
+      '%s: the pageSize argument of the call is not handed to the method',
+      async (id, _names, namedArgs, expected) => {
+        const { handler } = await dispatch(id, { namedArgs, pageSize: 25 });
+        expect(handler.mock.calls[0]).toEqual(expected);
+      }
+    );
+  });
 });
 
 describe('cloud.log.fetch and cloud.log.tail', () => {
