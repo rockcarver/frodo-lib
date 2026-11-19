@@ -177,11 +177,20 @@ export async function runSystemScript({
  * parameter.
  *
  * @remarks
- * IDM answers a connector query with a cookie that is already percent-encoded
- * (`...%3D%3A0`), and the next request has to carry it as it came: an escape
- * that is there is kept. Every other character that is not safe in a query
- * value, and a `%` that does not start an escape, is encoded, so that a cookie
- * cannot change or add a parameter of the request.
+ * What it assumes: IDM answers a connector query with a cookie that is
+ * already percent-encoded (`...%3D%3A0`), and the next request has to carry it
+ * as it came, so an escape that is there is kept, in upper or lower case. The
+ * cookie of a managed object query is not like that: it comes back raw (plain
+ * base64) and `ManagedObjectApi` encodes it itself, so this function is not
+ * used there. Every other character that is not safe in a query value, and a
+ * `%` that does not start an escape, is encoded, so that a cookie cannot
+ * change or add a parameter of the request.
+ *
+ * Two limits follow from the fact that an escape cannot be told from text that
+ * looks like one: a raw cookie that literally contains an escape such as `%41`
+ * is sent as that escape, and a form-encoded `+` that stands for a space is
+ * sent as `%2B`. Neither is supported; the cookies that IDM has been recorded
+ * to issue contain neither.
  *
  * @param {string} cookie paged results cookie
  * @returns {string} the cookie, safe in a query string

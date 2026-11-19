@@ -461,7 +461,15 @@ export type McpExecutionPaginationMetadata = {
   isPartial: boolean;
   /** Number of rows returned, when the payload is an array or a platform-paged result. */
   returnedCount?: number;
-  /** Total number of rows available before truncation, when known. */
+  /**
+   * Total number of rows available before truncation, when known. Present
+   * only where {@link McpToolExecutionResult.total} is a number and the
+   * runtime sliced an array or the platform pages the result. Absent for an
+   * array that nothing cut (its `total` is the length of the array, which
+   * `returnedCount` also is), for a capability that stopped at a limit of its
+   * own or cannot say whether it did (also on the last page of an offset
+   * read), and when the platform does not say.
+   */
   totalCount?: number;
   /** Requested page size hint, if provided by caller. */
   requestedPageSize?: number;
@@ -4126,7 +4134,20 @@ type McpSelfCap = {
  * Resolves the limit that a self-capping capability applies to this call: the
  * value the caller sent for the argument that sets it, or its default.
  *
- * @returns `undefined` for a capability that does not cap itself.
+ * @remarks
+ * Deduplication counts as on for every value but `false`, which is how the
+ * operations function reads it (it removes duplicates for any truthy value, so
+ * the runtime never believes it is off when it is on).
+ *
+ * A limit that is not a finite number cannot be compared with the number of
+ * items, so the rule is not applied and the result is read as that of a
+ * capability that does not limit itself. This cannot happen for the shipped
+ * capabilities: they take named arguments, and a named value that is not an
+ * integer is refused before the capability runs. A host that brings its own
+ * descriptors and takes the limit as a positional value can reach it.
+ *
+ * @returns `undefined` for a capability that does not cap itself, and for a
+ *   limit that is not a finite number.
  */
 function resolveSelfCap(
   descriptor: McpCapabilityDescriptor,
@@ -4399,7 +4420,10 @@ function buildSelfCapWarning(
 /**
  * The warning of an array from a capability that stops at a limit of its own
  * and removes duplicates afterwards: it says that the result can be
- * incomplete although it holds fewer items than the limit, and how to be sure.
+ * incomplete although it holds fewer items than the limit, that the count is
+ * not a total, and which argument makes the next result say whether the limit
+ * was reached. It promises no certainty: with the duplicates kept the result
+ * still only says that the limit was reached, not that nothing was left.
  */
 function buildDedupeWarning(
   returned: number,
@@ -4408,7 +4432,7 @@ function buildDedupeWarning(
   selfCap: McpSelfCap
 ): string {
   const dedupeArgument = selfCap.dedupe?.argument;
-  return `Result may be incomplete: the capability ${selfCap.capability} stops at${selfCap.readsWholePages ? ' or after' : ''} its own limit of ${selfCap.cap} events (argument ${selfCap.argument}${describeWholePages(selfCap, 'events')}), counted before duplicate events are removed (argument ${dedupeArgument}, which is on unless you pass false), so a result can be incomplete even when it has fewer than ${selfCap.argument} events. To be sure, pass ${dedupeArgument}: false or narrow the time window, and compare returned with ${selfCap.argument}.${describeCutOfResponse(returned, returnedByCapability, truncation)}`;
+  return `Result may be incomplete: the capability ${selfCap.capability} stops at${selfCap.readsWholePages ? ' or after' : ''} its own limit of ${selfCap.cap} events (argument ${selfCap.argument}${describeWholePages(selfCap, 'events')}), counted before duplicate events are removed (argument ${dedupeArgument}, which is on unless you pass false), so a result can be incomplete even when it has fewer than ${selfCap.argument} events. Do not count or search only this result, and do not use returned as a total. Pass ${dedupeArgument}: false to read a result that says whether the limit was reached.${describeCutOfResponse(returned, returnedByCapability, truncation)}`;
 }
 
 /**
@@ -4571,13 +4595,16 @@ function buildPaginationMetadata(
   };
 
   if (truncation) {
-    // a capability that stopped at its own limit has no total to report
+    // a total is reported only where the result itself has one: a capability
+    // that stopped at its own limit, and one that cannot tell whether it did
+    // (`total` is `null` or absent), have none, and the count of what the
+    // capability returned is not one
     const truncated =
       truncation.hasMore || listCompleteness?.truncated === true;
     return {
       isPartial: truncated,
       returnedCount: truncation.returnedCount,
-      ...(listCompleteness?.total !== null && {
+      ...(typeof listCompleteness?.total === 'number' && {
         totalCount: truncation.totalCount,
       }),
       ...requested,

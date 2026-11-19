@@ -206,7 +206,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     supportsRealm: true,
     notes:
       'Create a node with namedArgs { nodeType, nodeData } so node type and payload are explicit.\n' +
-      'Some OOTB node types only make sense as part of a paired/family set that must be wired together in the same journey, or the enrollment they perform can never be verified: WebAuthnRegistrationNode needs a WebAuthnAuthenticationNode (and usually a WebAuthnDeviceStorageNode) elsewhere in the tree; the same register/verify pattern holds for PushRegistrationNode + PushAuthenticationSenderNode/PushResultVerifierNode, OathRegistrationNode + OathTokenVerifierNode (+ OathDeviceStorageNode), DeviceBindingNode + DeviceBindingStorageNode/DeviceSigningVerifierNode, and RecoveryCodeDisplayNode + RecoveryCodeCollectorDecisionNode. This list is drawn from Frodo\'s own OOTB node-type catalog naming (OOTB_NODE_TYPES_* in NodeOps.ts), not from an official Ping "node family" taxonomy -- before wiring a registration/enrollment-style node into a journey, check authn.node.readNodeSchema (or readCustomNodeSchema for custom nodes) for its configurable properties and confirm the paired node type is actually present on this tenant via authn.node.readNodesByType.',
+      'Some OOTB node types only make sense as part of a paired/family set that must be wired together in the same journey, or the enrollment they perform can never be verified: WebAuthnRegistrationNode needs a WebAuthnAuthenticationNode (and usually a WebAuthnDeviceStorageNode) elsewhere in the tree; the same register/verify pattern holds for PushRegistrationNode + PushAuthenticationSenderNode/PushResultVerifierNode, OathRegistrationNode + OathTokenVerifierNode (+ OathDeviceStorageNode), DeviceBindingNode + DeviceBindingStorageNode/DeviceSigningVerifierNode, and RecoveryCodeDisplayNode + RecoveryCodeCollectorDecisionNode. This list names the common register/verify pairs; it is neither exhaustive nor an official Ping "node family" taxonomy -- before wiring a registration/enrollment-style node into a journey, check authn.node.readNodeSchema (or readCustomNodeSchema for custom nodes) for its configurable properties and confirm the paired node type is actually present on this tenant via authn.node.readNodesByType.',
   },
   'authn.node.updateNode': {
     argumentMode: 'named',
@@ -3006,7 +3006,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     parameterOverrides: {
       scriptId: {
         description:
-          'Script id to find journey/node references to (the same id used by authn.journey/authz.* script fields, script.script.readScript, etc.).',
+          'Script id to find journey/node references to (the same id used by authn.journey/authz.* script fields, script.readScript, etc.).',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
     },

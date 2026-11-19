@@ -219,8 +219,11 @@ releases missed):
   before it removes duplicate events (`dedupeByTransactionId`, on unless it is
   `false`), so with deduplication a count below the limit proves nothing: the
   result then has `returned` and a `warning` that says so, and no `truncated`
-  and no `total` (unless the runtime cut the response itself); pass
-  `dedupeByTransactionId: false` to see whether the limit was reached.
+  and no `total` (unless the runtime cut the response itself), and
+  `metadata.pagination` has no `totalCount` either, also on the last page of an
+  offset read; the warning says not to count the result and not to use
+  `returned` as a total, and that `dedupeByTransactionId: false` makes the
+  next result say whether the limit was reached.
   `idm.managed.queryManagedObjects` now takes `pageToken` as the cookie of its
   one-page query (it ignored it), so its `nextPageToken` can be passed back.
   `frodo.idm.system.querySystemObjects` and `queryAllSystemObjectIds` now
