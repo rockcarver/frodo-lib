@@ -22,7 +22,7 @@ const { waitForUpdate } = await import('./ForgeRockUtils');
 
 const state = StateImpl({});
 const base = { state, wait: true, pollInterval: 10, timeout: 2000 };
-const initiated = async () => undefined;
+const initiated = async () => ({ isComplete: false, isError: false });
 
 describe('waitForUpdate()', () => {
   test('0: Method is implemented', async () => {

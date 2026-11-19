@@ -50,6 +50,7 @@
 import { RestartStatus } from '../../api/cloud/StartupApi';
 import { state } from '../../index';
 import * as TestData from '../../test/setup/StartupSetup';
+import { sleep } from '../../utils/FrodoUtils';
 import * as StartupOps from './StartupOps';
 
 describe('StartupOps', () => {
@@ -96,9 +97,16 @@ describe('StartupOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-      test('2: Apply updates during tenant restart', async () => {
+      test('2: Apply updates during tenant restart without waiting', async () => {
+        await StartupOps.applyUpdates({
+          wait: false,
+          timeout: 10 * 60 * 1000,
+          state,
+        });
+        // Wait a bit before attempting another update
+        await sleep(5000);
         const response = await StartupOps.applyUpdates({
-          wait: true,
+          wait: false,
           timeout: 10 * 60 * 1000,
           state,
         });
@@ -125,6 +133,21 @@ describe('StartupOps', () => {
         },
         15 * 60 * 1000
       );
+      test('2: Apply updates during tenant restart', async () => {
+        await StartupOps.applyUpdates({
+          wait: false,
+          timeout: 10 * 60 * 1000,
+          state,
+        });
+        // Wait a bit before waiting for it to finish
+        await sleep(10000);
+        const response = await StartupOps.applyUpdates({
+          wait: true,
+          timeout: 10 * 60 * 1000,
+          state,
+        });
+        expect(response).toMatchSnapshot();
+      });
     });
   }
 });
