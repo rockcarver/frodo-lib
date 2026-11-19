@@ -472,7 +472,8 @@ releases missed):
   signature, by the names of the signature and in its order. Their TSDoc listed
   the parameters in another order, under other names, with a malformed name or
   without one of them, so a call with `namedArgs` reached the wrong positions
-  or could not give a parameter; a call with `positionalArgs` is unchanged. A
+  or could not give a parameter; a call with `positionalArgs` is unchanged,
+  except for the three named below. A
   `namedArgs` call that gave the old name of a parameter is now rejected as an
   unknown named argument. In another order (the arguments of a named call now
   reach the positions of the signature): `agent.importAgents`,

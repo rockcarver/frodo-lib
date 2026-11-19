@@ -1218,7 +1218,7 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "callbackHandler", type: "CallbackHandler", description: "fills callback input in place, synchronously or asynchronously; returned or resolved values are ignored (see CallbackHandler)", required: false },
       { name: "useDeviceFlow", type: "boolean", description: "only consulted when a loaded connection profile prefers browser login (`preferredCredential: 'browser'`, or the legacy `authMode: 'interactive'` for a profile predating that field) — falls back to the profile's own `preferredDeviceFlow` when not explicitly passed; see `getTokensInteractive()` (default: false)", required: false },
       { name: "promptHandler", type: "BrowserLoginPromptHandler", description: "required only when a loaded connection profile prefers browser login; every other case ignores it", required: false },
-      { name: "credentialOverride", type: "'user' | 'svcacct' | 'amster' | 'browser'", description: "use this one credential type for this call, ahead of the saved default credential type and of forceLoginAsUser. 'browser' uses the cached browser-login session and throws when there is none (it never opens a new browser login); any other value does not consider a cached browser session, and a credential type that is not configured fails like any other credential that is not configured", required: false },
+      { name: "credentialOverride", type: "'user' | 'svcacct' | 'amster' | 'browser'", description: "Not offered over MCP: the call uses the credential of the configuration.", required: false },
     ],
     returns: "{Promise<Tokens>} object containing the tokens",
   },
