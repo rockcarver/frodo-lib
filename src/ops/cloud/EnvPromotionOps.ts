@@ -200,7 +200,7 @@ function isPromotionFinished(
 }
 
 /**
- * Lock environment
+ * Lock environment. If it's already locked it will just return the current lock status.
  * @param {boolean} wait Whether to wait for the environment to lock. Default: false
  * @param {number} pollInterval Time between status checks in milliseconds. Default: 10000
  * @param {number} timeout Timeout in milliseconds. Default: 15 * 60 * 1000
@@ -221,12 +221,21 @@ export async function lockEnvironment({
   let cause: Error;
   const success = await waitForUpdate({
     initiateUpdate: async () => {
-      lockStatus = await _lockEnvironment({ state });
+      // If wait is false, we'll attempt to lock regardless of whether the tenant is already locked/locking or not
+      lockStatus = wait ? await readLockStatus({ state }) : undefined;
+      if (
+        !lockStatus ||
+        (lockStatus.result !== 'locked' && lockStatus.result !== 'locking')
+      )
+        lockStatus = await _lockEnvironment({ state });
+      return {
+        status: lockStatus.description,
+        isComplete: ['locked', 'error'].includes(lockStatus.result),
+        isError: lockStatus.result === 'error',
+      };
     },
     isComplete: async () => {
       lockStatus = await readLockStatus({ state });
-      // locked or failed: any other state (still locking, or not yet started)
-      // is not the end of the lock
       return {
         status: lockStatus.description,
         isComplete: ['locked', 'error'].includes(lockStatus.result),
@@ -258,7 +267,7 @@ export async function lockEnvironment({
 }
 
 /**
- * Unlock environment
+ * Unlock environment. If it's already unlocked it will just return the current lock status.
  * @param {string} promotionId Optional promotion id. If not specified, will pull it from the environment lock status
  * @param {boolean} wait Whether to wait for the environment to unlock. Default: false
  * @param {number} pollInterval Time between status checks in milliseconds. Default: 10000
@@ -297,7 +306,18 @@ export async function unlockEnvironment({
   let cause: Error;
   const success = await waitForUpdate({
     initiateUpdate: async () => {
-      lockStatus = await _unlockEnvironment({ promotionId, state });
+      // If wait is false, we'll attempt to unlock regardless of whether the tenant is already unlocked/unlocking or not
+      lockStatus = wait ? await readLockStatus({ state }) : undefined;
+      if (
+        !lockStatus ||
+        (lockStatus.result !== 'unlocked' && lockStatus.result !== 'unlocking')
+      )
+        lockStatus = await _unlockEnvironment({ promotionId, state });
+      return {
+        status: lockStatus.description,
+        isComplete: ['unlocked', 'error'].includes(lockStatus.result),
+        isError: lockStatus.result === 'error',
+      };
     },
     isComplete: async () => {
       lockStatus = await readLockStatus({ state });
@@ -377,18 +397,34 @@ export async function promoteConfiguration({
   let response: PromotionResponse;
   let cause: Error;
   const operation = config.dryRun ? 'Dry-run promotion' : 'Promotion';
+  const isComplete = async () => {
+    const promotionStatus = await readPromotionStatus({ state });
+    return {
+      status: promotionStatus.message,
+      isComplete: isPromotionFinished(promotionStatus),
+      isError: promotionStatus.status === 'ERROR',
+    };
+  };
   const success = await waitForUpdate({
     initiateUpdate: async () => {
-      response = await _promoteConfiguration({ config, state });
+      // If wait is false, we'll attempt to promote regardless of whether the tenant is already being promoted or not
+      const promotionStatus = wait
+        ? await readPromotionStatus({ state })
+        : undefined;
+      if (
+        !promotionStatus ||
+        promotionStatus.type !== 'promotion' ||
+        promotionStatus.status !== 'RUNNING'
+      )
+        response = await _promoteConfiguration({ config, state });
+      return wait
+        ? await isComplete()
+        : {
+            isComplete: true,
+            isError: false,
+          };
     },
-    isComplete: async () => {
-      const promotionStatus = await readPromotionStatus({ state });
-      return {
-        status: promotionStatus.message,
-        isComplete: isPromotionFinished(promotionStatus),
-        isError: promotionStatus.status === 'ERROR',
-      };
-    },
+    isComplete,
     initialMessage: `Initiating ${operation.toLowerCase()}...`,
     noWaitSuccessMessage: `${operation} in progress.`,
     updateMessage: (isCompleted, runtime) =>
@@ -549,18 +585,34 @@ export async function rollbackPromotion({
 }): Promise<RollbackResponse> {
   let response: RollbackResponse;
   let cause: Error;
+  const isComplete = async () => {
+    const promotionStatus = await readPromotionStatus({ state });
+    return {
+      status: promotionStatus.message,
+      isComplete: isPromotionFinished(promotionStatus),
+      isError: promotionStatus.status === 'ERROR',
+    };
+  };
   const success = await waitForUpdate({
     initiateUpdate: async () => {
-      response = await _rollbackPromotion({ config, state });
+      // If wait is false, we'll attempt to rollback regardless of whether the tenant is already being rolled back or not
+      const promotionStatus = wait
+        ? await readPromotionStatus({ state })
+        : undefined;
+      if (
+        !promotionStatus ||
+        promotionStatus.type !== 'rollback' ||
+        promotionStatus.status !== 'RUNNING'
+      )
+        response = await _rollbackPromotion({ config, state });
+      return wait
+        ? await isComplete()
+        : {
+            isComplete: true,
+            isError: false,
+          };
     },
-    isComplete: async () => {
-      const promotionStatus = await readPromotionStatus({ state });
-      return {
-        status: promotionStatus.message,
-        isComplete: isPromotionFinished(promotionStatus),
-        isError: promotionStatus.status === 'ERROR',
-      };
-    },
+    isComplete,
     initialMessage: `Initiating rollback...`,
     noWaitSuccessMessage: `Rollback in progress.`,
     updateMessage: (isCompleted, runtime) =>
