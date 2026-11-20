@@ -1,4 +1,12 @@
+import { inspect, type InspectOptions } from 'util';
 import { AxiosError, type AxiosResponse } from 'axios';
+import {
+  chargeCombinedMessageBudget,
+  combinedMessageBudgetSpent,
+  describeDetailOfCombinedMessage,
+  describeError,
+  inspectErrorView,
+} from '../utils/ErrorSerializationUtils';
 import type { LogApiRateLimit } from '../utils/LogApiRateLimitUtils';
 import { PROXY_FAILURE_CODES } from '../utils/ProxyFailureUtils';
 
@@ -192,7 +200,12 @@ export class FrodoError extends Error {
   getCombinedMessage(level: number = 1): string {
     const indent = '  '.repeat(level);
     let combinedMessage = this.message || '';
+    // only while the view of an error is written, which needs the head of the text: what is
+    // built is counted as it is built, and the rest is left out once the budget is used up
+    chargeCombinedMessageBudget(combinedMessage.length);
     this.originalErrors.forEach((originalError) => {
+      if (combinedMessageBudgetSpent()) return;
+      const builtBefore = combinedMessage.length;
       switch (originalError.name) {
         case 'FrodoError':
           combinedMessage +=
@@ -230,7 +243,7 @@ export class FrodoError extends Error {
             combinedMessage += (originalError as AxiosError).response?.[
               'data'
             ]?.['detail']
-              ? `\n${indent}  Detail: ${typeof (originalError as AxiosError).response?.['data']?.['detail'] === 'object' ? JSON.stringify((originalError as AxiosError).response?.['data']?.['detail']) : (originalError as AxiosError).response?.['data']?.['detail']}`
+              ? `\n${indent}  Detail: ${describeDetailOfCombinedMessage((originalError as AxiosError).response?.['data']?.['detail']) ?? (typeof (originalError as AxiosError).response?.['data']?.['detail'] === 'object' ? JSON.stringify((originalError as AxiosError).response?.['data']?.['detail']) : (originalError as AxiosError).response?.['data']?.['detail'])}`
               : '';
             combinedMessage += (originalError as AxiosError).response?.[
               'data'
@@ -252,6 +265,7 @@ export class FrodoError extends Error {
       const diagnosis = originalError['nameResolutionDiagnosis'];
       if (diagnosis?.message)
         combinedMessage += `\n${indent}${diagnosis.message}`;
+      chargeCombinedMessageBudget(combinedMessage.length - builtBefore);
     });
     if (this.httpTransactionId)
       combinedMessage += `\n${indent}Transaction id: ${this.httpTransactionId}`;
@@ -262,6 +276,34 @@ export class FrodoError extends Error {
 
   toString() {
     return this.getCombinedMessage();
+  }
+
+  /**
+   * What `JSON.stringify` writes for this error: name, message, combined
+   * message, code, the http fields, the transaction id and the original errors,
+   * each written without the request configuration it holds (see
+   * `describeError`). Not the enumerable properties of the object, which would
+   * write the config of a request that failed.
+   * @returns {Record<string, unknown>} a plain object
+   */
+  toJSON(): Record<string, unknown> {
+    return describeError(this) as Record<string, unknown>;
+  }
+
+  /**
+   * What `util.inspect` and `console.log` print for this error: the same view
+   * as {@link FrodoError.toJSON}, after the stack.
+   * @param {number} depth the depth that `util.inspect` has left
+   * @param {InspectOptions} options the options of `util.inspect`
+   * @param {typeof inspect} inspectFn `util.inspect`
+   * @returns {string} the text to print
+   */
+  [inspect.custom](
+    depth: number,
+    options: InspectOptions,
+    inspectFn: typeof inspect
+  ): string {
+    return inspectErrorView(this, depth, options, inspectFn);
   }
 }
 

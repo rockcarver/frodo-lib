@@ -12,8 +12,11 @@ import {
   isSensitiveFieldName,
   isSensitiveHeaderName,
   redactBody,
+  redactCredentials,
   REDACTED,
   redactHeaderValue,
+  redactUrl,
+  scrubUrls,
   SENSITIVE_FIELD_NAMES,
   SENSITIVE_HEADER_NAMES,
 } from './SensitiveDataUtils';
@@ -360,5 +363,614 @@ describe('the recording filter uses the shared header list', () => {
     const recording = recordingWith('Accept', 'application/json');
     filterRecording(recording, false);
     expect(recording.request.headers[0].value).toBe('application/json');
+  });
+});
+
+describe('redactUrl', () => {
+  test.each([
+    ['https://am.example.com/am/json/x', 'https://am.example.com/am/json/x'],
+    [
+      'https://am.example.com/am/json/x?_queryFilter=true&_fields=*',
+      'https://am.example.com/am/json/x?_queryFilter=true&_fields=*',
+    ],
+    ['/relative/path?a=b', '/relative/path?a=b'],
+    ['', ''],
+  ])('1: %s has nothing to replace', (url, expected) => {
+    expect(redactUrl(url)).toBe(expected);
+  });
+
+  test('1b: a URL that starts with two slashes has its user info replaced as well', () => {
+    expect(redactUrl('//admin:made-up@am.example.com/am?a=b')).toBe(
+      '//admin:<redacted>@am.example.com/am?a=b'
+    );
+    expect(redactUrl('//made-up@am.example.com/am')).toBe(
+      '//<redacted>@am.example.com/am'
+    );
+    expect(redactUrl('//am.example.com/am?access_token=made-up')).toBe(
+      '//am.example.com/am?access_token=<redacted>'
+    );
+  });
+
+  test('2: the password of the user info is replaced, the user name stays', () => {
+    expect(redactUrl('https://admin:made-up@am.example.com/am')).toBe(
+      'https://admin:<redacted>@am.example.com/am'
+    );
+    expect(redactUrl('http://admin:a:b@host:8080/x')).toBe(
+      'http://admin:<redacted>@host:8080/x'
+    );
+  });
+
+  test('3: a user info without a colon is replaced as a whole', () => {
+    expect(redactUrl('https://made-up-value@am.example.com/am')).toBe(
+      'https://<redacted>@am.example.com/am'
+    );
+  });
+
+  test('4: the sensitive names of the query are replaced, in any case and encoded', () => {
+    expect(
+      redactUrl(
+        'https://am.example.com/x?access_token=made-up&ACCESS_TOKEN=made-up&client%5Fsecret=made-up&code=made-up&keep=1'
+      )
+    ).toBe(
+      'https://am.example.com/x?access_token=<redacted>&ACCESS_TOKEN=<redacted>&client%5Fsecret=<redacted>&code=<redacted>&keep=1'
+    );
+  });
+
+  test('5: the fragment is replaced the same way (an implicit grant puts its answer there)', () => {
+    expect(
+      redactUrl('https://app.example.com/cb#access_token=made-up&state=1')
+    ).toBe('https://app.example.com/cb#access_token=<redacted>&state=1');
+    expect(redactUrl('https://app.example.com/cb?a=1#id_token=made-up')).toBe(
+      'https://app.example.com/cb?a=1#id_token=<redacted>'
+    );
+  });
+
+  test('6: user info, query and fragment together; a query that is empty stays', () => {
+    expect(
+      redactUrl('https://u:p@h/x?password=made-up&b=2#refresh_token=made-up')
+    ).toBe(
+      'https://u:<redacted>@h/x?password=<redacted>&b=2#refresh_token=<redacted>'
+    );
+    expect(redactUrl('https://h/x?')).toBe('https://h/x?');
+  });
+
+  test('7: an at sign in the path or the query is not user info', () => {
+    expect(redactUrl('https://h/users/a@b.example?mail=a@b.example')).toBe(
+      'https://h/users/a@b.example?mail=a@b.example'
+    );
+  });
+
+  test('8: the user info ends at the last at sign of the authority', () => {
+    expect(redactUrl('https://admin:pa@ss@host/path')).toBe(
+      'https://admin:<redacted>@host/path'
+    );
+    expect(redactUrl('https://admin:p@ss@w@rd@host:8080/x?a=b@c')).toBe(
+      'https://admin:<redacted>@host:8080/x?a=b@c'
+    );
+    expect(redactUrl('https://a@b@host')).toBe('https://<redacted>@host');
+  });
+
+  test('9: the field of a revocation request is replaced in a query, in a form and in JSON', () => {
+    expect(redactUrl('https://h/revoke?token=made-up&a=1')).toBe(
+      'https://h/revoke?token=<redacted>&a=1'
+    );
+    expect(redactBody('token=made-up&token_type_hint=access_token').data).toBe(
+      'token=<redacted>&token_type_hint=access_token'
+    );
+    expect(redactBody({ token: 'made-up' }).found).toBe(true);
+    // `code` is too common a name in JSON (a status code, a country code) and is replaced in forms only
+    expect(redactBody({ code: 401 }).found).toBe(false);
+  });
+});
+
+describe('the state of an authentication flow', () => {
+  test('1: authId is a sensitive field, in JSON and in a form, in any case', () => {
+    expect(isSensitiveFieldName('authId')).toBe(true);
+    expect(
+      redactBody({ authId: 'made-up', callbacks: [{ type: 'x' }] }).data
+    ).toEqual({ authId: '<redacted>', callbacks: [{ type: 'x' }] });
+    expect(redactBody('authId=made-up&a=1').data).toBe('authId=<redacted>&a=1');
+  });
+});
+
+describe('scrubUrls', () => {
+  test('1: every URL of a text is redacted, the rest is kept', () => {
+    expect(
+      scrubUrls(
+        'see (https://u:p@h/x?access_token=made-up&a=1) and <http://h/y?code=made-up#f> then "ftp://h/z"'
+      )
+    ).toBe(
+      'see (https://u:<redacted>@h/x?access_token=<redacted>&a=1) and <http://h/y?code=<redacted>#f> then "ftp://h/z"'
+    );
+  });
+
+  test('2: a separator without a scheme, and a text without one, are kept', () => {
+    for (const text of ['://x', 'a ://b', '1://x', 'no url here', '']) {
+      expect(scrubUrls(text)).toBe(text);
+    }
+  });
+
+  test('3: a scheme is read up to 32 characters before the separator', () => {
+    expect(scrubUrls('x.y+z-1://h/p?token=made-up')).toBe(
+      'x.y+z-1://h/p?token=<redacted>'
+    );
+  });
+
+  test('4: a URL without an end ends the text', () => {
+    expect(scrubUrls('go to https://h/p?password=made-up')).toBe(
+      'go to https://h/p?password=<redacted>'
+    );
+  });
+});
+
+describe('redactCredentials: the edges of a token', () => {
+  test.each([
+    ['a header of 7 characters and a payload of 4', 'eyJabcd.abcd', true],
+    ['a header of 8 characters and a payload of 5', 'eyJabcde.abcde', true],
+    ['a header of 6 characters and a payload of 8', 'eyJabc.abcdefgh', false],
+    ['a header of 9 characters and a payload of 3', 'eyJabcdef.abc', false],
+  ])('1: %s', (_name, text, replaced) => {
+    expect(redactCredentials(`x ${text} y`)).toBe(
+      replaced ? `x ${REDACTED} y` : `x ${text} y`
+    );
+  });
+});
+
+describe('scrubUrls: a password that holds a character that ends a URL in running text', () => {
+  // the user info ends at the last at sign of its authority, and the authority ends at a slash, a question
+  // mark, a number sign, a backslash, white space, a quote or an angle bracket: a password may hold the rest
+  test.each([
+    ['an ampersand', 'http://u:ZQX&pw9876@h2.example/x'],
+    ['a comma', 'http://px:ZQX,pw9876@10.0.0.1:3128'],
+    ['a semicolon', 'jdbc:mysql://svc:ZQX;pw9876@db.internal/x'],
+    ['a brace', 'ldap://cn:ZQX}pw9876@ldap.example'],
+    ['a bar', 'ftp://f:ZQX|pw9876@ftp.example/'],
+    ['a parenthesis', 'http://u:ZQX)pw9876@h.example/x'],
+    ['a bracket', 'http://u:ZQX]pw9876@h.example/x'],
+    ['an opening parenthesis and a bracket', 'http://u:ZQX([pw9876@h.example'],
+    ['all of them', 'http://u:ZQX&,;|)]}pw9876@h.example:8443/x?y=1'],
+    ['an at sign and a comma', 'http://u:ZQX@,pw9876@h.example'],
+    ['in a list of a text', 'proxies: [http://px:ZQX,pw9876@10.0.0.1:3128]'],
+    ['in parentheses', '(see ldap://cn:ZQX}pw9876@ldap.example)'],
+    ['in a JSON string', '{"url":"http://u:ZQX;pw9876@h.example/x"}'],
+  ])('1: %s in the password: it is replaced', (_name, text) => {
+    const scrubbed = scrubUrls(text);
+    expect(scrubbed).not.toMatch(/ZQX|pw9876/);
+    expect(scrubbed).toContain('<redacted>');
+  });
+
+  test('2: a URL that is joined to another one ends in front of it, and the two are read as their own', () => {
+    expect(
+      scrubUrls('http://u:ZQX&a@h1,http://v:ZQY;b@h2 http://w:ZQZ)c@h3')
+    ).toBe(
+      'http://u:<redacted>@h1,http://v:<redacted>@h2 http://w:<redacted>@h3'
+    );
+  });
+
+  test('2b: a joined second URL ends the first one, whatever its password holds', () => {
+    expect(scrubUrls('http://u:ZQX)pw9876@h1,http://v:ZQY]b@h2 end')).toBe(
+      'http://u:<redacted>@h1,http://v:<redacted>@h2 end'
+    );
+    expect(scrubUrls('http://u:ZQX]pw9876@h1;http://v:y@h2/p?code=x')).toBe(
+      'http://u:<redacted>@h1;http://v:<redacted>@h2/p?code=<redacted>'
+    );
+  });
+
+  test('3a: a closing parenthesis ends the body of a URL: what follows it is not read as part of its query', () => {
+    expect(scrubUrls('(http://h/y?code=made-up) end')).toBe(
+      '(http://h/y?code=<redacted>) end'
+    );
+  });
+
+  test('3: a URL that is closed by a parenthesis or a bracket keeps its text: only the user info is replaced', () => {
+    expect(
+      scrubUrls('(see http://u:ZQXpw@h.example/x) and [http://h/y] after')
+    ).toBe('(see http://u:<redacted>@h.example/x) and [http://h/y] after');
+    expect(scrubUrls('a (http://h.example) b:c@d')).toBe(
+      'a (http://h.example) b:<redacted>@d'
+    );
+  });
+
+  test('3b: the path and the query of a URL whose user info holds such a character are redacted as those of any URL', () => {
+    expect(
+      scrubUrls('http://u:ZQX)pw9876@h.example/x?access_token=made-up&a=1 end')
+    ).toBe('http://u:<redacted>@h.example/x?access_token=<redacted>&a=1 end');
+    expect(scrubUrls('[http://u:ZQX]pw@h.example?code=made-up] end')).toBe(
+      '[http://u:<redacted>@h.example?code=<redacted>] end'
+    );
+  });
+
+  test('4: 30,000 random passwords, drawn from what a URL allows in its user info, in random surroundings: none is kept', () => {
+    let seed = 20261119;
+    const next = () => {
+      seed ^= seed << 13;
+      seed ^= seed >>> 17;
+      seed ^= seed << 5;
+      return ((seed >>> 0) % 1e9) / 1e9;
+    };
+    const pick = (list: string[]) => list[Math.floor(next() * list.length)];
+    const ALNUM = [
+      ...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+    ];
+    const EXTRA = [...'@:!$%-._~*+,;=&[]()^|{}'];
+    const password = () => {
+      let text = 'ZQ';
+      for (let i = 6 + Math.floor(next() * 14); i > 0; i--) {
+        text += pick(next() < 0.25 ? EXTRA : ALNUM);
+      }
+      return `${text}z9`;
+    };
+    const users = ['admin', 'u', 'svc-account', 'hostuser', 'a.b', 'U1234567'];
+    const hosts = [
+      'host.example',
+      'h',
+      '127.0.0.1:8080',
+      '[::1]:9000',
+      'a-b.c.example:443',
+      'localhost',
+    ];
+    const schemes = [
+      'http',
+      'https',
+      'ftp',
+      'ldap',
+      'ssh',
+      'jdbc:mysql',
+      'custom+x',
+      'HTTP',
+    ];
+    const lefts = [
+      '',
+      'error: ',
+      '"url":"',
+      "url='",
+      'proxy ',
+      '(',
+      '[',
+      '{"a":"',
+      'at ',
+      'GET ',
+      '<',
+      'to\n',
+      '=',
+      ', ',
+    ];
+    const rights = [
+      '',
+      '/',
+      '/path?x=1',
+      '"',
+      "'",
+      ' and more',
+      ')',
+      ']',
+      '\nnext line',
+      ', next',
+      '>',
+      '.',
+      ' mail bob@example.com',
+      '/a/b#frag',
+      ':8080/x',
+    ];
+    const kept: string[] = [];
+    for (let i = 0; i < 30000; i++) {
+      const secret = password();
+      const text = `${pick(lefts)}${pick(schemes)}://${pick(users)}:${secret}@${pick(hosts)}${pick(rights)}`;
+      if (redactCredentials(text).includes(secret)) kept.push(text);
+    }
+    expect(kept.slice(0, 5)).toEqual([]);
+    expect(kept).toHaveLength(0);
+  });
+});
+
+describe('redactCredentials', () => {
+  test.each([
+    [
+      'a three part token',
+      'assertion eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ4In0.c2lnbmF0dXJl rejected',
+      'assertion <redacted> rejected',
+    ],
+    [
+      'a token without a signature',
+      'got eyJhbGciOiJub25lIn0.eyJzdWIiOiJ4In0. back',
+      'got <redacted> back',
+    ],
+    [
+      'a two part token',
+      'got eyJhbGciOiJub25lIn0.eyJzdWIiOiJ4In0 back',
+      'got <redacted> back',
+    ],
+    [
+      'a token after other parts of a dotted run',
+      'id=host.eyJhbGciOiJub25lIn0.eyJzdWIiOiJ4In0.sig!',
+      'id=host.<redacted>!',
+    ],
+    [
+      'a token in quotes',
+      '"x":"eyJhbGciOiJub25lIn0.eyJzdWIiOiJ4In0.sig"',
+      '"x":"<redacted>"',
+    ],
+    [
+      'a token after a hyphen',
+      'kid x-eyJhbGciOiJub25lIn0.eyJzdWIiOiJ4In0.c2ln done',
+      'kid x-<redacted> done',
+    ],
+    [
+      'a token after an underscore',
+      'kid_eyJhbGciOiJub25lIn0.eyJzdWIiOiJ4In0.c2ln',
+      'kid_<redacted>',
+    ],
+    [
+      'a token after letters',
+      'abceyJhbGciOiJub25lIn0.eyJzdWIiOiJ4In0.c2ln',
+      'abc<redacted>',
+    ],
+    [
+      'a token after a hyphen, with a header of several kilobytes (a certificate chain)',
+      `kid-${Buffer.from(JSON.stringify({ alg: 'RS256', x5c: ['A'.repeat(3000)] })).toString('base64url')}.eyJzdWIiOiJ4In0.c2ln`,
+      'kid-<redacted>',
+    ],
+    [
+      'a token after a hyphen, without a signature, in quotes',
+      '"kid":"x-eyJhbGciOiJub25lIn0.eyJzdWIiOiJ4In0."',
+      '"kid":"x-<redacted>"',
+    ],
+    [
+      'a quoted value that is not closed (the text was cut)',
+      'a {"password":"made-up-value-that-is-cut',
+      'a {"password":"<redacted>"',
+    ],
+    [
+      'a value that a JSON text inside a string writes with escaped quotes',
+      '{"echoed":"{\\"password\\":\\"made-up\\",\\"b\\":1}"}',
+      '{"echoed":"{\\"password\\":\\"<redacted>\\",\\"b\\":1}"}',
+    ],
+    [
+      'a value with escaped quotes that is not closed (the text was cut)',
+      'a {\\"password\\":\\"made-up-value-that-is-cut',
+      'a {\\"password\\":\\"<redacted>\\"',
+    ],
+    [
+      'a single quoted value that is not closed (the text was cut)',
+      "a {'client_secret':'made-up-value-that-is-cut",
+      "a {'client_secret':'<redacted>'",
+    ],
+    [
+      'a single quoted value with an escaped quote',
+      "{'password':'ab\\'cd','next':'e'}",
+      "{'password':'<redacted>','next':'e'}",
+    ],
+    [
+      'a quoted value with an escaped quote',
+      '{"password":"ab\\"cd","next":"e"}',
+      '{"password":"<redacted>","next":"e"}',
+    ],
+    [
+      'the password of the user info of a host, without a scheme',
+      'connect admin:made-up@host.example.com failed',
+      'connect admin:<redacted>@host.example.com failed',
+    ],
+    [
+      'a password with an at sign, up to the last at sign of the host',
+      'dial admin:p@ssw0rd-ZQX@host.example now',
+      'dial admin:<redacted>@host.example now',
+    ],
+    [
+      'a password with an at sign, after two slashes',
+      '//admin:p@ssw0rd-ZQX@host.example/x',
+      '//admin:<redacted>@host.example/x',
+    ],
+    ['a short password with an at sign', 'u:p@ss@h', 'u:<redacted>@h'],
+    [
+      'an at sign in the path is not the end of the user info',
+      'admin:p@host.example/x@y',
+      'admin:<redacted>@host.example/x@y',
+    ],
+    [
+      'a quote ends the authority: two fields are two user infos',
+      '{"u":"x:y@h","v":"p:q@z"}',
+      '{"u":"x:<redacted>@h","v":"p:<redacted>@z"}',
+    ],
+    [
+      'white space ends the authority, an address of a mail after it stays',
+      'u:p@h.example and bob@example.com wrote',
+      'u:<redacted>@h.example and bob@example.com wrote',
+    ],
+    [
+      'a question mark ends the authority',
+      'a:b@h?c=d@f',
+      'a:<redacted>@h?c=d@f',
+    ],
+    [
+      'the answer to a password callback, an input with a name of its own',
+      '{"type":"PasswordCallback","output":[{"name":"prompt","value":"Password"}],"input":[{"name":"pw","value":"made-up"}]}',
+      '{"type":"PasswordCallback","output":[{"name":"prompt","value":"<redacted>"}],"input":[{"name":"pw","value":"<redacted>"}]}',
+    ],
+    [
+      'the answer to a password callback, the value before the name',
+      '{"type":"PasswordCallback","input":[{"value":"made-up","name":"IDToken2"}]}',
+      '{"type":"PasswordCallback","input":[{"value":"<redacted>","name":"IDToken2"}]}',
+    ],
+    [
+      'the answer to a password callback, a key between the name and the value',
+      '{"type":"PasswordCallback","input":[{"name":"IDToken2","note":1,"value":"made-up"}]}',
+      '{"type":"PasswordCallback","input":[{"name":"IDToken2","note":1,"value":"<redacted>"}]}',
+    ],
+    [
+      'the answer to a password callback, the type after the input',
+      '{"input":[{"name":"pw","value":"made-up"}],"type":"ValidatedCreatePasswordCallback"}',
+      '{"input":[{"name":"pw","value":"<redacted>"}],"type":"ValidatedCreatePasswordCallback"}',
+    ],
+    [
+      'the answer to a password callback, pretty printed',
+      '{\n  "type": "PasswordCallback",\n  "input": [\n    {\n      "value": "made-up",\n      "name": "x"\n    }\n  ]\n}',
+      '{\n  "type": "PasswordCallback",\n  "input": [\n    {\n      "value": "<redacted>",\n      "name": "x"\n    }\n  ]\n}',
+    ],
+    [
+      'the answer to a password callback, as a JSON text inside a string writes it',
+      '{\\"type\\":\\"PasswordCallback\\",\\"input\\":[{\\"value\\":\\"made-up\\"}]}',
+      '{\\"type\\":\\"PasswordCallback\\",\\"input\\":[{\\"value\\":\\"<redacted>\\"}]}',
+    ],
+    [
+      'the input of an IDToken10 and an IDToken12',
+      '[{"name":"IDToken10","value":"made-up"},{"name":"IDToken12","value":"made-up"}]',
+      '[{"name":"IDToken10","value":"<redacted>"},{"name":"IDToken12","value":"<redacted>"}]',
+    ],
+    [
+      'the input of a callback, as a JSON text writes it',
+      '{"type":"PasswordCallback","input":[{"name":"IDToken2","value":"made-up"}]}',
+      '{"type":"PasswordCallback","input":[{"name":"IDToken2","value":"<redacted>"}]}',
+    ],
+    [
+      'the input of a callback, as a JSON text inside a string writes it',
+      '{\\"input\\":[{\\"name\\":\\"IDToken2\\",\\"value\\":\\"made-up\\"}]}',
+      '{\\"input\\":[{\\"name\\":\\"IDToken2\\",\\"value\\":\\"<redacted>\\"}]}',
+    ],
+    [
+      'the input of a callback in single quotes, cut',
+      "[{'name': 'IDToken1', 'value': 'adm",
+      "[{'name': 'IDToken1', 'value': '<redacted>'",
+    ],
+    [
+      'a password with two at signs',
+      'admin:a@b@c@host.example/x?m=a@b',
+      'admin:<redacted>@host.example/x?m=a@b',
+    ],
+    [
+      'the password of the user info of an address in brackets',
+      'dial admin:made-up@[::1]:8080 now',
+      'dial admin:<redacted>@[::1]:8080 now',
+    ],
+    [
+      'the password of the user info of an address in brackets that holds colons',
+      '//admin:made-up@[2001:db8::1]/path',
+      '//admin:<redacted>@[2001:db8::1]/path',
+    ],
+    [
+      'the password of the user info of a URL that starts with two slashes',
+      'see //admin:made-up@host.example.com/path now',
+      'see //admin:<redacted>@host.example.com/path now',
+    ],
+    [
+      'the password of the user info of a host in quotes',
+      '{"url":"admin:made-up@host.example.com:8080"}',
+      '{"url":"admin:<redacted>@host.example.com:8080"}',
+    ],
+    [
+      'an opaque value after Bearer',
+      'Authorization: Bearer 0123456789abcdef0123456789abcdef0123456789abcdef',
+      'Authorization: <redacted>',
+    ],
+    [
+      'an opaque value after access_token=',
+      'access_token=0123456789abcdef0123456789abcdef0123456789abcdef&x=1',
+      'access_token=<redacted>&x=1',
+    ],
+    [
+      'an opaque value after assertion=',
+      'assertion=0123456789abcdef0123456789abcdef0123456789abcdef',
+      'assertion=<redacted>',
+    ],
+  ])('1: %s is redacted', (_name, text, expected) => {
+    expect(redactCredentials(text)).toBe(expected);
+  });
+
+  test.each([
+    'eyJ',
+    'eyJabc',
+    'eyJ.example.com',
+    'eyJabcd.abc',
+    'the eyJ prefix of a token',
+    'version 1.2.3 of host.example.com',
+    'a.b.c.d.e',
+    'eyJabcdefgh',
+    'xeyJabcdefgh.abcdefgh',
+    // a word that holds eyJ is no token: its header does not decode as JSON
+    'monkeyJumping.Over',
+    'surveyJobsList.Status',
+    'keyJson.parseValue',
+    'kid_eyJabcdefgh.abcdefgh.abcdefgh',
+    // a value in a text that has no password callback in it is a value of the text
+    '{"name":"prompt","value":"Password"}',
+    '{"output":[{"name":"prompt","value":"User Name"}]}',
+    '{"name":"timeout","value":"30"}',
+    // a bearer value of seven characters is a word, of eight it is a value
+    'Bearer abcdefg',
+    // the digest of an image is no user info: what stands before it is a name and a tag
+    'docker pull registry.example.com/team/image:1.2.3@sha256:0123456789abcdef0123456789abcdef',
+    'image:tag@sha512:0123456789abcdef',
+    // an at sign after a space, a slash or a quote is not part of the user info
+    'a:b @c.example and d:e/@f.example',
+    'image:tag@md5:0123456789abcdef',
+    // an address of a mail and a host without user info are no user info with a password
+    'write to john@example.com or mailto:john@example.com',
+    'host.example.com:8080 and user@host.example.com',
+    'a: b@ c and @host and user:@host and user:pass@ x',
+    'Bearer short',
+    'no value after access_token',
+  ])('2: "%s" is not a token and is left alone', (text) => {
+    expect(redactCredentials(text)).toBe(text);
+  });
+
+  // the same table as the one of the CLI (McpResultScrub.test.js): URLs joined by a character
+  // that is no part of an authority
+  test.each([
+    ['a comma', 'proxy=http://a:SECRET1@x,http://b:SECRET2@y'],
+    ['a semicolon', 'http://u:SECRET1@h1;http://c:SECRET2@h2'],
+    ['a bar', 'http://u:SECRET1@h1|http://c:SECRET2@h2'],
+    ['parentheses', '(http://u:SECRET1@h1)(http://c:SECRET2@h2)'],
+    ['brackets', '[http://u:SECRET1@h1][http://c:SECRET2@h2]'],
+    ['braces', '{http://u:SECRET1@h1}{http://c:SECRET2@h2}'],
+    ['an ampersand', 'a=http://u:SECRET1@h&b=http://c:SECRET2@h2'],
+    [
+      'a comma and another scheme',
+      'http://u:SECRET1@h1,https://c:SECRET2@h2:8443/path',
+    ],
+    ['a comma and a path', 'http://u:SECRET1@h1/x,http://c:SECRET2@h2/y'],
+    ['a space', 'http://u:SECRET1@h1 http://c:SECRET2@h2'],
+    ['a quote', '"http://u:SECRET1@h1""http://c:SECRET2@h2"'],
+    [
+      'three URLs',
+      'http://u:SECRET1@h1,http://v:SECRET2@h2;http://w:SECRET3@h3',
+    ],
+  ])('1c: URLs joined by %s: every password is replaced', (_name, text) => {
+    const redacted = redactCredentials(text);
+    expect(redacted).not.toMatch(/SECRET\d/);
+    expect(redacted.match(/<redacted>/g)).toHaveLength(
+      text.match(/SECRET\d/g)?.length ?? 0
+    );
+  });
+
+  test('1d: a value of eight characters after Bearer is replaced, one of seven is not', () => {
+    expect(redactCredentials('Bearer abcdefg')).toBe('Bearer abcdefg');
+    expect(redactCredentials('Bearer abcdefgh')).toBe('Bearer <redacted>');
+    expect(redactCredentials('Bearer abcdefghi')).toBe('Bearer <redacted>');
+  });
+
+  test('1b: two tokens in one run of dotted parts are replaced, each', () => {
+    expect(
+      redactCredentials(
+        'eyJhbGciOiJub25lIn0.eyJzdWIiOiJ4In0.sig.eyJhbGciOiJub25lIn1.eyJzdWIiOiJ4In1.sig2'
+      )
+    ).toBe('<redacted>.<redacted>');
+    expect(
+      redactCredentials(
+        'a.eyJhbGciOiJub25lIn0.eyJzdWIiOiJ4In0.sig.b.eyJhbGciOiJub25lIn1.eyJzdWIiOiJ4In1.'
+      )
+    ).toBe('a.<redacted>.b.<redacted>');
+  });
+
+  test('2b: Bearer and eight characters of a value are redacted, as the collector of the runtime has always done', () => {
+    expect(redactCredentials('send Bearer endpoint-1 now')).toBe(
+      'send Bearer <redacted> now'
+    );
+  });
+
+  test('3: a private key, the user info of a URL and a named value are redacted', () => {
+    expect(
+      redactCredentials(
+        'a -----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY----- b https://u:p@h/ password=made-up'
+      )
+    ).toBe('a <redacted> b https://u:<redacted>@h/ password=<redacted>');
   });
 });

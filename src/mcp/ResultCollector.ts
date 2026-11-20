@@ -24,11 +24,9 @@ import {
   FrodoErrorCode,
 } from '../ops/FrodoError';
 import type { ResultCallback } from '../ops/OpsTypes';
-import {
-  REDACTED,
-  SENSITIVE_FIELD_NAMES,
-  SENSITIVE_HEADER_NAMES,
-} from '../utils/SensitiveDataUtils';
+import { redactCredentials } from '../utils/SensitiveDataUtils';
+
+export { redactCredentials };
 
 /** The most failures a collector records; later ones are only counted. */
 export const MAX_RECORDED_FAILURES = 50;
@@ -329,59 +327,4 @@ function findItemLabel(
 /** Cuts a text to `max` characters, marking the cut. */
 function cut(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, Math.max(0, max - 3))}...` : text;
-}
-
-/** Escapes a name for use in a regular expression. */
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/**
- * The names whose value is a credential when it follows `name: ` or `name=`:
- * the sensitive body fields and header names of `SensitiveDataUtils`, the one
- * place that lists them.
- */
-const CREDENTIAL_NAMES = [
-  ...new Set([...SENSITIVE_FIELD_NAMES, ...SENSITIVE_HEADER_NAMES]),
-]
-  .sort((left, right) => right.length - left.length)
-  .map(escapeRegExp)
-  .join('|');
-
-/** `name: value`, `name=value` and `"name":"value"` for a credential name. */
-const NAMED_CREDENTIAL = new RegExp(
-  `(?<![\\w-])(${CREDENTIAL_NAMES})(["']?\\s*[:=]\\s*)(?:(?:bearer|basic|digest|negotiate|ntlm|dpop|token)\\s+)?("[^"]*"|'[^']*'|[^\\s"'&,;}\\])]+)`,
-  'gi'
-);
-
-/** A bearer token wherever it appears. */
-const BEARER_TOKEN = /\b(bearer)\s+[A-Za-z0-9\-._~+/]{8,}=*/gi;
-
-/** A JSON web token (access token, id token, signed assertion). */
-const JSON_WEB_TOKEN = /\beyJ[\w-]{4,}\.[\w-]{4,}(?:\.[\w-]*)?/g;
-
-/** The user and password of a URL: `https://user:password@host`. */
-const URL_USER_INFO = /(\b[a-z][a-z0-9+.-]*:\/\/)([^\s/@:]+):([^\s/@]+)@/gi;
-
-/** A PEM private key, up to its end line or the end of the text. */
-const PRIVATE_KEY =
-  /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/g;
-
-/**
- * Replaces the credentials that the text of an error may contain: values of
- * credential names (`password=...`, `"access_token":"..."`, `Authorization:
- * Bearer ...`), bearer tokens, JSON web tokens, the password of a URL and
- * private keys. The messages of the library state facts and do not carry
- * credentials, but an error nested in them may echo a request or a response.
- *
- * @param text The text of an error.
- * @returns The text with the credentials replaced by a placeholder.
- */
-export function redactCredentials(text: string): string {
-  return text
-    .replace(PRIVATE_KEY, REDACTED)
-    .replace(URL_USER_INFO, `$1$2:${REDACTED}@`)
-    .replace(BEARER_TOKEN, `$1 ${REDACTED}`)
-    .replace(JSON_WEB_TOKEN, REDACTED)
-    .replace(NAMED_CREDENTIAL, `$1$2${REDACTED}`);
 }

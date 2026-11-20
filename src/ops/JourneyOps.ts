@@ -3873,7 +3873,10 @@ export async function deleteJourney({
     return status;
   } catch (error) {
     status['status'] = 'error';
-    status['error'] = error;
+    status['error'] = new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} journey ${journeyId}`,
+      error
+    );
     const errorMessage = `Error deleting ${getCurrentRealmName(state) + ' realm'} journey ${journeyId}.`;
     if (progress && indicatorId && progressIndicatorVisible) {
       stopProgressIndicator({

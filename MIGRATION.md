@@ -30,6 +30,74 @@ releases missed):
 
 **Behavior changes**:
 
+- The JSON and `util.inspect` forms of a `FrodoError` and of the `AxiosError` of
+  a request made through the library changed: each is now a summary of the
+  error. An `AxiosError` writes its name, message, code, status, method, URL,
+  the names of the request headers (the values of the sensitive ones are
+  replaced, for example `Authorization: Bearer <redacted>`), the request body,
+  and a summary of the response: status, a short list of headers (a header that
+  is not on the list is named and its value is `<omitted>`, a URL in a header is
+  redacted) and the body, with the sensitive fields of both bodies replaced. A
+  `FrodoError` writes its message, combined message, code, HTTP fields,
+  transaction id and original errors the same way. `config`, `request` and
+  `stack` are no longer in the JSON of an `AxiosError`, and `console.log(error)`
+  no longer prints the configuration of the request: read `error.config` when
+  you need it. `config`, `request` and `response` of such an error are no longer
+  enumerable (`Object.keys`, a spread and `Object.assign` do not copy them) and
+  are still readable by name. `getCombinedMessage()` and `toString()` are
+  unchanged.
+- `frodo.authn.journey.deleteJourney` and `deleteJourneys`: the `error` of the
+  status of a journey that could not be deleted is now a `FrodoError` that wraps
+  the error of the request (message `Error deleting <realm> realm journey <id>`),
+  as everywhere else in the library; it was the error of the request. Read the
+  answer of the server with `getFailedResponse(error)` or `error.httpStatus`.
+  `frodo.mcp` (`idm.managed.queryManagedObjects`) throws a `FrodoError` that
+  wraps the error of the request in the same way.
+- The curl command that the debug option `curlirize` prints for a request whose
+  body holds an `authId` shows `"authId":"<redacted>"` instead of its value; the
+  option that prints secrets keeps printing it. The text of an error is cut
+  after its sensitive values are replaced, so a value that the cut would end is
+  replaced as a whole. The `getCombinedMessage()` of the view reads only the head
+  of the text, so it takes the same time for an error that holds the same error
+  many times, and it writes the `Detail:` of an answer the way the view writes a
+  body; the text that `getCombinedMessage()` returns is unchanged. A text that
+  looks like JSON (it starts like JSON, holds an opening brace or bracket with a
+  quote after it, or holds an escaped quote or a unicode escape) is written as
+  its structure when it parses and is within 64 KiB, four texts inside texts and
+  the budget of the view (512 KiB for all the bodies of one view, or up to 8
+  KiB; a text that the view reads twice is read once), with the values of
+  sensitive names replaced whatever they are; any other text of that kind is not
+  written and is replaced by `<text of N characters not written>`; a text that
+  is written with HTML entities or percent escapes, and one that holds an XML
+  element or an HTML field of a credential (`<password>`, `type="password"`), is
+  read the same way. A text that does not look like JSON is written as before.
+  The names of credentials are compared in lower case without hyphens,
+  underscores and dots (`accessToken`, `access-token` and `ACCESS_TOKEN` are one
+  name); the lists hold `token`, `jwt`, `pwd`, `passwd`, `pass`, `apiKey`,
+  `privateKey`, `credentials` and the like (a JSON property named `token` is now
+  replaced), and a name that ends in `password`, `passwd`, `pwd`, `secret`,
+  `passphrase` or `credentials` is the name of a secret (`dbPassword`,
+  `DB_PASSWORD`, `webhookSecret`, `bindCredentials`); the other names are
+  compared exactly, with a list of compound names (`passwordConfirmation`,
+  `resetToken`, `signingKey`, `otp`, `pin` and the like), so `nextPageToken` and
+  `sortKey` stay visible. The names are matched by a list and an ending rule:
+  they are not exhaustive. A text is read for such a name before `=`, `:` or
+  `=>` (also `user[password]=...`, `user[password][confirm]=...` and
+  `--password ...`), and for an XML element of such a name. The value that
+  stands beside a name that is one (`{"name":"x-api-key","value":"..."}`; the
+  keys that name a field are `name`, `key`, `label`, `id`, `type`, `title` and
+  the like, the keys of the value are `value`, `val`, `text`, `data` and the
+  like) and the member of a list after one (`["Cookie","..."]`, the flat raw
+  headers of a request) are replaced, and so is the base64 text after `Basic`
+  when it holds a user name and a password. A message of several lines that
+  looks like JSON is one text in the combined message, as it is in `message`;
+  after a line that opens JSON or markup, the lines up to the next line that
+  starts with a label of the combined message (`Network error:`, `URL:`,
+  `Message:` and the others) are not written. The
+  password in the user info of a URL in a text goes up to the last at sign of
+  its authority (which ends at a slash, `?`, `#`, a backslash, white space, a
+  quote, an angle bracket or the scheme of a second URL), so a password that
+  holds `, ; | ) ] } &` is replaced as a whole.
 - `frodo.mapping.deleteMappings` (`src/ops/MappingOps.ts`) with `connectorId`
   and/or `moType` now deletes only the mappings that belong to them (with both,
   only the mappings that belong to both) and returns only what it deleted.
