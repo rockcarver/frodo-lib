@@ -222,7 +222,7 @@ export type Journey = {
    * settings, the OAuth2 provider, an OAuth2 client, a SAML service provider,
    * an AI agent, an agent group, a CIMD profile, a policy condition). `soft`
    * means the holder works without it (a theme that links the journey stops
-   * being applied to it). The flag is a property of the kind of holder, not a
+   * being applied to it). The flag is a property of the holder and its field, not a
    * check of the tenant, and it says what happens to the holder: the library
    * does not know whether Access Management enforces anything when a journey
    * is deleted.
@@ -2191,7 +2191,7 @@ export type JourneyReferenceDependency = 'hard' | 'soft';
  * `dependency` says how much the holder depends on the journey: `hard` means
  * the holder breaks at run time without it, `soft` means the holder works
  * without it (for example a theme that stops being applied to the journey).
- * The flag is a property of the kind of holder and field, not a check of the
+ * The flag is a property of the holder and its field, not a check of the
  * tenant. An empty answer is never proof that a journey is unused, see
  * {@link findJourneyReferences}.
  */
