@@ -3015,6 +3015,22 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Answers "which journey uses this script?" — a config dependency question no other skill can answer, since the reference only lives on individual node objects (node.script), not on the journey itself or the script. Implemented as a full-realm scan (bulk-reads every node and every journey once, then joins in memory — no per-node fetches), so it stays cheap even on realms with many journeys. Each result reports the journey and the top-level node it actually references; when the script is used by a node nested inside a container node (e.g. a Page Node), the result also carries innerNodeId for the specific nested node, since a journey\'s own node map only ever points at the container. Returns an empty array, not an error, when nothing references the script.',
   },
+  'authn.journey.findJourneyReferences': {
+    operationType: 'search',
+    objectType: 'JourneyReference',
+    argumentMode: 'positional',
+    parameterOverrides: {
+      journeyId: {
+        description:
+          'Id/name of the journey to find references to. The journey does not have to exist, so the same call after a delete lists what now points at nothing.',
+        examples: ['Login'],
+      },
+    },
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Answers "what still uses this journey?" before a delete: it reads, once and together, the nodes of every journey (an Inner Tree Evaluator or Back Channel Initialize node that names the journey, also inside a Page Node), the realm\'s default authentication journeys, the self-service journeys, the OAuth2 provider\'s password grant journey, the themes that link the journey (Cloud and ForgeOps only) and the policy conditions that authenticate to it, and joins them in memory. Each result has a source and the field that holds the name. An empty array is never proof that a journey is unused: it means only that none of those sources names it. The tool cannot see an application, an SDK, Amster or a connection profile that starts the journey directly by name, a journey name inside a script, or an OAuth2 client or SAML application that uses it. A result that the tool runtime cuts is no proof either. Fails closed: if any source cannot be read the call fails with one error that names each source, and returns no partial list. Read-only.',
+  },
   'authn.journey.getNodeRef': {
     // Takes a full NodeSkeleton + SingleTreeExportInterface as input, not a
     // simple identifier — internal plumbing used while processing an export

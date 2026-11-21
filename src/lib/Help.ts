@@ -2732,6 +2732,16 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Journey",
+    methodName: "findJourneyReferences",
+    signature: "findJourneyReferences(journeyId: string): Promise<JourneyReference[]>",
+    description: "Find what in the active realm still names a journey: other journeys that call it (through an Inner Tree Evaluator node, a Back Channel Initialize node, also when the node sits inside a Page Node), the realm's default authentication journeys, the self-service journeys, the password grant journey of the OAuth2 provider, the themes that link it and the policy conditions that authenticate to it. The themes are read only on Cloud and ForgeOps. Read-only: every source is read once, the answer is joined in memory, and nothing is written or printed. The journey does not have to exist, so the same call after a delete lists what now points at nothing. A journey that names itself is not reported. A reference of a kind that is not there at all (no provider, no self-service settings, settings that Cloud does not offer) counts as none. The answer is \"what this library can read\", never proof that a journey is unused. An empty array means only that none of the sources above names the journey. The library cannot see an application, an SDK, Amster or a connection profile that starts the journey directly by name, a journey name inside a script, or an OAuth2 client or SAML application that uses it (the documentation of Access Management says that it refuses to delete a journey that such an application references). Do not treat an empty answer as permission to delete. Fails closed: every source is attempted, and if any source cannot be read the function throws one error that nests one error per source that could not be read and returns no references, so a failed read is never mistaken for \"not referenced\".",
+    params: [
+      { name: "journeyId", type: "string", description: "journey id/name, the journey that references are looked up for", required: true },
+    ],
+    returns: "{Promise<JourneyReference[]>} a promise that resolves to every reference found, ordered: other journeys (by journey id, then node id), authentication settings, self-service journeys, OAuth2 provider, themes, policies",
+  },
+  {
+    typeName: "Journey",
     methodName: "readJourney",
     signature: "readJourney(journeyId: string): Promise<TreeSkeleton>",
     description: "Read journey without dependencies.",

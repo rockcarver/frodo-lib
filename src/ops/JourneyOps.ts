@@ -14,6 +14,7 @@ import {
   type NodeSkeleton,
   type StaticNodeRefSkeletonInterface,
 } from '../api/NodeApi';
+import { type PolicyCondition, type PolicySkeleton } from '../api/PoliciesApi';
 import {
   createProvider,
   getProvider,
@@ -23,6 +24,7 @@ import {
   type Saml2ProviderSkeleton,
 } from '../api/Saml2Api';
 import { type ScriptSkeleton } from '../api/ScriptApi';
+import { getService } from '../api/ServiceApi';
 import { type SocialIdpSkeleton } from '../api/SocialIdentityProvidersApi';
 import {
   deleteTree,
@@ -70,6 +72,7 @@ import {
   type JourneyValidationFinding,
 } from '../utils/JourneyValidationUtils';
 import { findInArray } from '../utils/JsonUtils';
+import { readAuthenticationSettings } from './AuthenticationSettingsOps';
 import { readCirclesOfTrust } from './CirclesOfTrustOps';
 import { resolveVariable, updateVariable } from './cloud/VariablesOps';
 import {
@@ -91,7 +94,9 @@ import {
   readNodes,
   updateNode,
 } from './NodeOps';
+import { readOAuth2Provider } from './OAuth2ProviderOps';
 import { ResultCallback, type ExportMetaData } from './OpsTypes';
+import { forEachLeafCondition, readPolicies } from './PolicyOps';
 import { readSaml2ProviderStubs } from './Saml2Ops';
 import {
   getLibraryScriptNames,
@@ -187,6 +192,39 @@ export type Journey = {
    * @returns {Promise<ScriptReference[]>} a promise that resolves to every reference found
    */
   findScriptReferences(scriptId: string): Promise<ScriptReference[]>;
+  /**
+   * Find what in the active realm still names a journey: other journeys that
+   * call it (through an Inner Tree Evaluator node, a Back Channel Initialize
+   * node, also when the node sits inside a Page Node), the realm's default
+   * authentication journeys, the self-service journeys, the password grant
+   * journey of the OAuth2 provider, the themes that link it and the policy
+   * conditions that authenticate to it. The themes are read only on Cloud and
+   * ForgeOps.
+   *
+   * Read-only: every source is read once, the answer is joined in memory, and
+   * nothing is written or printed. The journey does not have to exist, so the
+   * same call after a delete lists what now points at nothing. A journey that
+   * names itself is not reported. A reference of a kind that is not there at
+   * all (no provider, no self-service settings, settings that Cloud does not
+   * offer) counts as none.
+   *
+   * The answer is "what this library can read", never proof that a journey is
+   * unused. An empty array means only that none of the sources above names the
+   * journey. The library cannot see an application, an SDK, Amster or a
+   * connection profile that starts the journey directly by name, a journey
+   * name inside a script, or an OAuth2 client or SAML application that uses it
+   * (the documentation of Access Management says that it refuses to delete a
+   * journey that such an application references). Do not treat an empty answer
+   * as permission to delete.
+   *
+   * Fails closed: every source is attempted, and if any source cannot be read
+   * the function throws one error that nests one error per source that could
+   * not be read and returns no references, so a failed read is never mistaken
+   * for "not referenced".
+   * @param {string} journeyId journey id/name, the journey that references are looked up for
+   * @returns {Promise<JourneyReference[]>} a promise that resolves to every reference found, ordered: other journeys (by journey id, then node id), authentication settings, self-service journeys, OAuth2 provider, themes, policies
+   */
+  findJourneyReferences(journeyId: string): Promise<JourneyReference[]>;
   /**
    * Read journey without dependencies.
    * @param {string} journeyId journey id/name
@@ -398,6 +436,11 @@ export default (state: State): Journey => {
     },
     async findScriptReferences(scriptId: string): Promise<ScriptReference[]> {
       return findScriptReferences({ scriptId, state });
+    },
+    async findJourneyReferences(
+      journeyId: string
+    ): Promise<JourneyReference[]> {
+      return findJourneyReferences({ journeyId, state });
     },
     async readJourney(journeyId: string): Promise<TreeSkeleton> {
       return readJourney({ journeyId, state });
@@ -2080,6 +2123,455 @@ export async function findScriptReferences({
       error
     );
   }
+}
+
+/**
+ * One place that names a journey, found by {@link findJourneyReferences}.
+ * `source` says which kind of holder it is; the other fields say where in that
+ * holder the name was found. An empty answer is never proof that a journey is
+ * unused, see {@link findJourneyReferences}.
+ */
+export type JourneyReference =
+  | {
+      /** Another journey: one of its nodes names the journey. */
+      source: 'journey';
+      /** The journey that holds the reference (not the journey that was looked up). */
+      journeyId: string;
+      /** The top-level node id a journey's own node map actually references. */
+      nodeId: string;
+      nodeType: string;
+      nodeDisplayName?: string;
+      /**
+       * Present when the node that names the journey is nested inside a
+       * container node (e.g. a Page Node) rather than being the top-level node
+       * itself: this is the inner node's id, distinct from `nodeId` (the
+       * container).
+       */
+      innerNodeId?: string;
+    }
+  | {
+      /** A realm setting: the default authentication journeys, the self-service journeys or the OAuth2 provider. */
+      source:
+        'authentication-settings' | 'self-service-trees' | 'oauth2-provider';
+      /** The field of the setting that holds the name, as a dotted path (for example `core.orgConfig`). */
+      from: string;
+    }
+  | {
+      /** A theme or a policy that links the journey. */
+      source: 'theme' | 'policy';
+      /** The id of the theme or policy. */
+      id: string;
+      name?: string;
+      /** The field that holds the name (for example `linkedTrees` or `condition.authenticateToService`). */
+      from: string;
+    };
+
+/** How a property holds journey names: one name, or a list of names. */
+type JourneyNameShape = 'single' | 'list';
+
+/**
+ * A node type whose configuration names a journey, and where. Adding a node
+ * type that takes a journey name is adding a row to
+ * {@link journeyReferenceNodeRows}.
+ */
+export type JourneyReferenceNodeRow = {
+  /** The node type id, for example `InnerTreeEvaluatorNode`. */
+  nodeType: string;
+  /** The property of the node configuration that holds the name, as a dotted path. */
+  property: string;
+  /** `single`: the property is one journey name. `list`: it is an array of journey names. */
+  shape: JourneyNameShape;
+};
+
+/**
+ * The node types that name a journey in their configuration. These two are the
+ * types that the export of a journey treats as dependencies
+ * (`treeDependencyNodeTypes`).
+ */
+export const journeyReferenceNodeRows: readonly JourneyReferenceNodeRow[] = [
+  { nodeType: 'InnerTreeEvaluatorNode', property: 'tree', shape: 'single' },
+  { nodeType: 'BackChannelInitNode', property: 'tree', shape: 'single' },
+];
+
+/** A field of a realm setting that holds journey names. */
+type JourneyReferenceField = { from: string; shape: JourneyNameShape };
+
+/** The policy condition types that name a journey, and the property that holds the name. */
+const journeyReferencePolicyConditionRows: readonly JourneyReferenceNodeRow[] =
+  [
+    {
+      nodeType: 'AuthenticateToService',
+      property: 'authenticateToService',
+      shape: 'single',
+    },
+  ];
+
+/** The self-service flows that each name a journey in `treeMapping`. */
+const selfServiceTreeFlows = [
+  'forgottenUsername',
+  'registration',
+  'resetPassword',
+  'updatePassword',
+];
+
+/** The data of the one set of reads that feeds the join: one entry per source. */
+export type JourneyReferenceReads = Partial<
+  Record<JourneyReference['source'], unknown>
+>;
+
+type JourneyReferenceSource = {
+  /** The `source` of the references that this source yields. One row per source. */
+  source: JourneyReference['source'];
+  /** What the read is called in an error. */
+  label: string;
+  /** True if the read is only made on Cloud and ForgeOps. */
+  platformOnly?: boolean;
+  read: (state: State) => Promise<unknown>;
+  /** Pure: the references to one journey in what `read` returned. */
+  find: (data: unknown, journeyId: string) => JourneyReference[];
+};
+
+/** Make a source row from typed reader and matcher. */
+function defineReferenceSource<T>(row: {
+  source: JourneyReference['source'];
+  label: string;
+  platformOnly?: boolean;
+  read: (state: State) => Promise<T>;
+  find: (data: T, journeyId: string) => JourneyReference[];
+}): JourneyReferenceSource {
+  return row as unknown as JourneyReferenceSource;
+}
+
+/**
+ * The journey names that a property holds: the string of a `single` property,
+ * the strings of a `list` property. Anything else (a missing property, a
+ * number, an array where a string is expected) holds no name.
+ */
+function readJourneyNames(
+  holder: unknown,
+  path: string,
+  shape: JourneyNameShape
+): string[] {
+  let value: unknown = holder;
+  for (const key of path.split('.')) {
+    if (value === null || typeof value !== 'object') return [];
+    value = (value as Record<string, unknown>)[key];
+  }
+  if (shape === 'single') return typeof value === 'string' ? [value] : [];
+  return Array.isArray(value)
+    ? value.filter((name): name is string => typeof name === 'string')
+    : [];
+}
+
+/**
+ * A source that reads one realm setting: its row says which fields hold a
+ * journey name. Adding a field is a row entry, adding a setting is a row and a
+ * reader.
+ */
+function defineSettingSource<T>(row: {
+  source: 'authentication-settings' | 'self-service-trees' | 'oauth2-provider';
+  label: string;
+  read: (state: State) => Promise<T>;
+  fields: readonly JourneyReferenceField[];
+}): JourneyReferenceSource {
+  return defineReferenceSource<T>({
+    source: row.source,
+    label: row.label,
+    read: row.read,
+    find: (setting, journeyId) =>
+      row.fields
+        .filter((field) =>
+          readJourneyNames(setting, field.from, field.shape).includes(journeyId)
+        )
+        .map((field) => ({ source: row.source, from: field.from })),
+  });
+}
+
+type JourneyNodeEdge = {
+  /** The journey that the node names. */
+  namedJourneyId: string;
+  /** The reference to report, if the journey that is looked up is the named one. */
+  reference: Extract<JourneyReference, { source: 'journey' }>;
+};
+
+/**
+ * Every (journey, node, named journey) edge of the realm. Pure: it joins the
+ * node map of each journey to the node configurations by node id, so a node
+ * that no journey references is ignored, and it looks inside container nodes
+ * (a Page Node lists its inner nodes) the way `findScriptReferences` does,
+ * reporting the top-level node together with the inner node. Which node types
+ * and properties name a journey is in `rows`.
+ */
+function collectJourneyNodeEdges({
+  journeys,
+  nodes,
+  rows,
+}: {
+  journeys: TreeSkeleton[];
+  nodes: NodeSkeleton[];
+  rows: readonly JourneyReferenceNodeRow[];
+}): JourneyNodeEdge[] {
+  const configById = new Map<string, NodeSkeleton>();
+  for (const node of nodes) configById.set(node._id, node);
+  const edges: JourneyNodeEdge[] = [];
+  const seen = new Set<string>();
+  for (const journey of journeys) {
+    for (const [nodeId, nodeRef] of Object.entries(journey.nodes ?? {})) {
+      const config = configById.get(nodeId);
+      // the node itself, then the nodes inside it if it is a container
+      const holders: { id: string; type?: string; innerNodeId?: string }[] = [
+        { id: nodeId, type: nodeRef.nodeType },
+        ...(config?.nodes ?? []).map((inner) => ({
+          id: inner._id,
+          type: inner.nodeType,
+          innerNodeId: inner._id,
+        })),
+      ];
+      for (const holder of holders) {
+        const holderConfig = configById.get(holder.id);
+        if (!holderConfig) continue;
+        const holderType = holder.type ?? holderConfig._type?._id;
+        for (const row of rows) {
+          if (row.nodeType !== holderType) continue;
+          for (const namedJourneyId of readJourneyNames(
+            holderConfig,
+            row.property,
+            row.shape
+          )) {
+            const key = JSON.stringify([
+              journey._id,
+              nodeId,
+              holder.innerNodeId,
+              namedJourneyId,
+            ]);
+            if (seen.has(key)) continue;
+            seen.add(key);
+            edges.push({
+              namedJourneyId,
+              reference: {
+                source: 'journey',
+                journeyId: journey._id,
+                nodeId,
+                nodeType: nodeRef.nodeType,
+                nodeDisplayName: nodeRef.displayName,
+                ...(holder.innerNodeId && { innerNodeId: holder.innerNodeId }),
+              },
+            });
+          }
+        }
+      }
+    }
+  }
+  return edges.sort(
+    (a, b) =>
+      a.reference.journeyId.localeCompare(b.reference.journeyId) ||
+      a.reference.nodeId.localeCompare(b.reference.nodeId) ||
+      (a.reference.innerNodeId ?? '').localeCompare(
+        b.reference.innerNodeId ?? ''
+      )
+  );
+}
+
+/** The conditions of a policy that name a journey, as the `from` paths that hold the name. */
+function findPolicyConditionFields(
+  policy: PolicySkeleton,
+  journeyId: string
+): string[] {
+  const found = new Set<string>();
+  forEachLeafCondition(policy.condition, (leaf: PolicyCondition) => {
+    for (const row of journeyReferencePolicyConditionRows) {
+      if (
+        leaf.type === row.nodeType &&
+        readJourneyNames(leaf, row.property, row.shape).includes(journeyId)
+      ) {
+        found.add(`condition.${row.property}`);
+      }
+    }
+  });
+  return [...found];
+}
+
+const byId = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id);
+
+/**
+ * Every source that findJourneyReferences reads, in the order of the result
+ * (the first holds the journeys). Adding a realm setting that names a journey
+ * is a row here plus its reader; adding a node type that names a journey is a
+ * row of {@link journeyReferenceNodeRows}.
+ */
+const journeyReferenceSources: readonly JourneyReferenceSource[] = [
+  defineReferenceSource<{ journeys: TreeSkeleton[]; nodes: NodeSkeleton[] }>({
+    source: 'journey',
+    label: 'journeys and their nodes',
+    read: async (state) => {
+      const [journeys, nodes] = await Promise.all([
+        readJourneys({ state }),
+        readNodes({ state }),
+      ]);
+      return { journeys, nodes };
+    },
+    find: ({ journeys, nodes }, journeyId) =>
+      collectJourneyNodeEdges({
+        journeys,
+        nodes,
+        rows: journeyReferenceNodeRows,
+      })
+        // a journey that names itself is not a reference to be told about
+        .filter(
+          (edge) =>
+            edge.namedJourneyId === journeyId &&
+            edge.reference.journeyId !== journeyId
+        )
+        .map((edge) => edge.reference),
+  }),
+  defineSettingSource({
+    source: 'authentication-settings',
+    label: 'authentication settings',
+    read: async (state) =>
+      readAuthenticationSettings({ globalConfig: false, state }),
+    fields: [
+      { from: 'core.orgConfig', shape: 'single' },
+      { from: 'core.adminAuthModule', shape: 'single' },
+    ],
+  }),
+  defineSettingSource({
+    source: 'self-service-trees',
+    label: 'self-service journey settings',
+    read: async (state) => {
+      try {
+        return await getService({ serviceId: 'selfServiceTrees', state });
+      } catch (error) {
+        // the service is not configured in this realm
+        if (isNotFoundError(error)) return null;
+        throw error;
+      }
+    },
+    fields: selfServiceTreeFlows.map((flow) => ({
+      from: `treeMapping.${flow}`,
+      shape: 'single' as const,
+    })),
+  }),
+  defineSettingSource({
+    source: 'oauth2-provider',
+    label: 'OAuth2 provider settings',
+    read: async (state) => readOAuth2Provider({ state }),
+    fields: [
+      {
+        from: 'advancedOAuth2Config.passwordGrantAuthService',
+        shape: 'single',
+      },
+    ],
+  }),
+  defineReferenceSource<ThemeSkeleton[]>({
+    source: 'theme',
+    label: 'themes',
+    platformOnly: true,
+    read: async (state) => readThemes({ state }),
+    find: (themes, journeyId) =>
+      themes
+        .filter((theme) =>
+          readJourneyNames(theme, 'linkedTrees', 'list').includes(journeyId)
+        )
+        .map((theme) => ({
+          source: 'theme' as const,
+          id: theme._id,
+          name: theme.name,
+          from: 'linkedTrees',
+        }))
+        .sort(byId),
+  }),
+  defineReferenceSource<PolicySkeleton[]>({
+    source: 'policy',
+    label: 'policies',
+    read: async (state) => readPolicies({ state }),
+    find: (policies, journeyId) =>
+      policies
+        .flatMap((policy) =>
+          findPolicyConditionFields(policy, journeyId).map((from) => ({
+            source: 'policy' as const,
+            id: policy._id,
+            name: policy.name,
+            from,
+          }))
+        )
+        .sort(byId),
+  }),
+];
+
+/**
+ * The pure join of {@link findJourneyReferences}: the references to a journey
+ * in one set of reads. Nothing is read here, so the same reads can answer any
+ * number of journeys. A source that has no entry in `reads` (for example the
+ * themes on a deployment that has none) yields no reference.
+ * @param {JourneyReferenceReads} reads what every source returned, keyed by source
+ * @param {string} journeyId journey id/name
+ * @returns {JourneyReference[]} every reference found, in the order of the sources
+ */
+export function joinJourneyReferences(
+  reads: JourneyReferenceReads,
+  journeyId: string
+): JourneyReference[] {
+  return journeyReferenceSources.flatMap((source) =>
+    source.source in reads ? source.find(reads[source.source], journeyId) : []
+  );
+}
+
+/**
+ * Finds everything in the active realm that still names a journey: nodes of
+ * other journeys, the realm's authentication settings, the self-service
+ * journeys, the OAuth2 provider, the themes (Cloud and ForgeOps) and the
+ * policy conditions. Every source is read once, together, and the answer is
+ * joined in memory. See the facade method for what an empty answer does and
+ * does not mean.
+ *
+ * Fails closed: if any source cannot be read, every source is still
+ * attempted, then one error is thrown that nests one error per source that
+ * failed. A source that is not there (no OAuth2 provider, no self-service
+ * settings, a setting that Cloud does not offer) is none, not a failure.
+ * @param {string} journeyId journey id/name
+ * @returns {Promise<JourneyReference[]>} a promise that resolves to every reference found
+ */
+export async function findJourneyReferences({
+  journeyId,
+  state,
+}: {
+  journeyId: string;
+  state: State;
+}): Promise<JourneyReference[]> {
+  const realm = getCurrentRealmName(state) + ' realm';
+  if (typeof journeyId !== 'string' || journeyId.trim() === '') {
+    // an empty name matches nothing, which would read as "unused"
+    throw new FrodoError(
+      `Error finding references to a ${realm} journey: the journey id is empty`
+    );
+  }
+  const isPlatform =
+    state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
+    state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
+  const sources = journeyReferenceSources.filter(
+    (source) => isPlatform || !source.platformOnly
+  );
+  const settled = await Promise.allSettled(
+    sources.map(async (source) => source.read(state))
+  );
+  const reads: JourneyReferenceReads = {};
+  const errors: FrodoError[] = [];
+  settled.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      reads[sources[index].source] = result.value;
+    } else {
+      errors.push(
+        new FrodoError(`Error reading ${sources[index].label}`, result.reason)
+      );
+    }
+  });
+  if (errors.length > 0) {
+    throw new FrodoError(
+      `Error finding references to ${realm} journey ${journeyId}: ${errors.map((error) => error.message).join('; ')}`,
+      errors
+    );
+  }
+  return joinJourneyReferences(reads, journeyId);
 }
 
 /**
