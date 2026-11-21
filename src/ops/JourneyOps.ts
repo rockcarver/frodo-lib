@@ -224,9 +224,11 @@ export type Journey = {
    * OAuth2 client, a SAML service provider, an agent, a group, a profile, a
    * theme or a policy) also has its `id`; a theme and a policy have a `name`,
    * a policy its policy set as `applicationName`. There is one reference per
-   * holder and field, however often the field names the journey. A value that
-   * an agent inherits from its group is reported for the group, not for the
-   * agent.
+   * holder and field, however often the field names the journey. An object
+   * that only inherits the value (Access Management's `inherited: true`, for
+   * example an AI agent whose group sets the journey) is reported too, with
+   * `inherited: true`, and the group that holds the value is reported as well,
+   * because the group may be one that this lookup does not read.
    *
    * Every reference carries a `dependency` flag, in the words of the policy
    * import code. `hard` means the holder breaks at run time without the
@@ -234,10 +236,26 @@ export type Journey = {
    * settings, the OAuth2 provider, an OAuth2 client, a SAML service provider,
    * an AI agent, an agent group, a CIMD profile, a policy condition). `soft`
    * means the holder works without it (a theme that links the journey stops
-   * being applied to it). The flag is a property of the holder and its field, not a
-   * check of the tenant, and it says what happens to the holder: the library
-   * does not know whether Access Management enforces anything when a journey
-   * is deleted.
+   * being applied to it). The flag is a property of the holder and its field,
+   * not a check of the tenant, and it says what happens to the holder.
+   *
+   * The flag is separate from what Access Management does when the journey is
+   * deleted: a `hard` holder is not necessarily one that Access Management
+   * protects. What was observed (not documented, not a guarantee, and it may
+   * differ between versions): in November 2026, on one Cloud development
+   * tenant, with throw-away objects, Access Management refused to delete a
+   * journey that an OAuth2 client, a SAML remote service provider or a SAML
+   * hosted service provider names (it answered with a server error, HTTP 500,
+   * that names the holder), and it deleted a journey that an Inner Tree
+   * Evaluator node, a Back Channel Initialize node or a policy condition
+   * (authentication by service, transaction) names, leaving the holder
+   * unchanged and pointing at nothing. Writing the placeholder for no journey
+   * (`[Empty]`) as the journey name of the client or of the SAML provider was
+   * observed to let the delete through. Not observed: the default journeys of
+   * the realm, the self-service journeys, the password grant journey of the
+   * OAuth2 provider, themes, AI agents (a test agent could not be created),
+   * agent groups and CIMD profiles. So a non-empty answer is not a prediction
+   * of a refusal, and an empty answer is not proof that a journey is unused.
    *
    * Read-only: every source is read once, the answer is joined in memory, and
    * nothing is written or printed. The journey does not have to exist, so the
@@ -2193,9 +2211,10 @@ export const JOURNEY_REFERENCE_SOURCES = {
  * How much a holder depends on the journey it names. The words are the ones of
  * the policy import code: a `hard` dependency breaks the holder at run time
  * without the journey, a `soft` dependency does not (the holder works
- * without it). The library does not know whether Access Management enforces
- * anything when the journey is deleted; the flag says what happens to the
- * holder, not what the server does.
+ * without it). The flag says what happens to the holder, not what Access
+ * Management does when the journey is deleted: a `hard` holder is not
+ * necessarily protected (see {@link findJourneyReferences} for what was
+ * observed).
  */
 export type JourneyReferenceDependency = 'hard' | 'soft';
 
@@ -2254,6 +2273,13 @@ export type JourneyReference = {
       name?: string;
       /** The field that holds the name, as a dotted path (for example `advancedOAuth2ClientConfig.treeName` or `linkedTrees`). */
       from: string;
+      /**
+       * Present, and `true`, when the object does not hold the name itself but
+       * inherits it (Access Management's `inherited: true`): an agent whose
+       * group sets the journey. The group is reported as well when it holds
+       * the value.
+       */
+      inherited?: true;
     }
   | {
       /** A policy with a condition that names the journey. */
@@ -2361,23 +2387,23 @@ const NO_JOURNEY = '[Empty]';
 
 /**
  * The one normaliser for what a field holds: a plain string, the wrapped form
- * `{ inherited, value }` that agents, groups and profiles read in, or the
- * placeholder for "no journey". Returns the journey name, or undefined if the
- * field names none. A wrapped value with `inherited: true` names none for this
- * holder: the value comes from the group of the agent, and the group is
- * reported for it.
+ * `{ inherited, value }` that agents, groups, profiles and clients read in, or
+ * the placeholder for "no journey". Returns the journey name and whether the
+ * holder inherits it (`inherited: true` in the wrapped form), or undefined if
+ * the field names none.
  */
-function normaliseJourneyName(value: unknown): string | undefined {
+function normaliseJourneyName(
+  value: unknown
+): { name: string; inherited: boolean } | undefined {
   let name = value;
+  let inherited = false;
   if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
     const wrapped = value as { inherited?: unknown; value?: unknown };
-    // a value that the holder inherits belongs to the holder it comes from
-    // (the group of an agent), which is read and reported in its own right
-    if (wrapped.inherited === true) return undefined;
+    inherited = wrapped.inherited === true;
     name = wrapped.value;
   }
   return typeof name === 'string' && name !== '' && name !== NO_JOURNEY
-    ? name
+    ? { name, inherited }
     : undefined;
 }
 
@@ -2391,7 +2417,7 @@ function readJourneyNames(
   holder: unknown,
   path: string,
   shape: JourneyNameShape
-): { from: string; name: string }[] {
+): { from: string; name: string; inherited: boolean }[] {
   let value: unknown = holder;
   for (const key of path.split('.')) {
     if (value === null || typeof value !== 'object') return [];
@@ -2414,24 +2440,33 @@ function readJourneyNames(
     ]);
   }
   return entries.flatMap(([from, item]) => {
-    const name = normaliseJourneyName(item);
-    return name === undefined ? [] : [{ from, name }];
+    const named = normaliseJourneyName(item);
+    return named === undefined ? [] : [{ from, ...named }];
   });
 }
 
-/** The fields of a holder that name a journey, as their paths, in the order of the fields. */
+/**
+ * The fields of a holder that name a journey, as their paths, in the order of
+ * the fields, each once, with whether the holder only inherits the name there
+ * (it does if every entry of that path that names the journey is inherited).
+ */
 function findNamingFields(
   holder: unknown,
   fields: readonly JourneyReferenceField[],
   journeyId: string
-): string[] {
-  const found = new Set<string>();
+): { from: string; inherited: boolean }[] {
+  const found = new Map<string, boolean>();
   for (const field of fields) {
     for (const entry of readJourneyNames(holder, field.from, field.shape)) {
-      if (entry.name === journeyId) found.add(entry.from);
+      if (entry.name === journeyId) {
+        found.set(
+          entry.from,
+          (found.get(entry.from) ?? true) && entry.inherited
+        );
+      }
     }
   }
-  return [...found];
+  return [...found].map(([from, inherited]) => ({ from, inherited }));
 }
 
 /** The data of the one set of reads that feeds the join: one entry per source. */
@@ -2483,7 +2518,7 @@ export function defineSettingSource<T>(row: {
     label: row.label,
     read: row.read,
     find: (setting, journeyId) =>
-      findNamingFields(setting, row.fields, journeyId).map((from) => ({
+      findNamingFields(setting, row.fields, journeyId).map(({ from }) => ({
         source: row.source,
         dependency: row.dependency,
         from,
@@ -2523,16 +2558,19 @@ export function defineHolderSource<T>(row: {
     find: (holders, journeyId) =>
       holders
         .flatMap((holder) =>
-          findNamingFields(holder, row.fields, journeyId).map((from) => {
-            const name = row.nameOf?.(holder);
-            return {
-              source: row.source,
-              dependency: row.dependency,
-              id: row.idOf(holder),
-              ...(name !== undefined && { name }),
-              from,
-            };
-          })
+          findNamingFields(holder, row.fields, journeyId).map(
+            ({ from, inherited }) => {
+              const name = row.nameOf?.(holder);
+              return {
+                source: row.source,
+                dependency: row.dependency,
+                id: row.idOf(holder),
+                ...(name !== undefined && { name }),
+                from,
+                ...(inherited && { inherited: true as const }),
+              };
+            }
+          )
         )
         .sort(byId),
   });
@@ -2680,7 +2718,7 @@ async function readJourneysAndNodes({ state }: { state: State }): Promise<{
           lacking.set(inner._id, {
             journeyId: journey._id,
             nodeType: inner.nodeType,
-            version: inner['version'] || '1.0',
+            version: inner['nodeVersion'] || inner['version'] || '1.0',
           });
         }
       }
