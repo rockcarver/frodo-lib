@@ -808,6 +808,84 @@ describe('MCP capability foundation', () => {
     ).toEqual([]);
   });
 
+  test('finding the references to a journey is one reviewed, low-risk, read-only search', () => {
+    const capabilities = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['authn'],
+      includeUtils: false,
+    });
+    const byId = new Map(
+      capabilities.map((capability) => [capability.id, capability])
+    );
+    const references = byId.get('authn.journey.findJourneyReferences');
+    expect(references).toBeDefined();
+    expect(references).toMatchObject({
+      operationType: 'search',
+      objectType: 'JourneyReference',
+      argumentMode: 'positional',
+      mutating: false,
+      riskClass: 'low',
+      supportsRealm: true,
+    });
+    expect(
+      references?.parameters?.map(({ name, required }) => ({ name, required }))
+    ).toEqual([{ name: 'journeyId', required: true }]);
+    // the notes carry the blind spots, so that an empty answer is not read as "unused"
+    expect(references?.notes).toMatch(/never proof/);
+    expect(references?.notes).toMatch(/Fails closed/);
+    expect(references?.notes).toMatch(/Configuration Provider/);
+    expect(references?.notes).toMatch(/authentication context/);
+    expect(references?.notes).toMatch(/inside a Page Node is seen only/);
+    expect(references?.notes).toMatch(/no from field/);
+    // the dependency flag is explained in plain words and kept apart from what the server does
+    expect(references?.notes).toMatch(/hard/);
+    expect(references?.notes).toMatch(/soft/);
+    expect(references?.notes).toMatch(
+      /separate from what Access Management does when the journey is deleted/
+    );
+    // what was observed is scoped, dated and not presented as a guarantee
+    expect(references?.notes).toMatch(
+      /a hard holder is not necessarily one that Access Management protects/
+    );
+    expect(references?.notes).toMatch(/was observed to let the delete through/);
+    expect(references?.notes).toMatch(/it may differ between versions/);
+    expect(references?.notes).toMatch(
+      /observed \(an observation, not a guarantee/
+    );
+    expect(references?.notes).not.toMatch(/not documented/);
+    expect(references?.notes).toMatch(
+      /in November 2026, on one Cloud development tenant/
+    );
+    expect(references?.notes).toMatch(
+      /refused to delete a journey that an OAuth2 client, a SAML remote service provider or a SAML hosted service provider names \(a server error, HTTP 500, that names the type of the holder\)/
+    );
+    expect(references?.notes).toMatch(
+      /deleted a journey that an Inner Tree Evaluator node, a Back Channel Initialize node, a policy condition \(authentication by service, transaction\) or an AI agent names/
+    );
+    expect(references?.notes).toMatch(/\[Empty\]/);
+    // an AI agent that dangles can no longer be maintained, and the clear works only while the journey exists
+    expect(references?.notes).toMatch(/could no longer be updated or deleted/);
+    expect(references?.notes).toMatch(
+      /cleared the agent only while the journey still existed/
+    );
+    expect(references?.notes).toMatch(
+      /can block later maintenance of the holder/
+    );
+    expect(references?.notes).toMatch(
+      /Not observed: the default journeys of the realm, the self-service journeys, the password grant journey of the OAuth2 provider, themes, agent groups and CIMD profiles\./
+    );
+    expect(references?.notes).toMatch(/not a prediction of a refusal/);
+    // "an empty array is never proof" is said once
+    expect(
+      (references?.notes?.match(/never proof|not proof/g) ?? []).length
+    ).toBe(1);
+    // a hard holder is not equated with a refusal, and the message of the server is not quoted
+    expect(references?.notes).not.toMatch(/in use and cannot be deleted/);
+    expect(references?.notes).not.toMatch(/hard (means|is when) .{0,40}refus/i);
+    expect(references?.notes).toMatch(/inherited true/);
+    // it is a reviewed entry, not an inferred default
+    expect(getUnreviewedSpecialCapabilities()).toEqual([]);
+  });
+
   test('never advertises an empty parameter contract when Help.ts reports required params', () => {
     // Regression guard for the script.getLibraryScriptNames bug class: a
     // capability must never end up with an empty/undefined parameter list

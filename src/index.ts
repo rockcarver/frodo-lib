@@ -244,6 +244,7 @@ export type { JwkRsa, JwksInterface } from './ops/JoseOps';
 
 export type {
   DeleteJourneysStatus,
+  JourneyReference,
   MultiTreeExportInterface,
   SingleTreeExportInterface,
   TreeDependencyMapInterface,
