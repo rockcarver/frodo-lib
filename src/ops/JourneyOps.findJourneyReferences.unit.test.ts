@@ -1247,8 +1247,9 @@ describe('findJourneyReferences', () => {
     });
 
     describe('a policy condition row added to the table', () => {
+      const rowCount = journeyReferencePolicyConditionRows.length;
       afterEach(() => {
-        (journeyReferencePolicyConditionRows as any[]).pop();
+        (journeyReferencePolicyConditionRows as any[]).length = rowCount;
       });
 
       test('is read with no code change, and its `when` is honoured', async () => {
@@ -1279,25 +1280,31 @@ describe('findJourneyReferences', () => {
         ]);
       });
 
-      test('hard wins when a soft and a hard row name the same property', async () => {
-        for (const dependency of ['soft', 'hard']) {
-          (journeyReferencePolicyConditionRows as any[]).push({
-            conditionType: 'FutureCondition',
-            property: 'journey',
-            shape: 'single',
-            dependency,
+      test.each([
+        ['soft first', ['soft', 'hard']],
+        ['hard first', ['hard', 'soft']],
+      ])(
+        'hard wins when a soft and a hard row name the same property (%s)',
+        async (_order, dependencies) => {
+          for (const dependency of dependencies) {
+            (journeyReferencePolicyConditionRows as any[]).push({
+              conditionType: 'FutureCondition',
+              property: 'journey',
+              shape: 'single',
+              dependency,
+            });
+          }
+          getPolicies.mockResolvedValue({
+            result: [
+              policy('P1', { type: 'FutureCondition', journey: TARGET }),
+            ],
           });
-        }
-        getPolicies.mockResolvedValue({
-          result: [policy('P1', { type: 'FutureCondition', journey: TARGET })],
-        });
 
-        expect(await find()).toEqual([
-          expect.objectContaining({ id: 'P1', dependency: 'hard' }),
-        ]);
-        // the second row is removed by the next afterEach, the first here
-        (journeyReferencePolicyConditionRows as any[]).pop();
-      });
+          expect(await find()).toEqual([
+            expect.objectContaining({ id: 'P1', dependency: 'hard' }),
+          ]);
+        }
+      );
     });
   });
 
