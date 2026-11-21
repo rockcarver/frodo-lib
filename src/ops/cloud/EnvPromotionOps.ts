@@ -20,16 +20,18 @@ import {
   type RollbackResponse,
 } from '../../api/cloud/EnvPromotionApi';
 import { State } from '../../shared/State';
+import { debugMessage } from '../../utils/Console';
 import { waitForUpdate } from '../../utils/ForgeRockUtils';
 import { FrodoError } from '../FrodoError';
 
 export type EnvPromotion = {
   /**
-   * Lock environment
-   * @param {boolean} wait Whether to wait for the environment to lock. Default: false
+   * Lock environment.
+   * With wait set, the lock status is read first: an environment that is already locked or locking is not asked to lock again, the call waits for the lock and returns its status, whoever started it. That status has the same shape as the status of a lock of your own, with the promotionId of the lock that is held, which may belong to another promotion: do not assume that you own the lock. Without wait, nothing is read first and the lock is requested at once.
+   * @param {boolean} wait Whether to wait for the environment to lock; an environment that is already locking is joined. Default: false
    * @param {number} pollInterval Time between status checks in milliseconds. Default: 10000
    * @param {number} timeout Timeout in milliseconds. Default: 15 * 60 * 1000
-   * @returns {Promise<LockStatus>} a promise that resolves to a LockStatus object.
+   * @returns {Promise<LockStatus>} a promise that resolves to a LockStatus object. Throws a FrodoError when the lock ends in an error (its cause carries the status text), or does not finish in time.
    */
   lockEnvironment(
     wait?: boolean,
@@ -37,12 +39,14 @@ export type EnvPromotion = {
     timeout?: number
   ): Promise<LockStatus>;
   /**
-   * Unlock environment
-   * @param {string} promotionId Optional promotion id. If not specified, will pull it from the environment lock status
-   * @param {boolean} wait Whether to wait for the environment to unlock. Default: false
+   * Unlock environment.
+   * With wait set, the lock status is read first: an environment that is already unlocked or unlocking is not asked to unlock again, the call waits for the unlock and returns its status. Without wait, nothing is read first and the unlock is requested at once.
+   * Without a promotion id the id is read from the lock status, and an environment that holds no lock has none: the call then throws instead of returning the status. Pass the promotion id to unlock an environment that may already be unlocked.
+   * @param {string} promotionId Optional promotion id. If not specified, will pull it from the environment lock status, which throws when the environment holds no lock
+   * @param {boolean} wait Whether to wait for the environment to unlock; an environment that is already unlocking is joined. Default: false
    * @param {number} pollInterval Time between status checks in milliseconds. Default: 10000
    * @param {number} timeout Timeout in milliseconds. Default: 15 * 60 * 1000
-   * @returns {Promise<LockStatus>} a promise that resolves to a LockStatus object.
+   * @returns {Promise<LockStatus>} a promise that resolves to a LockStatus object. Throws a FrodoError when the unlock ends in an error (its cause carries the status text), or does not finish in time.
    */
   unlockEnvironment(
     promotionId?: string,
@@ -200,11 +204,55 @@ function isPromotionFinished(
 }
 
 /**
- * Lock environment. If it's already locked it will just return the current lock status.
- * @param {boolean} wait Whether to wait for the environment to lock. Default: false
+ * Read the lock status before a lock or unlock request, to find out whether
+ * the environment is already where the request would take it. A status that
+ * cannot be read does not end the call: the request is sent as it would be
+ * without the check, and the answer to the request decides.
+ */
+async function readLockStatusBeforeRequest(
+  state: State
+): Promise<LockStatus | undefined> {
+  try {
+    return await readLockStatus({ state });
+  } catch (error) {
+    debugMessage({
+      message: `Could not read the lock status before the request, sending the request anyway: ${error.message}`,
+      state,
+    });
+    return undefined;
+  }
+}
+
+/**
+ * What a failed lock or unlock carries as its cause: the error that stopped
+ * it, or else the text of the status when the tenant answered 'error'.
+ */
+function lockFailureCause(
+  cause: Error | undefined,
+  lockStatus: LockStatus | undefined
+): Error | undefined {
+  if (cause) return cause;
+  return lockStatus?.result === 'error'
+    ? new Error(lockStatus.description)
+    : undefined;
+}
+
+/**
+ * Lock environment.
+ *
+ * With wait set, the lock status is read first: an environment that is already
+ * locked or locking is not asked to lock again, the call waits for the lock and
+ * returns its status, whoever started it. That status has the same shape as the
+ * status of a lock of your own, with the promotionId of the lock that is held,
+ * which may belong to another promotion: do not assume that you own the lock.
+ * A status that cannot be read does not end the call: the lock is requested as
+ * it would be without the check.
+ *
+ * Without wait, nothing is read first and the lock is requested at once.
+ * @param {boolean} wait Whether to wait for the environment to lock; an environment that is already locking is joined. Default: false
  * @param {number} pollInterval Time between status checks in milliseconds. Default: 10000
  * @param {number} timeout Timeout in milliseconds. Default: 15 * 60 * 1000
- * @returns {Promise<LockStatus>} a promise that resolves to a LockStatus object.
+ * @returns {Promise<LockStatus>} a promise that resolves to a LockStatus object. Throws a FrodoError when the lock ends in an error (its cause carries the status text), or does not finish in time.
  */
 export async function lockEnvironment({
   wait = false,
@@ -221,8 +269,9 @@ export async function lockEnvironment({
   let cause: Error;
   const success = await waitForUpdate({
     initiateUpdate: async () => {
-      // If wait is false, we'll attempt to lock regardless of whether the tenant is already locked/locking or not
-      lockStatus = wait ? await readLockStatus({ state }) : undefined;
+      // Without wait the lock is requested whatever the tenant says; with wait
+      // an environment that is already locked or locking is joined.
+      lockStatus = wait ? await readLockStatusBeforeRequest(state) : undefined;
       if (
         !lockStatus ||
         (lockStatus.result !== 'locked' && lockStatus.result !== 'locking')
@@ -261,18 +310,33 @@ export async function lockEnvironment({
     state,
   });
   if (!success) {
-    throw new FrodoError('Error locking environment', cause);
+    throw new FrodoError(
+      'Error locking environment',
+      lockFailureCause(cause, lockStatus)
+    );
   }
   return lockStatus;
 }
 
 /**
- * Unlock environment. If it's already unlocked it will just return the current lock status.
- * @param {string} promotionId Optional promotion id. If not specified, will pull it from the environment lock status
- * @param {boolean} wait Whether to wait for the environment to unlock. Default: false
+ * Unlock environment.
+ *
+ * With wait set, the lock status is read first: an environment that is already
+ * unlocked or unlocking is not asked to unlock again, the call waits for the
+ * unlock and returns its status. A status that cannot be read does not end the
+ * call: the unlock is requested as it would be without the check.
+ *
+ * Without wait, nothing is read first and the unlock is requested at once.
+ *
+ * Without a promotion id the id is read from the lock status, and an
+ * environment that holds no lock has none: the call then throws instead of
+ * returning the status. Pass the promotion id to unlock an environment that may
+ * already be unlocked.
+ * @param {string} promotionId Optional promotion id. If not specified, will pull it from the environment lock status, which throws when the environment holds no lock
+ * @param {boolean} wait Whether to wait for the environment to unlock; an environment that is already unlocking is joined. Default: false
  * @param {number} pollInterval Time between status checks in milliseconds. Default: 10000
  * @param {number} timeout Timeout in milliseconds. Default: 15 * 60 * 1000
- * @returns {Promise<LockStatus>} a promise that resolves to a LockStatus object.
+ * @returns {Promise<LockStatus>} a promise that resolves to a LockStatus object. Throws a FrodoError when the unlock ends in an error (its cause carries the status text), or does not finish in time.
  */
 export async function unlockEnvironment({
   promotionId,
@@ -287,9 +351,12 @@ export async function unlockEnvironment({
   timeout?: number;
   state: State;
 }): Promise<LockStatus> {
+  // the status that gave the promotion id is also the status before the request
+  let statusBeforeRequest: LockStatus | undefined;
   if (!promotionId) {
     try {
-      promotionId = (await readLockStatus({ state })).promotionId;
+      statusBeforeRequest = await readLockStatus({ state });
+      promotionId = statusBeforeRequest.promotionId;
     } catch (e) {
       throw new FrodoError(
         'Failed to get promotion id to unlock environment.',
@@ -306,8 +373,11 @@ export async function unlockEnvironment({
   let cause: Error;
   const success = await waitForUpdate({
     initiateUpdate: async () => {
-      // If wait is false, we'll attempt to unlock regardless of whether the tenant is already unlocked/unlocking or not
-      lockStatus = wait ? await readLockStatus({ state }) : undefined;
+      // Without wait the unlock is requested whatever the tenant says; with
+      // wait an environment that is already unlocked or unlocking is joined.
+      lockStatus = wait
+        ? (statusBeforeRequest ?? (await readLockStatusBeforeRequest(state)))
+        : undefined;
       if (
         !lockStatus ||
         (lockStatus.result !== 'unlocked' && lockStatus.result !== 'unlocking')
@@ -348,7 +418,10 @@ export async function unlockEnvironment({
     state,
   });
   if (!success) {
-    throw new FrodoError('Error unlocking environment', cause);
+    throw new FrodoError(
+      'Error unlocking environment',
+      lockFailureCause(cause, lockStatus)
+    );
   }
   return lockStatus;
 }
