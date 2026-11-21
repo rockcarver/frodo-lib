@@ -4,7 +4,9 @@ exports[`StartupOps applyUpdates() 1: Apply updates and wait for completion 1`] 
 
 exports[`StartupOps applyUpdates() 1: Apply updates without waiting 1`] = `true`;
 
-exports[`StartupOps applyUpdates() 2: Apply updates during tenant restart 1`] = `false`;
+exports[`StartupOps applyUpdates() 2: Apply updates during tenant restart 1`] = `true`;
+
+exports[`StartupOps applyUpdates() 2: Apply updates during tenant restart without waiting 1`] = `false`;
 
 exports[`StartupOps checkForUpdates() 1: Check for updates 1`] = `
 {

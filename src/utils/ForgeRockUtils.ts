@@ -308,14 +308,23 @@ export function getIdmBaseUrl(state: State): string {
 /**
  * Initiate an update and optionally wait for it to complete.
  *
- * The status is checked right away, then once per poll interval. A service
+ * The answer of initiateUpdate is the first status of the update. When it says
+ * the update is complete, the wait ends at once without a single check, and the
+ * call returns false when the answer also says isError. Without wait nothing
+ * else is read: the answer of initiateUpdate alone decides, and an answer with
+ * isError fails the call whether or not it says complete. With wait, an answer
+ * that says isError but not complete is not an end: the checks go on, and the
+ * last one decides, as for any check. An initiateUpdate that answers nothing
+ * counts as "not complete, no error".
+ *
+ * With wait, the status is checked once per poll interval after that. A service
  * that may still report the state from before the update for a moment would
  * look finished at the first check: give it an initialDelay. The wait ends
  * when the update reports it is complete, or when the timeout has passed,
  * whichever comes first; a wait that ends by the timeout is never reported as
- * a success.
+ * a success. The timeout is measured from the end of initiateUpdate.
  *
- * @param {() => Promise<any>} initiateUpdate Function that initiates the update.
+ * @param {() => Promise<WaitCompleted>} initiateUpdate Function that initiates the update, or finds out that the update is already under way, and answers the first status of the update.
  * @param {() => Promise<WaitCompleted>} isComplete Function that checks the update's completion and error status.
  * @param {string} initialMessage Initial message for the progress indicator.
  * @param {string} noWaitSuccessMessage Success message when not waiting for completion.
@@ -359,7 +368,7 @@ export async function waitForUpdate({
   onError,
   state,
 }: {
-  initiateUpdate: () => Promise<any>;
+  initiateUpdate: () => Promise<WaitCompleted>;
   isComplete: () => Promise<WaitCompleted>;
   initialMessage?: string;
   noWaitSuccessMessage?: string;
@@ -385,19 +394,24 @@ export async function waitForUpdate({
     state,
   });
   try {
-    await initiateUpdate();
+    // a function that answers nothing (the shape before the answer was used)
+    // keeps meaning "not complete, no error"
+    let isCompleted: WaitCompleted = (await initiateUpdate()) ?? {
+      isComplete: false,
+    };
     if (!wait) {
       stopProgressIndicator({
         id: indicatorId,
-        message: noWaitSuccessMessage,
-        status: 'success',
+        message: isCompleted.isError
+          ? errorMessage(isCompleted, 0)
+          : noWaitSuccessMessage,
+        status: isCompleted.isError ? 'fail' : 'success',
         state,
       });
-      return true;
+      return !isCompleted.isError;
     }
     const start = Date.now();
     let errors = 0;
-    let isCompleted: WaitCompleted = { isComplete: false };
     let delay = initialDelay;
     while (!isCompleted.isComplete && Date.now() - start < timeout) {
       // never sleep past the deadline, but still check once at the deadline
