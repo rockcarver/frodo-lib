@@ -808,6 +808,34 @@ describe('MCP capability foundation', () => {
     ).toEqual([]);
   });
 
+  test('finding the references to a journey is one reviewed, low-risk, read-only search', () => {
+    const capabilities = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['authn'],
+      includeUtils: false,
+    });
+    const byId = new Map(
+      capabilities.map((capability) => [capability.id, capability])
+    );
+    const references = byId.get('authn.journey.findJourneyReferences');
+    expect(references).toBeDefined();
+    expect(references).toMatchObject({
+      operationType: 'search',
+      objectType: 'JourneyReference',
+      argumentMode: 'positional',
+      mutating: false,
+      riskClass: 'low',
+      supportsRealm: true,
+    });
+    expect(
+      references?.parameters?.map(({ name, required }) => ({ name, required }))
+    ).toEqual([{ name: 'journeyId', required: true }]);
+    // the notes carry the blind spots, so that an empty answer is not read as "unused"
+    expect(references?.notes).toMatch(/never proof/);
+    expect(references?.notes).toMatch(/Fails closed/);
+    // it is a reviewed entry, not an inferred default
+    expect(getUnreviewedSpecialCapabilities()).toEqual([]);
+  });
+
   test('never advertises an empty parameter contract when Help.ts reports required params', () => {
     // Regression guard for the script.getLibraryScriptNames bug class: a
     // capability must never end up with an empty/undefined parameter list
