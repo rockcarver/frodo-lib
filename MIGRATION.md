@@ -617,6 +617,50 @@ releases missed):
   is seconds since 1970, so the token was expired when it was made. A caller
   that awaited `jwt` gets the same kind of value as before; the property itself
   is no longer a promise.
+- `frodo.authn.journey.importJourneys` (`src/ops/JourneyOps.ts`) writes the
+  journeys of a batch in the order of their dependencies also when the inner
+  journey is already installed in the realm, as its documentation always said.
+  It used to treat an installed inner journey as ready at once, so a journey
+  that uses it was written in the order of the import data, before the inner
+  journey when the data lists the inner journey later. When the installed inner
+  journey was disabled or incomplete, AM could refuse to save the journey that
+  uses it (HTTP 500, "Could not evaluate tree"), and the inner journey was
+  repaired only afterwards. Now a journey that needs another journey of the
+  batch is written after it, whether that journey is installed or not, so the
+  inner journey is written first, and enabled again when the import data says
+  so. A journey that needs a journey that is not in the batch still needs it to
+  be installed. Journeys that do not need each other keep the order of the
+  import data, and the set of journeys that can be imported does not change: a
+  circle of installed journeys and a journey that needs itself are still
+  imported, in the order of the import data and after the journeys that could be
+  ordered, and a circle of journeys that are not installed is still rejected.
+  `frodo.config.importFullConfiguration` imports its journeys section through
+  `importJourneys` and gets the same order, and the array `resolvedJourneys`
+  that `frodo.authn.journey.resolveDependencies` fills is in that order. The
+  module function `resolveInnerTreeDependencies` now shares the ordering code
+  and returns the status it documents (an object with `unresolvedJourneys` and
+  `resolvedJourneys`). It returned `undefined`, also when journeys stayed
+  unresolved, except when the caller passed `index` and no journey could be
+  resolved further. Its optional arguments `unresolvedJourneys` and
+  `resolvedJourneys` now default to empty ones; leaving them out used to throw.
+- With a result callback, `frodo.authn.journey.importJourneys` no longer writes
+  a journey whose inner journey of the same batch could not be imported when
+  that inner journey is installed. The journey is reported as failed, with an
+  error that names the inner journey, as it already was when the inner journey
+  is not installed. It used to be written first and reported as imported. The
+  rule is the one it was: the journeys are written in the order of their
+  dependencies, a journey is skipped when a journey it needs has failed before
+  its turn, and an installed journey that cannot be imported because of its own
+  dependencies still counts as resolved for the journeys that need it. So in a
+  few cascades the journeys that are written differ from before, in either
+  direction. Example: installed `A`, `B` and `G`, where `G` needs `E` (new) and
+  `A`, `A` needs `B`, and `B` needs a journey that exists nowhere. `G` can be
+  written before `A` is judged, and it is now, where it used to be skipped (or
+  the other way round, with another order of the import data). A journey that
+  cannot be resolved is never written, and the set of journeys that can be
+  imported and the journeys reported as unresolved are what they were. A caller
+  that depends on the old write order of installed journeys has to order them
+  itself.
 
 **Deprecation**:
 
