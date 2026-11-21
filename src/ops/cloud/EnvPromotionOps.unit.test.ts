@@ -54,7 +54,7 @@ const status = (statusName: string, type?: string) => ({
   promotionId: 'promo-1',
   status: statusName,
   timeStamp: 'now',
-  ...(type ? { type } : {}),
+  ...(type !== undefined ? { type } : {}),
 });
 /** True when the first call of one mock came before the first call of another. */
 const before = (first: jest.Mock<any>, second: jest.Mock<any>) =>
@@ -463,7 +463,8 @@ describe('EnvPromotionOps (faked API)', () => {
     describe('with wait, while an operation already runs', () => {
       // the status says that something runs, not what: the type is
       // 'promotion' for a dry run and a real promotion alike
-      test.each(['promotion', 'rollback', undefined])(
+      // an empty type reads as unknown, like a missing one
+      test.each(['promotion', 'rollback', undefined, ''])(
         '1: Refuses when an operation of type %s runs: throws an error that names it, sends nothing and never resolves',
         async (type) => {
           api.promoteConfiguration.mockResolvedValue({ message: 'started' });
@@ -476,7 +477,7 @@ describe('EnvPromotionOps (faked API)', () => {
           expect(error.message).toContain('already running');
           // status, type, id and message of the running operation, in this order
           expect(error.message).toContain(
-            `(status RUNNING, type ${type ?? 'unknown'}, promotion id promo-1, message "progress text RUNNING")`
+            `(status RUNNING, type ${type || 'unknown'}, promotion id promo-1, message "progress text RUNNING")`
           );
           expect(error.message).toContain('Nothing was started');
           expect(api.promoteConfiguration).not.toHaveBeenCalled();
@@ -570,9 +571,11 @@ describe('EnvPromotionOps (faked API)', () => {
 
       test.each([
         ['timeout', 0, 5],
+        ['timeout', -1, 5],
+        ['poll interval', 5000, 0],
         ['poll interval', 5000, -1],
       ])(
-        '7: Checks the %s before it reads or sends anything',
+        '7: Checks the %s before it reads or sends anything (timeout %d, poll interval %d)',
         async (_, timeout, pollInterval) => {
           await expect(
             promotion.promoteConfiguration(config, true, pollInterval, timeout)
@@ -624,7 +627,8 @@ describe('EnvPromotionOps (faked API)', () => {
     });
 
     describe('with wait, while an operation already runs', () => {
-      test.each(['rollback', 'promotion', undefined])(
+      // an empty type reads as unknown, like a missing one
+      test.each(['rollback', 'promotion', undefined, ''])(
         '3: Refuses when an operation of type %s runs: throws an error that names it, sends nothing and never resolves',
         async (type) => {
           api.rollbackPromotion.mockResolvedValue({ message: 'started' });
@@ -636,7 +640,7 @@ describe('EnvPromotionOps (faked API)', () => {
           expect(error.message).toContain('Rollback not started');
           expect(error.message).toContain('already running');
           expect(error.message).toContain(
-            `(status RUNNING, type ${type ?? 'unknown'}, promotion id promo-1, message "progress text RUNNING")`
+            `(status RUNNING, type ${type || 'unknown'}, promotion id promo-1, message "progress text RUNNING")`
           );
           expect(error.message).toContain('Nothing was started');
           expect(api.rollbackPromotion).not.toHaveBeenCalled();
@@ -709,9 +713,11 @@ describe('EnvPromotionOps (faked API)', () => {
 
       test.each([
         ['timeout', 0, 5],
+        ['timeout', -1, 5],
+        ['poll interval', 5000, 0],
         ['poll interval', 5000, -1],
       ])(
-        '8: Checks the %s before it reads or sends anything',
+        '8: Checks the %s before it reads or sends anything (timeout %d, poll interval %d)',
         async (_, timeout, pollInterval) => {
           await expect(
             promotion.rollbackPromotion(rollback, true, pollInterval, timeout)
