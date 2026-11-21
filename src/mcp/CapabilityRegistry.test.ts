@@ -834,6 +834,13 @@ describe('MCP capability foundation', () => {
     expect(references?.notes).toMatch(/Fails closed/);
     expect(references?.notes).toMatch(/Configuration Provider/);
     expect(references?.notes).toMatch(/authentication context/);
+    // the dependency flag is explained in plain words, and no claim about what the server enforces is made
+    expect(references?.notes).toMatch(/hard/);
+    expect(references?.notes).toMatch(/soft/);
+    expect(references?.notes).toMatch(
+      /does not know whether Access Management enforces/
+    );
+    expect(references?.notes).not.toMatch(/refuse/i);
     // it is a reviewed entry, not an inferred default
     expect(getUnreviewedSpecialCapabilities()).toEqual([]);
   });

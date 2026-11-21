@@ -216,6 +216,17 @@ export type Journey = {
    * carries the policy set). It makes about a dozen requests, plus one for
    * every SAML service provider.
    *
+   * Every reference carries a `dependency` flag, in the words of the policy
+   * import code. `hard` means the holder breaks at run time without the
+   * journey (a journey node, the authentication settings, the self-service
+   * settings, the OAuth2 provider, an OAuth2 client, a SAML service provider,
+   * an AI agent, an agent group, a CIMD profile, a policy condition). `soft`
+   * means the holder works without it (a theme that links the journey stops
+   * being applied to it). The flag is a property of the kind of holder, not a
+   * check of the tenant, and it says what happens to the holder: the library
+   * does not know whether Access Management enforces anything when a journey
+   * is deleted.
+   *
    * Read-only: every source is read once, the answer is joined in memory, and
    * nothing is written or printed. The journey does not have to exist, so the
    * same call after a delete lists what now points at nothing. A journey that
@@ -2145,16 +2156,51 @@ export async function findScriptReferences({
 }
 
 /**
+ * The `source` values of a {@link JourneyReference}, in one place: the key says
+ * what the holder is, the value is what a caller reads in the result. A rename
+ * of a value is one edit here (and the places that quote it in text).
+ */
+export const JOURNEY_REFERENCE_SOURCES = {
+  journey: 'journey',
+  authenticationSettings: 'authentication-settings',
+  selfServiceTrees: 'self-service-trees',
+  oauth2Provider: 'oauth2-provider',
+  oauth2Client: 'oauth2-client',
+  saml2Provider: 'saml2-provider',
+  aiAgent: 'ai-agent',
+  agentGroup: 'agent-group',
+  cimdProfile: 'cimd-profile',
+  theme: 'theme',
+  policy: 'policy',
+} as const;
+
+/**
+ * How much a holder depends on the journey it names. The words are the ones of
+ * the policy import code: a `hard` dependency breaks the holder at run time
+ * without the journey, a `soft` dependency does not (the holder works
+ * without it). The library does not know whether Access Management enforces
+ * anything when the journey is deleted; the flag says what happens to the
+ * holder, not what the server does.
+ */
+export type JourneyReferenceDependency = 'hard' | 'soft';
+
+/**
  * One place that names a journey, found by {@link findJourneyReferences}.
  * `source` says which holder it is; the other fields say where in that holder
- * the name was found (`from` is the Access Management field path). An empty
- * answer is never proof that a journey is unused, see
+ * the name was found (`from` is the Access Management field path), and
+ * `dependency` says how much the holder depends on the journey: `hard` means
+ * the holder breaks at run time without it, `soft` means the holder works
+ * without it (for example a theme that stops being applied to the journey).
+ * The flag is a property of the kind of holder and field, not a check of the
+ * tenant. An empty answer is never proof that a journey is unused, see
  * {@link findJourneyReferences}.
  */
-export type JourneyReference =
+export type JourneyReference = {
+  dependency: JourneyReferenceDependency;
+} & (
   | {
       /** Another journey: one of its nodes names the journey. */
-      source: 'journey';
+      source: typeof JOURNEY_REFERENCE_SOURCES.journey;
       /** The journey that holds the reference (not the journey that was looked up). */
       journeyId: string;
       /** The top-level node id a journey's own node map actually references. */
@@ -2172,19 +2218,21 @@ export type JourneyReference =
   | {
       /** A realm setting: the default authentication journeys, the self-service journeys or the OAuth2 provider. */
       source:
-        'authentication-settings' | 'self-service-trees' | 'oauth2-provider';
+        | typeof JOURNEY_REFERENCE_SOURCES.authenticationSettings
+        | typeof JOURNEY_REFERENCE_SOURCES.selfServiceTrees
+        | typeof JOURNEY_REFERENCE_SOURCES.oauth2Provider;
       /** The field of the setting that holds the name, as a dotted path (for example `core.orgConfig`). */
       from: string;
     }
   | {
       /** An object that names the journey in a field of its own. */
       source:
-        | 'oauth2-client'
-        | 'saml2-provider'
-        | 'ai-agent'
-        | 'agent-group'
-        | 'cimd-profile'
-        | 'theme';
+        | typeof JOURNEY_REFERENCE_SOURCES.oauth2Client
+        | typeof JOURNEY_REFERENCE_SOURCES.saml2Provider
+        | typeof JOURNEY_REFERENCE_SOURCES.aiAgent
+        | typeof JOURNEY_REFERENCE_SOURCES.agentGroup
+        | typeof JOURNEY_REFERENCE_SOURCES.cimdProfile
+        | typeof JOURNEY_REFERENCE_SOURCES.theme;
       /** The id of the object: the client id, the entity id of the provider, the agent, group, profile or theme id. */
       id: string;
       /** The name of the object, where it has one (themes). */
@@ -2194,7 +2242,7 @@ export type JourneyReference =
     }
   | {
       /** A policy with a condition that names the journey. */
-      source: 'policy';
+      source: typeof JOURNEY_REFERENCE_SOURCES.policy;
       /** The id of the policy. */
       id: string;
       name?: string;
@@ -2202,7 +2250,8 @@ export type JourneyReference =
       applicationName: string;
       /** The condition property that holds the name (for example `condition.authenticateToService`); the condition can be nested. */
       from: string;
-    };
+    }
+);
 
 /**
  * How a property holds journey names: `single` is one name, `list` is an array
@@ -2225,6 +2274,8 @@ export type JourneyReferenceNodeRow = {
   /** The property of the node configuration that holds the name, as a dotted path. */
   property: string;
   shape: JourneyNameShape;
+  /** How much a journey that has such a node depends on the journey the node names. */
+  dependency: JourneyReferenceDependency;
 };
 
 /**
@@ -2234,8 +2285,18 @@ export type JourneyReferenceNodeRow = {
  * dependencies (`treeDependencyNodeTypes`).
  */
 export const journeyReferenceNodeRows: readonly JourneyReferenceNodeRow[] = [
-  { nodeType: 'InnerTreeEvaluatorNode', property: 'tree', shape: 'single' },
-  { nodeType: 'BackChannelInitNode', property: 'tree', shape: 'single' },
+  {
+    nodeType: 'InnerTreeEvaluatorNode',
+    property: 'tree',
+    shape: 'single',
+    dependency: 'hard',
+  },
+  {
+    nodeType: 'BackChannelInitNode',
+    property: 'tree',
+    shape: 'single',
+    dependency: 'hard',
+  },
 ];
 
 /**
@@ -2250,6 +2311,8 @@ export type JourneyReferencePolicyConditionRow = {
   shape: JourneyNameShape;
   /** The condition names a journey only when this property of the condition has this value (other values are not journeys). */
   when?: { property: string; equals: string };
+  /** How much the policy depends on the journey the condition names. */
+  dependency: JourneyReferenceDependency;
 };
 
 /**
@@ -2264,6 +2327,7 @@ export const journeyReferencePolicyConditionRows: readonly JourneyReferencePolic
       conditionType: 'AuthenticateToService',
       property: 'authenticateToService',
       shape: 'single',
+      dependency: 'hard',
     },
     {
       conditionType: 'Transaction',
@@ -2273,6 +2337,7 @@ export const journeyReferencePolicyConditionRows: readonly JourneyReferencePolic
         property: 'authenticationStrategy',
         equals: 'AuthenticateToTreeConditionAdvice',
       },
+      dependency: 'hard',
     },
   ];
 
@@ -2382,10 +2447,15 @@ function defineReferenceSource<T>(row: {
  * reader.
  */
 function defineSettingSource<T>(row: {
-  source: 'authentication-settings' | 'self-service-trees' | 'oauth2-provider';
+  source:
+    | typeof JOURNEY_REFERENCE_SOURCES.authenticationSettings
+    | typeof JOURNEY_REFERENCE_SOURCES.selfServiceTrees
+    | typeof JOURNEY_REFERENCE_SOURCES.oauth2Provider;
   label: string;
   read: (state: State) => Promise<T>;
   fields: readonly JourneyReferenceField[];
+  /** How much the realm depends on the journeys these fields name. */
+  dependency: JourneyReferenceDependency;
 }): JourneyReferenceSource {
   return defineReferenceSource<T>({
     source: row.source,
@@ -2394,6 +2464,7 @@ function defineSettingSource<T>(row: {
     find: (setting, journeyId) =>
       findNamingFields(setting, row.fields, journeyId).map((from) => ({
         source: row.source,
+        dependency: row.dependency,
         from,
       })),
   });
@@ -2408,18 +2479,20 @@ const byId = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id);
  */
 function defineHolderSource<T>(row: {
   source:
-    | 'oauth2-client'
-    | 'saml2-provider'
-    | 'ai-agent'
-    | 'agent-group'
-    | 'cimd-profile'
-    | 'theme';
+    | typeof JOURNEY_REFERENCE_SOURCES.oauth2Client
+    | typeof JOURNEY_REFERENCE_SOURCES.saml2Provider
+    | typeof JOURNEY_REFERENCE_SOURCES.aiAgent
+    | typeof JOURNEY_REFERENCE_SOURCES.agentGroup
+    | typeof JOURNEY_REFERENCE_SOURCES.cimdProfile
+    | typeof JOURNEY_REFERENCE_SOURCES.theme;
   label: string;
   appliesTo?: (state: State) => boolean;
   read: (state: State) => Promise<T[]>;
   idOf: (holder: T) => string;
   nameOf?: (holder: T) => string | undefined;
   fields: readonly JourneyReferenceField[];
+  /** How much such an object depends on the journey it names. */
+  dependency: JourneyReferenceDependency;
 }): JourneyReferenceSource {
   return defineReferenceSource<T[]>({
     source: row.source,
@@ -2433,6 +2506,7 @@ function defineHolderSource<T>(row: {
             const name = row.nameOf?.(holder);
             return {
               source: row.source,
+              dependency: row.dependency,
               id: row.idOf(holder),
               ...(name !== undefined && { name }),
               from,
@@ -2447,7 +2521,10 @@ type JourneyNodeEdge = {
   /** The journey that the node names. */
   namedJourneyId: string;
   /** The reference to report, if the journey that is looked up is the named one. */
-  reference: Extract<JourneyReference, { source: 'journey' }>;
+  reference: Extract<
+    JourneyReference,
+    { source: typeof JOURNEY_REFERENCE_SOURCES.journey }
+  >;
 };
 
 /**
@@ -2469,8 +2546,8 @@ function collectJourneyNodeEdges({
 }): JourneyNodeEdge[] {
   const configById = new Map<string, NodeSkeleton>();
   for (const node of nodes) configById.set(node._id, node);
-  const edges: JourneyNodeEdge[] = [];
-  const seen = new Set<string>();
+  // one edge per holder and name; if two rows name the same one, hard wins
+  const edgeByKey = new Map<string, JourneyNodeEdge>();
   for (const journey of journeys) {
     for (const [nodeId, nodeRef] of Object.entries(journey.nodes ?? {})) {
       const config = configById.get(nodeId);
@@ -2499,12 +2576,18 @@ function collectJourneyNodeEdges({
               holder.innerNodeId,
               namedJourneyId,
             ]);
-            if (seen.has(key)) continue;
-            seen.add(key);
-            edges.push({
+            const known = edgeByKey.get(key);
+            if (known) {
+              if (row.dependency === 'hard') {
+                known.reference.dependency = 'hard';
+              }
+              continue;
+            }
+            edgeByKey.set(key, {
               namedJourneyId,
               reference: {
-                source: 'journey',
+                source: JOURNEY_REFERENCE_SOURCES.journey,
+                dependency: row.dependency,
                 journeyId: journey._id,
                 nodeId,
                 nodeType: nodeRef.nodeType,
@@ -2517,7 +2600,7 @@ function collectJourneyNodeEdges({
       }
     }
   }
-  return edges.sort(
+  return [...edgeByKey.values()].sort(
     (a, b) =>
       a.reference.journeyId.localeCompare(b.reference.journeyId) ||
       a.reference.nodeId.localeCompare(b.reference.nodeId) ||
@@ -2683,12 +2766,16 @@ async function readAllPolicies({
   return answer?.result ?? [];
 }
 
-/** The conditions of a policy that name a journey, as the `from` paths of the property that holds the name. */
+/**
+ * The conditions of a policy that name a journey: the `from` path of the
+ * property that holds the name, with the dependency of its row (if two rows
+ * give the same path, hard wins).
+ */
 function findPolicyConditionFields(
   policy: PolicySkeleton,
   journeyId: string
-): string[] {
-  const found = new Set<string>();
+): Map<string, JourneyReferenceDependency> {
+  const found = new Map<string, JourneyReferenceDependency>();
   forEachLeafCondition(policy.condition, (leaf: PolicyCondition) => {
     for (const row of journeyReferencePolicyConditionRows) {
       if (leaf.type !== row.conditionType) continue;
@@ -2703,11 +2790,12 @@ function findPolicyConditionFields(
           (entry) => entry.name === journeyId
         )
       ) {
-        found.add(`condition.${row.property}`);
+        const from = `condition.${row.property}`;
+        if (found.get(from) !== 'hard') found.set(from, row.dependency);
       }
     }
   });
-  return [...found];
+  return found;
 }
 
 const isPlatformDeployment = (state: State) =>
@@ -2723,7 +2811,7 @@ const isPlatformDeployment = (state: State) =>
  */
 const journeyReferenceSources: readonly JourneyReferenceSource[] = [
   defineReferenceSource<{ journeys: TreeSkeleton[]; nodes: NodeSkeleton[] }>({
-    source: 'journey',
+    source: JOURNEY_REFERENCE_SOURCES.journey,
     label: 'journeys and their nodes',
     read: async (state) => readJourneysAndNodes({ state }),
     find: ({ journeys, nodes }, journeyId) =>
@@ -2741,7 +2829,8 @@ const journeyReferenceSources: readonly JourneyReferenceSource[] = [
         .map((edge) => edge.reference),
   }),
   defineSettingSource({
-    source: 'authentication-settings',
+    source: JOURNEY_REFERENCE_SOURCES.authenticationSettings,
+    dependency: 'hard',
     label: 'authentication settings',
     read: async (state) =>
       readAuthenticationSettings({ globalConfig: false, state }),
@@ -2751,7 +2840,8 @@ const journeyReferenceSources: readonly JourneyReferenceSource[] = [
     ],
   }),
   defineSettingSource({
-    source: 'self-service-trees',
+    source: JOURNEY_REFERENCE_SOURCES.selfServiceTrees,
+    dependency: 'hard',
     label: 'self-service journey settings',
     read: async (state) => {
       try {
@@ -2766,7 +2856,8 @@ const journeyReferenceSources: readonly JourneyReferenceSource[] = [
     fields: [{ from: 'treeMapping', shape: 'map' }],
   }),
   defineSettingSource({
-    source: 'oauth2-provider',
+    source: JOURNEY_REFERENCE_SOURCES.oauth2Provider,
+    dependency: 'hard',
     label: 'OAuth2 provider settings',
     read: async (state) => readOAuth2Provider({ state }),
     fields: [
@@ -2777,14 +2868,16 @@ const journeyReferenceSources: readonly JourneyReferenceSource[] = [
     ],
   }),
   defineHolderSource({
-    source: 'oauth2-client',
+    source: JOURNEY_REFERENCE_SOURCES.oauth2Client,
+    dependency: 'hard',
     label: 'OAuth2 clients',
     read: async (state) => readOAuth2Clients({ state }),
     idOf: (client) => client._id,
     fields: [{ from: 'advancedOAuth2ClientConfig.treeName', shape: 'single' }],
   }),
   defineHolderSource({
-    source: 'saml2-provider',
+    source: JOURNEY_REFERENCE_SOURCES.saml2Provider,
+    dependency: 'hard',
     label: 'SAML service providers',
     read: async (state) => readSaml2ServiceProviders({ state }),
     idOf: (provider) => provider.entityId,
@@ -2802,7 +2895,8 @@ const journeyReferenceSources: readonly JourneyReferenceSource[] = [
     ],
   }),
   defineHolderSource({
-    source: 'ai-agent',
+    source: JOURNEY_REFERENCE_SOURCES.aiAgent,
+    dependency: 'hard',
     label: 'AI agents',
     read: async (state) =>
       (await isAgentTypeOffered({ agentType: 'AIAgent', state }))
@@ -2812,7 +2906,8 @@ const journeyReferenceSources: readonly JourneyReferenceSource[] = [
     fields: [{ from: 'advancedOAuth2ClientConfig.treeName', shape: 'single' }],
   }),
   defineHolderSource({
-    source: 'agent-group',
+    source: JOURNEY_REFERENCE_SOURCES.agentGroup,
+    dependency: 'hard',
     label: 'agent groups',
     read: async (state) => {
       try {
@@ -2827,14 +2922,16 @@ const journeyReferenceSources: readonly JourneyReferenceSource[] = [
     fields: [{ from: 'advancedOAuth2ClientConfig.treeName', shape: 'single' }],
   }),
   defineHolderSource({
-    source: 'cimd-profile',
+    source: JOURNEY_REFERENCE_SOURCES.cimdProfile,
+    dependency: 'hard',
     label: 'CIMD profiles',
     read: async (state) => readCIMDProfiles({ state }),
     idOf: (profile) => profile._id,
     fields: [{ from: 'advancedOAuth2ClientConfig.treeName', shape: 'single' }],
   }),
   defineHolderSource({
-    source: 'theme',
+    source: JOURNEY_REFERENCE_SOURCES.theme,
+    dependency: 'soft',
     label: 'themes',
     appliesTo: isPlatformDeployment,
     read: async (state) => readThemes({ state }),
@@ -2843,19 +2940,22 @@ const journeyReferenceSources: readonly JourneyReferenceSource[] = [
     fields: [{ from: 'linkedTrees', shape: 'list' }],
   }),
   defineReferenceSource<PolicySkeleton[]>({
-    source: 'policy',
+    source: JOURNEY_REFERENCE_SOURCES.policy,
     label: 'policies',
     read: async (state) => readAllPolicies({ state }),
     find: (policies, journeyId) =>
       policies
         .flatMap((policy) =>
-          findPolicyConditionFields(policy, journeyId).map((from) => ({
-            source: 'policy' as const,
-            id: policy._id,
-            name: policy.name,
-            applicationName: policy.applicationName,
-            from,
-          }))
+          [...findPolicyConditionFields(policy, journeyId)].map(
+            ([from, dependency]) => ({
+              source: JOURNEY_REFERENCE_SOURCES.policy,
+              dependency,
+              id: policy._id,
+              name: policy.name,
+              applicationName: policy.applicationName,
+              from,
+            })
+          )
         )
         .sort(byId),
   }),

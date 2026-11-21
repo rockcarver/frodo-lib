@@ -130,6 +130,7 @@ jest.unstable_mockModule('../utils/Console', () => ({
 }));
 
 const {
+  JOURNEY_REFERENCE_SOURCES,
   findJourneyReferences,
   joinJourneyReferences,
   journeyReferenceNodeRows,
@@ -138,6 +139,34 @@ const {
 const { FrodoError } = await import('./FrodoError');
 
 const TARGET = 'Target';
+
+/**
+ * The dependency of every row, stated here on purpose and not read from the
+ * code: flipping a row in the code means changing its line here, and a new row
+ * fails its guard test until it has a line. `hard`: the holder breaks at run
+ * time without the journey, `soft`: it works without it.
+ */
+const EXPECTED_NODE_ROW_DEPENDENCY: Record<string, 'hard' | 'soft'> = {
+  InnerTreeEvaluatorNode: 'hard',
+  BackChannelInitNode: 'hard',
+};
+const EXPECTED_POLICY_ROW_DEPENDENCY: Record<string, 'hard' | 'soft'> = {
+  AuthenticateToService: 'hard',
+  Transaction: 'hard',
+};
+const EXPECTED_SOURCE_DEPENDENCY: Record<string, 'hard' | 'soft'> = {
+  journey: 'hard',
+  'authentication-settings': 'hard',
+  'self-service-trees': 'hard',
+  'oauth2-provider': 'hard',
+  'oauth2-client': 'hard',
+  'saml2-provider': 'hard',
+  'ai-agent': 'hard',
+  'agent-group': 'hard',
+  'cimd-profile': 'hard',
+  theme: 'soft',
+  policy: 'hard',
+};
 
 function mockState(deploymentType = 'cloud') {
   return {
@@ -258,6 +287,7 @@ describe('findJourneyReferences', () => {
       expect(await find()).toEqual([
         {
           source: 'journey',
+          dependency: 'hard',
           journeyId: 'Login',
           nodeId: 'n1',
           nodeType: 'InnerTreeEvaluatorNode',
@@ -303,6 +333,7 @@ describe('findJourneyReferences', () => {
       expect(await find()).toEqual([
         expect.objectContaining({
           source: 'journey',
+          dependency: 'hard',
           journeyId: 'Login',
           nodeId: 'n1',
           nodeType: 'BackChannelInitNode',
@@ -530,6 +561,7 @@ describe('findJourneyReferences', () => {
       expect(await find()).toEqual([
         {
           source: 'journey',
+          dependency: 'hard',
           journeyId: 'Login',
           nodeId: 'page',
           nodeType: 'PageNode',
@@ -615,6 +647,7 @@ describe('findJourneyReferences', () => {
           expect(await find()).toEqual([
             expect.objectContaining({
               source: 'journey',
+              dependency: 'hard',
               journeyId: 'Login',
               nodeId: 'n1',
               nodeType: row.nodeType,
@@ -644,6 +677,20 @@ describe('findJourneyReferences', () => {
           ]);
         });
 
+        test(`carries the dependency ${EXPECTED_NODE_ROW_DEPENDENCY[row.nodeType]} of its row`, async () => {
+          expect(EXPECTED_NODE_ROW_DEPENDENCY[row.nodeType]).toBeDefined();
+          getTrees.mockResolvedValue({
+            result: [tree('Login', { n1: nodeRef(row.nodeType) })],
+          });
+          readNodesMock.mockResolvedValue([nodeWith('n1', TARGET)]);
+
+          expect(await find()).toEqual([
+            expect.objectContaining({
+              dependency: EXPECTED_NODE_ROW_DEPENDENCY[row.nodeType],
+            }),
+          ]);
+        });
+
         test('does not name another journey', async () => {
           getTrees.mockResolvedValue({
             result: [tree('Login', { n1: nodeRef(row.nodeType) })],
@@ -669,7 +716,12 @@ describe('findJourneyReferences', () => {
       }
 
       test('a list property names every journey in it', async () => {
-        addRow({ nodeType: 'FutureNode', property: 'journeys', shape: 'list' });
+        addRow({
+          nodeType: 'FutureNode',
+          property: 'journeys',
+          shape: 'list',
+          dependency: 'hard',
+        });
         getTrees.mockResolvedValue({
           result: [tree('Login', { n1: nodeRef('FutureNode') })],
         });
@@ -689,6 +741,7 @@ describe('findJourneyReferences', () => {
           nodeType: 'FutureNode',
           property: 'config.target',
           shape: 'single',
+          dependency: 'hard',
         });
         getTrees.mockResolvedValue({
           result: [tree('Login', { n1: nodeRef('FutureNode') })],
@@ -705,6 +758,7 @@ describe('findJourneyReferences', () => {
           nodeType: 'FutureNode',
           property: 'config.target',
           shape: 'single',
+          dependency: 'hard',
         });
         getTrees.mockResolvedValue({
           result: [tree('Login', { n1: nodeRef('FutureNode') })],
@@ -714,6 +768,46 @@ describe('findJourneyReferences', () => {
         ]);
 
         expect(await find()).toEqual([]);
+      });
+
+      test('a soft row gives a soft reference', async () => {
+        addRow({
+          nodeType: 'FutureNode',
+          property: 'journey',
+          shape: 'single',
+          dependency: 'soft',
+        });
+        getTrees.mockResolvedValue({
+          result: [tree('Login', { n1: nodeRef('FutureNode') })],
+        });
+        readNodesMock.mockResolvedValue([
+          node('n1', 'FutureNode', { journey: TARGET }),
+        ]);
+
+        expect(await find()).toEqual([
+          expect.objectContaining({ dependency: 'soft' }),
+        ]);
+      });
+
+      test('hard wins when a soft and a hard row name the same property', async () => {
+        for (const dependency of ['soft', 'hard', 'soft']) {
+          addRow({
+            nodeType: 'FutureNode',
+            property: 'journey',
+            shape: 'single',
+            dependency,
+          });
+        }
+        getTrees.mockResolvedValue({
+          result: [tree('Login', { n1: nodeRef('FutureNode') })],
+        });
+        readNodesMock.mockResolvedValue([
+          node('n1', 'FutureNode', { journey: TARGET }),
+        ]);
+
+        expect(await find()).toEqual([
+          expect.objectContaining({ dependency: 'hard' }),
+        ]);
       });
     });
   });
@@ -726,7 +820,7 @@ describe('findJourneyReferences', () => {
       getAuthenticationSettings.mockResolvedValue({ core });
 
       expect(await find()).toEqual([
-        { source: 'authentication-settings', from },
+        { source: 'authentication-settings', dependency: 'hard', from },
       ]);
     });
 
@@ -736,8 +830,16 @@ describe('findJourneyReferences', () => {
       });
 
       expect(await find()).toEqual([
-        { source: 'authentication-settings', from: 'core.orgConfig' },
-        { source: 'authentication-settings', from: 'core.adminAuthModule' },
+        {
+          source: 'authentication-settings',
+          dependency: 'hard',
+          from: 'core.orgConfig',
+        },
+        {
+          source: 'authentication-settings',
+          dependency: 'hard',
+          from: 'core.adminAuthModule',
+        },
       ]);
     });
 
@@ -766,7 +868,11 @@ describe('findJourneyReferences', () => {
       getService.mockResolvedValue({ treeMapping: { [flow]: TARGET } });
 
       expect(await find()).toEqual([
-        { source: 'self-service-trees', from: `treeMapping.${flow}` },
+        {
+          source: 'self-service-trees',
+          dependency: 'hard',
+          from: `treeMapping.${flow}`,
+        },
       ]);
     });
 
@@ -776,7 +882,11 @@ describe('findJourneyReferences', () => {
       });
 
       expect(await find()).toEqual([
-        { source: 'self-service-trees', from: 'treeMapping.connectSocial' },
+        {
+          source: 'self-service-trees',
+          dependency: 'hard',
+          from: 'treeMapping.connectSocial',
+        },
       ]);
     });
 
@@ -824,6 +934,7 @@ describe('findJourneyReferences', () => {
       expect(await find()).toEqual([
         {
           source: 'oauth2-provider',
+          dependency: 'hard',
           from: 'advancedOAuth2Config.passwordGrantAuthService',
         },
       ]);
@@ -860,8 +971,20 @@ describe('findJourneyReferences', () => {
       });
 
       expect(await find()).toEqual([
-        { source: 'theme', id: 'theme-0', name: 'Light', from: 'linkedTrees' },
-        { source: 'theme', id: 'theme-2', name: 'Dark', from: 'linkedTrees' },
+        {
+          source: 'theme',
+          dependency: 'soft',
+          id: 'theme-0',
+          name: 'Light',
+          from: 'linkedTrees',
+        },
+        {
+          source: 'theme',
+          dependency: 'soft',
+          id: 'theme-2',
+          name: 'Dark',
+          from: 'linkedTrees',
+        },
       ]);
     });
 
@@ -916,6 +1039,7 @@ describe('findJourneyReferences', () => {
       expect(await find()).toEqual([
         {
           source: 'policy',
+          dependency: 'hard',
           id: 'P1',
           name: 'P1',
           applicationName: 'policySet',
@@ -1006,6 +1130,7 @@ describe('findJourneyReferences', () => {
       expect(await find()).toEqual([
         {
           source: 'policy',
+          dependency: 'hard',
           id: 'P1',
           name: 'P1',
           applicationName: 'setA',
@@ -1092,8 +1217,22 @@ describe('findJourneyReferences', () => {
         expect(await find()).toEqual([
           expect.objectContaining({
             source: 'policy',
+            dependency: 'hard',
             id: 'P1',
             from: `condition.${row.property}`,
+          }),
+        ]);
+      });
+
+      test(`carries the dependency ${EXPECTED_POLICY_ROW_DEPENDENCY[row.conditionType]} of its row`, async () => {
+        expect(EXPECTED_POLICY_ROW_DEPENDENCY[row.conditionType]).toBeDefined();
+        getPolicies.mockResolvedValue({
+          result: [policy('P1', conditionFor(TARGET))],
+        });
+
+        expect(await find()).toEqual([
+          expect.objectContaining({
+            dependency: EXPECTED_POLICY_ROW_DEPENDENCY[row.conditionType],
           }),
         ]);
       });
@@ -1118,6 +1257,7 @@ describe('findJourneyReferences', () => {
           property: 'journeys',
           shape: 'list',
           when: { property: 'mode', equals: 'journey' },
+          dependency: 'soft',
         });
         getPolicies.mockResolvedValue({
           result: [
@@ -1134,9 +1274,29 @@ describe('findJourneyReferences', () => {
           ],
         });
 
-        expect((await find()).map((reference: any) => reference.id)).toEqual([
-          'P1',
+        expect(await find()).toEqual([
+          expect.objectContaining({ id: 'P1', dependency: 'soft' }),
         ]);
+      });
+
+      test('hard wins when a soft and a hard row name the same property', async () => {
+        for (const dependency of ['soft', 'hard']) {
+          (journeyReferencePolicyConditionRows as any[]).push({
+            conditionType: 'FutureCondition',
+            property: 'journey',
+            shape: 'single',
+            dependency,
+          });
+        }
+        getPolicies.mockResolvedValue({
+          result: [policy('P1', { type: 'FutureCondition', journey: TARGET })],
+        });
+
+        expect(await find()).toEqual([
+          expect.objectContaining({ id: 'P1', dependency: 'hard' }),
+        ]);
+        // the second row is removed by the next afterEach, the first here
+        (journeyReferencePolicyConditionRows as any[]).pop();
       });
     });
   });
@@ -1196,18 +1356,21 @@ describe('findJourneyReferences', () => {
     // one row per source: how its reader is made to answer, and how a type that the realm does not offer is made
     const sources: {
       source: string;
+      dependency: 'hard' | 'soft';
       serve: (holders: any[]) => void;
       reader: any;
       type?: string;
     }[] = [
       {
         source: 'oauth2-client',
+        dependency: 'hard',
         serve: (holders) =>
           getOAuth2Clients.mockResolvedValue({ result: holders }),
         reader: getOAuth2Clients,
       },
       {
         source: 'ai-agent',
+        dependency: 'hard',
         serve: (holders) =>
           getAgentsByType.mockResolvedValue({ result: holders }),
         reader: getAgentsByType,
@@ -1215,12 +1378,14 @@ describe('findJourneyReferences', () => {
       },
       {
         source: 'agent-group',
+        dependency: 'hard',
         serve: (holders) =>
           getAgentGroups.mockResolvedValue({ result: holders }),
         reader: getAgentGroups,
       },
       {
         source: 'cimd-profile',
+        dependency: 'hard',
         serve: (holders) =>
           getCIMDProfiles.mockResolvedValue({ result: holders }),
         reader: getCIMDProfiles,
@@ -1233,6 +1398,7 @@ describe('findJourneyReferences', () => {
       (_source, row) => {
         const expected = (id: string) => ({
           source: row.source,
+          dependency: row.dependency,
           id,
           from: 'advancedOAuth2ClientConfig.treeName',
         });
@@ -1358,6 +1524,7 @@ describe('findJourneyReferences', () => {
       expect(await find()).toEqual([
         {
           source: 'saml2-provider',
+          dependency: 'hard',
           id: 'sp-remote',
           from: 'serviceProvider.advanced.treeConfiguration.treeName',
         },
@@ -1372,6 +1539,7 @@ describe('findJourneyReferences', () => {
       expect(await find()).toEqual([
         {
           source: 'saml2-provider',
+          dependency: 'hard',
           id: 'sp-hosted',
           from: 'serviceProvider.assertionProcessing.redirectTreeConfiguration.redirectTreeName',
         },
@@ -1569,6 +1737,56 @@ describe('findJourneyReferences', () => {
         expect(reader).toHaveBeenCalledTimes(1);
       }
       expect(getProvider).toHaveBeenCalledTimes(1);
+    });
+
+    describe('the dependency flag', () => {
+      test('every reference carries hard or soft', async () => {
+        populateEverySource();
+
+        const result = await find();
+
+        expect(result).toHaveLength(
+          Object.keys(EXPECTED_SOURCE_DEPENDENCY).length
+        );
+        for (const reference of result) {
+          expect(['hard', 'soft']).toContain(reference.dependency);
+        }
+      });
+
+      test('has an expectation for every source of the result type, and no other', () => {
+        expect(Object.keys(EXPECTED_SOURCE_DEPENDENCY).sort()).toEqual(
+          Object.values(JOURNEY_REFERENCE_SOURCES).sort()
+        );
+      });
+
+      test.each(Object.entries(EXPECTED_SOURCE_DEPENDENCY))(
+        'source %s is %s',
+        async (source, dependency) => {
+          populateEverySource();
+
+          const result = await find();
+
+          expect(
+            result.filter((reference: any) => reference.source === source)
+          ).toEqual([expect.objectContaining({ dependency })]);
+        }
+      );
+    });
+
+    test('the source values are the ones that callers read', () => {
+      expect(JOURNEY_REFERENCE_SOURCES).toEqual({
+        journey: 'journey',
+        authenticationSettings: 'authentication-settings',
+        selfServiceTrees: 'self-service-trees',
+        oauth2Provider: 'oauth2-provider',
+        oauth2Client: 'oauth2-client',
+        saml2Provider: 'saml2-provider',
+        aiAgent: 'ai-agent',
+        agentGroup: 'agent-group',
+        cimdProfile: 'cimd-profile',
+        theme: 'theme',
+        policy: 'policy',
+      });
     });
 
     test('joins one set of reads for any number of journeys', async () => {
