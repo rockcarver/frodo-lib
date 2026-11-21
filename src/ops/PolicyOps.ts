@@ -486,8 +486,32 @@ export async function updatePolicy({
       },
 */
 export function findScriptUuids(condition: PolicyCondition): string[] {
-  let scriptUuids: string[] = [];
-  if (!condition) return scriptUuids;
+  const scriptUuids: string[] = [];
+  forEachLeafCondition(condition, (leaf) => {
+    if (leaf.type === 'Script') {
+      scriptUuids.push(leaf.scriptId as string);
+    }
+  });
+  // de-duplicate
+  return [...new Set(scriptUuids)];
+}
+
+/**
+ * Visit every leaf condition of a deeply-nested policy condition object.
+ *
+ * The combinators AND, OR and NOT are not leaves: the walk goes into their
+ * `condition` (a single nested condition) and into every member of their
+ * `conditions` (an array of nested conditions), at any depth, and calls the
+ * visitor for everything else (Script, AuthenticateToService, Session, ...).
+ * A missing condition is nothing to visit.
+ * @param {PolicyCondition} condition condition object, may be undefined
+ * @param {(leaf: PolicyCondition) => void} visit called once for every leaf condition
+ */
+export function forEachLeafCondition(
+  condition: PolicyCondition | undefined,
+  visit: (leaf: PolicyCondition) => void
+): void {
+  if (!condition) return;
   if (
     condition.type === 'AND' ||
     condition.type === 'OR' ||
@@ -495,20 +519,17 @@ export function findScriptUuids(condition: PolicyCondition): string[] {
   ) {
     // single condition
     if (condition.condition) {
-      scriptUuids.push(...findScriptUuids(condition.condition));
+      forEachLeafCondition(condition.condition, visit);
     }
     // array of conditions
     if (condition.conditions) {
       for (const cond of condition.conditions) {
-        scriptUuids.push(...findScriptUuids(cond));
+        forEachLeafCondition(cond, visit);
       }
     }
-  } else if (condition.type === 'Script') {
-    scriptUuids.push(condition.scriptId as string);
+  } else {
+    visit(condition);
   }
-  // de-duplicate
-  scriptUuids = [...new Set(scriptUuids)];
-  return scriptUuids;
 }
 
 /**
