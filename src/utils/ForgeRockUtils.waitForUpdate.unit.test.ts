@@ -268,6 +268,122 @@ describe('waitForUpdate()', () => {
     });
   });
 
+  describe('the answer of initiateUpdate', () => {
+    beforeEach(() => stopProgressIndicator.mockClear());
+    const shown = () => stopProgressIndicator.mock.calls[0][0];
+
+    test('1: An answer that says the update is complete ends the wait without a single check', async () => {
+      const isComplete = jest.fn(async () => ({ isComplete: false }));
+      const outcome = await waitForUpdate({
+        ...base,
+        initiateUpdate: async () => ({ isComplete: true, status: 'done' }),
+        isComplete,
+        waitSuccessMessage: (completed) => `finished: ${completed.status}`,
+      });
+      expect(outcome).toBe(true);
+      expect(isComplete).not.toHaveBeenCalled();
+      expect(shown()).toMatchObject({
+        status: 'success',
+        message: 'finished: done',
+      });
+    });
+
+    test('2: An answer that says the update failed is a failure without wait, shown with the error message', async () => {
+      const isComplete = jest.fn(async () => ({ isComplete: true }));
+      const outcome = await waitForUpdate({
+        ...base,
+        wait: false,
+        initiateUpdate: async () => ({
+          isComplete: true,
+          isError: true,
+          status: 'refused',
+        }),
+        isComplete,
+        noWaitSuccessMessage: 'started',
+        errorMessage: (completed) => `failed: ${completed.status}`,
+      });
+      expect(outcome).toBe(false);
+      expect(isComplete).not.toHaveBeenCalled();
+      expect(shown()).toMatchObject({
+        status: 'fail',
+        message: 'failed: refused',
+      });
+    });
+
+    test('3: An answer that says the update failed is a failure with wait too, without a single check', async () => {
+      const isComplete = jest.fn(async () => ({ isComplete: true }));
+      const outcome = await waitForUpdate({
+        ...base,
+        initiateUpdate: async () => ({
+          isComplete: true,
+          isError: true,
+          status: 'refused',
+        }),
+        isComplete,
+        errorMessage: (completed) => `failed: ${completed.status}`,
+      });
+      expect(outcome).toBe(false);
+      expect(isComplete).not.toHaveBeenCalled();
+      expect(shown()).toMatchObject({
+        status: 'fail',
+        message: 'failed: refused',
+      });
+    });
+
+    test('4: An answer without an error is a success without wait, whether or not it says complete', async () => {
+      const isComplete = jest.fn(async () => ({ isComplete: true }));
+      for (const answer of [{ isComplete: true }, { isComplete: false }]) {
+        stopProgressIndicator.mockClear();
+        expect(
+          await waitForUpdate({
+            ...base,
+            wait: false,
+            initiateUpdate: async () => answer,
+            isComplete,
+            noWaitSuccessMessage: 'started',
+          })
+        ).toBe(true);
+        expect(shown()).toMatchObject({
+          status: 'success',
+          message: 'started',
+        });
+      }
+      expect(isComplete).not.toHaveBeenCalled();
+    });
+
+    test('5: An answer that says the update is not complete starts the wait, which checks right away', async () => {
+      let checks = 0;
+      const outcome = await waitForUpdate({
+        ...base,
+        initiateUpdate: async () => ({ isComplete: false, status: 'starting' }),
+        isComplete: async () => ({ isComplete: ++checks >= 2 }),
+      });
+      expect(outcome).toBe(true);
+      expect(checks).toBe(2);
+    });
+
+    test('6: A function that answers nothing counts as not complete and not failed, with and without wait', async () => {
+      const initiateNothing = (async () => undefined) as any;
+      expect(
+        await waitForUpdate({
+          ...base,
+          wait: false,
+          initiateUpdate: initiateNothing,
+          isComplete: async () => ({ isComplete: true }),
+        })
+      ).toBe(true);
+      let checks = 0;
+      expect(
+        await waitForUpdate({
+          ...base,
+          initiateUpdate: initiateNothing,
+          isComplete: async () => ({ isComplete: ++checks >= 2 }),
+        })
+      ).toBe(true);
+      expect(checks).toBe(2);
+    });
+  });
+
   describe('what the user is shown', () => {
     beforeEach(() => stopProgressIndicator.mockClear());
     const shown = () => stopProgressIndicator.mock.calls[0][0];
