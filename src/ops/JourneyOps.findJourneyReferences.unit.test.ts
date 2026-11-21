@@ -130,7 +130,10 @@ jest.unstable_mockModule('../utils/Console', () => ({
 }));
 
 const {
+  default: createJourneyOps,
   JOURNEY_REFERENCE_SOURCES,
+  defineHolderSource,
+  defineSettingSource,
   findJourneyReferences,
   joinJourneyReferences,
   journeyReferenceNodeRows,
@@ -451,6 +454,115 @@ describe('findJourneyReferences', () => {
         expect(messagesOf(error).join(' | ')).toMatch(
           /BackChannelInitNode node b1/
         );
+      });
+
+      test('is read at the version of its node map entry', async () => {
+        getTrees.mockResolvedValue({
+          result: [
+            tree('Login', {
+              n1: { ...nodeRef('InnerTreeEvaluatorNode'), version: '2.0' },
+            }),
+          ],
+        });
+        readNodeMock.mockResolvedValue(innerTreeNode('n1', TARGET));
+
+        await find();
+
+        expect(readNodeMock).toHaveBeenCalledWith(
+          expect.objectContaining({ nodeId: 'n1', nodeTypeVersion: '2.0' })
+        );
+      });
+
+      test('is reported for every journey that lists it', async () => {
+        getTrees.mockResolvedValue({
+          result: [
+            tree('A', { n1: nodeRef('InnerTreeEvaluatorNode') }),
+            tree('B', { n1: nodeRef('InnerTreeEvaluatorNode') }),
+          ],
+        });
+        readNodesMock.mockResolvedValue([innerTreeNode('n1', TARGET)]);
+
+        const result = await find();
+
+        expect(result.map((r: any) => r.journeyId)).toEqual(['A', 'B']);
+      });
+
+      describe('inside a Page Node that the bulk read returned', () => {
+        const pageWith = (inner: any[]) =>
+          node('page', 'PageNode', { nodes: inner });
+        const innerRef = (id: string, nodeType: string) => ({
+          _id: id,
+          displayName: id,
+          nodeType,
+        });
+
+        test('is read by its id and counts', async () => {
+          getTrees.mockResolvedValue({
+            result: [tree('Login', { page: nodeRef('PageNode') })],
+          });
+          readNodesMock.mockResolvedValue([
+            pageWith([innerRef('inner', 'InnerTreeEvaluatorNode')]),
+          ]);
+          readNodeMock.mockResolvedValue(innerTreeNode('inner', TARGET));
+
+          expect(await find()).toEqual([
+            expect.objectContaining({
+              journeyId: 'Login',
+              nodeId: 'page',
+              innerNodeId: 'inner',
+            }),
+          ]);
+          expect(readNodeMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+              nodeId: 'inner',
+              nodeType: 'InnerTreeEvaluatorNode',
+              nodeTypeVersion: '1.0',
+            })
+          );
+        });
+
+        test('fails the call, naming the node, when it cannot be read', async () => {
+          getTrees.mockResolvedValue({
+            result: [tree('Login', { page: nodeRef('PageNode') })],
+          });
+          readNodesMock.mockResolvedValue([
+            pageWith([innerRef('inner', 'BackChannelInitNode')]),
+          ]);
+          readNodeMock.mockRejectedValue(httpError(500, 'boom'));
+
+          const error: any = await find().catch((e) => e);
+
+          expect(error).toBeInstanceOf(FrodoError);
+          expect(messagesOf(error).join(' | ')).toMatch(
+            /BackChannelInitNode node inner of journey Login/
+          );
+        });
+
+        test('is not read when its type does not name a journey, or it was read', async () => {
+          getTrees.mockResolvedValue({
+            result: [tree('Login', { page: nodeRef('PageNode') })],
+          });
+          readNodesMock.mockResolvedValue([
+            pageWith([
+              innerRef('username', 'UsernameCollectorNode'),
+              innerRef('evaluated', 'InnerTreeEvaluatorNode'),
+            ]),
+            innerTreeNode('evaluated', 'Other'),
+          ]);
+
+          expect(await find()).toEqual([]);
+          expect(readNodeMock).not.toHaveBeenCalled();
+        });
+      });
+
+      test('the nodes inside a Page Node that the bulk read lacks are not known and not read (the limit)', async () => {
+        getTrees.mockResolvedValue({
+          result: [tree('Login', { page: nodeRef('PageNode') })],
+        });
+        readNodesMock.mockResolvedValue([]);
+
+        expect(await find()).toEqual([]);
+        expect(readNodeMock).not.toHaveBeenCalled();
       });
 
       test('is read once when two journeys list it', async () => {
@@ -813,6 +925,15 @@ describe('findJourneyReferences', () => {
   });
 
   describe('authentication settings', () => {
+    test('are read for the active realm, not from the global configuration', async () => {
+      await find();
+
+      expect(getAuthenticationSettings).toHaveBeenCalledTimes(1);
+      expect(getAuthenticationSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ globalConfig: false })
+      );
+    });
+
     test.each([
       ['core.orgConfig', { orgConfig: TARGET, adminAuthModule: 'Login' }],
       ['core.adminAuthModule', { orgConfig: 'Login', adminAuthModule: TARGET }],
@@ -914,7 +1035,10 @@ describe('findJourneyReferences', () => {
 
       expect(getService).toHaveBeenCalledTimes(1);
       expect(getService).toHaveBeenCalledWith(
-        expect.objectContaining({ serviceId: 'selfServiceTrees' })
+        expect.objectContaining({
+          serviceId: 'selfServiceTrees',
+          globalConfig: false,
+        })
       );
     });
 
@@ -986,6 +1110,18 @@ describe('findJourneyReferences', () => {
           from: 'linkedTrees',
         },
       ]);
+    });
+
+    test('gives one reference for a theme that links the journey twice', async () => {
+      getConfigEntity.mockResolvedValue({
+        realm: {
+          alpha: [
+            { _id: 'theme-1', name: 'Dark', linkedTrees: [TARGET, TARGET] },
+          ],
+        },
+      });
+
+      expect(await find()).toHaveLength(1);
     });
 
     test('ignores a theme without linked journeys', async () => {
@@ -1319,6 +1455,16 @@ describe('findJourneyReferences', () => {
       await expect(find()).rejects.toThrow(/policies/);
     });
 
+    test('fails closed when exactly one policy remains', async () => {
+      getPolicies.mockResolvedValue({
+        result: [],
+        pagedResultsCookie: null,
+        remainingPagedResults: 1,
+      });
+
+      await expect(find()).rejects.toThrow(/policies/);
+    });
+
     test('fails closed when the answer carries a cookie for the next page', async () => {
       getPolicies.mockResolvedValue({
         result: [],
@@ -1443,6 +1589,12 @@ describe('findJourneyReferences', () => {
           expect(await find()).toEqual([]);
         });
 
+        test('does not report a value that the object inherits (the group is the holder)', async () => {
+          row.serve([treeNameOf('a', { inherited: true, value: TARGET })]);
+
+          expect(await find()).toEqual([]);
+        });
+
         test('orders the objects by id', async () => {
           row.serve([treeNameOf('b', TARGET), treeNameOf('a', TARGET)]);
 
@@ -1479,6 +1631,22 @@ describe('findJourneyReferences', () => {
         });
       }
     );
+
+    test('a group that holds the journey is reported, and the agent that inherits it is not', async () => {
+      getAgentGroups.mockResolvedValue({
+        result: [treeNameOf('group', { inherited: false, value: TARGET })],
+      });
+      getAgentsByType.mockResolvedValue({
+        result: [
+          treeNameOf('agent-1', { inherited: true, value: TARGET }),
+          treeNameOf('agent-2', { inherited: true, value: TARGET }),
+        ],
+      });
+
+      expect(await find()).toEqual([
+        expect.objectContaining({ source: 'agent-group', id: 'group' }),
+      ]);
+    });
 
     test('the OAuth2 clients that the Cloud does not offer are none', async () => {
       getOAuth2Clients.mockRejectedValue(
@@ -1634,6 +1802,47 @@ describe('findJourneyReferences', () => {
       expect(await find()).toEqual([]);
       expect(getProvider).not.toHaveBeenCalled();
     });
+  });
+
+  describe('the rows that define a source carry their flag into the result', () => {
+    test.each(['hard', 'soft'] as const)(
+      'a setting row that is %s gives %s references',
+      (dependency) => {
+        const source = defineSettingSource({
+          source: JOURNEY_REFERENCE_SOURCES.authenticationSettings,
+          dependency,
+          label: 'a setting',
+          read: async () => ({ core: { orgConfig: TARGET } }),
+          fields: [{ from: 'core.orgConfig', shape: 'single' }],
+        });
+
+        expect(source.find({ core: { orgConfig: TARGET } }, TARGET)).toEqual([
+          {
+            source: 'authentication-settings',
+            dependency,
+            from: 'core.orgConfig',
+          },
+        ]);
+      }
+    );
+
+    test.each(['hard', 'soft'] as const)(
+      'an object row that is %s gives %s references',
+      (dependency) => {
+        const source = defineHolderSource({
+          source: JOURNEY_REFERENCE_SOURCES.oauth2Client,
+          dependency,
+          label: 'objects',
+          read: async () => [],
+          idOf: (holder: any) => holder._id,
+          fields: [{ from: 'treeName', shape: 'single' }],
+        });
+
+        expect(source.find([{ _id: 'o1', treeName: TARGET }], TARGET)).toEqual([
+          { source: 'oauth2-client', dependency, id: 'o1', from: 'treeName' },
+        ]);
+      }
+    );
   });
 
   describe('the whole call', () => {
@@ -1880,8 +2089,8 @@ describe('findJourneyReferences', () => {
       expect(await find()).toEqual([]);
     });
 
-    test.each(['', '   ', undefined])(
-      'refuses a blank journey id (%p) and reads nothing',
+    test.each(['', '   ', undefined, null, 42, {}, [TARGET]])(
+      'refuses a journey id that is not a name (%p) and reads nothing',
       async (journeyId) => {
         await expect(
           findJourneyReferences({
@@ -1894,6 +2103,28 @@ describe('findJourneyReferences', () => {
         expect(getPolicies).not.toHaveBeenCalled();
       }
     );
+
+    test('the message of a blank id names the realm in plain words', async () => {
+      await expect(find('')).rejects.toThrow(
+        'Error finding references to a journey in the alpha realm: the journey id is empty'
+      );
+    });
+
+    test('the facade method asks for the journey it is given, with the state it was made with', async () => {
+      const state = mockState();
+      getTrees.mockResolvedValue({
+        result: [tree('Login', { n1: nodeRef('InnerTreeEvaluatorNode') })],
+      });
+      readNodesMock.mockResolvedValue([innerTreeNode('n1', TARGET)]);
+
+      const result =
+        await createJourneyOps(state).findJourneyReferences(TARGET);
+
+      expect(result).toEqual([
+        expect.objectContaining({ journeyId: 'Login', nodeId: 'n1' }),
+      ]);
+      expect(readNodesMock).toHaveBeenCalledWith({ state });
+    });
 
     test('writes nothing and prints nothing', async () => {
       populateEverySource();

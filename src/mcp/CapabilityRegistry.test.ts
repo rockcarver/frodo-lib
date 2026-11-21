@@ -834,6 +834,8 @@ describe('MCP capability foundation', () => {
     expect(references?.notes).toMatch(/Fails closed/);
     expect(references?.notes).toMatch(/Configuration Provider/);
     expect(references?.notes).toMatch(/authentication context/);
+    expect(references?.notes).toMatch(/inside a Page Node is seen only/);
+    expect(references?.notes).toMatch(/no from field/);
     // the dependency flag is explained in plain words, and no claim about what the server enforces is made
     expect(references?.notes).toMatch(/hard/);
     expect(references?.notes).toMatch(/soft/);
