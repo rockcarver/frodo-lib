@@ -382,6 +382,44 @@ describe('waitForUpdate()', () => {
       ).toBe(true);
       expect(checks).toBe(2);
     });
+
+    test('7: The timeout is measured from the end of initiateUpdate, not from its start', async () => {
+      // initiating takes longer than the timeout; the check that follows is
+      // still made, and it completes the update
+      const isComplete = jest.fn(async () => ({ isComplete: true }));
+      const outcome = await waitForUpdate({
+        ...base,
+        timeout: 60,
+        initiateUpdate: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 120));
+          return { isComplete: false };
+        },
+        isComplete,
+      });
+      expect(outcome).toBe(true);
+      expect(isComplete).toHaveBeenCalledTimes(1);
+    });
+
+    test('8: An answer that says error but not complete fails the call without wait, and is no end with wait: the checks go on and the last one decides', async () => {
+      const failedNotDone = async () => ({ isComplete: false, isError: true });
+      expect(
+        await waitForUpdate({
+          ...base,
+          wait: false,
+          initiateUpdate: failedNotDone,
+          isComplete: async () => ({ isComplete: true }),
+        })
+      ).toBe(false);
+      let checks = 0;
+      expect(
+        await waitForUpdate({
+          ...base,
+          initiateUpdate: failedNotDone,
+          isComplete: async () => ({ isComplete: ++checks >= 2 }),
+        })
+      ).toBe(true);
+      expect(checks).toBe(2);
+    });
   });
 
   describe('what the user is shown', () => {

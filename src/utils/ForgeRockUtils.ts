@@ -309,11 +309,13 @@ export function getIdmBaseUrl(state: State): string {
  * Initiate an update and optionally wait for it to complete.
  *
  * The answer of initiateUpdate is the first status of the update. When it says
- * the update is complete, the wait ends at once without a single check. When it
- * says the update failed (isError), the call returns false at once, with or
- * without wait. Without wait nothing else is read: the answer of initiateUpdate
- * alone decides between success and failure. An initiateUpdate that answers
- * nothing counts as "not complete, no error".
+ * the update is complete, the wait ends at once without a single check, and the
+ * call returns false when the answer also says isError. Without wait nothing
+ * else is read: the answer of initiateUpdate alone decides, and an answer with
+ * isError fails the call whether or not it says complete. With wait, an answer
+ * that says isError but not complete is not an end: the checks go on, and the
+ * last one decides, as for any check. An initiateUpdate that answers nothing
+ * counts as "not complete, no error".
  *
  * With wait, the status is checked once per poll interval after that. A service
  * that may still report the state from before the update for a moment would

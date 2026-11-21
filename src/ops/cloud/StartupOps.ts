@@ -159,6 +159,11 @@ export async function checkForUpdates({
  * Without wait, nothing is read first and the restart is requested at once. A
  * restart that is already under way makes that request fail, so the result is
  * false and the error is shown: only wait joins a restart.
+ *
+ * The request to restart looks at the status itself before it restarts
+ * anything, so with wait the status is read twice before the restart is
+ * requested: once to find out whether a restart is under way, once inside the
+ * request. That second read belongs to the request and is left as it is.
  * @param {boolean} wait wait for the operation to complete or not; a restart that is already under way is joined instead of failing
  * @param {number} timeout timeout in milliseconds
  * @param {number} pollInterval time between status checks in milliseconds. Default: 5000

@@ -52,9 +52,11 @@
  * in case things don't function as expected
  *
  * The recordings of the waits (phase 2, tests 1 and 2) were trimmed of their
- * repeated polls, as decisions/0014 allows: the first poll and the last poll
- * stay, in their real order, so the time between two recorded polls is not the
- * time the tenant took. If you re-record them, trim them the same way. The
+ * repeated polls, which this record allows (a recording of a wait may be
+ * trimmed of its repeated polls):
+ * https://github.com/rockcarver/frodo-lib/blob/main/decisions/0014-a-recording-of-a-wait-may-be-trimmed-of-its-repeated-polls.md
+ * The first poll and the last poll stay, in their real order, so the time
+ * between two recorded polls is not the time the tenant took. If you re-record them, trim them the same way. The
  * tests poll fast while they replay and at the real interval while they record,
  * so the number of recorded polls does not decide how long a test takes.
  */

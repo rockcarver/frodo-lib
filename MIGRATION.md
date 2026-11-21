@@ -247,12 +247,19 @@ releases missed):
   while a restart is under way. A status that cannot be read first does not end
   the call: the request is sent as it was before the check. A lock or unlock
   that ends in an error now throws a `FrodoError` whose cause carries the text
-  of the status (it carried no cause). The standalone `applyUpdates` in
+  of the status (it carried no cause). This holds without `wait` too: when the
+  tenant answers the request itself with the result `error`, `lockEnvironment`
+  and `unlockEnvironment` used to return that status and now throw, so a caller
+  that tested `result === 'error'` after a call without `wait` has to catch the
+  `FrodoError` instead. The standalone `applyUpdates` in
   `StartupOps` takes the optional `pollInterval` and `initialDelay`, in
   milliseconds. The shared helper `waitForUpdate` (not on the `frodo` facade)
   uses the answer of its `initiateUpdate` as the first status: complete ends the
-  wait without a check, an error fails the call with or without `wait`, and an
-  `initiateUpdate` that answers nothing counts as not complete.
+  wait without a check, and fails the call when it also says error. Without
+  `wait` an answer that says error fails the call, complete or not. With `wait`
+  an answer that says error but not complete is no end: the checks go on and
+  the last one decides. An `initiateUpdate` that answers nothing counts as not
+  complete.
 - `frodo.saml2.entityProvider.deleteSaml2Providers` and `frodo.server.exportServers`
   now try every provider or server before they fail. When any of them fails,
   they still reject with one `FrodoError`, but its `originalErrors` now hold
