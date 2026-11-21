@@ -226,6 +226,33 @@ releases missed):
   `FrodoError` that carries the original error. In the types, `PromotionStatus`
   is now the union of status names; the former object type is
   `PromotionStatusResponse`.
+- `frodo.cloud.env.promotion` and `frodo.cloud.startup`: a call that waits
+  now reads the status first. `lockEnvironment`, `unlockEnvironment` and
+  `applyUpdates` with `wait` set join an operation that is already under way
+  instead of requesting it again: a lock that is locking or locked, an unlock
+  that is unlocking or unlocked, a restart that is restarting. The end state is
+  the same. `lockEnvironment` then returns the status of the lock that is held,
+  in the same shape as a lock of your own and with its `promotionId`; that lock
+  may belong to another promotion, so do not assume that you own it.
+  `unlockEnvironment` without a `promotionId` still throws when the environment
+  holds no lock; pass the id to unlock an environment that may already be
+  unlocked. `promoteConfiguration` and `rollbackPromotion` with `wait` set never
+  join: when the promotion status is `RUNNING` (a dry run, a real promotion or a
+  rollback: the status does not tell them apart while they run) they throw a
+  `FrodoError` that names the running operation (status, type, promotion id and
+  message), says that nothing was started and sends no request. Every other
+  status sends the request and waits as before. Without `wait` none of the five
+  functions reads anything first and the request goes out as before, so the
+  tenant decides; `applyUpdates` without `wait` still fails (returns `false`)
+  while a restart is under way. A status that cannot be read first does not end
+  the call: the request is sent as it was before the check. A lock or unlock
+  that ends in an error now throws a `FrodoError` whose cause carries the text
+  of the status (it carried no cause). The standalone `applyUpdates` in
+  `StartupOps` takes the optional `pollInterval` and `initialDelay`, in
+  milliseconds. The shared helper `waitForUpdate` (not on the `frodo` facade)
+  uses the answer of its `initiateUpdate` as the first status: complete ends the
+  wait without a check, an error fails the call with or without `wait`, and an
+  `initiateUpdate` that answers nothing counts as not complete.
 - `frodo.saml2.entityProvider.deleteSaml2Providers` and `frodo.server.exportServers`
   now try every provider or server before they fail. When any of them fails,
   they still reject with one `FrodoError`, but its `originalErrors` now hold
