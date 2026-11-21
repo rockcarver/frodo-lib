@@ -30,6 +30,74 @@ releases missed):
 
 **Behavior changes**:
 
+- The JSON and `util.inspect` forms of a `FrodoError` and of the `AxiosError` of
+  a request made through the library changed: each is now a summary of the
+  error. An `AxiosError` writes its name, message, code, status, method, URL,
+  the names of the request headers (the values of the sensitive ones are
+  replaced, for example `Authorization: Bearer <redacted>`), the request body,
+  and a summary of the response: status, a short list of headers (a header that
+  is not on the list is named and its value is `<omitted>`, a URL in a header is
+  redacted) and the body, with the sensitive fields of both bodies replaced. A
+  `FrodoError` writes its message, combined message, code, HTTP fields,
+  transaction id and original errors the same way. `config`, `request` and
+  `stack` are no longer in the JSON of an `AxiosError`, and `console.log(error)`
+  no longer prints the configuration of the request: read `error.config` when
+  you need it. `config`, `request` and `response` of such an error are no longer
+  enumerable (`Object.keys`, a spread and `Object.assign` do not copy them) and
+  are still readable by name. `getCombinedMessage()` and `toString()` are
+  unchanged.
+- `frodo.authn.journey.deleteJourney` and `deleteJourneys`: the `error` of the
+  status of a journey that could not be deleted is now a `FrodoError` that wraps
+  the error of the request (message `Error deleting <realm> realm journey <id>`),
+  as everywhere else in the library; it was the error of the request. Read the
+  answer of the server with `getFailedResponse(error)` or `error.httpStatus`.
+  `frodo.mcp` (`idm.managed.queryManagedObjects`) throws a `FrodoError` that
+  wraps the error of the request in the same way.
+- The curl command that the debug option `curlirize` prints for a request whose
+  body holds an `authId` shows `"authId":"<redacted>"` instead of its value; the
+  option that prints secrets keeps printing it. The text of an error is cut
+  after its sensitive values are replaced, so a value that the cut would end is
+  replaced as a whole. The `getCombinedMessage()` of the view reads only the head
+  of the text, so it takes the same time for an error that holds the same error
+  many times, and it writes the `Detail:` of an answer the way the view writes a
+  body; the text that `getCombinedMessage()` returns is unchanged. A text that
+  looks like JSON (it starts like JSON, holds an opening brace or bracket with a
+  quote after it, or holds an escaped quote or a unicode escape) is written as
+  its structure when it parses and is within 64 KiB, four texts inside texts and
+  the budget of the view (512 KiB for all the bodies of one view, or up to 8
+  KiB; a text that the view reads twice is read once), with the values of
+  sensitive names replaced whatever they are; any other text of that kind is not
+  written and is replaced by `<text of N characters not written>`; a text that
+  is written with HTML entities or percent escapes, and one that holds an XML
+  element or an HTML field of a credential (`<password>`, `type="password"`), is
+  read the same way. A text that does not look like JSON is written as before.
+  The names of credentials are compared in lower case without hyphens,
+  underscores and dots (`accessToken`, `access-token` and `ACCESS_TOKEN` are one
+  name); the lists hold `token`, `jwt`, `pwd`, `passwd`, `pass`, `apiKey`,
+  `privateKey`, `credentials` and the like (a JSON property named `token` is now
+  replaced), and a name that ends in `password`, `passwd`, `pwd`, `secret`,
+  `passphrase` or `credentials` is the name of a secret (`dbPassword`,
+  `DB_PASSWORD`, `webhookSecret`, `bindCredentials`); the other names are
+  compared exactly, with a list of compound names (`passwordConfirmation`,
+  `resetToken`, `signingKey`, `otp`, `pin` and the like), so `nextPageToken` and
+  `sortKey` stay visible. The names are matched by a list and an ending rule:
+  they are not exhaustive. A text is read for such a name before `=`, `:` or
+  `=>` (also `user[password]=...`, `user[password][confirm]=...` and
+  `--password ...`), and for an XML element of such a name. The value that
+  stands beside a name that is one (`{"name":"x-api-key","value":"..."}`; the
+  keys that name a field are `name`, `key`, `label`, `id`, `type`, `title` and
+  the like, the keys of the value are `value`, `val`, `text`, `data` and the
+  like) and the member of a list after one (`["Cookie","..."]`, the flat raw
+  headers of a request) are replaced, and so is the base64 text after `Basic`
+  when it holds a user name and a password. A message of several lines that
+  looks like JSON is one text in the combined message, as it is in `message`;
+  after a line that opens JSON or markup, the lines up to the next line that
+  starts with a label of the combined message (`Network error:`, `URL:`,
+  `Message:` and the others) are not written. The
+  password in the user info of a URL in a text goes up to the last at sign of
+  its authority (which ends at a slash, `?`, `#`, a backslash, white space, a
+  quote, an angle bracket or the scheme of a second URL), so a password that
+  holds `, ; | ) ] } &` is replaced as a whole.
 - `frodo.mapping.deleteMappings` (`src/ops/MappingOps.ts`) with `connectorId`
   and/or `moType` now deletes only the mappings that belong to them (with both,
   only the mappings that belong to both) and returns only what it deleted.
@@ -196,6 +264,58 @@ releases missed):
   capability that takes it as its last parameter is rejected as an unknown
   argument. A host that calls the runtime in process and puts a function at the
   position of the callback keeps it.
+- The MCP tool runtime (`createToolRuntime`, `frodo.mcp.createService`) now
+  says in the first fields of a result whether a list or search result is
+  complete (a decision in
+  https://github.com/rockcarver/frodo-lib/blob/main/decisions/core/0025-a-result-that-was-cut-says-so-in-the-first-fields-of-the-result.md,
+  a result that was cut says so in the first fields). The result of a list or
+  search capability has `truncated`, `returned` and `total` before `data`;
+  when `truncated` is `true` it also has `nextPageOffset` (an array result) or
+  `nextPageToken` (a result that the platform pages, such as `cloud.log.fetch`
+  or `idm.system.querySystemObjects`) and a `warning`. `truncated` is `true`
+  whenever items remain beyond `data`: the runtime cut the array to its size
+  budget or its item ceiling, the caller asked for a page, or the platform
+  returned a cookie. `total` is `null` when the platform does not say.
+  `cloud.log.tail`, a live cursor, has `returned` and `nextPageToken` and no
+  `truncated`. `cloud.log.searchEvents`, which stops at its own `maxEvents`
+  limit (it reads whole pages, so it can return more than its limit; the
+  warning says so), and `role.readInternalRoles` and
+  `role.queryInternalRoles`, which read one request of at most 1000 items,
+  return a plain array; each is
+  `truncated` with a `total` of `null` when it returns as many items as its
+  limit (it may have left more). `cloud.log.searchEvents` counts its limit
+  before it removes duplicate events (`dedupeByTransactionId`, on unless it is
+  `false`), so with deduplication a count below the limit proves nothing: the
+  result then has `returned` and a `warning` that says so, and no `truncated`
+  and no `total` (unless the runtime cut the response itself), and
+  `metadata.pagination` has no `totalCount` either, also on the last page of an
+  offset read; the warning says not to count the result and not to use
+  `returned` as a total, and that `dedupeByTransactionId: false` makes the
+  next result say whether the limit was reached.
+  `idm.managed.queryManagedObjects` now takes `pageToken` as the cookie of its
+  one-page query (it ignored it), so its `nextPageToken` can be passed back.
+  `frodo.idm.system.querySystemObjects` and `queryAllSystemObjectIds` now
+  encode the characters of a paged-results cookie that are not safe in a query
+  string (`+`, `/`, `=`, `&`, a `%` that starts no escape) and add the cookie
+  to the request after the URL is formatted; a cookie that IDM has already
+  percent-encoded is sent as it came, so the next page of a connector query is
+  the same request as before. Before, any other cookie was written into the URL
+  as it was, and could end the walk or add a parameter to the request.
+  `data` is unchanged, and a result that is not a list, or that the runtime
+  cannot read as one, has none of the fields. Before, a cut was reported only
+  in `metadata.pagination`. What else changes: the text of
+  `metadata.pagination.warning` (the new `warning` has the same text);
+  `metadata.pagination.isPartial` is `false` for an array that holds exactly
+  the item ceiling and was not cut (it was `true`); a result that the platform
+  pages reports `isPartial: true` and `hasMore: true` in `metadata.pagination`
+  when it carries a cookie (it was always `false`); `frodo_find_skills` adds
+  `executionTruncated: true` and a different `nextAction` when the capability
+  that it ran returned a cut result (the `nextAction` also says what to read
+  when `total` is `null`); `frodo_describe_skill` returns a `paging` block for
+  list and search capabilities; and the descriptions of
+  `frodo_dispatch_read_only` and of the list and search capabilities name the
+  fields; the description of `frodo_find_skills` says to read on when the answer
+  has `executionTruncated`.
 - `frodo.oauth2oidc.issuer.deleteOAuth2TrustedJwtIssuer`
   (`src/ops/OAuth2TrustedJwtIssuerOps.ts`) now rejects with a `FrodoError`
   that names the realm and the issuer and carries the original error. Before,
@@ -368,6 +488,100 @@ releases missed):
   Re-add such connection profiles (`frodo.conn.saveConnectionProfile`, or
   `frodo conn save` of frodo-cli), or copy the file to `Connections.json`
   yourself.
+- The MCP capabilities of 17 methods now list the parameters of their
+  signature, where their TSDoc had no `@param` tags and their descriptor listed
+  none. A call with `namedArgs` was forwarded as ONE object in place of the
+  arguments (`idm.script.evaluateScript` received `{ script: "1+1" }` and IDM
+  answered "Expecting a java.lang.String but got LinkedHashMap"); it now maps
+  every name to its position, like a call with `positionalArgs`, which is
+  unchanged. The capabilities are `admin.executeRfc7523AuthZGrantFlow`,
+  `admin.generateRfc7523AuthZGrantArtefacts`,
+  `admin.generateRfc7523ClientAuthNArtefacts`, `admin.trainAA`,
+  `authz.policySet.createPolicySet`, `authz.policySet.deletePolicySet`,
+  `cloud.env.readServiceAccountScopes`, `idm.crypto.decrypt`,
+  `idm.script.compileScript`, `idm.script.evaluateScript`,
+  `idm.system.readSystemStatus`, `oauth2oidc.endpoint.accessToken`,
+  `oauth2oidc.endpoint.accessTokenRfc7523AuthZGrant`,
+  `oauth2oidc.endpoint.authorize`, `oauth2oidc.endpoint.clientCredentialsGrant`,
+  `oauth2oidc.endpoint.deviceAuthorizationRequest` and
+  `oauth2oidc.endpoint.getTokenInfo`. Their operation type, risk class,
+  `mutating`, `destructive` and the policy presets that expose them are
+  unchanged. `cloud.env.readServiceAccountScopes` and
+  `idm.system.readSystemStatus` took no arguments at all before (any argument
+  was rejected); they now take `flatten` and `systemName`. The parameter of
+  `frodo.idm.crypto.decrypt` is named `value` and typed `any` in the facade
+  type (it was `script: string`, which the method never used); a call is
+  unchanged. `idm.script.evaluateScript` and `idm.script.compileScript` reject a
+  `script` that is not a string, for named and positional calls, before the
+  call is made.
+- The MCP runtime checks `positionalArgs` against the parameters whose schema
+  the capability metadata sets explicitly (a value that is `null` or missing is
+  skipped), as it already did for `namedArgs`. A schema that is only inferred
+  from the declared type of a parameter is still not enforced for a positional
+  call.
+- `frodo.cloud.log.fetch` takes `cookie`, `txid` and `filter` as optional
+  parameters (`cookie?: string`, `txid?: string`, `filter?: string`), and
+  `frodo.cloud.log.tail` takes `cookie?: string`. The code already ignored an
+  empty value, so a caller that passes `''` is unchanged (unless it also sends
+  a `pageToken`, see below); the MCP capabilities no longer reject a call that
+  leaves them out, and they accept `null` for them, which counts as left out
+  like an empty string. The MCP argument `pageToken` is now the `cookie` of
+  these two capabilities (before, it was dropped, because only parameters named
+  `pageToken` or `pageCookie` received it): a `cookie` that the caller gave
+  wins; a `cookie` that is missing, `null` or empty counts as left out, and
+  then `pageToken` is the cookie, unless it is empty too. A call with an empty
+  `cookie` and a non-empty `pageToken` now uses the token, where it used the
+  empty `cookie` before. This holds for named and for positional calls. The
+  same rule fills the `pageCookie` of `idm.system.queryAllSystemObjectIds`,
+  `idm.system.querySystemObjects` and `idm.managed.queryManagedObjects` from
+  `pageToken`: an empty `pageCookie` and a non-empty `pageToken` now read the
+  page of the token. `startTs` and `endTs` stay required.
+- The MCP capabilities of 25 methods now list the parameters of their
+  signature, by the names of the signature and in its order. Their TSDoc listed
+  the parameters in another order, under other names, with a malformed name or
+  without one of them, so a call with `namedArgs` reached the wrong positions
+  or could not give a parameter; a call with `positionalArgs` is unchanged,
+  except for the three named below. A
+  `namedArgs` call that gave the old name of a parameter is now rejected as an
+  unknown named argument. In another order (the arguments of a named call now
+  reach the positions of the signature): `agent.importAgents`,
+  `authn.journey.getTreeDescendents`,
+  `cloud.adminFed.createAdminFederationProvider`,
+  `cloud.iga.certificationTemplate.importCertificationTemplates`,
+  `cloud.iga.event.importEvents`, `cloud.iga.glossary.importGlossarySchemas`,
+  `cloud.iga.requestForm.importRequestForms`,
+  `cloud.iga.requestType.importRequestTypes`,
+  `saml2.circlesOfTrust.importCirclesOfTrust` and
+  `saml2.entityProvider.updateSaml2Provider`. Under other names:
+  `authz.policySet.updatePolicySet` (`importData` is now `policySetData`),
+  `idm.mapping.updateSyncMappings` (`mappingData` is now `mappings`) and
+  `theme.updateThemes` (`allThemesData` and `realm` are now `themeMap`; the
+  method never took a realm). With a malformed name: `idm.crypto.decryptMap`
+  and `idm.crypto.encryptMap` (the name was `{{`, it is `map`) and the six
+  `idm.managed.schema.{create,remove,update}ManagedObjectSchema{Flat,Relationship}Property`
+  capabilities (the optional parameter had brackets in its name, such as
+  `[subProperty]`; it is `subProperty`, `reverse` or `withReverse`). With a
+  parameter that the TSDoc left out: `authz.policy.exportPolicy` (`options`,
+  which is now an argument), and `idm.managed.queryRelatedManagedObjects` and
+  `idm.managedSystem.queryManagedSystemObjects` (`pageSize`) and
+  `login.getTokens` (`credentialOverride`), which are documented in the TSDoc
+  and are not arguments of the capability: the capability does not offer such a
+  parameter, and a call that gives it, by name or by position, is rejected
+  before the method is called (a `positionalArgs` array that reaches the
+  position of the parameter, for these three capabilities; the length of
+  `positionalArgs` is still not checked for any other capability). A positional
+  call that gave a fifth value to `idm.managed.queryRelatedManagedObjects` or a
+  fourth to `idm.managedSystem.queryManagedSystemObjects`, the page size of
+  their requests, is rejected now. The `pageSize` argument of a dispatch call
+  is what it was: it cuts the result. The operation type, risk class,
+  `mutating`, `destructive` and the policy presets of all 25 are unchanged.
+- `frodo.admin.generateRfc7523ClientAuthNArtefacts` now waits for the signing
+  of the client authentication JWT: `jwt` of its result is the signed token (a
+  string), where it was an unresolved promise that serialises as an empty
+  object, and its `exp` is five minutes after the call, where it was 300, that
+  is seconds since 1970, so the token was expired when it was made. A caller
+  that awaited `jwt` gets the same kind of value as before; the property itself
+  is no longer a promise.
 
 **Deprecation**:
 

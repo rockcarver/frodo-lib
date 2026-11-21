@@ -10,6 +10,20 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-48] - 2026-11-21
+
+### Changed
+- Errors are now serialized with a fixed set of fields instead of the entire request configuration. Sensitive field values are replaced, and unstructured JSON-like text is omitted with a note of its length (#1123).
+- The argument contracts of 25 MCP capabilities have been updated to match their method signatures, ensuring consistency and correctness in parameter handling (#1120).
+- The warning message for `cloud.log.searchEvents` no longer promises certainty when deduplication is enabled and results are below the limit (#1119).
+
+### Fixed
+- Corrected the serialization of errors to ensure sensitive information is not exposed and unstructured JSON-like text is handled appropriately (#1123).
+- Updated the parameter contracts for 17 MCP capabilities and made log fetch arguments optional, resolving issues with incorrect parameter handling (#1118).
+- Fixed the behavior of list and search results to correctly indicate when they are truncated, preventing misinterpretation of incomplete data as complete (#1117).
+- Ensured that the `find_skills` description does not incorrectly suggest using a truncated result (#4966c57bd).
+- Addressed issues with the handling of cookies, transaction IDs, and filters in log fetch operations, making them optional and improving flexibility (#33c777428).
+
 ## [v5.0.0-47] - 2026-11-16
 
 ### Added
@@ -3034,6 +3048,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-48]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-47...v5.0.0-48
 [v5.0.0-47]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-46...v5.0.0-47
 [v5.0.0-46]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-45...v5.0.0-46
 [v5.0.0-45]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-44...v5.0.0-45
