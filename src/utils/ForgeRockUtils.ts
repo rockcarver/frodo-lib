@@ -315,7 +315,7 @@ export function getIdmBaseUrl(state: State): string {
  * whichever comes first; a wait that ends by the timeout is never reported as
  * a success.
  *
- * @param {() => Promise<any>} initiateUpdate Function that initiates the update.
+ * @param {() => Promise<WaitCompleted>} initiateUpdate Function that initiates the update.
  * @param {() => Promise<WaitCompleted>} isComplete Function that checks the update's completion and error status.
  * @param {string} initialMessage Initial message for the progress indicator.
  * @param {string} noWaitSuccessMessage Success message when not waiting for completion.
@@ -359,7 +359,7 @@ export async function waitForUpdate({
   onError,
   state,
 }: {
-  initiateUpdate: () => Promise<any>;
+  initiateUpdate: () => Promise<WaitCompleted>;
   isComplete: () => Promise<WaitCompleted>;
   initialMessage?: string;
   noWaitSuccessMessage?: string;
@@ -385,19 +385,20 @@ export async function waitForUpdate({
     state,
   });
   try {
-    await initiateUpdate();
+    let isCompleted: WaitCompleted = await initiateUpdate();
     if (!wait) {
       stopProgressIndicator({
         id: indicatorId,
-        message: noWaitSuccessMessage,
-        status: 'success',
+        message: isCompleted.isError
+          ? errorMessage(isCompleted, 0)
+          : noWaitSuccessMessage,
+        status: isCompleted.isError ? 'fail' : 'success',
         state,
       });
-      return true;
+      return !isCompleted.isError;
     }
     const start = Date.now();
     let errors = 0;
-    let isCompleted: WaitCompleted = { isComplete: false };
     let delay = initialDelay;
     while (!isCompleted.isComplete && Date.now() - start < timeout) {
       // never sleep past the deadline, but still check once at the deadline

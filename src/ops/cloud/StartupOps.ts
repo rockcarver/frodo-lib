@@ -157,7 +157,16 @@ export async function applyUpdates({
   state: State;
 }): Promise<boolean> {
   return await waitForUpdate({
-    initiateUpdate: async () => await initiateRestart({ state }),
+    initiateUpdate: async () => {
+      // If wait is false, we'll attempt a restart regardless of whether one is happening or not
+      let status = wait ? await getStatus({ state }) : undefined;
+      if (!status || status === RestartStatus.ready)
+        status = await initiateRestart({ state });
+      return {
+        status,
+        isComplete: RestartStatus.ready === status,
+      };
+    },
     isComplete: async () => {
       const status = await getStatus({ state });
       return {
