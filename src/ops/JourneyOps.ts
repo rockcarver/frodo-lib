@@ -251,15 +251,18 @@ export type Journey = {
    * @remarks The journeys are written in the order of their dependencies: a journey that needs another journey of the import
    * data is written after it, whether that journey is installed or not, so an inner journey is written (and a disabled or
    * broken installed copy of it repaired) before the journey that uses it is saved. Journeys that do not need each other keep
-   * the order of the import data. Journeys that form a circle, or refer to themselves, keep the order of the import data
-   * when they are installed.
+   * the order of the import data. Journeys that form a circle, or refer to themselves, cannot be ordered: when they are
+   * installed they are written after the journeys that could be ordered, in the order of the import data among themselves.
    *
    * Without a result callback the complete batch is validated before reading installed journeys or
    * writing any journey. If validation fails, the batch is rejected without
    * partially importing valid journeys. With a result callback every journey is an item of its own:
    * a journey that has validation errors, a journey that needs a journey that is neither installed nor in the import data,
    * and a journey that needs a journey of the batch that failed are reported to the callback as failed and are not written;
-   * every other journey is imported.
+   * every other journey is imported. A journey is judged when its turn comes, in the order of writing: it is skipped when
+   * a journey it needs has failed before. An installed journey that cannot be imported because of its own dependencies
+   * still counts as resolved for the journeys that need it, so a journey that needs such a journey can be written before
+   * that journey is judged.
    */
   importJourneys(
     importData: MultiTreeExportInterface,
@@ -3024,7 +3027,7 @@ export async function importJourney({
  * @param {MultiTreeExportInterface} candidateJourneys Map of journeys to resolve dependencies for
  * @param {{ [k: string]: string[] }} unresolvedJourneys Map of unresolved journey names and their dependencies
  * @param {string[]} resolvedJourneys Array of resolved journey names
- * @param {number} index Depth of recursion
+ * @param {number} index Number of journeys that were still unresolved after an earlier call, leave it out
  * @returns {Promise<{unresolvedJourneys: { [k: string]: string[] }; resolvedJourneys: string[];}>} a promise resolving to a dependency status object
  */
 export async function resolveInnerTreeDependencies({
@@ -3082,9 +3085,10 @@ function getJourneyDependencies(journey: SingleTreeExportInterface): string[] {
  * the journey that evaluates it is saved. A journey that needs a journey outside of the batch needs it to be installed.
  *
  * Then, the journeys that are left because they are part of a circle, or refer to themselves, are ordered by the rule
- * that applied before frodo-lib#1122: an installed journey counts as resolved. Those keep the order of the batch, and
- * a circle of journeys that are not installed stays unresolved. So the set of resolved and unresolved journeys is what
- * it always was; only the order of the resolved ones changes.
+ * that applied before frodo-lib#1122: an installed journey counts as resolved. Those come after the journeys that could
+ * be ordered, in the order of the batch among themselves, and a circle of journeys that are not installed stays
+ * unresolved. So the set of resolved and unresolved journeys is what it always was; only the order of the resolved
+ * ones changes.
  * @param {string[]} installedJourneys Names of the installed journeys
  * @param {Record<string, SingleTreeExportInterface>} journeyMap Map of journeys to resolve dependencies for
  * @param {{ [k: string]: string[] }} unresolvedJourneys Map to hold the names of unresolved journeys and their dependencies
@@ -3137,7 +3141,8 @@ function resolveJourneyOrder({
  * Resolve journey dependencies: put the journeys of a batch in the order of their dependencies, so that a journey comes
  * after the journeys it needs. A journey that needs a journey of the same batch comes after it, whether that journey is
  * installed or not. A journey that needs a journey outside of the batch needs it to be installed. Journeys that form a
- * circle, or refer to themselves, keep the order of the batch when they are installed.
+ * circle, or refer to themselves, come after the journeys that could be ordered when they are installed, in the order
+ * of the batch among themselves.
  * @param {string[]} installedJorneys Map of installed journeys
  * @param {Record<string, SingleTreeExportInterface>} journeyMap Map of journeys to resolve dependencies for
  * @param {string[]} unresolvedJourneys Map to hold the names of unresolved journeys and their dependencies
@@ -3165,8 +3170,9 @@ export async function resolveDependencies(
  *
  * A journey that needs another journey of the import data is written after it, whether that journey is installed or
  * not, so that an inner journey is written (and a disabled or broken installed copy of it repaired) before the
- * journey that uses it is saved. Journeys that do not need each other keep the order of the import data, and so do
- * journeys that form a circle, or refer to themselves, when they are installed.
+ * journey that uses it is saved. Journeys that do not need each other keep the order of the import data. Journeys that
+ * form a circle, or refer to themselves, cannot be ordered: when they are installed they are written after the
+ * journeys that could be ordered, in the order of the import data among themselves.
  *
  * Without a result callback the complete batch is validated and its dependencies are resolved before any journey
  * is written, so an invalid journey or a missing dependency rejects the batch without partially importing valid
@@ -3176,7 +3182,10 @@ export async function resolveDependencies(
  * as it happens: the journey as imported, or an error that names the journey. A journey that has validation errors, a
  * journey that needs a journey that is neither installed nor importable from the import data, and a journey that needs
  * a journey of the batch that failed (for any of these reasons or because it could not be written) fail without being
- * written, and every other journey is imported. Warnings are reported as without a callback.
+ * written, and every other journey is imported. A journey is judged when its turn comes, in the order of writing: it is
+ * skipped when a journey it needs has failed before. An installed journey that cannot be imported because of its own
+ * dependencies still counts as resolved for the journeys that need it, so a journey that needs such a journey can be
+ * written before that journey is judged. Warnings are reported as without a callback.
  * @param {MultiTreeExportInterface} importData map of trees object
  * @param {TreeImportOptions} options import options
  * @param {ResultCallback} resultCallback Optional callback to process individual results. When given, the outcome of every journey is passed to it as it happens (the journey, or an error that names the journey) and a failed journey does not throw. Without it, a validation error or a missing dependency rejects the batch before anything is written, and a journey that cannot be written throws. Failing to list the installed journeys always throws.
