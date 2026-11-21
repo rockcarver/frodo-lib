@@ -7681,9 +7681,9 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Startup",
     methodName: "applyUpdates",
     signature: "applyUpdates(wait: boolean, timeout?: number): Promise<boolean>",
-    description: "Apply updates",
+    description: "Apply updates by restarting the environment. With wait set, the restart status is read first: a restart that is already under way is not requested again, the call waits for it to end, and an environment that is ready is restarted and waited for. Without wait, nothing is read first and the restart is requested at once; a restart that is already under way makes that request fail, so the result is false.",
     params: [
-      { name: "wait", type: "boolean", description: "wait for the operation to complete or not", required: true },
+      { name: "wait", type: "boolean", description: "wait for the operation to complete or not; a restart that is already under way is joined instead of failing", required: true },
       { name: "timeout", type: "number", description: "timeout in milliseconds", required: false },
     ],
     returns: "{Promise<boolean>} true if successful, false otherwise",
