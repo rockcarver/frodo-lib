@@ -2328,9 +2328,9 @@ function collectJourneyNodeEdges({
         })),
       ];
       for (const holder of holders) {
+        // a node whose configuration was not read holds no name
         const holderConfig = configById.get(holder.id);
-        if (!holderConfig) continue;
-        const holderType = holder.type ?? holderConfig._type?._id;
+        const holderType = holder.type ?? holderConfig?._type?._id;
         for (const row of rows) {
           if (row.nodeType !== holderType) continue;
           for (const namedJourneyId of readJourneyNames(

@@ -10,12 +10,14 @@ import { jest } from '@jest/globals';
 const getTrees = jest.fn(async (_args?: any): Promise<any> => ({
   result: [],
 }));
+const getTree = jest.fn(async (_args?: any): Promise<any> => ({}));
 const putTree = jest.fn(async (_args?: any): Promise<any> => ({}));
 const deleteTree = jest.fn(async (_args?: any): Promise<any> => ({}));
 const actualTreeApi = await import('../api/TreeApi');
 jest.unstable_mockModule('../api/TreeApi', () => ({
   ...actualTreeApi,
   deleteTree,
+  getTree,
   getTrees,
   putTree,
 }));
@@ -152,6 +154,7 @@ function resetReads() {
     realm: { alpha: [{ _id: 'theme-1', name: 'Starter', linkedTrees: [] }] },
   });
   getPolicies.mockReset().mockResolvedValue({ result: [] });
+  getTree.mockReset();
   putTree.mockReset();
   deleteTree.mockReset();
   printMessage.mockReset();
@@ -196,27 +199,28 @@ describe('findJourneyReferences', () => {
     });
 
     test('finds two parents, ordered by journey id then node id', async () => {
+      // the map order and the node ids go against the order of the answer
       getTrees.mockResolvedValue({
         result: [
-          tree('Registration', { n3: nodeRef('InnerTreeEvaluatorNode') }),
+          tree('Registration', { a1: nodeRef('InnerTreeEvaluatorNode') }),
           tree('Login', {
-            n2: nodeRef('InnerTreeEvaluatorNode'),
-            n1: nodeRef('InnerTreeEvaluatorNode'),
+            z2: nodeRef('InnerTreeEvaluatorNode'),
+            z1: nodeRef('InnerTreeEvaluatorNode'),
           }),
         ],
       });
       readNodesMock.mockResolvedValue([
-        innerTreeNode('n1', TARGET),
-        innerTreeNode('n2', TARGET),
-        innerTreeNode('n3', TARGET),
+        innerTreeNode('z1', TARGET),
+        innerTreeNode('z2', TARGET),
+        innerTreeNode('a1', TARGET),
       ]);
 
       const result = await find();
 
       expect(result.map((r: any) => `${r.journeyId}/${r.nodeId}`)).toEqual([
-        'Login/n1',
-        'Login/n2',
-        'Registration/n3',
+        'Login/z1',
+        'Login/z2',
+        'Registration/a1',
       ]);
     });
 
@@ -347,6 +351,7 @@ describe('findJourneyReferences', () => {
         expect.objectContaining({ source: 'journey', journeyId: 'Login' }),
       ]);
       expect(getTrees).toHaveBeenCalledTimes(1);
+      expect(getTree).not.toHaveBeenCalled();
     });
 
     test('reports the top-level node and the inner node for a node inside a Page Node', async () => {
@@ -400,6 +405,37 @@ describe('findJourneyReferences', () => {
       ]);
 
       expect(await find()).toEqual([]);
+    });
+
+    test('orders the nodes inside a Page Node by id', async () => {
+      getTrees.mockResolvedValue({
+        result: [tree('Login', { page: nodeRef('PageNode') })],
+      });
+      readNodesMock.mockResolvedValue([
+        node('page', 'PageNode', {
+          nodes: [
+            {
+              _id: 'inner-b',
+              displayName: 'B',
+              nodeType: 'InnerTreeEvaluatorNode',
+            },
+            {
+              _id: 'inner-a',
+              displayName: 'A',
+              nodeType: 'InnerTreeEvaluatorNode',
+            },
+          ],
+        }),
+        innerTreeNode('inner-b', TARGET),
+        innerTreeNode('inner-a', TARGET),
+      ]);
+
+      const result = await find();
+
+      expect(result.map((r: any) => r.innerNodeId)).toEqual([
+        'inner-a',
+        'inner-b',
+      ]);
     });
 
     describe.each(journeyReferenceNodeRows.map((row) => [row.nodeType, row]))(
@@ -764,6 +800,20 @@ describe('findJourneyReferences', () => {
       });
 
       expect(await find()).toHaveLength(1);
+    });
+  });
+
+  describe('policy order', () => {
+    test('orders the policies by id', async () => {
+      const names = {
+        type: 'AuthenticateToService',
+        authenticateToService: TARGET,
+      };
+      getPolicies.mockResolvedValue({
+        result: [policy('P2', names), policy('P1', names)],
+      });
+
+      expect((await find()).map((r: any) => r.id)).toEqual(['P1', 'P2']);
     });
   });
 
