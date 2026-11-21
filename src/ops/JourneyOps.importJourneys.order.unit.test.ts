@@ -363,6 +363,36 @@ describe('importJourneys writes the journeys in the order of their dependencies'
     expect(written()).toEqual(['B', 'A']);
   });
 
+  test('with a result callback: a journey is judged when its turn comes, so one that needs an installed journey that cannot be imported can be written first (the example of MIGRATION.md)', async () => {
+    install('A', 'B', 'G');
+    const { outcomes, resultCallback } = recorder();
+
+    await importJourneys({
+      importData: {
+        trees: {
+          G: journeyExport('G', ['E', 'A']),
+          B: journeyExport('B', ['Nowhere']),
+          A: journeyExport('A', ['B']),
+          E: journeyExport('E'),
+        },
+      },
+      options,
+      resultCallback,
+      state,
+    });
+
+    // B needs a journey that exists nowhere and is not written; A is skipped because B failed; G is written before A
+    // is judged, because an installed journey that cannot be imported still counts as resolved for the journeys that
+    // need it
+    expect(written()).toEqual(['E', 'G']);
+    expect(outcomes).toEqual([
+      '!Error importing the alpha realm journey B',
+      'E',
+      'G',
+      '!Error importing the alpha realm journey A',
+    ]);
+  });
+
   test('an inner journey that is neither installed nor in the import data still rejects the batch (unchanged)', async () => {
     install('Other');
 
@@ -493,5 +523,39 @@ describe('resolveDependencies and resolveInnerTreeDependencies order the journey
       resolvedJourneys: ['B', 'A'],
       unresolvedJourneys: {},
     });
+  });
+
+  test('resolveInnerTreeDependencies returns the journeys that stay unresolved, with what they need', async () => {
+    const result = await resolveInnerTreeDependencies({
+      existingJorneys: [],
+      candidateJourneys: journeyMap({ X: ['Y'], Y: ['X'], Free: [] }) as any,
+    });
+
+    expect(result).toEqual({
+      resolvedJourneys: ['Free'],
+      unresolvedJourneys: { X: ['Y'], Y: ['X'] },
+    });
+  });
+
+  test('index is the number of journeys that were unresolved after an earlier pass: a first pass that leaves that many ends the ordering by dependencies, and the old rule takes over', async () => {
+    const installed = ['X', 'Y', 'Z'];
+    const needs = { Z: ['Y'], Y: ['X'], X: [] };
+
+    // left out: ordered by the dependencies
+    const ordered: string[] = [];
+    await resolveDependencies(installed, journeyMap(needs), {}, ordered);
+    expect(ordered).toEqual(['X', 'Y', 'Z']);
+
+    // the first pass leaves two journeys (Z and Y) unresolved, as many as the index says: no progress
+    const afterIndex: string[] = [];
+    await resolveDependencies(installed, journeyMap(needs), {}, afterIndex, 2);
+    expect(afterIndex).toEqual(['X', 'Z', 'Y']);
+
+    const innerAfterIndex = await resolveInnerTreeDependencies({
+      existingJorneys: installed,
+      candidateJourneys: journeyMap(needs) as any,
+      index: 2,
+    });
+    expect(innerAfterIndex.resolvedJourneys).toEqual(['X', 'Z', 'Y']);
   });
 });
