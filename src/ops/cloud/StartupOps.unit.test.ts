@@ -30,6 +30,23 @@ describe('StartupOps.applyUpdates() (faked wait helper)', () => {
     );
   });
 
+  test('1b: Checks every five seconds by default and passes on the intervals it is given', async () => {
+    await applyUpdates({ wait: true, timeout: 1000, state: StateImpl({}) });
+    expect(waitForUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ pollInterval: 5000, initialDelay: 5000 })
+    );
+    await applyUpdates({
+      wait: true,
+      timeout: 1000,
+      pollInterval: 20,
+      initialDelay: 30,
+      state: StateImpl({}),
+    });
+    expect(waitForUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ pollInterval: 20, initialDelay: 30 })
+    );
+  });
+
   test('2: Returns what the helper returns', async () => {
     waitForUpdate.mockResolvedValueOnce(false);
     expect(

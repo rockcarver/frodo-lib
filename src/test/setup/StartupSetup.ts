@@ -1,10 +1,13 @@
 import { autoSetupPolly } from '../../utils/AutoSetupPolly';
-import { filterRecording } from '../../utils/PollyUtils';
+import {
+  filterRecording,
+  orderedMatchRequestsBy,
+} from '../../utils/PollyUtils';
 import { secret1, secret2, stageSecret } from './SecretSetup';
 import { stageVariable, variable1, variable2 } from './VariablesSetup';
 
 export async function setup() {
-  const ctx = autoSetupPolly();
+  const ctx = autoSetupPolly(orderedMatchRequestsBy());
 
   // filter out secrets when recording
   beforeEach(async () => {

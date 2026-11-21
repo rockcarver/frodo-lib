@@ -6,6 +6,7 @@ import {
 import { State } from '../../shared/State';
 import {
   createProgressIndicator,
+  debugMessage,
   stopProgressIndicator,
 } from '../../utils/Console';
 import { waitForUpdate } from '../../utils/ForgeRockUtils';
@@ -19,8 +20,10 @@ export type Startup = {
    */
   checkForUpdates(): Promise<Updates>;
   /**
-   * Apply updates
-   * @param {boolean} wait wait for the operation to complete or not
+   * Apply updates by restarting the environment.
+   * With wait set, the restart status is read first: a restart that is already under way is not requested again, the call waits for it to end, and an environment that is ready is restarted and waited for.
+   * Without wait, nothing is read first and the restart is requested at once; a restart that is already under way makes that request fail, so the result is false.
+   * @param {boolean} wait wait for the operation to complete or not; a restart that is already under way is joined instead of failing
    * @param {number} timeout timeout in milliseconds
    * @returns {Promise<boolean>} true if successful, false otherwise
    */
@@ -43,8 +46,10 @@ export default (state: State): Startup => {
     },
 
     /**
-     * Apply updates
-     * @param {boolean} wait wait for the operation to complete or not
+     * Apply updates by restarting the environment.
+     * With wait set, the restart status is read first: a restart that is already under way is not requested again, the call waits for it to end, and an environment that is ready is restarted and waited for.
+     * Without wait, nothing is read first and the restart is requested at once; a restart that is already under way makes that request fail, so the result is false.
+     * @param {boolean} wait wait for the operation to complete or not; a restart that is already under way is joined instead of failing
      * @param {number} timeout timeout in milliseconds
      * @returns {Promise<boolean>} true if successful, false otherwise
      */
@@ -142,22 +147,62 @@ export async function checkForUpdates({
 }
 
 /**
- * Apply updates
- * @param {boolean} wait wait for the operation to complete or not
+ * Apply updates by restarting the environment.
+ *
+ * With wait set, the restart status is read first: a restart that is already
+ * under way is not requested again, the call waits for it to end (the end state
+ * is the same, so joining is right), and an environment that is ready is
+ * restarted and waited for. A status that cannot be read does not end the call:
+ * the restart is requested as it would be without the check, and the answer to
+ * that request decides.
+ *
+ * Without wait, nothing is read first and the restart is requested at once. A
+ * restart that is already under way makes that request fail, so the result is
+ * false and the error is shown: only wait joins a restart.
+ *
+ * The request to restart looks at the status itself before it restarts
+ * anything, so with wait the status is read twice before the restart is
+ * requested: once to find out whether a restart is under way, once inside the
+ * request. That second read belongs to the request and is left as it is.
+ * @param {boolean} wait wait for the operation to complete or not; a restart that is already under way is joined instead of failing
  * @param {number} timeout timeout in milliseconds
+ * @param {number} pollInterval time between status checks in milliseconds. Default: 5000
+ * @param {number} initialDelay time to wait before the first status check in milliseconds, because the restart may still read 'ready' for a moment after it was requested. Default: 5000
  * @returns {Promise<boolean>} true if successful, false otherwise
  */
 export async function applyUpdates({
   wait,
   timeout = 10 * 60 * 1000,
+  pollInterval = 5000,
+  initialDelay = 5000,
   state,
 }: {
   wait: boolean;
   timeout?: number;
+  pollInterval?: number;
+  initialDelay?: number;
   state: State;
 }): Promise<boolean> {
   return await waitForUpdate({
-    initiateUpdate: async () => await initiateRestart({ state }),
+    initiateUpdate: async () => {
+      let status: RestartStatus | undefined;
+      if (wait) {
+        try {
+          status = await getStatus({ state });
+        } catch (error) {
+          debugMessage({
+            message: `Could not read the restart status before requesting a restart, requesting it anyway: ${error.message}`,
+            state,
+          });
+        }
+      }
+      if (!status || status === RestartStatus.ready)
+        status = await initiateRestart({ state });
+      // Not complete, whatever the answer says: the restart may still read
+      // 'ready' for a moment after it was requested, so the wait starts with
+      // its initial delay.
+      return { status, isComplete: false };
+    },
     isComplete: async () => {
       const status = await getStatus({ state });
       return {
@@ -178,8 +223,8 @@ export async function applyUpdates({
       )}s with final status: ${isCompleted.status}`,
     wait,
     timeout,
-    // the restart may still read 'ready' for a moment after it was requested
-    initialDelay: 5000,
+    pollInterval,
+    initialDelay,
     state,
   });
 }
