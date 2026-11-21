@@ -224,12 +224,16 @@ export type Journey = {
     options: TreeImportOptions
   ): Promise<TreeSkeleton>;
   /**
-   * Resolve journey dependencies
+   * Resolve journey dependencies: put the journeys of a batch in the order of their dependencies, so that a journey comes after the journeys it needs
    * @param {string[]} installedJorneys Map of installed journeys
    * @param {Record<string, SingleTreeExportInterface>} journeyMap Map of journeys to resolve dependencies for
    * @param {string[]} unresolvedJourneys Map to hold the names of unresolved journeys and their dependencies
-   * @param {string[]} resolvedJourneys Array to hold the names of resolved journeys
-   * @param {int} index Depth of recursion
+   * @param {string[]} resolvedJourneys Array to hold the names of resolved journeys, in the order of their dependencies
+   * @param {int} index Number of journeys that were still unresolved after an earlier call, leave it out
+   * @remarks A journey that needs a journey of the same batch comes after it, whether that journey is installed or not.
+   * A journey that needs a journey outside of the batch needs it to be installed. Journeys that form a circle, or refer to
+   * themselves, cannot be ordered: when they are installed they are resolved in the order of the batch, after the journeys
+   * that could be ordered; a circle of journeys that are not installed stays unresolved.
    */
   resolveDependencies(
     installedJorneys: any,
@@ -244,7 +248,13 @@ export type Journey = {
    * @param {TreeImportOptions} options import options
    * @param {ResultCallback} resultCallback Optional callback to process individual results. When given, the outcome of every journey is passed to it as it happens (the journey, or an error that names the journey) and a failed journey does not throw. Without it, a validation error or a missing dependency rejects the batch before anything is written, and a journey that cannot be written throws. Failing to list the installed journeys always throws.
    * @returns {Promise<TreeSkeleton[]>} a promise that resolves to the journeys that were imported
-   * @remarks Without a result callback the complete batch is validated before reading installed journeys or
+   * @remarks The journeys are written in the order of their dependencies: a journey that needs another journey of the import
+   * data is written after it, whether that journey is installed or not, so an inner journey is written (and a disabled or
+   * broken installed copy of it repaired) before the journey that uses it is saved. Journeys that do not need each other keep
+   * the order of the import data. Journeys that form a circle, or refer to themselves, keep the order of the import data
+   * when they are installed.
+   *
+   * Without a result callback the complete batch is validated before reading installed journeys or
    * writing any journey. If validation fails, the batch is rejected without
    * partially importing valid journeys. With a result callback every journey is an item of its own:
    * a journey that has validation errors, a journey that needs a journey that is neither installed nor in the import data,
@@ -3008,7 +3018,8 @@ export async function importJourney({
 }
 
 /**
- * Resolve inner tree dependencies
+ * Resolve inner tree dependencies: put the candidate journeys in the order of their dependencies, with the same rule
+ * as `resolveDependencies`.
  * @param {string[]} existingJorneys Array of existing journey names
  * @param {MultiTreeExportInterface} candidateJourneys Map of journeys to resolve dependencies for
  * @param {{ [k: string]: string[] }} unresolvedJourneys Map of unresolved journey names and their dependencies
@@ -3019,8 +3030,8 @@ export async function importJourney({
 export async function resolveInnerTreeDependencies({
   existingJorneys,
   candidateJourneys,
-  unresolvedJourneys,
-  resolvedJourneys,
+  unresolvedJourneys = {},
+  resolvedJourneys = [],
   index = -1,
 }: {
   existingJorneys: string[];
@@ -3032,55 +3043,18 @@ export async function resolveInnerTreeDependencies({
   unresolvedJourneys: { [k: string]: string[] };
   resolvedJourneys: string[];
 }> {
-  let before = -1;
-  if (index !== -1) {
-    before = index;
-  }
-
-  for (const tree in candidateJourneys) {
-    if ({}.hasOwnProperty.call(candidateJourneys, tree)) {
-      const dependencies = [];
-      for (const node in candidateJourneys[tree].nodes) {
-        const dependency = getTreeDependencyId({
-          nodeConfig: candidateJourneys[tree].nodes[node],
-        });
-        if (dependency) {
-          dependencies.push(dependency);
-        }
-      }
-      let allResolved = true;
-      for (const dependency of dependencies) {
-        if (
-          !resolvedJourneys.includes(dependency) &&
-          !existingJorneys.includes(dependency)
-        ) {
-          allResolved = false;
-        }
-      }
-      if (allResolved) {
-        if (resolvedJourneys.indexOf(tree) === -1) resolvedJourneys.push(tree);
-        delete unresolvedJourneys[tree];
-      } else {
-        unresolvedJourneys[tree] = dependencies;
-      }
-    }
-  }
-  const after = Object.keys(unresolvedJourneys).length;
-  if (index !== -1 && after === before) {
-    // This is the end, no progress was made since the last recursion
-    return {
-      unresolvedJourneys,
-      resolvedJourneys,
-    };
-  } else if (after > 0) {
-    resolveInnerTreeDependencies({
-      existingJorneys: existingJorneys,
-      candidateJourneys: candidateJourneys,
-      unresolvedJourneys,
-      resolvedJourneys,
-      index: after,
-    });
-  }
+  resolveJourneyOrder({
+    installedJourneys: existingJorneys,
+    // the map of journeys by name is what the callers pass
+    journeyMap: candidateJourneys as unknown as Record<
+      string,
+      SingleTreeExportInterface
+    >,
+    unresolvedJourneys,
+    resolvedJourneys,
+    index,
+  });
+  return { unresolvedJourneys, resolvedJourneys };
 }
 
 /**
@@ -3100,12 +3074,75 @@ function getJourneyDependencies(journey: SingleTreeExportInterface): string[] {
 }
 
 /**
- * Resolve journey dependencies
+ * Put the journeys of a batch in the order of their dependencies: a journey comes after every journey it needs. This is
+ * the one ordering loop behind `resolveDependencies` and `resolveInnerTreeDependencies`.
+ *
+ * First, a journey that needs a journey of the same batch comes after it, whether that journey is installed in the
+ * realm or not, so that an inner journey is written (and a disabled or broken installed copy of it repaired) before
+ * the journey that evaluates it is saved. A journey that needs a journey outside of the batch needs it to be installed.
+ *
+ * Then, the journeys that are left because they are part of a circle, or refer to themselves, are ordered by the rule
+ * that applied before frodo-lib#1122: an installed journey counts as resolved. Those keep the order of the batch, and
+ * a circle of journeys that are not installed stays unresolved. So the set of resolved and unresolved journeys is what
+ * it always was; only the order of the resolved ones changes.
+ * @param {string[]} installedJourneys Names of the installed journeys
+ * @param {Record<string, SingleTreeExportInterface>} journeyMap Map of journeys to resolve dependencies for
+ * @param {{ [k: string]: string[] }} unresolvedJourneys Map to hold the names of unresolved journeys and their dependencies
+ * @param {string[]} resolvedJourneys Array to hold the names of resolved journeys, in the order of their dependencies
+ * @param {number} index Number of journeys that were unresolved before the first pass, -1 for none
+ */
+function resolveJourneyOrder({
+  installedJourneys,
+  journeyMap,
+  unresolvedJourneys,
+  resolvedJourneys,
+  index = -1,
+}: {
+  installedJourneys: string[];
+  journeyMap: Record<string, SingleTreeExportInterface>;
+  unresolvedJourneys: { [k: string]: string[] };
+  resolvedJourneys: string[];
+  index?: number;
+}): void {
+  for (const strict of [true, false]) {
+    // the number of unresolved journeys after the previous pass, -1 before the first one
+    let before = strict ? index : -1;
+    for (;;) {
+      for (const tree of Object.keys(journeyMap)) {
+        const dependencies = getJourneyDependencies(journeyMap[tree]);
+        const allResolved = dependencies.every(
+          (dependency) =>
+            resolvedJourneys.includes(dependency) ||
+            (installedJourneys.includes(dependency) &&
+              !(strict && {}.hasOwnProperty.call(journeyMap, dependency)))
+        );
+        if (allResolved) {
+          if (resolvedJourneys.indexOf(tree) === -1)
+            resolvedJourneys.push(tree);
+          delete unresolvedJourneys[tree];
+        } else {
+          unresolvedJourneys[tree] = dependencies;
+        }
+      }
+      const after = Object.keys(unresolvedJourneys).length;
+      // done, or no progress since the last pass
+      if (after === 0 || (before !== -1 && after === before)) break;
+      before = after;
+    }
+    if (Object.keys(unresolvedJourneys).length === 0) return;
+  }
+}
+
+/**
+ * Resolve journey dependencies: put the journeys of a batch in the order of their dependencies, so that a journey comes
+ * after the journeys it needs. A journey that needs a journey of the same batch comes after it, whether that journey is
+ * installed or not. A journey that needs a journey outside of the batch needs it to be installed. Journeys that form a
+ * circle, or refer to themselves, keep the order of the batch when they are installed.
  * @param {string[]} installedJorneys Map of installed journeys
  * @param {Record<string, SingleTreeExportInterface>} journeyMap Map of journeys to resolve dependencies for
  * @param {string[]} unresolvedJourneys Map to hold the names of unresolved journeys and their dependencies
- * @param {string[]} resolvedJourneys Array to hold the names of resolved journeys
- * @param {number} index Depth of recursion
+ * @param {string[]} resolvedJourneys Array to hold the names of resolved journeys, in the order of their dependencies
+ * @param {number} index Number of journeys that were still unresolved after an earlier call, leave it out
  */
 export async function resolveDependencies(
   installedJorneys: string[],
@@ -3114,60 +3151,22 @@ export async function resolveDependencies(
   resolvedJourneys: string[],
   index = -1
 ) {
-  let before = -1;
-  if (index !== -1) {
-    before = index;
-  }
-
-  for (const tree in journeyMap) {
-    if ({}.hasOwnProperty.call(journeyMap, tree)) {
-      const dependencies = getJourneyDependencies(journeyMap[tree]);
-      let allResolved = true;
-      for (const dependency of dependencies) {
-        if (
-          !resolvedJourneys.includes(dependency) &&
-          !installedJorneys.includes(dependency)
-        ) {
-          allResolved = false;
-        }
-      }
-      if (allResolved) {
-        if (resolvedJourneys.indexOf(tree) === -1) resolvedJourneys.push(tree);
-        // remove from unresolvedJourneys array
-        // for (let i = 0; i < unresolvedJourneys.length; i += 1) {
-        //   if (unresolvedJourneys[i] === tree) {
-        //     unresolvedJourneys.splice(i, 1);
-        //     i -= 1;
-        //   }
-        // }
-        delete unresolvedJourneys[tree];
-        // } else if (!unresolvedJourneys.includes(tree)) {
-      } else {
-        // unresolvedJourneys.push(tree);
-        unresolvedJourneys[tree] = dependencies;
-      }
-    }
-  }
-  const after = Object.keys(unresolvedJourneys).length;
-  if (index !== -1 && after === before) {
-    // This is the end, no progress was made since the last recursion
-    // printMessage(
-    //   `Journeys with unresolved dependencies: ${unresolvedJourneys}`,
-    //   'error'
-    // );
-  } else if (after > 0) {
-    resolveDependencies(
-      installedJorneys,
-      journeyMap,
-      unresolvedJourneys,
-      resolvedJourneys,
-      after
-    );
-  }
+  resolveJourneyOrder({
+    installedJourneys: installedJorneys,
+    journeyMap,
+    unresolvedJourneys,
+    resolvedJourneys,
+    index,
+  });
 }
 
 /**
  * Import journeys, in the order of their dependencies.
+ *
+ * A journey that needs another journey of the import data is written after it, whether that journey is installed or
+ * not, so that an inner journey is written (and a disabled or broken installed copy of it repaired) before the
+ * journey that uses it is saved. Journeys that do not need each other keep the order of the import data, and so do
+ * journeys that form a circle, or refer to themselves, when they are installed.
  *
  * Without a result callback the complete batch is validated and its dependencies are resolved before any journey
  * is written, so an invalid journey or a missing dependency rejects the batch without partially importing valid
