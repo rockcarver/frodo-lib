@@ -844,22 +844,40 @@ describe('MCP capability foundation', () => {
     );
     // what was observed is scoped, dated and not presented as a guarantee
     expect(references?.notes).toMatch(
-      /observed \(not documented, not a guarantee/
+      /a hard holder is not necessarily one that Access Management protects/
     );
+    expect(references?.notes).toMatch(/was observed to let the delete through/);
+    expect(references?.notes).toMatch(/it may differ between versions/);
+    expect(references?.notes).toMatch(
+      /observed \(an observation, not a guarantee/
+    );
+    expect(references?.notes).not.toMatch(/not documented/);
     expect(references?.notes).toMatch(
       /in November 2026, on one Cloud development tenant/
     );
     expect(references?.notes).toMatch(
-      /refused to delete a journey that an OAuth2 client, a SAML remote service provider or a SAML hosted service provider names/
+      /refused to delete a journey that an OAuth2 client, a SAML remote service provider or a SAML hosted service provider names \(a server error, HTTP 500, that names the type of the holder\)/
     );
     expect(references?.notes).toMatch(
-      /deleted a journey that an Inner Tree Evaluator node, a Back Channel Initialize node or a policy condition/
+      /deleted a journey that an Inner Tree Evaluator node, a Back Channel Initialize node, a policy condition \(authentication by service, transaction\) or an AI agent names/
     );
     expect(references?.notes).toMatch(/\[Empty\]/);
+    // an AI agent that dangles can no longer be maintained, and the clear works only while the journey exists
+    expect(references?.notes).toMatch(/could no longer be updated or deleted/);
     expect(references?.notes).toMatch(
-      /Not observed: the default journeys of the realm/
+      /cleared the agent only while the journey still existed/
+    );
+    expect(references?.notes).toMatch(
+      /can block later maintenance of the holder/
+    );
+    expect(references?.notes).toMatch(
+      /Not observed: the default journeys of the realm, the self-service journeys, the password grant journey of the OAuth2 provider, themes, agent groups and CIMD profiles\./
     );
     expect(references?.notes).toMatch(/not a prediction of a refusal/);
+    // "an empty array is never proof" is said once
+    expect(
+      (references?.notes?.match(/never proof|not proof/g) ?? []).length
+    ).toBe(1);
     // a hard holder is not equated with a refusal, and the message of the server is not quoted
     expect(references?.notes).not.toMatch(/in use and cannot be deleted/);
     expect(references?.notes).not.toMatch(/hard (means|is when) .{0,40}refus/i);

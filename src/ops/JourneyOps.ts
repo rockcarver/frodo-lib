@@ -226,9 +226,9 @@ export type Journey = {
    * a policy its policy set as `applicationName`. There is one reference per
    * holder and field, however often the field names the journey. An object
    * that only inherits the value (Access Management's `inherited: true`, for
-   * example an AI agent whose group sets the journey) is reported too, with
-   * `inherited: true`, and the group that holds the value is reported as well,
-   * because the group may be one that this lookup does not read.
+   * example an AI agent whose group sets the journey) is reported on its own,
+   * with `inherited: true`, and the group that holds the value is reported as
+   * well.
    *
    * Every reference carries a `dependency` flag, in the words of the policy
    * import code. `hard` means the holder breaks at run time without the
@@ -241,21 +241,28 @@ export type Journey = {
    *
    * The flag is separate from what Access Management does when the journey is
    * deleted: a `hard` holder is not necessarily one that Access Management
-   * protects. What was observed (not documented, not a guarantee, and it may
+   * protects. What was observed (an observation, not a guarantee, and it may
    * differ between versions): in November 2026, on one Cloud development
    * tenant, with throw-away objects, Access Management refused to delete a
    * journey that an OAuth2 client, a SAML remote service provider or a SAML
    * hosted service provider names (it answered with a server error, HTTP 500,
-   * that names the holder), and it deleted a journey that an Inner Tree
-   * Evaluator node, a Back Channel Initialize node or a policy condition
-   * (authentication by service, transaction) names, leaving the holder
-   * unchanged and pointing at nothing. Writing the placeholder for no journey
-   * (`[Empty]`) as the journey name of the client or of the SAML provider was
-   * observed to let the delete through. Not observed: the default journeys of
-   * the realm, the self-service journeys, the password grant journey of the
-   * OAuth2 provider, themes, AI agents (a test agent could not be created),
-   * agent groups and CIMD profiles. So a non-empty answer is not a prediction
-   * of a refusal, and an empty answer is not proof that a journey is unused.
+   * that names the type of the holder), and it deleted a journey that an Inner
+   * Tree Evaluator node, a Back Channel Initialize node, a policy condition
+   * (authentication by service, transaction) or an AI agent names, leaving the
+   * holder unchanged and pointing at nothing. Writing the placeholder for no
+   * journey (`[Empty]`) as the journey name of the client or of the SAML
+   * provider was observed to let the delete through. An AI agent whose journey
+   * was deleted could no longer be updated or deleted: Access Management
+   * checks the stored journey name on every write to an existing AI agent (a
+   * validation error, HTTP 400), and a delete of the agent removed its managed
+   * identity first and then failed. Writing the placeholder (in the wrapped
+   * form, with `inherited` false) cleared the agent only while the journey
+   * still existed; afterwards the journey and the agent could be deleted. So a
+   * dangling reference to a deleted journey can block later maintenance of the
+   * holder. Not observed: the default journeys of the realm, the self-service
+   * journeys, the password grant journey of the OAuth2 provider, themes, agent
+   * groups and CIMD profiles. A non-empty answer is not a prediction of a
+   * refusal.
    *
    * Read-only: every source is read once, the answer is joined in memory, and
    * nothing is written or printed. The journey does not have to exist, so the
