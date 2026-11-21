@@ -832,6 +832,8 @@ describe('MCP capability foundation', () => {
     // the notes carry the blind spots, so that an empty answer is not read as "unused"
     expect(references?.notes).toMatch(/never proof/);
     expect(references?.notes).toMatch(/Fails closed/);
+    expect(references?.notes).toMatch(/Configuration Provider/);
+    expect(references?.notes).toMatch(/authentication context/);
     // it is a reviewed entry, not an inferred default
     expect(getUnreviewedSpecialCapabilities()).toEqual([]);
   });

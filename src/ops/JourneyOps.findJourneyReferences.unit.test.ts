@@ -23,9 +23,11 @@ jest.unstable_mockModule('../api/TreeApi', () => ({
 }));
 
 const readNodesMock = jest.fn(async (_args?: any): Promise<any[]> => []);
+const readNodeMock = jest.fn(async (_args?: any): Promise<any> => ({}));
 const actualNodeOps = await import('./NodeOps');
 jest.unstable_mockModule('./NodeOps', () => ({
   ...actualNodeOps,
+  readNode: readNodeMock,
   readNodes: readNodesMock,
 }));
 
@@ -69,6 +71,57 @@ jest.unstable_mockModule('../api/PoliciesApi', () => ({
   getPolicies,
 }));
 
+const getOAuth2Clients = jest.fn(async (_args?: any): Promise<any> => ({
+  result: [],
+}));
+const actualOAuth2ClientApi = await import('../api/OAuth2ClientApi');
+jest.unstable_mockModule('../api/OAuth2ClientApi', () => ({
+  ...actualOAuth2ClientApi,
+  getOAuth2Clients,
+}));
+
+const getProviderStubs = jest.fn(async (_args?: any): Promise<any> => ({
+  result: [],
+}));
+const getProvider = jest.fn(async (_args?: any): Promise<any> => ({}));
+const actualSaml2Api = await import('../api/Saml2Api');
+jest.unstable_mockModule('../api/Saml2Api', () => ({
+  ...actualSaml2Api,
+  getProvider,
+  getProviderStubs,
+}));
+
+const getAgentsByType = jest.fn(async (_args?: any): Promise<any> => ({
+  result: [],
+}));
+const getAgentGroups = jest.fn(async (_args?: any): Promise<any> => ({
+  result: [],
+}));
+const actualAgentApi = await import('../api/AgentApi');
+jest.unstable_mockModule('../api/AgentApi', () => ({
+  ...actualAgentApi,
+  getAgentGroups,
+  getAgentsByType,
+}));
+
+const isAgentTypeOffered = jest.fn(
+  async (_args?: any): Promise<boolean> => true
+);
+const actualAgentTypeHelpers = await import('./internal/AgentTypeHelpers');
+jest.unstable_mockModule('./internal/AgentTypeHelpers', () => ({
+  ...actualAgentTypeHelpers,
+  isAgentTypeOffered,
+}));
+
+const getCIMDProfiles = jest.fn(async (_args?: any): Promise<any> => ({
+  result: [],
+}));
+const actualCIMDProfileApi = await import('../api/OAuth2CIMDProfileApi');
+jest.unstable_mockModule('../api/OAuth2CIMDProfileApi', () => ({
+  ...actualCIMDProfileApi,
+  getCIMDProfiles,
+}));
+
 const printMessage = jest.fn();
 const actualConsole = await import('../utils/Console');
 jest.unstable_mockModule('../utils/Console', () => ({
@@ -80,6 +133,7 @@ const {
   findJourneyReferences,
   joinJourneyReferences,
   journeyReferenceNodeRows,
+  journeyReferencePolicyConditionRows,
 } = await import('./JourneyOps');
 const { FrodoError } = await import('./FrodoError');
 
@@ -89,6 +143,7 @@ function mockState(deploymentType = 'cloud') {
   return {
     getRealm: () => 'alpha',
     getDeploymentType: () => deploymentType,
+    getDebugHandler: () => undefined,
   } as any;
 }
 
@@ -153,7 +208,20 @@ function resetReads() {
   getConfigEntity.mockReset().mockResolvedValue({
     realm: { alpha: [{ _id: 'theme-1', name: 'Starter', linkedTrees: [] }] },
   });
-  getPolicies.mockReset().mockResolvedValue({ result: [] });
+  getPolicies.mockReset().mockResolvedValue({
+    result: [],
+    pagedResultsCookie: null,
+    remainingPagedResults: 0,
+  });
+  // a node that the bulk read lacks cannot be read, unless a test says so
+  readNodeMock.mockReset().mockRejectedValue(httpError(404, 'Not Found'));
+  getOAuth2Clients.mockReset().mockResolvedValue({ result: [] });
+  getProviderStubs.mockReset().mockResolvedValue({ result: [] });
+  getProvider.mockReset().mockResolvedValue({});
+  getAgentsByType.mockReset().mockResolvedValue({ result: [] });
+  getAgentGroups.mockReset().mockResolvedValue({ result: [] });
+  isAgentTypeOffered.mockReset().mockResolvedValue(true);
+  getCIMDProfiles.mockReset().mockResolvedValue({ result: [] });
   getTree.mockReset();
   putTree.mockReset();
   deleteTree.mockReset();
@@ -271,20 +339,102 @@ describe('findJourneyReferences', () => {
       expect(await find()).toEqual([]);
     });
 
-    test('skips a node of a journey whose configuration was not read', async () => {
-      getTrees.mockResolvedValue({
-        result: [
-          tree('Login', {
-            missing: nodeRef('InnerTreeEvaluatorNode'),
-            n2: nodeRef('InnerTreeEvaluatorNode'),
-          }),
-        ],
+    describe('a node that the bulk node read lacks', () => {
+      test('is read by its id and counts', async () => {
+        getTrees.mockResolvedValue({
+          result: [tree('Login', { n1: nodeRef('InnerTreeEvaluatorNode') })],
+        });
+        readNodesMock.mockResolvedValue([]);
+        readNodeMock.mockResolvedValue(innerTreeNode('n1', TARGET));
+
+        const result = await find();
+
+        expect(result).toEqual([
+          expect.objectContaining({ journeyId: 'Login', nodeId: 'n1' }),
+        ]);
+        expect(readNodeMock).toHaveBeenCalledTimes(1);
+        expect(readNodeMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            nodeId: 'n1',
+            nodeType: 'InnerTreeEvaluatorNode',
+            nodeTypeVersion: '1.0',
+          })
+        );
       });
-      readNodesMock.mockResolvedValue([innerTreeNode('n2', TARGET)]);
 
-      const result = await find();
+      test('is not read again when the bulk read has it', async () => {
+        getTrees.mockResolvedValue({
+          result: [tree('Login', { n1: nodeRef('InnerTreeEvaluatorNode') })],
+        });
+        readNodesMock.mockResolvedValue([innerTreeNode('n1', TARGET)]);
 
-      expect(result.map((r: any) => r.nodeId)).toEqual(['n2']);
+        await find();
+
+        expect(readNodeMock).not.toHaveBeenCalled();
+      });
+
+      test('is not read when its type does not name a journey', async () => {
+        getTrees.mockResolvedValue({
+          result: [
+            tree('Login', {
+              page: nodeRef('PageNode'),
+              script: nodeRef('ScriptedDecisionNode'),
+            }),
+          ],
+        });
+        readNodesMock.mockResolvedValue([]);
+
+        expect(await find()).toEqual([]);
+        expect(readNodeMock).not.toHaveBeenCalled();
+      });
+
+      test('fails the call, naming the node, when it cannot be read (never skipped)', async () => {
+        getTrees.mockResolvedValue({
+          result: [
+            tree('Login', {
+              missing: nodeRef('InnerTreeEvaluatorNode'),
+              n2: nodeRef('InnerTreeEvaluatorNode'),
+            }),
+          ],
+        });
+        readNodesMock.mockResolvedValue([innerTreeNode('n2', TARGET)]);
+        readNodeMock.mockRejectedValue(httpError(404, 'Not Found'));
+
+        const error: any = await find().catch((e) => e);
+
+        expect(error).toBeInstanceOf(FrodoError);
+        const messages = messagesOf(error).join(' | ');
+        expect(messages).toMatch(/node missing of journey Login/);
+        expect(messages).toMatch(/journeys and their nodes/);
+      });
+
+      test('fails the call for a node of the Back Channel Initialize type too', async () => {
+        getTrees.mockResolvedValue({
+          result: [tree('Login', { b1: nodeRef('BackChannelInitNode') })],
+        });
+        readNodeMock.mockRejectedValue(httpError(500, 'boom'));
+
+        const error: any = await find().catch((e) => e);
+
+        expect(error).toBeInstanceOf(FrodoError);
+        expect(messagesOf(error).join(' | ')).toMatch(
+          /BackChannelInitNode node b1/
+        );
+      });
+
+      test('is read once when two journeys list it', async () => {
+        getTrees.mockResolvedValue({
+          result: [
+            tree('A', { n1: nodeRef('InnerTreeEvaluatorNode') }),
+            tree('B', { n1: nodeRef('InnerTreeEvaluatorNode') }),
+          ],
+        });
+        readNodeMock.mockResolvedValue(innerTreeNode('n1', 'Other'));
+
+        await find();
+
+        expect(readNodeMock).toHaveBeenCalledTimes(1);
+      });
     });
 
     test('matches the journey id exactly', async () => {
@@ -620,6 +770,35 @@ describe('findJourneyReferences', () => {
       ]);
     });
 
+    test('reports a key that was added by hand', async () => {
+      getService.mockResolvedValue({
+        treeMapping: { registration: 'Registration', connectSocial: TARGET },
+      });
+
+      expect(await find()).toEqual([
+        { source: 'self-service-trees', from: 'treeMapping.connectSocial' },
+      ]);
+    });
+
+    test('reports every key that maps to the journey', async () => {
+      getService.mockResolvedValue({
+        treeMapping: { registration: TARGET, resetPassword: TARGET },
+      });
+
+      expect((await find()).map((reference: any) => reference.from)).toEqual([
+        'treeMapping.registration',
+        'treeMapping.resetPassword',
+      ]);
+    });
+
+    test('ignores empty and non-string values of the mapping', async () => {
+      getService.mockResolvedValue({
+        treeMapping: { a: '[Empty]', b: '', c: 7, d: null, e: [TARGET] },
+      });
+
+      expect(await find()).toEqual([]);
+    });
+
     test('reads the selfServiceTrees service of the realm', async () => {
       await find();
 
@@ -739,6 +918,7 @@ describe('findJourneyReferences', () => {
           source: 'policy',
           id: 'P1',
           name: 'P1',
+          applicationName: 'policySet',
           from: 'condition.authenticateToService',
         },
       ]);
@@ -803,6 +983,197 @@ describe('findJourneyReferences', () => {
     });
   });
 
+  describe('policy conditions that name a journey', () => {
+    const transaction = (strategy: string, journey: string) => ({
+      type: 'Transaction',
+      authenticationStrategy: strategy,
+      strategySpecifier: journey,
+    });
+
+    test('reports a transaction condition with the strategy that authenticates to a journey, and its policy set', async () => {
+      getPolicies.mockResolvedValue({
+        result: [
+          {
+            ...policy(
+              'P1',
+              transaction('AuthenticateToTreeConditionAdvice', TARGET)
+            ),
+            applicationName: 'setA',
+          },
+        ],
+      });
+
+      expect(await find()).toEqual([
+        {
+          source: 'policy',
+          id: 'P1',
+          name: 'P1',
+          applicationName: 'setA',
+          from: 'condition.strategySpecifier',
+        },
+      ]);
+    });
+
+    test.each([
+      'AuthenticateToRealmConditionAdvice',
+      'AuthSchemeConditionAdvice',
+      '',
+    ])(
+      'does not read the specifier of a transaction condition with the strategy %p as a journey',
+      async (strategy) => {
+        getPolicies.mockResolvedValue({
+          result: [policy('P1', transaction(strategy, TARGET))],
+        });
+
+        expect(await find()).toEqual([]);
+      }
+    );
+
+    test('reports a transaction condition nested under AND, OR and NOT', async () => {
+      getPolicies.mockResolvedValue({
+        result: [
+          policy('P1', {
+            type: 'AND',
+            conditions: [
+              { type: 'Session', maxSessionTime: 5 },
+              {
+                type: 'OR',
+                conditions: [
+                  {
+                    type: 'NOT',
+                    condition: transaction(
+                      'AuthenticateToTreeConditionAdvice',
+                      TARGET
+                    ),
+                  },
+                ],
+              },
+            ],
+          }),
+        ],
+      });
+
+      expect(await find()).toHaveLength(1);
+    });
+
+    test('keeps the same policy id in two policy sets apart', async () => {
+      const condition = {
+        type: 'AuthenticateToService',
+        authenticateToService: TARGET,
+      };
+      getPolicies.mockResolvedValue({
+        result: [
+          { ...policy('P', condition), applicationName: 'setA' },
+          { ...policy('P', condition), applicationName: 'setB' },
+        ],
+      });
+
+      expect(
+        (await find()).map((reference: any) => reference.applicationName)
+      ).toEqual(['setA', 'setB']);
+    });
+
+    describe.each(
+      journeyReferencePolicyConditionRows.map((row) => [row.conditionType, row])
+    )('row %s', (_conditionType, row) => {
+      const conditionFor = (name: string) => ({
+        type: row.conditionType,
+        ...(row.when && { [row.when.property]: row.when.equals }),
+        [row.property]: name,
+      });
+
+      test('names the journey from its property, nested', async () => {
+        getPolicies.mockResolvedValue({
+          result: [
+            policy('P1', { type: 'AND', conditions: [conditionFor(TARGET)] }),
+          ],
+        });
+
+        expect(await find()).toEqual([
+          expect.objectContaining({
+            source: 'policy',
+            id: 'P1',
+            from: `condition.${row.property}`,
+          }),
+        ]);
+      });
+
+      test('does not name another journey', async () => {
+        getPolicies.mockResolvedValue({
+          result: [policy('P1', conditionFor('Elsewhere'))],
+        });
+
+        expect(await find()).toEqual([]);
+      });
+    });
+
+    describe('a policy condition row added to the table', () => {
+      afterEach(() => {
+        (journeyReferencePolicyConditionRows as any[]).pop();
+      });
+
+      test('is read with no code change, and its `when` is honoured', async () => {
+        (journeyReferencePolicyConditionRows as any[]).push({
+          conditionType: 'FutureCondition',
+          property: 'journeys',
+          shape: 'list',
+          when: { property: 'mode', equals: 'journey' },
+        });
+        getPolicies.mockResolvedValue({
+          result: [
+            policy('P1', {
+              type: 'FutureCondition',
+              mode: 'journey',
+              journeys: ['Other', TARGET],
+            }),
+            policy('P2', {
+              type: 'FutureCondition',
+              mode: 'realm',
+              journeys: [TARGET],
+            }),
+          ],
+        });
+
+        expect((await find()).map((reference: any) => reference.id)).toEqual([
+          'P1',
+        ]);
+      });
+    });
+  });
+
+  describe('policy paging', () => {
+    test('fails closed when Access Management says that more policies remain', async () => {
+      getPolicies.mockResolvedValue({
+        result: [],
+        pagedResultsCookie: null,
+        remainingPagedResults: 3,
+      });
+
+      await expect(find()).rejects.toThrow(/policies/);
+    });
+
+    test('fails closed when the answer carries a cookie for the next page', async () => {
+      getPolicies.mockResolvedValue({
+        result: [],
+        pagedResultsCookie: 'next',
+        remainingPagedResults: -1,
+      });
+
+      await expect(find()).rejects.toThrow(/policies/);
+    });
+
+    test('accepts a complete answer (no cookie, nothing remaining, total unknown)', async () => {
+      getPolicies.mockResolvedValue({
+        result: [],
+        pagedResultsCookie: null,
+        remainingPagedResults: 0,
+        totalPagedResults: -1,
+      });
+
+      expect(await find()).toEqual([]);
+    });
+  });
+
   describe('policy order', () => {
     test('orders the policies by id', async () => {
       const names = {
@@ -814,6 +1185,279 @@ describe('findJourneyReferences', () => {
       });
 
       expect((await find()).map((r: any) => r.id)).toEqual(['P1', 'P2']);
+    });
+  });
+
+  describe('objects that carry the journey in `advancedOAuth2ClientConfig.treeName`', () => {
+    const treeNameOf = (id: string, treeName: unknown) => ({
+      _id: id,
+      advancedOAuth2ClientConfig: { treeName },
+    });
+    // one row per source: how its reader is made to answer, and how a type that the realm does not offer is made
+    const sources: {
+      source: string;
+      serve: (holders: any[]) => void;
+      reader: any;
+      type?: string;
+    }[] = [
+      {
+        source: 'oauth2-client',
+        serve: (holders) =>
+          getOAuth2Clients.mockResolvedValue({ result: holders }),
+        reader: getOAuth2Clients,
+      },
+      {
+        source: 'ai-agent',
+        serve: (holders) =>
+          getAgentsByType.mockResolvedValue({ result: holders }),
+        reader: getAgentsByType,
+        type: 'AIAgent',
+      },
+      {
+        source: 'agent-group',
+        serve: (holders) =>
+          getAgentGroups.mockResolvedValue({ result: holders }),
+        reader: getAgentGroups,
+      },
+      {
+        source: 'cimd-profile',
+        serve: (holders) =>
+          getCIMDProfiles.mockResolvedValue({ result: holders }),
+        reader: getCIMDProfiles,
+        type: 'CIMDProfile',
+      },
+    ];
+
+    describe.each(sources.map((row) => [row.source, row]))(
+      'source %s',
+      (_source, row) => {
+        const expected = (id: string) => ({
+          source: row.source,
+          id,
+          from: 'advancedOAuth2ClientConfig.treeName',
+        });
+
+        test('reports an object with the journey as a plain string', async () => {
+          row.serve([treeNameOf('a', 'Other'), treeNameOf('b', TARGET)]);
+
+          expect(await find()).toEqual([expected('b')]);
+        });
+
+        test('reports an object with the journey in the wrapped form', async () => {
+          row.serve([treeNameOf('a', { inherited: false, value: TARGET })]);
+
+          expect(await find()).toEqual([expected('a')]);
+        });
+
+        test('reads the placeholder for no journey, in both forms, as none', async () => {
+          row.serve([
+            treeNameOf('a', '[Empty]'),
+            treeNameOf('b', { inherited: true, value: '[Empty]' }),
+            treeNameOf('c', ''),
+            treeNameOf('d', undefined),
+            { _id: 'e' },
+          ]);
+
+          expect(await find('[Empty]')).toEqual([]);
+          expect(await find()).toEqual([]);
+        });
+
+        test('does not report an object with another journey', async () => {
+          row.serve([
+            treeNameOf('a', { inherited: false, value: 'Elsewhere' }),
+          ]);
+
+          expect(await find()).toEqual([]);
+        });
+
+        test('orders the objects by id', async () => {
+          row.serve([treeNameOf('b', TARGET), treeNameOf('a', TARGET)]);
+
+          expect((await find()).map((reference: any) => reference.id)).toEqual([
+            'a',
+            'b',
+          ]);
+        });
+
+        test('reads once', async () => {
+          row.serve([]);
+
+          await find();
+
+          expect(row.reader).toHaveBeenCalledTimes(1);
+        });
+
+        if (row.type) {
+          test('is none, and not read, where the realm does not offer the type', async () => {
+            row.serve([treeNameOf('a', TARGET)]);
+            isAgentTypeOffered.mockImplementation(
+              async ({ agentType }: any) => agentType !== row.type
+            );
+
+            expect(await find()).toEqual([]);
+            expect(row.reader).not.toHaveBeenCalled();
+          });
+        }
+
+        test('fails the call when it cannot be read', async () => {
+          row.reader.mockRejectedValue(httpError(500, 'boom'));
+
+          await expect(find()).rejects.toBeInstanceOf(FrodoError);
+        });
+      }
+    );
+
+    test('the OAuth2 clients that the Cloud does not offer are none', async () => {
+      getOAuth2Clients.mockRejectedValue(
+        httpError(403, NOT_AVAILABLE_IN_CLOUD)
+      );
+
+      expect(await find()).toEqual([]);
+    });
+
+    test('a realm without agent groups is none', async () => {
+      getAgentGroups.mockRejectedValue(httpError(404, 'Not Found'));
+
+      expect(await find()).toEqual([]);
+    });
+  });
+
+  describe('SAML service providers', () => {
+    const stub = (entityId: string, location: string, roles: string[]) => ({
+      _id: `${entityId}-64`,
+      entityId,
+      location,
+      roles,
+    });
+    const remoteSp = (treeName: unknown) => ({
+      serviceProvider: { advanced: { treeConfiguration: { treeName } } },
+    });
+    const hostedSp = (redirectTreeName: unknown) => ({
+      serviceProvider: {
+        assertionProcessing: {
+          redirectTreeConfiguration: { redirectTreeName },
+        },
+      },
+    });
+    function serve(entries: [ReturnType<typeof stub>, any][]) {
+      getProviderStubs.mockResolvedValue({
+        result: entries.map(([entry]) => entry),
+      });
+      getProvider.mockImplementation(async ({ entityId64 }: any) => {
+        const found = entries.find(([entry]) => entry._id === entityId64);
+        if (!found) throw httpError(404, 'Not Found');
+        return found[1];
+      });
+    }
+
+    test('reports a remote service provider, from its tree configuration', async () => {
+      serve([
+        [stub('sp-remote', 'remote', ['serviceProvider']), remoteSp(TARGET)],
+      ]);
+
+      expect(await find()).toEqual([
+        {
+          source: 'saml2-provider',
+          id: 'sp-remote',
+          from: 'serviceProvider.advanced.treeConfiguration.treeName',
+        },
+      ]);
+    });
+
+    test('reports a hosted service provider, from its redirect tree configuration', async () => {
+      serve([
+        [stub('sp-hosted', 'hosted', ['serviceProvider']), hostedSp(TARGET)],
+      ]);
+
+      expect(await find()).toEqual([
+        {
+          source: 'saml2-provider',
+          id: 'sp-hosted',
+          from: 'serviceProvider.assertionProcessing.redirectTreeConfiguration.redirectTreeName',
+        },
+      ]);
+    });
+
+    test.each([
+      [
+        'an empty tree configuration',
+        { serviceProvider: { advanced: { treeConfiguration: {} } } },
+      ],
+      ['the placeholder for no journey', remoteSp('[Empty]')],
+      ['another journey', remoteSp('Elsewhere')],
+      ['no service provider section', {}],
+    ])('does not report a provider with %s', async (_what, provider) => {
+      serve([[stub('sp', 'remote', ['serviceProvider']), provider]]);
+
+      expect(await find()).toEqual([]);
+    });
+
+    test('reads only the entities whose roles include the service provider, by location and id', async () => {
+      serve([
+        [stub('sp-remote', 'remote', ['serviceProvider']), remoteSp('Other')],
+        [stub('idp-remote', 'remote', ['identityProvider']), remoteSp(TARGET)],
+        [
+          stub('both-hosted', 'hosted', [
+            'identityProvider',
+            'serviceProvider',
+          ]),
+          hostedSp('Other'),
+        ],
+      ]);
+
+      expect(await find()).toEqual([]);
+
+      expect(getProviderStubs).toHaveBeenCalledTimes(1);
+      expect(getProvider).toHaveBeenCalledTimes(2);
+      expect(getProvider).toHaveBeenCalledWith(
+        expect.objectContaining({
+          location: 'remote',
+          entityId64: 'sp-remote-64',
+        })
+      );
+      expect(getProvider).toHaveBeenCalledWith(
+        expect.objectContaining({
+          location: 'hosted',
+          entityId64: 'both-hosted-64',
+        })
+      );
+    });
+
+    test('orders the providers by entity id', async () => {
+      serve([
+        [stub('b', 'remote', ['serviceProvider']), remoteSp(TARGET)],
+        [stub('a', 'remote', ['serviceProvider']), remoteSp(TARGET)],
+      ]);
+
+      expect((await find()).map((reference: any) => reference.id)).toEqual([
+        'a',
+        'b',
+      ]);
+    });
+
+    test('fails the call, naming the provider, when one cannot be read', async () => {
+      serve([
+        [stub('ok', 'remote', ['serviceProvider']), remoteSp('Other')],
+        [stub('broken', 'remote', ['serviceProvider']), remoteSp(TARGET)],
+      ]);
+      getProvider.mockImplementation(async ({ entityId64 }: any) => {
+        if (entityId64 === 'broken-64') throw httpError(500, 'boom');
+        return remoteSp('Other');
+      });
+
+      const error: any = await find().catch((e) => e);
+
+      expect(error).toBeInstanceOf(FrodoError);
+      expect(messagesOf(error).join(' | ')).toMatch(/saml2 provider broken/);
+    });
+
+    test('is none when the realm has no providers or does not offer them', async () => {
+      getProviderStubs.mockRejectedValue(
+        httpError(403, NOT_AVAILABLE_IN_CLOUD)
+      );
+
+      expect(await find()).toEqual([]);
+      expect(getProvider).not.toHaveBeenCalled();
     });
   });
 
@@ -833,6 +1477,51 @@ describe('findJourneyReferences', () => {
       getConfigEntity.mockResolvedValue({
         realm: { alpha: [{ _id: 't', name: 'T', linkedTrees: [TARGET] }] },
       });
+      getOAuth2Clients.mockResolvedValue({
+        result: [
+          { _id: 'client', advancedOAuth2ClientConfig: { treeName: TARGET } },
+        ],
+      });
+      getProviderStubs.mockResolvedValue({
+        result: [
+          {
+            _id: 'sp-64',
+            entityId: 'sp',
+            location: 'remote',
+            roles: ['serviceProvider'],
+          },
+        ],
+      });
+      getProvider.mockResolvedValue({
+        serviceProvider: {
+          advanced: { treeConfiguration: { treeName: TARGET } },
+        },
+      });
+      getAgentsByType.mockResolvedValue({
+        result: [
+          {
+            _id: 'agent',
+            advancedOAuth2ClientConfig: {
+              treeName: { inherited: false, value: TARGET },
+            },
+          },
+        ],
+      });
+      getAgentGroups.mockResolvedValue({
+        result: [
+          {
+            _id: 'group',
+            advancedOAuth2ClientConfig: {
+              treeName: { inherited: false, value: TARGET },
+            },
+          },
+        ],
+      });
+      getCIMDProfiles.mockResolvedValue({
+        result: [
+          { _id: 'profile', advancedOAuth2ClientConfig: { treeName: TARGET } },
+        ],
+      });
       getPolicies.mockResolvedValue({
         result: [
           policy('P', {
@@ -843,7 +1532,22 @@ describe('findJourneyReferences', () => {
       });
     }
 
-    test('reads every source once and orders the answer: journeys, settings, self-service, provider, themes, policies', async () => {
+    const everyReader = () => [
+      getTrees,
+      readNodesMock,
+      getAuthenticationSettings,
+      getService,
+      getOAuth2Provider,
+      getOAuth2Clients,
+      getProviderStubs,
+      getAgentsByType,
+      getAgentGroups,
+      getCIMDProfiles,
+      getConfigEntity,
+      getPolicies,
+    ];
+
+    test('reads every source once and orders the answer by source', async () => {
       populateEverySource();
 
       const result = await find();
@@ -853,20 +1557,18 @@ describe('findJourneyReferences', () => {
         'authentication-settings',
         'self-service-trees',
         'oauth2-provider',
+        'oauth2-client',
+        'saml2-provider',
+        'ai-agent',
+        'agent-group',
+        'cimd-profile',
         'theme',
         'policy',
       ]);
-      for (const reader of [
-        getTrees,
-        readNodesMock,
-        getAuthenticationSettings,
-        getService,
-        getOAuth2Provider,
-        getConfigEntity,
-        getPolicies,
-      ]) {
+      for (const reader of everyReader()) {
         expect(reader).toHaveBeenCalledTimes(1);
       }
+      expect(getProvider).toHaveBeenCalledTimes(1);
     });
 
     test('joins one set of reads for any number of journeys', async () => {
@@ -913,14 +1615,7 @@ describe('findJourneyReferences', () => {
       expect(error.originalErrors[0]).toBeInstanceOf(FrodoError);
       expect(error.originalErrors[0].message).toMatch(/self-service/);
       // every other source was still read
-      for (const reader of [
-        getTrees,
-        readNodesMock,
-        getAuthenticationSettings,
-        getOAuth2Provider,
-        getConfigEntity,
-        getPolicies,
-      ]) {
+      for (const reader of everyReader().filter((r) => r !== getService)) {
         expect(reader).toHaveBeenCalledTimes(1);
       }
     });
