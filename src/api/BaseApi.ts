@@ -24,6 +24,7 @@ import Constants from '../shared/Constants';
 import StateImpl, { AmCredentialOverride, State } from '../shared/State';
 import { getUserAgent } from '../shared/Version';
 import { curlirizeMessage, printMessage } from '../utils/Console';
+import { attachSafeSerialization } from '../utils/ErrorSerializationUtils';
 import { sleep } from '../utils/FrodoUtils';
 import { mergeDeep } from '../utils/JsonUtils';
 import { getRateLimitWaitMs } from '../utils/LogApiRateLimitUtils';
@@ -202,6 +203,12 @@ function createAxiosInstance(
   axiosInstance.interceptors.response.use(
     (response) => response,
     async (error) => {
+      // every error of a request of this instance passes here before any
+      // interceptor that is registered later can hand it on (axios-retry is
+      // registered ahead of it and only rejects the same error or sends the
+      // request again through the instance): it writes itself as a view and not
+      // as the configuration of the request, see ErrorSerializationUtils
+      attachSafeSerialization(error, headerOverrideNames(state));
       // the proxy the agent chose for this very request, see ProxyFailureUtils
       attachProxyFailure(error);
       await attachNameResolutionDiagnosis(error);
@@ -210,6 +217,22 @@ function createAxiosInstance(
   );
 
   return axiosInstance;
+}
+
+/**
+ * The names of the headers whose values are sensitive although no list says so:
+ * the header overrides of the state, which are user-defined and read for every
+ * command, and the name of the session cookie (AM takes the session value in a
+ * header named like the cookie).
+ * @param {State} state State object
+ * @returns {string[]} the header names
+ */
+function headerOverrideNames(state: State): string[] {
+  return [
+    ...Object.keys(state.getAuthenticationHeaderOverrides() ?? {}),
+    ...Object.keys(state.getConfigurationHeaderOverrides() ?? {}),
+    state.getCookieName(),
+  ].filter((name): name is string => !!name);
 }
 
 function isStale(meta?: { expires?: number }): boolean {
@@ -731,13 +754,7 @@ function curlRedactor(
   state: State,
   revealed: { secrets: boolean }
 ): CurlRedactor {
-  const overrideNames = () =>
-    [
-      ...Object.keys(state.getAuthenticationHeaderOverrides() ?? {}),
-      ...Object.keys(state.getConfigurationHeaderOverrides() ?? {}),
-      // AM takes the session token in a header named like the session cookie
-      state.getCookieName(),
-    ].filter((name): name is string => !!name);
+  const overrideNames = () => headerOverrideNames(state);
   return {
     header: (name, value) => {
       if (!isSensitiveHeaderName(name, overrideNames())) return value;

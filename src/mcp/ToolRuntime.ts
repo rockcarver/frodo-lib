@@ -2112,16 +2112,26 @@ async function invokeManagedObjectSearchPage(
     );
   }
 
-  return ManagedObjectApi.queryManagedObjects({
-    type,
-    filter: filter ?? 'true',
-    fields: Array.isArray(fields) && fields.length > 0 ? fields : ['*'],
-    pageSize,
-    // `pageToken` is the cookie that this query handed out as `nextPageToken`
-    pageCookie: resolveCookieValue(pageCookie, args.pageToken) as
-      string | undefined,
-    state: scopedFrodo.state,
-  });
+  try {
+    return await ManagedObjectApi.queryManagedObjects({
+      type,
+      filter: filter ?? 'true',
+      fields: Array.isArray(fields) && fields.length > 0 ? fields : ['*'],
+      pageSize,
+      // `pageToken` is the cookie that this query handed out as `nextPageToken`
+      pageCookie: resolveCookieValue(pageCookie, args.pageToken) as
+        string | undefined,
+      state: scopedFrodo.state,
+    });
+  } catch (error) {
+    // the api layer throws the error of the request: wrap it like the other invocations do
+    throw new FrodoError(
+      `MCP runtime error: failed invoking '${descriptor.id}' (${descriptor.modulePath
+        .concat(descriptor.methodName)
+        .join('.')})`,
+      error instanceof Error ? error : new Error(String(error))
+    );
+  }
 }
 
 function parseFindSkillsArguments(raw: unknown): McpFindSkillsArguments {
