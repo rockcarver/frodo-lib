@@ -836,13 +836,34 @@ describe('MCP capability foundation', () => {
     expect(references?.notes).toMatch(/authentication context/);
     expect(references?.notes).toMatch(/inside a Page Node is seen only/);
     expect(references?.notes).toMatch(/no from field/);
-    // the dependency flag is explained in plain words, and no claim about what the server enforces is made
+    // the dependency flag is explained in plain words and kept apart from what the server does
     expect(references?.notes).toMatch(/hard/);
     expect(references?.notes).toMatch(/soft/);
     expect(references?.notes).toMatch(
-      /does not know whether Access Management enforces/
+      /separate from what Access Management does when the journey is deleted/
     );
-    expect(references?.notes).not.toMatch(/refuse/i);
+    // what was observed is scoped, dated and not presented as a guarantee
+    expect(references?.notes).toMatch(
+      /observed \(not documented, not a guarantee/
+    );
+    expect(references?.notes).toMatch(
+      /in November 2026, on one Cloud development tenant/
+    );
+    expect(references?.notes).toMatch(
+      /refused to delete a journey that an OAuth2 client, a SAML remote service provider or a SAML hosted service provider names/
+    );
+    expect(references?.notes).toMatch(
+      /deleted a journey that an Inner Tree Evaluator node, a Back Channel Initialize node or a policy condition/
+    );
+    expect(references?.notes).toMatch(/\[Empty\]/);
+    expect(references?.notes).toMatch(
+      /Not observed: the default journeys of the realm/
+    );
+    expect(references?.notes).toMatch(/not a prediction of a refusal/);
+    // a hard holder is not equated with a refusal, and the message of the server is not quoted
+    expect(references?.notes).not.toMatch(/in use and cannot be deleted/);
+    expect(references?.notes).not.toMatch(/hard (means|is when) .{0,40}refus/i);
+    expect(references?.notes).toMatch(/inherited true/);
     // it is a reviewed entry, not an inferred default
     expect(getUnreviewedSpecialCapabilities()).toEqual([]);
   });

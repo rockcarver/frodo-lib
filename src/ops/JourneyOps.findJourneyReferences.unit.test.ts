@@ -521,6 +521,39 @@ describe('findJourneyReferences', () => {
           );
         });
 
+        test.each([
+          ['nodeVersion', { nodeVersion: '2.0' }, '2.0'],
+          ['version, when there is no nodeVersion', { version: '3.0' }, '3.0'],
+          [
+            'nodeVersion before version',
+            { nodeVersion: '2.0', version: '3.0' },
+            '2.0',
+          ],
+          ['1.0, when the entry has no version', {}, '1.0'],
+        ])(
+          'is read at the version of its entry: %s',
+          async (_what, versions, expectedVersion) => {
+            getTrees.mockResolvedValue({
+              result: [tree('Login', { page: nodeRef('PageNode') })],
+            });
+            readNodesMock.mockResolvedValue([
+              pageWith([
+                { ...innerRef('inner', 'InnerTreeEvaluatorNode'), ...versions },
+              ]),
+            ]);
+            readNodeMock.mockResolvedValue(innerTreeNode('inner', TARGET));
+
+            await find();
+
+            expect(readNodeMock).toHaveBeenCalledWith(
+              expect.objectContaining({
+                nodeId: 'inner',
+                nodeTypeVersion: expectedVersion,
+              })
+            );
+          }
+        );
+
         test('fails the call, naming the node, when it cannot be read', async () => {
           getTrees.mockResolvedValue({
             result: [tree('Login', { page: nodeRef('PageNode') })],
@@ -1589,10 +1622,25 @@ describe('findJourneyReferences', () => {
           expect(await find()).toEqual([]);
         });
 
-        test('does not report a value that the object inherits (the group is the holder)', async () => {
+        test('reports a value that the object inherits, and says so', async () => {
           row.serve([treeNameOf('a', { inherited: true, value: TARGET })]);
 
-          expect(await find()).toEqual([]);
+          expect(await find()).toEqual([{ ...expected('a'), inherited: true }]);
+        });
+
+        test('a value that the object holds itself carries no inherited field', async () => {
+          row.serve([
+            treeNameOf('a', { inherited: false, value: TARGET }),
+            treeNameOf('b', { value: TARGET }),
+            treeNameOf('c', TARGET),
+          ]);
+
+          const result = await find();
+
+          expect(result).toHaveLength(3);
+          for (const reference of result) {
+            expect(reference).not.toHaveProperty('inherited');
+          }
         });
 
         test('orders the objects by id', async () => {
@@ -1632,7 +1680,7 @@ describe('findJourneyReferences', () => {
       }
     );
 
-    test('a group that holds the journey is reported, and the agent that inherits it is not', async () => {
+    test('a group that holds the journey is reported, and so are the agents that inherit it, saying so', async () => {
       getAgentGroups.mockResolvedValue({
         result: [treeNameOf('group', { inherited: false, value: TARGET })],
       });
@@ -1643,8 +1691,14 @@ describe('findJourneyReferences', () => {
         ],
       });
 
-      expect(await find()).toEqual([
-        expect.objectContaining({ source: 'agent-group', id: 'group' }),
+      const result: any[] = await find();
+
+      expect(
+        result.map(({ source, id, inherited }) => [source, id, inherited])
+      ).toEqual([
+        ['ai-agent', 'agent-1', true],
+        ['ai-agent', 'agent-2', true],
+        ['agent-group', 'group', undefined],
       ]);
     });
 
