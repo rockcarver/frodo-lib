@@ -204,9 +204,9 @@ export type Journey = {
    * Read-only: every source is read once, the answer is joined in memory, and
    * nothing is written or printed. The journey does not have to exist, so the
    * same call after a delete lists what now points at nothing. A journey that
-   * names itself is not reported. A reference of a kind that is not there at
-   * all (no provider, no self-service settings, settings that Cloud does not
-   * offer) counts as none.
+   * names itself is not reported. A source that is not there at all (no
+   * provider, no self-service settings, settings that Cloud does not offer)
+   * counts as none.
    *
    * The answer is "what this library can read", never proof that a journey is
    * unused. An empty array means only that none of the sources above names the
@@ -2127,7 +2127,7 @@ export async function findScriptReferences({
 
 /**
  * One place that names a journey, found by {@link findJourneyReferences}.
- * `source` says which kind of holder it is; the other fields say where in that
+ * `source` says which holder it is; the other fields say where in that
  * holder the name was found. An empty answer is never proof that a journey is
  * unused, see {@link findJourneyReferences}.
  */
