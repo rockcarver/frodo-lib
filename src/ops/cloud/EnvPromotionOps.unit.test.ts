@@ -47,12 +47,14 @@ const lock = (result: string) => ({
   promotionId: 'promo-1',
   result,
 });
-const status = (statusName: string) => ({
+const status = (statusName: string, type?: string) => ({
   blockingError: false,
   globalLock: 'LOCKED',
   message: `status ${statusName}`,
+  promotionId: 'promo-1',
   status: statusName,
   timeStamp: 'now',
+  ...(type ? { type } : {}),
 });
 /** True when the first call of one mock came before the first call of another. */
 const before = (first: jest.Mock<any>, second: jest.Mock<any>) =>
@@ -365,8 +367,10 @@ describe('EnvPromotionOps (faked API)', () => {
 
     test('2: Waits while the promotion is running, locking or unlocking', async () => {
       api.promoteConfiguration.mockResolvedValue({ message: 'started' });
+      // the first answer is the status read before the request
       answers(
         api.getPromotionStatus,
+        status('READY'),
         status('RUNNING'),
         status('UNLOCKING'),
         status('READY')
@@ -378,12 +382,17 @@ describe('EnvPromotionOps (faked API)', () => {
         5000
       );
       expect(response).toEqual({ message: 'started' });
-      expect(api.getPromotionStatus).toHaveBeenCalledTimes(3);
+      expect(api.getPromotionStatus).toHaveBeenCalledTimes(4);
     });
 
     test('3: Throws when the promotion ends in an error', async () => {
       api.promoteConfiguration.mockResolvedValue({ message: 'started' });
-      answers(api.getPromotionStatus, status('RUNNING'), status('ERROR'));
+      answers(
+        api.getPromotionStatus,
+        status('READY'),
+        status('RUNNING'),
+        status('ERROR')
+      );
       await expect(
         promotion.promoteConfiguration(config, true, 5, 5000)
       ).rejects.toThrow('Error promoting configuration');
@@ -391,7 +400,7 @@ describe('EnvPromotionOps (faked API)', () => {
 
     test('4: Throws when the promotion is still running at the timeout', async () => {
       api.promoteConfiguration.mockResolvedValue({ message: 'started' });
-      answers(api.getPromotionStatus, status('RUNNING'));
+      answers(api.getPromotionStatus, status('READY'), status('RUNNING'));
       await expect(
         promotion.promoteConfiguration(config, true, 5, 60)
       ).rejects.toThrow('Error promoting configuration');
@@ -406,6 +415,91 @@ describe('EnvPromotionOps (faked API)', () => {
         'HTTP 409'
       );
     });
+
+    describe('with wait, while an operation already runs', () => {
+      // the status says that something runs, not what: the type is
+      // 'promotion' for a dry run and a real promotion alike
+      test.each(['promotion', 'rollback', undefined])(
+        '1: Refuses when an operation of type %s runs: throws an error that names it, sends nothing and never resolves',
+        async (type) => {
+          api.promoteConfiguration.mockResolvedValue({ message: 'started' });
+          answers(api.getPromotionStatus, status('RUNNING', type));
+          const error = await promotion
+            .promoteConfiguration(config, true, 5, 5000)
+            .catch((e) => e);
+          expect(error).toBeInstanceOf(FrodoError);
+          expect(error.message).toContain('Promotion not started');
+          expect(error.message).toContain('already running');
+          expect(error.message).toContain('status RUNNING');
+          expect(error.message).toContain(`type ${type ?? 'unknown'}`);
+          expect(error.message).toContain('promotion id promo-1');
+          expect(error.message).toContain('"status RUNNING"');
+          expect(error.message).toContain('Nothing was started');
+          expect(api.promoteConfiguration).not.toHaveBeenCalled();
+          expect(api.getPromotionStatus).toHaveBeenCalledTimes(1);
+        }
+      );
+
+      test('2: A dry run is refused by name too', async () => {
+        answers(api.getPromotionStatus, status('RUNNING', 'promotion'));
+        const error = await promotion
+          .promoteConfiguration({ ...config, dryRun: true }, true, 5, 5000)
+          .catch((e) => e);
+        expect(error.message).toContain('Dry-run promotion not started');
+        expect(api.promoteConfiguration).not.toHaveBeenCalled();
+      });
+
+      test.each(['READY', 'ERROR', 'UNLOCKED', 'LOCKING', 'UNLOCKING'])(
+        '3: Sends the request and waits when the status is %s',
+        async (previous) => {
+          api.promoteConfiguration.mockResolvedValue({ message: 'started' });
+          answers(
+            api.getPromotionStatus,
+            status(previous, 'promotion'),
+            status('RUNNING', 'promotion'),
+            status('READY', 'promotion')
+          );
+          const response = await promotion.promoteConfiguration(
+            config,
+            true,
+            5,
+            5000
+          );
+          // the answer of the request, never undefined
+          expect(response).toEqual({ message: 'started' });
+          expect(api.promoteConfiguration).toHaveBeenCalledTimes(1);
+          // the status read before the request and two checks
+          expect(api.getPromotionStatus).toHaveBeenCalledTimes(3);
+          expect(before(api.getPromotionStatus, api.promoteConfiguration)).toBe(
+            true
+          );
+        }
+      );
+
+      test('4: Sends the request anyway when the status cannot be read first', async () => {
+        api.promoteConfiguration.mockResolvedValue({ message: 'started' });
+        api.getPromotionStatus.mockRejectedValueOnce(new Error('HTTP 503'));
+        answers(api.getPromotionStatus, status('READY'));
+        const response = await promotion.promoteConfiguration(
+          config,
+          true,
+          5,
+          5000
+        );
+        expect(response).toEqual({ message: 'started' });
+        expect(api.promoteConfiguration).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    test('6: Without wait, reads nothing and sends the request even when the status says that an operation runs', async () => {
+      api.promoteConfiguration.mockResolvedValue({ message: 'started' });
+      answers(api.getPromotionStatus, status('RUNNING', 'promotion'));
+      expect(await promotion.promoteConfiguration(config)).toEqual({
+        message: 'started',
+      });
+      expect(api.getPromotionStatus).not.toHaveBeenCalled();
+      expect(api.promoteConfiguration).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('rollbackPromotion()', () => {
@@ -413,9 +507,15 @@ describe('EnvPromotionOps (faked API)', () => {
 
     test('1: Waits until the rollback is finished', async () => {
       api.rollbackPromotion.mockResolvedValue({ message: 'started' });
-      answers(api.getPromotionStatus, status('RUNNING'), status('READY'));
+      // the first answer is the status read before the request
+      answers(
+        api.getPromotionStatus,
+        status('READY'),
+        status('RUNNING'),
+        status('READY')
+      );
       await promotion.rollbackPromotion(rollback, true, 5, 5000);
-      expect(api.getPromotionStatus).toHaveBeenCalledTimes(2);
+      expect(api.getPromotionStatus).toHaveBeenCalledTimes(3);
     });
 
     test('2: Names the promotion in the error when it has a description', async () => {
@@ -429,6 +529,73 @@ describe('EnvPromotionOps (faked API)', () => {
       await expect(promotion.rollbackPromotion(rollback)).rejects.toThrow(
         /^Error rolling back promotion$/
       );
+    });
+
+    describe('with wait, while an operation already runs', () => {
+      test.each(['rollback', 'promotion', undefined])(
+        '3: Refuses when an operation of type %s runs: throws an error that names it, sends nothing and never resolves',
+        async (type) => {
+          api.rollbackPromotion.mockResolvedValue({ message: 'started' });
+          answers(api.getPromotionStatus, status('RUNNING', type));
+          const error = await promotion
+            .rollbackPromotion(rollback, true, 5, 5000)
+            .catch((e) => e);
+          expect(error).toBeInstanceOf(FrodoError);
+          expect(error.message).toContain('Rollback not started');
+          expect(error.message).toContain('already running');
+          expect(error.message).toContain('status RUNNING');
+          expect(error.message).toContain(`type ${type ?? 'unknown'}`);
+          expect(error.message).toContain('promotion id promo-1');
+          expect(error.message).toContain('Nothing was started');
+          expect(api.rollbackPromotion).not.toHaveBeenCalled();
+          expect(api.getPromotionStatus).toHaveBeenCalledTimes(1);
+        }
+      );
+
+      test.each(['READY', 'ERROR', 'UNLOCKED', 'LOCKING', 'UNLOCKING'])(
+        '4: Sends the request and waits when the status is %s',
+        async (previous) => {
+          api.rollbackPromotion.mockResolvedValue({ message: 'started' });
+          answers(
+            api.getPromotionStatus,
+            status(previous, 'promotion'),
+            status('RUNNING', 'rollback'),
+            status('READY', 'rollback')
+          );
+          const response = await promotion.rollbackPromotion(
+            rollback,
+            true,
+            5,
+            5000
+          );
+          expect(response).toEqual({ message: 'started' });
+          expect(api.rollbackPromotion).toHaveBeenCalledTimes(1);
+          expect(api.getPromotionStatus).toHaveBeenCalledTimes(3);
+          expect(before(api.getPromotionStatus, api.rollbackPromotion)).toBe(
+            true
+          );
+        }
+      );
+
+      test('5: Sends the request anyway when the status cannot be read first', async () => {
+        api.rollbackPromotion.mockResolvedValue({ message: 'started' });
+        api.getPromotionStatus.mockRejectedValueOnce(new Error('HTTP 503'));
+        answers(api.getPromotionStatus, status('READY'));
+        expect(
+          await promotion.rollbackPromotion(rollback, true, 5, 5000)
+        ).toEqual({ message: 'started' });
+        expect(api.rollbackPromotion).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    test('6: Without wait, reads nothing and sends the request even when the status says that an operation runs', async () => {
+      api.rollbackPromotion.mockResolvedValue({ message: 'started' });
+      answers(api.getPromotionStatus, status('RUNNING', 'rollback'));
+      expect(await promotion.rollbackPromotion(rollback)).toEqual({
+        message: 'started',
+      });
+      expect(api.getPromotionStatus).not.toHaveBeenCalled();
+      expect(api.rollbackPromotion).toHaveBeenCalledTimes(1);
     });
   });
 });

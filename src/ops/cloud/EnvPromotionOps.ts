@@ -61,12 +61,13 @@ export type EnvPromotion = {
    */
   readLockStatus(localLockOnly?: boolean): Promise<LockStatus>;
   /**
-   * Promote configuration
+   * Promote configuration.
+   * With wait set, the promotion status is read first, and when an operation is already running (a dry run, a real promotion or a rollback: while it runs, the status does not tell them apart) the call throws a FrodoError that names it and sends nothing. It never joins an operation that it did not start. Without wait, nothing is read first and the request is sent: the tenant decides.
    * @param {PromotionRequestConfig} config Promotion request config.
-   * @param {boolean} wait Whether to wait for the promotion to complete. Default: false
+   * @param {boolean} wait Whether to wait for the promotion to complete; an operation that is already running is refused. Default: false
    * @param {number} pollInterval Time between status checks in milliseconds. Default: 10000
    * @param {number} timeout Timeout in milliseconds. Default: 45 * 60 * 1000
-   * @returns {Promise<PromotionResponse>} a promise that resolves to a PromotionResponse object.
+   * @returns {Promise<PromotionResponse>} a promise that resolves to a PromotionResponse object. Throws a FrodoError when an operation is already running (with wait), when the request fails, or when the promotion ends in an error or does not finish in time.
    */
   promoteConfiguration(
     config: PromotionRequestConfig,
@@ -108,12 +109,13 @@ export type EnvPromotion = {
    */
   readPromotionReports(): Promise<PromotionReportStub[]>;
   /**
-   * Rollback a promotion
+   * Rollback a promotion.
+   * With wait set, the promotion status is read first, and when an operation is already running (a dry run, a real promotion or a rollback: while it runs, the status does not tell them apart) the call throws a FrodoError that names it and sends nothing. It never joins an operation that it did not start. Without wait, nothing is read first and the request is sent: the tenant decides.
    * @param {RollbackConfig} config Rollback config.
-   * @param {boolean} wait Whether to wait for the rollback to complete. Default: false
+   * @param {boolean} wait Whether to wait for the rollback to complete; an operation that is already running is refused. Default: false
    * @param {number} pollInterval Time between status checks in milliseconds. Default: 10000
    * @param {number} timeout Timeout in milliseconds. Default: 45 * 60 * 1000
-   * @returns {Promise<RollbackResponse>} a promise that resolves to a RollbackResponse object.
+   * @returns {Promise<RollbackResponse>} a promise that resolves to a RollbackResponse object. Throws a FrodoError when an operation is already running (with wait), when the request fails, or when the rollback ends in an error or does not finish in time.
    */
   rollbackPromotion(
     config: RollbackConfig,
@@ -235,6 +237,46 @@ function lockFailureCause(
   return lockStatus?.result === 'error'
     ? new Error(lockStatus.description)
     : undefined;
+}
+
+/**
+ * Refuse to start a promotion or rollback while an operation already runs.
+ *
+ * The status says that an operation runs, not which one: its type is
+ * 'promotion' for a dry run and for a real promotion alike, and it carries no
+ * id of the request that started it. Joining it could report a promotion that
+ * never happened, so the call fails, names what runs and sends nothing. Only
+ * the status RUNNING refuses; every other status leaves the decision to the
+ * tenant. A status that cannot be read does not end the call: the request is
+ * sent as it would be without the check.
+ */
+async function refuseWhenAnOperationRuns({
+  operation,
+  state,
+}: {
+  operation: string;
+  state: State;
+}): Promise<void> {
+  let promotionStatus: PromotionStatusResponse;
+  try {
+    promotionStatus = await readPromotionStatus({ state });
+  } catch (error) {
+    debugMessage({
+      message: `Could not read the promotion status before the request, sending the request anyway: ${error.message}`,
+      state,
+    });
+    return;
+  }
+  if (promotionStatus.status !== 'RUNNING') return;
+  throw new FrodoError(
+    `${operation} not started: an operation is already running on this environment (status ${
+      promotionStatus.status
+    }, type ${promotionStatus.type ?? 'unknown'}, promotion id ${
+      promotionStatus.promotionId ?? 'unknown'
+    }, message "${
+      promotionStatus.message
+    }"). Nothing was started and no request was sent. A dry run and a real promotion look the same while they run.`
+  );
 }
 
 /**
@@ -447,12 +489,25 @@ export async function readLockStatus({
 }
 
 /**
- * Promote configuration
+ * Promote configuration.
+ *
+ * With wait set, the promotion status is read first, and when an operation is
+ * already running the call throws a FrodoError that names it (status, type,
+ * promotion id and message) and says that nothing was started: no request is
+ * sent. The status does not tell a dry run, a real promotion and a rollback
+ * apart while they run, and the request returns no id to recognise it by, so
+ * the call never joins an operation that it did not start. Only the status
+ * RUNNING refuses; with any other status the request is sent and waited for. A
+ * status that cannot be read does not end the call: the request is sent as it
+ * would be without the check.
+ *
+ * Without wait, nothing is read first and the request is sent: the tenant
+ * decides.
  * @param {PromotionRequestConfig} config Promotion request config.
- * @param {boolean} wait Whether to wait for the promotion to complete. Default: false
+ * @param {boolean} wait Whether to wait for the promotion to complete; an operation that is already running is refused. Default: false
  * @param {number} pollInterval Time between status checks in milliseconds. Default: 10000
  * @param {number} timeout Timeout in milliseconds. Default: 45 * 60 * 1000
- * @returns {Promise<PromotionResponse>} a promise that resolves to a PromotionResponse object.
+ * @returns {Promise<PromotionResponse>} a promise that resolves to a PromotionResponse object. Throws a FrodoError when an operation is already running (with wait), when the request fails, or when the promotion ends in an error or does not finish in time.
  */
 export async function promoteConfiguration({
   config,
@@ -470,34 +525,23 @@ export async function promoteConfiguration({
   let response: PromotionResponse;
   let cause: Error;
   const operation = config.dryRun ? 'Dry-run promotion' : 'Promotion';
-  const isComplete = async () => {
-    const promotionStatus = await readPromotionStatus({ state });
-    return {
-      status: promotionStatus.message,
-      isComplete: isPromotionFinished(promotionStatus),
-      isError: promotionStatus.status === 'ERROR',
-    };
-  };
+  // With wait, an operation that already runs is refused before anything is
+  // sent; without wait nothing is read and the tenant decides.
+  if (wait) await refuseWhenAnOperationRuns({ operation, state });
   const success = await waitForUpdate({
     initiateUpdate: async () => {
-      // If wait is false, we'll attempt to promote regardless of whether the tenant is already being promoted or not
-      const promotionStatus = wait
-        ? await readPromotionStatus({ state })
-        : undefined;
-      if (
-        !promotionStatus ||
-        promotionStatus.type !== 'promotion' ||
-        promotionStatus.status !== 'RUNNING'
-      )
-        response = await _promoteConfiguration({ config, state });
-      return wait
-        ? await isComplete()
-        : {
-            isComplete: true,
-            isError: false,
-          };
+      response = await _promoteConfiguration({ config, state });
+      // not complete yet: the first check of the wait is the first status
+      return { isComplete: false };
     },
-    isComplete,
+    isComplete: async () => {
+      const promotionStatus = await readPromotionStatus({ state });
+      return {
+        status: promotionStatus.message,
+        isComplete: isPromotionFinished(promotionStatus),
+        isError: promotionStatus.status === 'ERROR',
+      };
+    },
     initialMessage: `Initiating ${operation.toLowerCase()}...`,
     noWaitSuccessMessage: `${operation} in progress.`,
     updateMessage: (isCompleted, runtime) =>
@@ -636,12 +680,25 @@ export async function readPromotionReports({
 }
 
 /**
- * Rollback a promotion
+ * Rollback a promotion.
+ *
+ * With wait set, the promotion status is read first, and when an operation is
+ * already running the call throws a FrodoError that names it (status, type,
+ * promotion id and message) and says that nothing was started: no request is
+ * sent. The status does not tell a dry run, a real promotion and a rollback
+ * apart while they run, and the request returns no id to recognise it by, so
+ * the call never joins an operation that it did not start. Only the status
+ * RUNNING refuses; with any other status the request is sent and waited for. A
+ * status that cannot be read does not end the call: the request is sent as it
+ * would be without the check.
+ *
+ * Without wait, nothing is read first and the request is sent: the tenant
+ * decides.
  * @param {RollbackConfig} config Rollback config.
- * @param {boolean} wait Whether to wait for the rollback to complete. Default: false
+ * @param {boolean} wait Whether to wait for the rollback to complete; an operation that is already running is refused. Default: false
  * @param {number} pollInterval Time between status checks in milliseconds. Default: 10000
  * @param {number} timeout Timeout in milliseconds. Default: 45 * 60 * 1000
- * @returns {Promise<RollbackResponse>} a promise that resolves to a RollbackResponse object.
+ * @returns {Promise<RollbackResponse>} a promise that resolves to a RollbackResponse object. Throws a FrodoError when an operation is already running (with wait), when the request fails, or when the rollback ends in an error or does not finish in time.
  */
 export async function rollbackPromotion({
   config,
@@ -658,34 +715,23 @@ export async function rollbackPromotion({
 }): Promise<RollbackResponse> {
   let response: RollbackResponse;
   let cause: Error;
-  const isComplete = async () => {
-    const promotionStatus = await readPromotionStatus({ state });
-    return {
-      status: promotionStatus.message,
-      isComplete: isPromotionFinished(promotionStatus),
-      isError: promotionStatus.status === 'ERROR',
-    };
-  };
+  // With wait, an operation that already runs is refused before anything is
+  // sent; without wait nothing is read and the tenant decides.
+  if (wait) await refuseWhenAnOperationRuns({ operation: 'Rollback', state });
   const success = await waitForUpdate({
     initiateUpdate: async () => {
-      // If wait is false, we'll attempt to rollback regardless of whether the tenant is already being rolled back or not
-      const promotionStatus = wait
-        ? await readPromotionStatus({ state })
-        : undefined;
-      if (
-        !promotionStatus ||
-        promotionStatus.type !== 'rollback' ||
-        promotionStatus.status !== 'RUNNING'
-      )
-        response = await _rollbackPromotion({ config, state });
-      return wait
-        ? await isComplete()
-        : {
-            isComplete: true,
-            isError: false,
-          };
+      response = await _rollbackPromotion({ config, state });
+      // not complete yet: the first check of the wait is the first status
+      return { isComplete: false };
     },
-    isComplete,
+    isComplete: async () => {
+      const promotionStatus = await readPromotionStatus({ state });
+      return {
+        status: promotionStatus.message,
+        isComplete: isPromotionFinished(promotionStatus),
+        isError: promotionStatus.status === 'ERROR',
+      };
+    },
     initialMessage: `Initiating rollback...`,
     noWaitSuccessMessage: `Rollback in progress.`,
     updateMessage: (isCompleted, runtime) =>
