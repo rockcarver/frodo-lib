@@ -10,6 +10,19 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-49] - 2026-11-21
+
+### Added
+- Introduced the `frodo.authn.journey.findJourneyReferences(journeyId)` method and `JourneyReference` type. This allows developers to identify what in the realm still references a journey, aiding in cleanup and management tasks before and after journey deletions (#1125).
+- Enhanced `waitForUpdate` to perform an initial check before initiating an update, improving efficiency and reliability in update operations (#1126, #1124).
+
+### Fixed
+- Resolved an issue with `importJourneys` to ensure journeys are imported in dependency order, even when inner journeys are already installed. This prevents errors during batch imports on Cloud development tenants (#1132).
+- Improved the behavior of `promote` and `rollback` operations to refuse initiation if another operation is already running, ensuring consistent state management (#11651312c).
+- Addressed issues with `lock` and `unlock` operations to join ongoing locks and provide clear failure reasons, enhancing operational clarity (#6f57b28d1).
+- Corrected `applyUpdates` to join an ongoing restart and removed unnecessary test delays, streamlining update processes (#71cdb30e8).
+- Fixed `waitForUpdate` to handle initial responses correctly and maintain functionality for callers that do not provide an answer (#e5506a424).
+
 ## [v5.0.0-48] - 2026-11-21
 
 ### Changed
@@ -3048,6 +3061,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-49]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-48...v5.0.0-49
 [v5.0.0-48]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-47...v5.0.0-48
 [v5.0.0-47]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-46...v5.0.0-47
 [v5.0.0-46]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-45...v5.0.0-46
