@@ -6,12 +6,16 @@
  *    This step breaks down into 2 phases:
  *
  *    Phase 1: Record all tests against a ready tenant. applyUpdates test #1
- *             initiates a restart, so applyUpdates test #2 runs while the
- *             tenant is in 'restarting' state and records the "already
- *             restarting" error path.
+ *             initiates a restart without waiting. applyUpdates test #2
+ *             requests a restart without waiting, and requests another one
+ *             while the tenant is in 'restarting' state: that second request
+ *             fails, which records the "already restarting" error path.
  *    Phase 2: Wait for the tenant to return to 'ready', then re-record all
- *             tests. This time applyUpdates test #2 runs against a ready
- *             tenant, initiates a restart, and waits for completion.
+ *             tests. This time applyUpdates test #1 requests a restart and
+ *             waits for it to end. applyUpdates test #2 requests a restart
+ *             without waiting, then calls applyUpdates again with wait while
+ *             the tenant is 'restarting': it joins the restart that is under
+ *             way and waits for it to end, without requesting another one.
  *
  *    Because destructive tests interfere with the recording of non-destructive
  *    tests and also interfere among themselves, they have to be run in groups
@@ -46,11 +50,32 @@
  *
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
+ *
+ * The recordings of the waits (phase 2, tests 1 and 2) were trimmed of their
+ * repeated polls, which this record allows (a recording of a wait may be
+ * trimmed of its repeated polls):
+ * https://github.com/rockcarver/frodo-lib/blob/main/decisions/0014-a-recording-of-a-wait-may-be-trimmed-of-its-repeated-polls.md
+ * The first poll and the last poll stay, in their real order, so the time
+ * between two recorded polls is not the time the tenant took. If you re-record
+ * them, trim them the same way. The tests poll fast while they replay and at
+ * the real interval while they record, so the number of recorded polls does not
+ * decide how long a test takes.
  */
 import { RestartStatus } from '../../api/cloud/StartupApi';
 import { state } from '../../index';
 import * as TestData from '../../test/setup/StartupSetup';
+import { sleep } from '../../utils/FrodoUtils';
 import * as StartupOps from './StartupOps';
+
+// Replaying needs no real waiting between the polls or before the first one,
+// and no pause between two calls; recording against a tenant does (a restart
+// takes minutes, and the tenant may still read 'ready' just after the request).
+const recording = process.env.FRODO_POLLY_MODE === 'record';
+const pollInterval = recording ? 5000 : 10;
+const initialDelay = recording ? 5000 : 0;
+const pause = async (milliseconds: number) => {
+  if (recording) await sleep(milliseconds);
+};
 
 describe('StartupOps', () => {
   TestData.setup();
@@ -92,14 +117,27 @@ describe('StartupOps', () => {
       test('1: Apply updates without waiting', async () => {
         const response = await StartupOps.applyUpdates({
           wait: false,
+          pollInterval,
+          initialDelay,
           state,
         });
         expect(response).toMatchSnapshot();
       });
-      test('2: Apply updates during tenant restart', async () => {
-        const response = await StartupOps.applyUpdates({
-          wait: true,
+      test('2: Apply updates during tenant restart without waiting', async () => {
+        await StartupOps.applyUpdates({
+          wait: false,
           timeout: 10 * 60 * 1000,
+          pollInterval,
+          initialDelay,
+          state,
+        });
+        // Wait a bit before attempting another update
+        await pause(5000);
+        const response = await StartupOps.applyUpdates({
+          wait: false,
+          timeout: 10 * 60 * 1000,
+          pollInterval,
+          initialDelay,
           state,
         });
         expect(response).toMatchSnapshot();
@@ -119,12 +157,33 @@ describe('StartupOps', () => {
           const response = await StartupOps.applyUpdates({
             wait: true,
             timeout: 10 * 60 * 1000,
+            pollInterval,
+            initialDelay,
             state,
           });
           expect(response).toMatchSnapshot();
         },
         15 * 60 * 1000
       );
+      test('2: Apply updates during tenant restart', async () => {
+        await StartupOps.applyUpdates({
+          wait: false,
+          timeout: 10 * 60 * 1000,
+          pollInterval,
+          initialDelay,
+          state,
+        });
+        // Wait a bit before waiting for it to finish
+        await pause(10000);
+        const response = await StartupOps.applyUpdates({
+          wait: true,
+          timeout: 10 * 60 * 1000,
+          pollInterval,
+          initialDelay,
+          state,
+        });
+        expect(response).toMatchSnapshot();
+      });
     });
   }
 });

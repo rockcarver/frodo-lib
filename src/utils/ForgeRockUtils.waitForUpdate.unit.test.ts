@@ -22,7 +22,7 @@ const { waitForUpdate } = await import('./ForgeRockUtils');
 
 const state = StateImpl({});
 const base = { state, wait: true, pollInterval: 10, timeout: 2000 };
-const initiated = async () => undefined;
+const initiated = async () => ({ isComplete: false, isError: false });
 
 describe('waitForUpdate()', () => {
   test('0: Method is implemented', async () => {
@@ -265,6 +265,160 @@ describe('waitForUpdate()', () => {
       });
       expect(outcome).toBe(false);
       expect(checks).toBe(1);
+    });
+  });
+
+  describe('the answer of initiateUpdate', () => {
+    beforeEach(() => stopProgressIndicator.mockClear());
+    const shown = () => stopProgressIndicator.mock.calls[0][0];
+
+    test('1: An answer that says the update is complete ends the wait without a single check', async () => {
+      const isComplete = jest.fn(async () => ({ isComplete: false }));
+      const outcome = await waitForUpdate({
+        ...base,
+        initiateUpdate: async () => ({ isComplete: true, status: 'done' }),
+        isComplete,
+        waitSuccessMessage: (completed) => `finished: ${completed.status}`,
+      });
+      expect(outcome).toBe(true);
+      expect(isComplete).not.toHaveBeenCalled();
+      expect(shown()).toMatchObject({
+        status: 'success',
+        message: 'finished: done',
+      });
+    });
+
+    test('2: An answer that says the update failed is a failure without wait, shown with the error message', async () => {
+      const isComplete = jest.fn(async () => ({ isComplete: true }));
+      const outcome = await waitForUpdate({
+        ...base,
+        wait: false,
+        initiateUpdate: async () => ({
+          isComplete: true,
+          isError: true,
+          status: 'refused',
+        }),
+        isComplete,
+        noWaitSuccessMessage: 'started',
+        errorMessage: (completed) => `failed: ${completed.status}`,
+      });
+      expect(outcome).toBe(false);
+      expect(isComplete).not.toHaveBeenCalled();
+      expect(shown()).toMatchObject({
+        status: 'fail',
+        message: 'failed: refused',
+      });
+    });
+
+    test('3: An answer that says the update failed is a failure with wait too, without a single check', async () => {
+      const isComplete = jest.fn(async () => ({ isComplete: true }));
+      const outcome = await waitForUpdate({
+        ...base,
+        initiateUpdate: async () => ({
+          isComplete: true,
+          isError: true,
+          status: 'refused',
+        }),
+        isComplete,
+        errorMessage: (completed) => `failed: ${completed.status}`,
+      });
+      expect(outcome).toBe(false);
+      expect(isComplete).not.toHaveBeenCalled();
+      expect(shown()).toMatchObject({
+        status: 'fail',
+        message: 'failed: refused',
+      });
+    });
+
+    test('4: An answer without an error is a success without wait, whether or not it says complete', async () => {
+      const isComplete = jest.fn(async () => ({ isComplete: true }));
+      for (const answer of [{ isComplete: true }, { isComplete: false }]) {
+        stopProgressIndicator.mockClear();
+        expect(
+          await waitForUpdate({
+            ...base,
+            wait: false,
+            initiateUpdate: async () => answer,
+            isComplete,
+            noWaitSuccessMessage: 'started',
+          })
+        ).toBe(true);
+        expect(shown()).toMatchObject({
+          status: 'success',
+          message: 'started',
+        });
+      }
+      expect(isComplete).not.toHaveBeenCalled();
+    });
+
+    test('5: An answer that says the update is not complete starts the wait, which checks right away', async () => {
+      let checks = 0;
+      const outcome = await waitForUpdate({
+        ...base,
+        initiateUpdate: async () => ({ isComplete: false, status: 'starting' }),
+        isComplete: async () => ({ isComplete: ++checks >= 2 }),
+      });
+      expect(outcome).toBe(true);
+      expect(checks).toBe(2);
+    });
+
+    test('6: A function that answers nothing counts as not complete and not failed, with and without wait', async () => {
+      const initiateNothing = (async () => undefined) as any;
+      expect(
+        await waitForUpdate({
+          ...base,
+          wait: false,
+          initiateUpdate: initiateNothing,
+          isComplete: async () => ({ isComplete: true }),
+        })
+      ).toBe(true);
+      let checks = 0;
+      expect(
+        await waitForUpdate({
+          ...base,
+          initiateUpdate: initiateNothing,
+          isComplete: async () => ({ isComplete: ++checks >= 2 }),
+        })
+      ).toBe(true);
+      expect(checks).toBe(2);
+    });
+
+    test('7: The timeout is measured from the end of initiateUpdate, not from its start', async () => {
+      // initiating takes longer than the timeout; the check that follows is
+      // still made, and it completes the update
+      const isComplete = jest.fn(async () => ({ isComplete: true }));
+      const outcome = await waitForUpdate({
+        ...base,
+        timeout: 60,
+        initiateUpdate: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 120));
+          return { isComplete: false };
+        },
+        isComplete,
+      });
+      expect(outcome).toBe(true);
+      expect(isComplete).toHaveBeenCalledTimes(1);
+    });
+
+    test('8: An answer that says error but not complete fails the call without wait, and is no end with wait: the checks go on and the last one decides', async () => {
+      const failedNotDone = async () => ({ isComplete: false, isError: true });
+      expect(
+        await waitForUpdate({
+          ...base,
+          wait: false,
+          initiateUpdate: failedNotDone,
+          isComplete: async () => ({ isComplete: true }),
+        })
+      ).toBe(false);
+      let checks = 0;
+      expect(
+        await waitForUpdate({
+          ...base,
+          initiateUpdate: failedNotDone,
+          isComplete: async () => ({ isComplete: ++checks >= 2 }),
+        })
+      ).toBe(true);
+      expect(checks).toBe(2);
     });
   });
 
