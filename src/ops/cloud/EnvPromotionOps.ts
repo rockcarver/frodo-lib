@@ -40,7 +40,7 @@ export type EnvPromotion = {
   ): Promise<LockStatus>;
   /**
    * Unlock environment.
-   * With wait set, the lock status is read first: an environment that is already unlocked or unlocking is not asked to unlock again, the call waits for the unlock and returns its status. Without wait, nothing is read first and the unlock is requested at once.
+   * With wait set, the lock status is read first: an environment that is already unlocked or unlocking is not asked to unlock again, the call waits for the unlock and returns its status. Without wait, the unlock is requested at once, whatever the status says (the status that is read for the promotion id, when none is given, does not change that).
    * Without a promotion id the id is read from the lock status, and an environment that holds no lock has none: the call then throws instead of returning the status. Pass the promotion id to unlock an environment that may already be unlocked.
    * @param {string} promotionId Optional promotion id. If not specified, will pull it from the environment lock status, which throws when the environment holds no lock
    * @param {boolean} wait Whether to wait for the environment to unlock; an environment that is already unlocking is joined. Default: false
@@ -247,16 +247,25 @@ function lockFailureCause(
  * id of the request that started it. Joining it could report a promotion that
  * never happened, so the call fails, names what runs and sends nothing. Only
  * the status RUNNING refuses; every other status leaves the decision to the
- * tenant. A status that cannot be read does not end the call: the request is
- * sent as it would be without the check.
+ * tenant. A status that cannot be read, or that comes back empty, does not end
+ * the call: the request is sent as it would be without the check. The timeout
+ * and the poll interval are checked before anything is read, as they are
+ * before anything is sent.
  */
 async function refuseWhenAnOperationRuns({
   operation,
+  timeout,
+  pollInterval,
   state,
 }: {
   operation: string;
+  timeout: number;
+  pollInterval: number;
   state: State;
 }): Promise<void> {
+  if (timeout <= 0 || pollInterval <= 0) {
+    throw new Error('Timeout and polling interval must be positive.');
+  }
   let promotionStatus: PromotionStatusResponse;
   try {
     promotionStatus = await readPromotionStatus({ state });
@@ -267,15 +276,15 @@ async function refuseWhenAnOperationRuns({
     });
     return;
   }
-  if (promotionStatus.status !== 'RUNNING') return;
+  if (promotionStatus?.status !== 'RUNNING') return;
+  // what the status leaves out is named 'unknown', never 'undefined'
+  const type = promotionStatus.type || 'unknown';
+  const promotionId = promotionStatus.promotionId || 'unknown';
+  const message = promotionStatus.message
+    ? `"${promotionStatus.message}"`
+    : 'unknown';
   throw new FrodoError(
-    `${operation} not started: an operation is already running on this environment (status ${
-      promotionStatus.status
-    }, type ${promotionStatus.type ?? 'unknown'}, promotion id ${
-      promotionStatus.promotionId ?? 'unknown'
-    }, message "${
-      promotionStatus.message
-    }"). Nothing was started and no request was sent. A dry run and a real promotion look the same while they run.`
+    `${operation} not started: an operation is already running on this environment (status ${promotionStatus.status}, type ${type}, promotion id ${promotionId}, message ${message}). Nothing was started and no request was sent. A dry run and a real promotion look the same while they run.`
   );
 }
 
@@ -368,7 +377,9 @@ export async function lockEnvironment({
  * unlock and returns its status. A status that cannot be read does not end the
  * call: the unlock is requested as it would be without the check.
  *
- * Without wait, nothing is read first and the unlock is requested at once.
+ * Without wait, the unlock is requested at once, whatever the status says: the
+ * status that is read for the promotion id, when none is given, does not
+ * change that.
  *
  * Without a promotion id the id is read from the lock status, and an
  * environment that holds no lock has none: the call then throws instead of
@@ -527,7 +538,13 @@ export async function promoteConfiguration({
   const operation = config.dryRun ? 'Dry-run promotion' : 'Promotion';
   // With wait, an operation that already runs is refused before anything is
   // sent; without wait nothing is read and the tenant decides.
-  if (wait) await refuseWhenAnOperationRuns({ operation, state });
+  if (wait)
+    await refuseWhenAnOperationRuns({
+      operation,
+      timeout,
+      pollInterval,
+      state,
+    });
   const success = await waitForUpdate({
     initiateUpdate: async () => {
       response = await _promoteConfiguration({ config, state });
@@ -717,7 +734,13 @@ export async function rollbackPromotion({
   let cause: Error;
   // With wait, an operation that already runs is refused before anything is
   // sent; without wait nothing is read and the tenant decides.
-  if (wait) await refuseWhenAnOperationRuns({ operation: 'Rollback', state });
+  if (wait)
+    await refuseWhenAnOperationRuns({
+      operation: 'Rollback',
+      timeout,
+      pollInterval,
+      state,
+    });
   const success = await waitForUpdate({
     initiateUpdate: async () => {
       response = await _rollbackPromotion({ config, state });

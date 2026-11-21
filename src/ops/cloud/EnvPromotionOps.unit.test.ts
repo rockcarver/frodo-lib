@@ -50,7 +50,7 @@ const lock = (result: string) => ({
 const status = (statusName: string, type?: string) => ({
   blockingError: false,
   globalLock: 'LOCKED',
-  message: `status ${statusName}`,
+  message: `progress text ${statusName}`,
   promotionId: 'promo-1',
   status: statusName,
   timeStamp: 'now',
@@ -125,20 +125,24 @@ describe('EnvPromotionOps (faked API)', () => {
       );
     });
 
-    test('6: With wait, reads the status first, then requests the lock of an unlocked environment, then waits', async () => {
-      api.lockEnvironment.mockResolvedValue(lock('locking'));
-      answers(
-        api.getLockStatus,
-        lock('unlocked'),
-        lock('locking'),
-        lock('locked')
-      );
-      const result = await promotion.lockEnvironment(true, 5, 5000);
-      expect(result.result).toBe('locked');
-      expect(api.lockEnvironment).toHaveBeenCalledTimes(1);
-      expect(api.getLockStatus).toHaveBeenCalledTimes(3);
-      expect(before(api.getLockStatus, api.lockEnvironment)).toBe(true);
-    });
+    // only locked and locking are joined; every other state is asked to lock
+    test.each(['unlocked', 'unlocking', 'error'])(
+      '6: With wait, reads the status first (%s), then requests the lock, then waits',
+      async (first) => {
+        api.lockEnvironment.mockResolvedValue(lock('locking'));
+        answers(
+          api.getLockStatus,
+          lock(first),
+          lock('locking'),
+          lock('locked')
+        );
+        const result = await promotion.lockEnvironment(true, 5, 5000);
+        expect(result.result).toBe('locked');
+        expect(api.lockEnvironment).toHaveBeenCalledTimes(1);
+        expect(api.getLockStatus).toHaveBeenCalledTimes(3);
+        expect(before(api.getLockStatus, api.lockEnvironment)).toBe(true);
+      }
+    );
 
     test('7: With wait, joins an environment that is already locking: no request, waits for the lock', async () => {
       answers(
@@ -298,6 +302,46 @@ describe('EnvPromotionOps (faked API)', () => {
       expect(before(api.getLockStatus, api.unlockEnvironment)).toBe(true);
     });
 
+    // only unlocked and unlocking are joined; every other state is asked to unlock
+    test.each(['locked', 'locking', 'error'])(
+      '4b: With wait, reads the status first (%s), then requests the unlock, then waits',
+      async (first) => {
+        api.unlockEnvironment.mockResolvedValue(lock('unlocking'));
+        answers(
+          api.getLockStatus,
+          lock(first),
+          lock('unlocking'),
+          lock('unlocked')
+        );
+        const result = await promotion.unlockEnvironment(
+          'promo-1',
+          true,
+          5,
+          5000
+        );
+        expect(result.result).toBe('unlocked');
+        expect(api.unlockEnvironment).toHaveBeenCalledTimes(1);
+        expect(api.getLockStatus).toHaveBeenCalledTimes(3);
+        expect(before(api.getLockStatus, api.unlockEnvironment)).toBe(true);
+      }
+    );
+
+    // without wait the status that gives the promotion id decides nothing
+    test.each(['unlocking', 'unlocked'])(
+      '6b: Without wait and without an id, requests the unlock whatever the status says (%s)',
+      async (first) => {
+        api.getLockStatus.mockResolvedValue(lock(first));
+        api.unlockEnvironment.mockResolvedValue(lock('unlocking'));
+        expect(await promotion.unlockEnvironment()).toEqual(lock('unlocking'));
+        expect(api.unlockEnvironment).toHaveBeenCalledTimes(1);
+        expect(api.unlockEnvironment).toHaveBeenCalledWith(
+          expect.objectContaining({ promotionId: 'promo-1' })
+        );
+        // the read for the id, and nothing else
+        expect(api.getLockStatus).toHaveBeenCalledTimes(1);
+      }
+    );
+
     test('7: With wait, requests the unlock anyway when the status cannot be read first', async () => {
       api.unlockEnvironment.mockResolvedValue(lock('unlocking'));
       api.getLockStatus.mockRejectedValueOnce(new Error('HTTP 503'));
@@ -430,10 +474,10 @@ describe('EnvPromotionOps (faked API)', () => {
           expect(error).toBeInstanceOf(FrodoError);
           expect(error.message).toContain('Promotion not started');
           expect(error.message).toContain('already running');
-          expect(error.message).toContain('status RUNNING');
-          expect(error.message).toContain(`type ${type ?? 'unknown'}`);
-          expect(error.message).toContain('promotion id promo-1');
-          expect(error.message).toContain('"status RUNNING"');
+          // status, type, id and message of the running operation, in this order
+          expect(error.message).toContain(
+            `(status RUNNING, type ${type ?? 'unknown'}, promotion id promo-1, message "progress text RUNNING")`
+          );
           expect(error.message).toContain('Nothing was started');
           expect(api.promoteConfiguration).not.toHaveBeenCalled();
           expect(api.getPromotionStatus).toHaveBeenCalledTimes(1);
@@ -489,6 +533,54 @@ describe('EnvPromotionOps (faked API)', () => {
         expect(response).toEqual({ message: 'started' });
         expect(api.promoteConfiguration).toHaveBeenCalledTimes(1);
       });
+
+      test.each([
+        ['a missing promotion id and message', undefined, undefined],
+        ['an empty promotion id and message', '', ''],
+      ])(
+        '5: Never prints undefined: %s read as unknown',
+        async (_, promotionId, message) => {
+          answers(api.getPromotionStatus, {
+            ...status('RUNNING'),
+            promotionId,
+            message,
+          });
+          const error = await promotion
+            .promoteConfiguration(config, true, 5, 5000)
+            .catch((e) => e);
+          expect(error.message).toContain(
+            '(status RUNNING, type unknown, promotion id unknown, message unknown)'
+          );
+          expect(error.message).not.toContain('undefined');
+          expect(api.promoteConfiguration).not.toHaveBeenCalled();
+        }
+      );
+
+      test.each([null, undefined])(
+        '6: A status that comes back empty (%s) is not an operation that runs: sends the request',
+        async (empty) => {
+          api.promoteConfiguration.mockResolvedValue({ message: 'started' });
+          answers(api.getPromotionStatus, empty, status('READY'));
+          expect(
+            await promotion.promoteConfiguration(config, true, 5, 5000)
+          ).toEqual({ message: 'started' });
+          expect(api.promoteConfiguration).toHaveBeenCalledTimes(1);
+        }
+      );
+
+      test.each([
+        ['timeout', 0, 5],
+        ['poll interval', 5000, -1],
+      ])(
+        '7: Checks the %s before it reads or sends anything',
+        async (_, timeout, pollInterval) => {
+          await expect(
+            promotion.promoteConfiguration(config, true, pollInterval, timeout)
+          ).rejects.toThrow('must be positive');
+          expect(api.getPromotionStatus).not.toHaveBeenCalled();
+          expect(api.promoteConfiguration).not.toHaveBeenCalled();
+        }
+      );
     });
 
     test('6: Without wait, reads nothing and sends the request even when the status says that an operation runs', async () => {
@@ -543,9 +635,9 @@ describe('EnvPromotionOps (faked API)', () => {
           expect(error).toBeInstanceOf(FrodoError);
           expect(error.message).toContain('Rollback not started');
           expect(error.message).toContain('already running');
-          expect(error.message).toContain('status RUNNING');
-          expect(error.message).toContain(`type ${type ?? 'unknown'}`);
-          expect(error.message).toContain('promotion id promo-1');
+          expect(error.message).toContain(
+            `(status RUNNING, type ${type ?? 'unknown'}, promotion id promo-1, message "progress text RUNNING")`
+          );
           expect(error.message).toContain('Nothing was started');
           expect(api.rollbackPromotion).not.toHaveBeenCalled();
           expect(api.getPromotionStatus).toHaveBeenCalledTimes(1);
@@ -586,6 +678,48 @@ describe('EnvPromotionOps (faked API)', () => {
         ).toEqual({ message: 'started' });
         expect(api.rollbackPromotion).toHaveBeenCalledTimes(1);
       });
+
+      test('6: Never prints undefined for a status without a promotion id and message', async () => {
+        answers(api.getPromotionStatus, {
+          ...status('RUNNING', 'rollback'),
+          promotionId: undefined,
+          message: undefined,
+        });
+        const error = await promotion
+          .rollbackPromotion(rollback, true, 5, 5000)
+          .catch((e) => e);
+        expect(error.message).toContain(
+          '(status RUNNING, type rollback, promotion id unknown, message unknown)'
+        );
+        expect(error.message).not.toContain('undefined');
+        expect(api.rollbackPromotion).not.toHaveBeenCalled();
+      });
+
+      test.each([null, undefined])(
+        '7: A status that comes back empty (%s) is not an operation that runs: sends the request',
+        async (empty) => {
+          api.rollbackPromotion.mockResolvedValue({ message: 'started' });
+          answers(api.getPromotionStatus, empty, status('READY'));
+          expect(
+            await promotion.rollbackPromotion(rollback, true, 5, 5000)
+          ).toEqual({ message: 'started' });
+          expect(api.rollbackPromotion).toHaveBeenCalledTimes(1);
+        }
+      );
+
+      test.each([
+        ['timeout', 0, 5],
+        ['poll interval', 5000, -1],
+      ])(
+        '8: Checks the %s before it reads or sends anything',
+        async (_, timeout, pollInterval) => {
+          await expect(
+            promotion.rollbackPromotion(rollback, true, pollInterval, timeout)
+          ).rejects.toThrow('must be positive');
+          expect(api.getPromotionStatus).not.toHaveBeenCalled();
+          expect(api.rollbackPromotion).not.toHaveBeenCalled();
+        }
+      );
     });
 
     test('6: Without wait, reads nothing and sends the request even when the status says that an operation runs', async () => {
