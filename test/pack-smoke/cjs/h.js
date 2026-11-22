@@ -24,3 +24,10 @@ exports.fail = (id, e) => {
   );
   process.exitCode = 1;
 };
+
+// The environment variables that scripts/pack-smoke.mjs removes from the environment of every probe: Node.js options
+// and proxy settings of the machine must not reach the code under test. Returns the names that are set.
+exports.leakedEnv = () =>
+  Object.keys(process.env).filter((key) =>
+    /^(https?_proxy|all_proxy|node_options)$/i.test(key)
+  );

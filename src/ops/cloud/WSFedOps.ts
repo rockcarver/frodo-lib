@@ -1,3 +1,4 @@
+import { FrodoError } from '../..';
 import {
   createAuthenticationPolicy as _createAuthenticationPolicy,
   createAuthenticationPolicyContract as _createAuthenticationPolicyContract,
@@ -44,7 +45,6 @@ import {
 } from '../../api/cloud/WSFedApi';
 import { State } from '../../shared/State';
 import { debugMessage } from '../../utils/Console';
-import { FrodoError } from '../FrodoError';
 
 // add every method implementation from this file as a type but remove structured params (e.g. { state }) and replace with individual params (e.g. state) to be consistent with other ops files. Also, use read instead of get to be consistent with other ops files.
 export type WSFed = {

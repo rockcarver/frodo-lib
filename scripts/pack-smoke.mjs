@@ -270,6 +270,17 @@ function checkTarball(ctx) {
   ) {
     problems.push('dist/index.d.cts is not a copy of dist/index.d.mts');
   }
+  // TypeScript before 5.6 cannot parse a string-named export: the key lives in the JavaScript only
+  for (const file of [mts, cts]) {
+    if (
+      fs.existsSync(file) &&
+      fs.readFileSync(file, 'utf8').includes('module.exports')
+    ) {
+      problems.push(
+        `${path.basename(file)} names module.exports (TypeScript before 5.6 cannot parse it)`
+      );
+    }
+  }
   const unpacked = walk(ctx.pkgDir).reduce((sum, [, size]) => sum + size, 0);
   if (unpacked > MAX_UNPACKED_BYTES) {
     problems.push(
@@ -306,7 +317,20 @@ function checkStatic(ctx) {
       `dist/index.mjs has ${plain} plain and ${hardened} hardened createRequire lines, expected 0 and 1`
     );
   }
-  return { plain, hardened };
+  // the 'module.exports' export that the post-build step appends: one statement, one object with the three values
+  const slots = [
+    ...text.matchAll(/^export \{ (\w+) as 'module\.exports' \};$/gm),
+  ];
+  const declared =
+    slots.length === 1
+      ? count(text, `\nconst ${slots[0][1]} = { FrodoError: `)
+      : 0;
+  if (slots.length !== 1 || declared !== 1) {
+    throw new Error(
+      `dist/index.mjs has ${slots.length} 'module.exports' export(s) and ${declared} slot declaration(s), expected 1 and 1`
+    );
+  }
+  return { plain, hardened, slot: slots[0][1] };
 }
 
 function tsVersion(ctx) {

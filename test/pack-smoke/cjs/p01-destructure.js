@@ -1,6 +1,6 @@
 'use strict';
 // A plain CommonJS program: destructure the require() result, build instances, throw and catch FrodoError.
-const { report, fail, PKG, HOST } = require('./h.js');
+const { report, fail, PKG, HOST, leakedEnv } = require('./h.js');
 try {
   const { frodo, state, FrodoError } = require(PKG);
   const admin = frodo.createInstanceWithAdminAccount(HOST, 'admin', 'secret');
@@ -30,8 +30,12 @@ try {
     e instanceof FrodoError &&
     e instanceof Error &&
     sub instanceof FrodoError &&
-    e.message.includes('boom');
-  report('p01-destructure', ok, { errorName: FrodoError.name });
+    e.message.includes('boom') &&
+    leakedEnv().length === 0;
+  report('p01-destructure', ok, {
+    errorName: FrodoError.name,
+    leakedEnv: leakedEnv(),
+  });
 } catch (e) {
   fail('p01-destructure', e);
 }
