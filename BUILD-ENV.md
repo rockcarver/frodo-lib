@@ -75,9 +75,32 @@ comma-sequenced constructor bodies (jose error classes) into invalid JS —
 - **Config must be `tsdown.config.mts`** — this repo is `"type": "commonjs"`
   and Node 24's config loader cannot load an ESM-syntax `.ts` config here
   (the CLI, being `"type": "module"`, uses plain `.ts`).
-- One config object is exported: the ES module build (splitting on, default).
-  There is no CommonJS config any more: CommonJS programs `require()` the
-  `.mjs` file.
+- One config object is exported: the ES module build. There is no CommonJS
+  config any more: CommonJS programs `require()` the `.mjs` file.
+- `outputOptions: { codeSplitting: false }` keeps the build one file. The
+  library imports the Polly setup with a dynamic `import()` in
+  `src/api/BaseApi.ts`, only for a process that sets `FRODO_MOCK`; with
+  splitting on, rolldown writes that module and the code it shares as three
+  more files (`lib-*.mjs`, `rolldown-runtime-*.mjs`,
+  `SetupPollyForFrodoLib-*.mjs`) and `scripts/postbuild-dist.cjs` fails (found
+  0 `createRequire(import.meta.url)` lines in `index.mjs`). With splitting off
+  the module stays in `index.mjs` as a lazily evaluated wrapper, so a process
+  without `FRODO_MOCK` neither evaluates the Polly packages nor an extra file.
+  `test:packed` (T10) proves that with V8 coverage and with a second witness:
+  a process without `FRODO_MOCK` leaves `fs.close` and `fs.closeSync` alone
+  (graceful-fs, which Polly's file persister loads, replaces both the moment
+  it is evaluated, and the library used to evaluate it on every load; now only
+  a process with `FRODO_MOCK` has them replaced). Verified with tsdown 0.23.4
+  and rolldown 1.2.15; a bundler upgrade that hoists the wrapper fails T10 on
+  the next build.
+  Side effect of the option: rolldown no longer scope-hoists the whole bundle
+  as one module but wraps every module in a lazy init function
+  (`grep -c '^var init_' dist/index.mjs`: 1 before, 322 now; `index.mjs` about
+  34.7 KB larger). The export shape of `frodo`, `state` and `FrodoError` is
+  identical over 3,628 property paths, `index.d.mts` is byte identical,
+  `require()` is still about 15% faster and `test:packed` passes. It changes how
+  a consumer's module initialisation runs, so a CLI pull request that pins a
+  library built with it runs the full CLI suite, not only a sample.
 - `dts: { resolver: 'oxc' }` is ~5× faster than `tsc`; `fixedExtension:
 false` keeps the `.mjs` and `.d.mts` names that `exports` points at.
 - `deps.neverBundle` lists every devDependency (tsup bundled them too —
@@ -463,4 +486,5 @@ update pull request that skipped it.
 | 2026-11-15 | The decision of the Dependabot auto-merge moves out of this repository: `dependabot-auto-merge.yml` calls the shared action [gearsnlevers/dependabot-auto-merge-action](https://github.com/gearsnlevers/dependabot-auto-merge-action) (v1.0.0, pinned by its full commit SHA, also used by frodo-cli); `scripts/dependabot-auto-merge.mjs` and its test are deleted; `src/dependabotWorkflow.unit.test.ts` pins the properties of the workflow, and the guidance job runs it and `src/dependabotPolicy.unit.test.ts`; the job skips the Dependabot pull requests that move the pin; the manual run has a `dry-run` input; a security update of a tooling package is armed after the age test, as core `0023` says (the own script refused it, the action does not) | #1093 (this PR) |
 | 2026-11-21 | One ES module build (`dist/index.mjs`, `index.d.mts` and a copy `index.d.cts`) instead of a CommonJS and an ES module build: `require()` loads it on Node.js 22.12 or later, `engines` and `.nvmrc` follow, `scripts/postbuild-dist.cjs` finishes `dist/` and adds a plain `'module.exports'` export to the JavaScript (not to the source or the declarations) so that `require` keeps its shape, `npm run test:packed` tests the packed tarball; the pipeline jobs for the oldest Node.js, other TypeScript versions and a Jest canary are proposed to the maintainers |
 | 2026-11-21 | The axios dts patch is the `prepare` script instead of `postinstall`, and `scripts/patch-axios-types.cjs` leaves the `files` list: a consumer install runs and lists no script of the package (npm 12 printed "install scripts blocked" for it); `npm ci` still patches, after `npm ci --ignore-scripts` run the script by hand (§2.3). The `test:packed` tarball check fails on an install script |
+| 2026-11-22 | The Polly setup is imported on demand (`src/api/BaseApi.ts`, only with `FRODO_MOCK` set) and stays inside `dist/index.mjs` (`outputOptions.codeSplitting: false`): `require()` of the package is about 14% faster, no longer prints the localStorage warning of Node.js 26 and no longer replaces `fs.close` and `fs.closeSync` (graceful-fs) at load; packed checks T10 (lazy) and T11 (record and replay round trip) added | #1137           |
 | planned    | Polly→nock — DEFERRED (deep record-harness coupling; revisit on Node 28 or real breakage)                                                                                                                                                                           | —               |
