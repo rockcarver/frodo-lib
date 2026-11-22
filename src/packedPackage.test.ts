@@ -122,7 +122,8 @@ function fakeTarball(
   folder: string,
   indexMjs: string,
   extraPackageJson: Record<string, unknown> = {},
-  extraDist: Record<string, string> = {}
+  extraDist: Record<string, string> = {},
+  extraFiles: Record<string, string> = {}
 ): string {
   const root = path.join(folder, 'package');
   fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
@@ -137,6 +138,10 @@ function fakeTarball(
   fs.writeFileSync(path.join(root, 'dist', 'index.mjs'), indexMjs);
   for (const [name, text] of Object.entries(extraDist)) {
     fs.writeFileSync(path.join(root, 'dist', name), text);
+  }
+  for (const [name, text] of Object.entries(extraFiles)) {
+    fs.mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
+    fs.writeFileSync(path.join(root, name), text);
   }
   const tarball = path.join(folder, 'fake.tgz');
   const r = spawnSync('tar', ['-czf', tarball, '-C', folder, 'package'], {
@@ -316,6 +321,66 @@ describe('the exit code of scripts/pack-smoke.mjs', () => {
         expect(status).toBe(1);
         expect(detail).toContain('must end with its //# sourceMappingURL');
       }
+    },
+    WHOLE_RUN_TIMEOUT_MS
+  );
+
+  /** Run T1 on a fake package; return the exit status and T1's detail. */
+  function tarballDetail(
+    extraPackageJson: Record<string, unknown>,
+    extraFiles: Record<string, string> = {}
+  ) {
+    fs.rmSync(path.join(folder, 'package'), { recursive: true, force: true });
+    const { status, report } = runOn(
+      fakeTarball(
+        folder,
+        FAKE_BUNDLE(HARDENED_LINE),
+        extraPackageJson,
+        {},
+        extraFiles
+      ),
+      'T1-tarball'
+    );
+    return { status, detail: String(report.results[0].detail) };
+  }
+  const AXIOS_PATCH = 'node scripts/patch-axios-types.cjs';
+
+  test.each(['preinstall', 'install', 'postinstall'])(
+    'T1 names the %s script of the package (a consumer install must run and list none)',
+    (name) => {
+      const { status, detail } = tarballDetail({
+        scripts: { prepare: AXIOS_PATCH, [name]: AXIOS_PATCH },
+      });
+      expect(status).toBe(1);
+      expect(detail).toContain(`scripts.${name} is ${AXIOS_PATCH}`);
+    },
+    WHOLE_RUN_TIMEOUT_MS
+  );
+
+  test(
+    'T1 names a package without the prepare script that applies the axios patch, and says nothing about scripts when it has it',
+    () => {
+      const without = tarballDetail({});
+      expect(without.status).toBe(1);
+      expect(without.detail).toContain('scripts.prepare is undefined');
+      const wrong = tarballDetail({ scripts: { prepare: 'node other.cjs' } });
+      expect(wrong.detail).toContain('scripts.prepare is node other.cjs');
+      const right = tarballDetail({ scripts: { prepare: AXIOS_PATCH } });
+      expect(right.detail).not.toContain('scripts.');
+      expect(right.detail).not.toContain('scripts/');
+    },
+    WHOLE_RUN_TIMEOUT_MS
+  );
+
+  test(
+    'T1 names a scripts folder in the tarball (the axios patch is not shipped)',
+    () => {
+      const { status, detail } = tarballDetail(
+        { scripts: { prepare: AXIOS_PATCH } },
+        { 'scripts/patch-axios-types.cjs': '// the patch\n' }
+      );
+      expect(status).toBe(1);
+      expect(detail).toContain('scripts/ is in the tarball');
     },
     WHOLE_RUN_TIMEOUT_MS
   );

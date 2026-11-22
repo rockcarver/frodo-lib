@@ -11,14 +11,17 @@
  * `export =` via a re-export shim that rolldown-plugin-dts understands) lets
  * the declaration bundler inline axios's types.
  *
- * Idempotent; runs as a postinstall hook (see package.json).
+ * Idempotent; runs as the `prepare` script (see package.json): `npm ci` and a
+ * plain `npm install` in this repository run it, so does `npm pack` and
+ * `npm publish`, and a consumer who installs the published package never does.
+ * After `npm ci --ignore-scripts` run it by hand before `npm run build`.
  */
 const fs = require('fs');
 const path = require('path');
 
 const pkgPath = path.join(__dirname, '..', 'node_modules', 'axios', 'package.json');
 if (!fs.existsSync(pkgPath)) {
-  // axios not installed (e.g. during publish-only install); nothing to do.
+  // axios not installed (no dev dependencies, e.g. `npm ci --omit=dev`); nothing to do.
   process.exit(0);
 }
 

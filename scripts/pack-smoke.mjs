@@ -250,14 +250,19 @@ function checkTarball(ctx) {
     problems.push(`engines.node is ${pkg.engines?.node}`);
   if (Object.keys(pkg.dependencies ?? {}).length > 0)
     problems.push('dependencies is not empty');
-  // The axios patch still runs as a postinstall script of the package; moving it is a separate change.
-  if (pkg.scripts?.postinstall !== 'node scripts/patch-axios-types.cjs') {
-    problems.push(`scripts.postinstall is ${pkg.scripts?.postinstall}`);
+  // A consumer's install runs no script of this package (npm 12 prints 'install scripts blocked' for a package that
+  // has one, older npm runs it). The axios patch is a `prepare` script: npm runs it in this repository only, and the
+  // script stays out of the tarball.
+  for (const name of ['preinstall', 'install', 'postinstall']) {
+    if (pkg.scripts?.[name] !== undefined) {
+      problems.push(`scripts.${name} is ${pkg.scripts[name]}`);
+    }
   }
-  if (
-    !fs.existsSync(path.join(ctx.pkgDir, 'scripts', 'patch-axios-types.cjs'))
-  ) {
-    problems.push('scripts/patch-axios-types.cjs is not in the tarball');
+  if (pkg.scripts?.prepare !== 'node scripts/patch-axios-types.cjs') {
+    problems.push(`scripts.prepare is ${pkg.scripts?.prepare}`);
+  }
+  if (fs.existsSync(path.join(ctx.pkgDir, 'scripts'))) {
+    problems.push('scripts/ is in the tarball');
   }
   if (!fs.existsSync(path.join(ctx.pkgDir, 'dist', 'index.mjs.map')))
     problems.push('dist/index.mjs.map is missing');
