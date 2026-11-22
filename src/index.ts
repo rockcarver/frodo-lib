@@ -3,6 +3,17 @@ import { FrodoError } from './ops/FrodoError';
 
 export { frodo, FrodoError, state };
 
+// Interoperability slot, not a capability: when a CommonJS program calls
+// require() on this ES module, Node.js returns the value exported under the
+// name 'module.exports' instead of the module namespace object. The namespace
+// object has a null prototype and is sealed, so lib.hasOwnProperty(), String(lib)
+// and assigning to a top-level export would fail; this plain object keeps them
+// working. It holds the same values as the named exports above and nothing
+// else: new capabilities go on the facade, not here.
+// See https://github.com/rockcarver/frodo-lib/blob/main/decisions/0020-frodo-lib-ships-one-es-module-build-that-commonjs-programs-can-require.md
+const commonJsExports = { FrodoError, frodo, state };
+export { commonJsExports as 'module.exports' };
+
 export type { RemoteProxyView } from './lib/FrodoLib';
 
 export type {
