@@ -350,16 +350,37 @@ describe('getFilePath', () => {
     expect(fs.existsSync(withMkdirs)).toBe(false);
   });
 
-  test('creates the folders of the file name without a working directory', () => {
+  test('creates the working directory for a file name without folders when mkdirs is true', () => {
     const state = makeFixedState();
-    const folder = join(dir, 'no-wd');
-    const result = getFilePath({
-      fileName: `${folder}/sub/file.json`,
-      mkdirs: true,
-      state,
-    });
-    expect(result).toBe(`${folder}/sub/file.json`);
-    expect(fs.existsSync(join(folder, 'sub'))).toBe(true);
+    const wd = join(dir, 'plain-work');
+    state.setDirectory(wd);
+
+    expect(getFilePath({ fileName: 'file.json', mkdirs: false, state })).toBe(
+      `${wd}/file.json`
+    );
+    expect(fs.existsSync(wd)).toBe(false);
+
+    expect(getFilePath({ fileName: 'file.json', mkdirs: true, state })).toBe(
+      `${wd}/file.json`
+    );
+    expect(fs.statSync(wd).isDirectory()).toBe(true);
+  });
+
+  test('creates the folders of the file name without a working directory', () => {
+    // a relative path below the folder that the other tests of this module use for their files; removed afterwards
+    const folder = join('test', 'fs_tmp', `wrappers-no-wd-${Date.now()}`);
+    try {
+      const state = makeFixedState();
+      const result = getFilePath({
+        fileName: `${folder}/sub/file.json`,
+        mkdirs: true,
+        state,
+      });
+      expect(result).toBe(`${folder.replaceAll('\\', '/')}/sub/file.json`);
+      expect(fs.statSync(join(folder, 'sub')).isDirectory()).toBe(true);
+    } finally {
+      fs.rmSync(folder, { recursive: true, force: true });
+    }
   });
 });
 
