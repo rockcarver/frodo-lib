@@ -25,7 +25,7 @@ Until 5.0.0 the package carried two builds of the same code, one for `require` a
 
 ## Consequences
 
-- Four breaks, named in `MIGRATION.md` and the release notes: Jest in CommonJS mode cannot load the real library; Node.js older than the floor, or run with `--no-experimental-require-module`, gets `ERR_REQUIRE_ESM`; clearing `require.cache` no longer resets the state; `import * as ns` shows the extra key (in the JavaScript, not in the types), and assigning to the object `require` returns does not change what `import` callers read.
+- Four breaks, named in `MIGRATION.md` and the release notes: Jest in CommonJS mode cannot load the real library; Node.js older than the floor, or run with `--no-experimental-require-module`, gets `ERR_REQUIRE_ESM`; clearing `require.cache` no longer resets the state; `import * as ns` shows the extra key (in the JavaScript, not in the types), and assigning to the object `require` returns does not change what `import` callers read; that object prints as `[object Object]`, not `[object Module]`, and has no `Symbol.toStringTag` key.
 - One `state` and one `FrodoError` for every consumer in a process, and one bundle to build, test and publish.
 - The `./types/*` deep-import subpath is unchanged, and the declaration files were checked with TypeScript 5.4.5 and later. The packed tests and the unit tests of the post-build step guard the key; coverage of the oldest Node.js, other TypeScript versions and a Jest canary needs network and sits in the pipeline, which a maintainer changes.
 - A consumer that fails on the ES module build is fixed by hardening the build step, not by a second build.

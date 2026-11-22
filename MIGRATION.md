@@ -745,6 +745,10 @@ Four things break:
    the object that `require()` returns (`lib.frodo = stub`) changes that object
    only, not what `import` callers read; patch a member of the facade instead
    (`lib.frodo.login.getTokens = stub`), which is the same object for everyone.
+   The object that `require()` returns also prints differently from the one of
+   4.x: `Object.prototype.toString.call(lib)` and `String(lib)` give
+   `[object Object]` instead of `[object Module]`, and it has no
+   `Symbol.toStringTag` key (its only own keys are the three names).
 
 ## Upgrading to 4.x
 
