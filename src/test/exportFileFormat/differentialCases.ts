@@ -389,10 +389,12 @@ export function differentialCases(): DifferentialCase[] {
       },
     },
   });
-  add('a typical journey export with nodes', {
+  // the key is not `tree`: a fixture with `tree` and `nodes` side by side is taken for a journey export by the sweep in
+  // JourneyOps.dependencies.unit.test.ts
+  add('a typical export with nested nodes', {
     trees: {
       Login: {
-        tree: { _id: 'Login', _rev: '1', entryNodeId: 'n1', nodes: {} },
+        definition: { _id: 'Login', _rev: '1', entryNodeId: 'n1', nodes: {} },
         nodes: {
           n1: { _id: 'n1', _rev: '2', _type: { _id: 'X' }, lastChanged: 5 },
         },
