@@ -23,7 +23,7 @@ npm ci
 ```
 
 - Use `npm ci`, not `npm install`: the lockfile is the reference and `npm install` can rewrite it.
-- Never `npm ci --ignore-scripts`. The `postinstall` script (`scripts/patch-axios-types.cjs`) fixes axios's type entry; without it `npm run build` fails with "CommonJS dts modules cannot be bundled by rolldown-plugin-dts" (checked). Repair: `node scripts/patch-axios-types.cjs`, then build again. Background: BUILD-ENV.md section 2.3.
+- Do not use `npm ci --ignore-scripts`. The `prepare` script (`scripts/patch-axios-types.cjs`) fixes axios's type entry and `npm ci` runs it; without it `npm run build` fails with "CommonJS dts modules cannot be bundled by rolldown-plugin-dts" (checked). After an install that skipped scripts, run `node scripts/patch-axios-types.cjs`, then build again. Background: BUILD-ENV.md section 2.3.
 - Recent npm versions print "install scripts blocked" for `@parcel/watcher` and `unrs-resolver`. The build and the tests work without them (checked), leave them blocked.
 
 ## 3. Build

@@ -36,7 +36,7 @@ npm run build
 ```
 
 For how the build toolchain works — what each tool does and why, bundler
-configuration details (including the axios dts postinstall patch), the
+configuration details (including the axios dts patch), the
 TypeScript version policy, and dependency-automation mechanics — see
 [BUILD-ENV.md](BUILD-ENV.md).
 

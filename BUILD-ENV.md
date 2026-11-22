@@ -101,17 +101,41 @@ false` keeps the `.mjs` and `.d.mts` names that `exports` points at.
   `.mjs`), but `npm run build` is the only complete build: run it before
   `npm run test:packed`, a pull request or a release check.
 
-### 2.3 The axios dts patch (postinstall — do not remove)
+### 2.3 The axios dts patch (`prepare` — do not remove)
 
 rolldown-plugin-dts **cannot bundle CommonJS `.d.cts` declaration files**,
 and axios's exports map sends `require`-condition type resolution to
-`index.d.cts`. `scripts/patch-axios-types.cjs` (registered as
-`postinstall`) rewrites the require condition's `types` entry to
-`./index.d.ts` inside `node_modules/axios/package.json` — idempotent, exits
-0 when axios is absent (consumer installs from the packed tarball do not
-have it: axios is bundled, not a runtime dependency). If the dts build ever
-fails with "CommonJS dts modules cannot be bundled", this patch is the
-first thing to check. The CLI does not need this (it does not bundle dts).
+`index.d.cts`. Without the patch `npx tsdown` stops with "CommonJS dts modules
+cannot be bundled by rolldown-plugin-dts" and `MISSING_EXPORT` errors for
+`AxiosInstance`, `AxiosRequestConfig` and `AxiosResponse` (checked on
+2026-11-21 with tsdown 0.23.4 and axios 1.21.0: exit code 1 without the patch,
+0 with it). `scripts/patch-axios-types.cjs` (registered as `prepare`) rewrites
+the require condition's `types` entry to `./index.d.ts` inside
+`node_modules/axios/package.json` — idempotent, exits 0 when axios is absent.
+If the dts build ever fails with "CommonJS dts modules cannot be bundled",
+this patch is the first thing to check. The CLI does not need this (it does
+not bundle dts).
+
+**Why `prepare` and not `postinstall`**: npm runs `prepare` on `npm ci` and on
+a plain `npm install` in this repository, and before `npm pack` and
+`npm publish`, but not when someone installs the published package from the
+registry. A `postinstall` script ships in the package and runs on every
+consumer install, although axios is bundled and there is nothing to patch
+there; and npm 11.21 and npm 12 list it as an install script that is not
+covered by `allowScripts` (npm 12 prints "install scripts blocked"; npm 11.14
+and older print nothing). npm 12 lists a dependency's `prepare` only for a
+source that is not a registry (git, a file, a URL or a link). So, measured with
+npm 12.0.2: registry installs print no notice for this package; a file-path
+install (`npm i ./rockcarver-frodo-lib-<version>.tgz`) still prints one notice,
+now naming `prepare`. That is accepted: nobody installs the library that way.
+The script is not in the `files` list either, and `npm run test:packed`
+(check T1) fails when the packed `package.json` has a `preinstall`, `install`
+or `postinstall` script or the tarball holds a `scripts/` folder.
+
+**Contributor rule**: use `npm ci` (it runs `prepare`). After
+`npm ci --ignore-scripts` run `node scripts/patch-axios-types.cjs` before
+`npm run build`; nothing else needs it. The `Build` job of the pipeline runs
+`npm ci`, so the patch is in place there.
 
 ### 2.4 The one ES module build and how `require` loads it
 
@@ -306,16 +330,18 @@ directives.
 ## 6. npm package contents
 
 `files` allowlist (2026-10): `dist` (five files since 5.0.0: `index.mjs`,
-`index.d.mts`, `index.d.cts` and two maps), `scripts/patch-axios-types.cjs`
-(**required** — it is the postinstall hook), LICENSE, README, CHANGELOG —
+`index.d.mts`, `index.d.cts` and two maps), LICENSE, README, CHANGELOG —
 13 files instead of 450 when the list was made (`types/`, the deprecated
 `./types/*` deep-import tree, was added to `files` later, so the tarball holds it
-today). Dropped from the tarball: `examples/` with their lockfiles, scripts not
-needed at install, `RECORD_REPLAY.md`, `CONTRIBUTE.md`. Consumers resolve
-`dist/index.d.mts` (or `index.d.cts` for `require`) via the exports map. Verified (and since 5.0.0
-by `npm run test:packed` on every change): the packed tarball installs
-offline and loads with `require` and `import`; postinstall gracefully skips
-when axios is absent.
+today). `scripts/patch-axios-types.cjs` was in the list as the `postinstall`
+hook and left it when the hook became `prepare` (section 2.3): a consumer's
+install runs no script of this package. Dropped from the tarball: `examples/`
+with their lockfiles, scripts not needed at install, `RECORD_REPLAY.md`,
+`CONTRIBUTE.md`. Consumers resolve `dist/index.d.mts` (or `index.d.cts` for
+`require`) via the exports map. Verified (and since 5.0.0 by
+`npm run test:packed` on every change): the packed tarball installs offline and
+loads with `require` and `import`, its `package.json` has no `preinstall`,
+`install` or `postinstall` script and it holds no `scripts/` folder.
 
 ---
 
@@ -436,4 +462,5 @@ update pull request that skipped it.
 | 2026-11-14 | Dependabot policy (core `0023`): 7-day cooldown, bundled packages and the bundler one pull request each, only the named `tooling` group auto-merges and only for lockfile versions 7 days old, GitHub Actions never; the three policy files (`.github/dependabot.yml`, `.github/workflows/dependabot-auto-merge.yml`, `scripts/dependabot-auto-merge.mjs`) count as guidance and their two tests run in `Validate guidance` | #1091, #1092, this PR |
 | 2026-11-15 | The decision of the Dependabot auto-merge moves out of this repository: `dependabot-auto-merge.yml` calls the shared action [gearsnlevers/dependabot-auto-merge-action](https://github.com/gearsnlevers/dependabot-auto-merge-action) (v1.0.0, pinned by its full commit SHA, also used by frodo-cli); `scripts/dependabot-auto-merge.mjs` and its test are deleted; `src/dependabotWorkflow.unit.test.ts` pins the properties of the workflow, and the guidance job runs it and `src/dependabotPolicy.unit.test.ts`; the job skips the Dependabot pull requests that move the pin; the manual run has a `dry-run` input; a security update of a tooling package is armed after the age test, as core `0023` says (the own script refused it, the action does not) | #1093 (this PR) |
 | 2026-11-21 | One ES module build (`dist/index.mjs`, `index.d.mts` and a copy `index.d.cts`) instead of a CommonJS and an ES module build: `require()` loads it on Node.js 22.12 or later, `engines` and `.nvmrc` follow, `scripts/postbuild-dist.cjs` finishes `dist/` and adds a plain `'module.exports'` export to the JavaScript (not to the source or the declarations) so that `require` keeps its shape, `npm run test:packed` tests the packed tarball; the pipeline jobs for the oldest Node.js, other TypeScript versions and a Jest canary are proposed to the maintainers |
+| 2026-11-21 | The axios dts patch is the `prepare` script instead of `postinstall`, and `scripts/patch-axios-types.cjs` leaves the `files` list: a consumer install runs and lists no script of the package (npm 12 printed "install scripts blocked" for it); `npm ci` still patches, after `npm ci --ignore-scripts` run the script by hand (§2.3). The `test:packed` tarball check fails on an install script |
 | planned    | Polly→nock — DEFERRED (deep record-harness coupling; revisit on Node 28 or real breakage)                                                                                                                                                                           | —               |

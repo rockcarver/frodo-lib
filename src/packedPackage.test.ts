@@ -122,7 +122,8 @@ function fakeTarball(
   folder: string,
   indexMjs: string,
   extraPackageJson: Record<string, unknown> = {},
-  extraDist: Record<string, string> = {}
+  extraDist: Record<string, string> = {},
+  extraFiles: Record<string, string> = {}
 ): string {
   const root = path.join(folder, 'package');
   fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
@@ -137,6 +138,10 @@ function fakeTarball(
   fs.writeFileSync(path.join(root, 'dist', 'index.mjs'), indexMjs);
   for (const [name, text] of Object.entries(extraDist)) {
     fs.writeFileSync(path.join(root, 'dist', name), text);
+  }
+  for (const [name, text] of Object.entries(extraFiles)) {
+    fs.mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
+    fs.writeFileSync(path.join(root, name), text);
   }
   const tarball = path.join(folder, 'fake.tgz');
   const r = spawnSync('tar', ['-czf', tarball, '-C', folder, 'package'], {
@@ -192,13 +197,17 @@ describe('the exit code of scripts/pack-smoke.mjs', () => {
   });
 
   /** Run the script on a fake tarball; it starts only npm, tar and node, never itself. */
-  function runOn(tarball: string, only: string) {
+  function runOn(
+    tarball: string,
+    only: string,
+    env: NodeJS.ProcessEnv = isolatedChildEnv()
+  ) {
     const r = spawnSync(
       process.execPath,
       [SCRIPT, '--json', '--only', only, '--tarball', tarball],
       {
         cwd: resolve('.'),
-        env: isolatedChildEnv(),
+        env,
         encoding: 'utf8',
         timeout: 120_000,
       }
@@ -249,8 +258,9 @@ describe('the exit code of scripts/pack-smoke.mjs', () => {
       expect(String(withDependency.report.results[0].detail)).toContain(
         'dependencies is not empty'
       );
-      // with a check that needs the install selected, the install fails offline (the dependency is not in any
-      // cache) and the report still carries the T1 result that names the reason
+      // with a check that needs the install selected, the install fails offline (the script gives npm an empty
+      // cache of its own, so the dependency is not found whatever the machine has cached) and the report still
+      // carries the T1 result that names the reason
       fs.rmSync(path.join(folder, 'package'), { recursive: true, force: true });
       const installFails = runOn(
         fakeTarball(folder, FAKE_BUNDLE(HARDENED_LINE), {
@@ -274,6 +284,32 @@ describe('the exit code of scripts/pack-smoke.mjs', () => {
       );
       expect(String(clean.report.results[0].detail)).not.toContain(
         'dependencies is not empty'
+      );
+    },
+    WHOLE_RUN_TIMEOUT_MS
+  );
+
+  test(
+    'gives npm a cache of its own: the cache of the machine is neither read nor written',
+    () => {
+      // A regular file as the inherited cache makes any npm that uses it fail with ENOTDIR; the script must not
+      // pass it on, so its install of a package without dependencies still works (and a developer's cache that
+      // holds a package can no longer turn an offline install that must fail into one that succeeds).
+      const notACache = path.join(folder, 'not-a-cache');
+      fs.writeFileSync(notACache, 'a file, not a directory\n');
+      const env = { ...isolatedChildEnv(), npm_config_cache: notACache };
+      const { status, report } = runOn(
+        fakeTarball(folder, FAKE_BUNDLE(HARDENED_LINE)),
+        'T1-tarball,T2-shape',
+        env
+      );
+      expect(report.results.map((r) => r.id)).toEqual([
+        'T1-tarball',
+        'T2-shape',
+      ]);
+      expect(status).toBe(1); // the fake package fails T1 and T2 for its own reasons, not at the install
+      expect(fs.readFileSync(notACache, 'utf8')).toBe(
+        'a file, not a directory\n'
       );
     },
     WHOLE_RUN_TIMEOUT_MS
@@ -316,6 +352,70 @@ describe('the exit code of scripts/pack-smoke.mjs', () => {
         expect(status).toBe(1);
         expect(detail).toContain('must end with its //# sourceMappingURL');
       }
+    },
+    WHOLE_RUN_TIMEOUT_MS
+  );
+
+  /** Run T1 on a fake package; return the exit status and T1's detail. */
+  function tarballDetail(
+    extraPackageJson: Record<string, unknown>,
+    extraFiles: Record<string, string> = {}
+  ) {
+    fs.rmSync(path.join(folder, 'package'), { recursive: true, force: true });
+    const { status, report } = runOn(
+      fakeTarball(
+        folder,
+        FAKE_BUNDLE(HARDENED_LINE),
+        extraPackageJson,
+        {},
+        extraFiles
+      ),
+      'T1-tarball'
+    );
+    return { status, detail: String(report.results[0].detail) };
+  }
+  const AXIOS_PATCH = 'node scripts/patch-axios-types.cjs';
+
+  test.each(['preinstall', 'install', 'postinstall'])(
+    'T1 names the %s script of the package (a consumer install must run and list none)',
+    (name) => {
+      const { status, detail } = tarballDetail({
+        scripts: { prepare: AXIOS_PATCH, [name]: AXIOS_PATCH },
+      });
+      expect(status).toBe(1);
+      expect(detail).toContain(`scripts.${name} is ${AXIOS_PATCH}`);
+    },
+    WHOLE_RUN_TIMEOUT_MS
+  );
+
+  test(
+    'T1 names a package without the prepare script that applies the axios patch, and says nothing about scripts when it has it',
+    () => {
+      const without = tarballDetail({});
+      expect(without.status).toBe(1);
+      expect(without.detail).toContain('scripts.prepare is undefined');
+      const wrong = tarballDetail({ scripts: { prepare: 'node other.cjs' } });
+      expect(wrong.detail).toContain('scripts.prepare is node other.cjs');
+      const right = tarballDetail({ scripts: { prepare: AXIOS_PATCH } });
+      expect(right.detail).not.toContain('scripts.');
+      expect(right.detail).not.toContain('scripts/');
+    },
+    WHOLE_RUN_TIMEOUT_MS
+  );
+
+  // The check is on the folder, not on one file: a tarball that holds some other file of scripts/ fails too
+  test.each([
+    ['the axios patch', 'scripts/patch-axios-types.cjs'],
+    ['another script', 'scripts/other.cjs'],
+  ])(
+    'T1 names a scripts folder in the tarball (%s)',
+    (_what, file) => {
+      const { status, detail } = tarballDetail(
+        { scripts: { prepare: AXIOS_PATCH } },
+        { [file]: '// a file of the scripts folder\n' }
+      );
+      expect(status).toBe(1);
+      expect(detail).toContain('scripts/ is in the tarball');
     },
     WHOLE_RUN_TIMEOUT_MS
   );
