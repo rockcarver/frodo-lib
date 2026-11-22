@@ -197,13 +197,17 @@ describe('the exit code of scripts/pack-smoke.mjs', () => {
   });
 
   /** Run the script on a fake tarball; it starts only npm, tar and node, never itself. */
-  function runOn(tarball: string, only: string) {
+  function runOn(
+    tarball: string,
+    only: string,
+    env: NodeJS.ProcessEnv = isolatedChildEnv()
+  ) {
     const r = spawnSync(
       process.execPath,
       [SCRIPT, '--json', '--only', only, '--tarball', tarball],
       {
         cwd: resolve('.'),
-        env: isolatedChildEnv(),
+        env,
         encoding: 'utf8',
         timeout: 120_000,
       }
@@ -254,8 +258,9 @@ describe('the exit code of scripts/pack-smoke.mjs', () => {
       expect(String(withDependency.report.results[0].detail)).toContain(
         'dependencies is not empty'
       );
-      // with a check that needs the install selected, the install fails offline (the dependency is not in any
-      // cache) and the report still carries the T1 result that names the reason
+      // with a check that needs the install selected, the install fails offline (the script gives npm an empty
+      // cache of its own, so the dependency is not found whatever the machine has cached) and the report still
+      // carries the T1 result that names the reason
       fs.rmSync(path.join(folder, 'package'), { recursive: true, force: true });
       const installFails = runOn(
         fakeTarball(folder, FAKE_BUNDLE(HARDENED_LINE), {
@@ -279,6 +284,32 @@ describe('the exit code of scripts/pack-smoke.mjs', () => {
       );
       expect(String(clean.report.results[0].detail)).not.toContain(
         'dependencies is not empty'
+      );
+    },
+    WHOLE_RUN_TIMEOUT_MS
+  );
+
+  test(
+    'gives npm a cache of its own: the cache of the machine is neither read nor written',
+    () => {
+      // A regular file as the inherited cache makes any npm that uses it fail with ENOTDIR; the script must not
+      // pass it on, so its install of a package without dependencies still works (and a developer's cache that
+      // holds a package can no longer turn an offline install that must fail into one that succeeds).
+      const notACache = path.join(folder, 'not-a-cache');
+      fs.writeFileSync(notACache, 'a file, not a directory\n');
+      const env = { ...isolatedChildEnv(), npm_config_cache: notACache };
+      const { status, report } = runOn(
+        fakeTarball(folder, FAKE_BUNDLE(HARDENED_LINE)),
+        'T1-tarball,T2-shape',
+        env
+      );
+      expect(report.results.map((r) => r.id)).toEqual([
+        'T1-tarball',
+        'T2-shape',
+      ]);
+      expect(status).toBe(1); // the fake package fails T1 and T2 for its own reasons, not at the install
+      expect(fs.readFileSync(notACache, 'utf8')).toBe(
+        'a file, not a directory\n'
       );
     },
     WHOLE_RUN_TIMEOUT_MS

@@ -23,7 +23,8 @@
  *   --keep                  keep the scratch folder under test/fs_tmp/
  *
  * Exit code: 0 when every selected check passed, 1 when one failed or dist/ is missing, 2 on a usage error.
- * The children get no NODE_OPTIONS and no proxy variables, and a HOME of their own inside the scratch folder.
+ * The children get no NODE_OPTIONS and no proxy variables, and a HOME and an empty npm cache of their own inside the
+ * scratch folder (the installs run with --offline and never see the cache of the machine).
  */
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -151,13 +152,22 @@ function parseArgs(argv) {
 
 // -------------------------------------------------------------------------------------------- child processes
 
-/** The environment of every child: no NODE_OPTIONS, no proxy, a HOME of its own. */
+/**
+ * The environment of every child: no NODE_OPTIONS, no proxy, a HOME of its own and an EMPTY npm cache of its own
+ * (inside that home, so it goes with the scratch folder). `npm run` hands its children the cache of the machine in
+ * `npm_config_cache`; an offline install that reads it succeeds or fails by what a developer once installed.
+ */
 function childEnv(home) {
   const env = { ...process.env };
   for (const key of Object.keys(env)) {
-    if (/^(https?_proxy|all_proxy|no_proxy|node_options)$/i.test(key))
+    if (
+      /^(https?_proxy|all_proxy|no_proxy|node_options|npm_config_cache)$/i.test(
+        key
+      )
+    )
       delete env[key];
   }
+  env.npm_config_cache = path.join(home, '.npm');
   env.NO_PROXY = '127.0.0.1,localhost';
   env.no_proxy = '127.0.0.1,localhost';
   env.HOME = home;
