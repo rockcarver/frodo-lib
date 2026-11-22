@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
  * Packs the library as `npm pack` does, installs the tarball OFFLINE into a scratch consumer folder and runs what
- * consumers do with it: `require`, `import`, TypeScript under several module resolutions and an esbuild bundle.
+ * consumers do with it: `require`, `import`, TypeScript under several module resolutions and an esbuild bundle. It also
+ * checks that a program that does not set FRODO_MOCK never runs record and replay of HTTP traffic (T10) and that one
+ * that does set it can record and replay (T11).
  * The packed package is what is tested, not `dist/`, so a wrong `exports` map, a missing file or a missing declaration
  * file shows up here. Decision record:
  * decisions/0020-frodo-lib-ships-one-es-module-build-that-commonjs-programs-can-require.md
@@ -13,7 +15,7 @@
  *
  *   --json                  print one JSON object to stdout (results with id, ok, ms, detail); progress goes to stderr
  *   --only <ids>            comma separated: a result id (T7-node16), a number (T7) or a group (tarball, require,
- *                           types, bundle, static)
+ *                           types, bundle, static, mock)
  *   --node <path>           the Node.js that runs the probes and the bundle (default: this one)
  *   --typescript <dir>      a folder with `node_modules/typescript` (default: this repository's TypeScript)
  *   --tarball <file>        test this tarball instead of packing the working tree
@@ -509,6 +511,24 @@ function checksFor(ctx, opts) {
     ]),
     ['T8-esbuild', 'bundle', () => checkEsbuild(ctx)],
     ['T9-static', 'static', () => checkStatic(ctx), false],
+    // T10: a process without FRODO_MOCK does not run Polly (record and replay of HTTP traffic), whichever way it loads
+    // the package. T11: with FRODO_MOCK, record and replay work through the packed package (a little over 15 seconds:
+    // Polly stops 15 seconds after its last request).
+    [
+      'T10-polly-lazy',
+      'require',
+      () => probe(ctx, 'cjs/p07-polly-lazy.js', 'p07-polly-lazy'),
+    ],
+    [
+      'T10-polly-lazy-esm',
+      'require',
+      () => probe(ctx, 'esm/m02-polly-lazy.mjs', 'm02-polly-lazy'),
+    ],
+    [
+      'T11-mock-roundtrip',
+      'mock',
+      () => probe(ctx, 'cjs/p08-mock-roundtrip.js', 'p08-mock-roundtrip'),
+    ],
   ];
 }
 

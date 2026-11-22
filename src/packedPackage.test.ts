@@ -36,6 +36,9 @@ const EXPECTED_IDS = [
   'T7-preserve-bundler',
   'T8-esbuild',
   'T9-static',
+  'T10-polly-lazy',
+  'T10-polly-lazy-esm',
+  'T11-mock-roundtrip',
 ];
 
 interface CheckResult {
