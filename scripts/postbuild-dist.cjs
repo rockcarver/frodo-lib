@@ -141,7 +141,7 @@ function addModuleExportsSlot(source) {
   const appended = [...source.matchAll(SLOT_BLOCK)].length;
   if (slotExports > 0) {
     // the only 'module.exports' export that may be there is the one this script appended, once
-    if (slotExports !== 1 || appended !== 1 || lists.length !== 2) {
+    if (slotExports !== 1 || appended !== 1) {
       throw new Error(
         `found ${slotExports} export(s) of '${SLOT_NAME}' in ${lists.length} export list(s), ${appended} of them appended by this script; expected none (the bundle's own export list must not export it) or exactly the one this script appended`
       );

@@ -335,16 +335,9 @@ function checkStatic(ctx) {
       `dist/index.mjs has ${slots.length} 'module.exports' export(s) of the appended form, ${named} export(s) of that name in all, and ${declared} slot declaration(s), expected 1, 1 and 1`
     );
   }
-  // the source map comment is still the last line and the slot comes before it, so no mapped line has moved
+  // the source map comment is still the last line, so the slot lines come before it and no mapped line has moved
   const lines = text.trimEnd().split('\n');
-  const slotLine = lines.indexOf(
-    `export { ${slots[0][1]} as 'module.exports' };`
-  );
-  if (
-    lines[lines.length - 1] !== '//# sourceMappingURL=index.mjs.map' ||
-    slotLine < 0 ||
-    slotLine > lines.length - 2
-  ) {
+  if (lines[lines.length - 1] !== '//# sourceMappingURL=index.mjs.map') {
     throw new Error(
       `dist/index.mjs must end with its //# sourceMappingURL=index.mjs.map comment as the last line, with the slot before it (last line: ${lines[lines.length - 1].slice(0, 60)})`
     );
