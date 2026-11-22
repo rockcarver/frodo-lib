@@ -1,5 +1,7 @@
-import { spawn } from 'node:child_process';
-import { resolve } from 'node:path';
+import { spawn, spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path, { resolve } from 'node:path';
 import { isolatedChildEnv } from '../test/support/runWorkers';
 
 /*
@@ -54,7 +56,12 @@ let run: Promise<Report> | undefined;
 function packedRun(): Promise<Report> {
   run ??= new Promise<Report>((resolveRun, rejectRun) => {
     const env = isolatedChildEnv();
-    delete env.NODE_OPTIONS;
+    // The script must not hand these on to what it starts (the first probe fails when it sees one):
+    // Node.js options and the proxy settings of the machine.
+    env.NODE_OPTIONS = `--no-warnings ${env.NODE_OPTIONS ?? ''}`.trim();
+    env.HTTPS_PROXY = 'http://127.0.0.1:9';
+    env.HTTP_PROXY = 'http://127.0.0.1:9';
+    env.ALL_PROXY = 'http://127.0.0.1:9';
     const child = spawn(process.execPath, [SCRIPT, '--json'], {
       cwd: resolve('.'),
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -105,6 +112,97 @@ describe('the packed package', () => {
         throw new Error(`${id} failed: ${JSON.stringify(result.detail)}`);
       }
       expect(result.ms).toBeLessThan(MAX_MS_PER_CHECK);
+    },
+    WHOLE_RUN_TIMEOUT_MS
+  );
+});
+
+/** Pack a fake package that holds only the given dist/index.mjs into a tarball and return its path. */
+function fakeTarball(folder: string, indexMjs: string): string {
+  const root = path.join(folder, 'package');
+  fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, 'package.json'),
+    JSON.stringify({ name: '@rockcarver/frodo-lib', version: '0.0.0' })
+  );
+  fs.writeFileSync(path.join(root, 'dist', 'index.mjs'), indexMjs);
+  const tarball = path.join(folder, 'fake.tgz');
+  const r = spawnSync('tar', ['-czf', tarball, '-C', folder, 'package'], {
+    env: isolatedChildEnv(),
+    encoding: 'utf8',
+  });
+  if (r.status !== 0) throw new Error(`tar failed: ${r.stderr}`);
+  return tarball;
+}
+
+const HARDENED_LINE =
+  'var r = createRequire(import.meta.url ?? (typeof __filename !== "undefined" ? __filename : process.cwd() + "/x.js"));';
+const FAKE_BUNDLE = (line: string) =>
+  [
+    'import { createRequire } from "node:module";',
+    line,
+    'const FrodoError = 1, frodo = 2, state = 3;',
+    'export { FrodoError, frodo, state };',
+    'const commonJsExports = { FrodoError: FrodoError, frodo: frodo, state: state };',
+    "export { commonJsExports as 'module.exports' };",
+    '',
+  ].join('\n');
+
+describe('the exit code of scripts/pack-smoke.mjs', () => {
+  let folder: string;
+  beforeEach(() => {
+    folder = fs.mkdtempSync(path.join(os.tmpdir(), 'pack-smoke-test-'));
+  });
+  afterEach(() => {
+    fs.rmSync(folder, { recursive: true, force: true });
+  });
+
+  /** Run the static check on a fake tarball; the script starts only npm, tar and node, never itself. */
+  function staticCheck(indexMjs: string) {
+    const r = spawnSync(
+      process.execPath,
+      [
+        SCRIPT,
+        '--json',
+        '--only',
+        'T9-static',
+        '--tarball',
+        fakeTarball(folder, indexMjs),
+      ],
+      {
+        cwd: resolve('.'),
+        env: isolatedChildEnv(),
+        encoding: 'utf8',
+        timeout: 120_000,
+      }
+    );
+    return { status: r.status, report: JSON.parse(r.stdout) as Report };
+  }
+
+  test(
+    'is 1 and the report says ok: false when a check fails',
+    () => {
+      const { status, report } = staticCheck(
+        FAKE_BUNDLE('var r = createRequire(import.meta.url);')
+      );
+      expect(status).toBe(1);
+      expect(report.ok).toBe(false);
+      expect(report.results.map((r) => [r.id, r.ok])).toEqual([
+        ['T9-static', false],
+      ]);
+    },
+    WHOLE_RUN_TIMEOUT_MS
+  );
+
+  test(
+    'is 0 and the report says ok: true when the check passes',
+    () => {
+      const { status, report } = staticCheck(FAKE_BUNDLE(HARDENED_LINE));
+      expect(status).toBe(0);
+      expect(report.ok).toBe(true);
+      expect(report.results.map((r) => [r.id, r.ok])).toEqual([
+        ['T9-static', true],
+      ]);
     },
     WHOLE_RUN_TIMEOUT_MS
   );
