@@ -2,7 +2,7 @@
 
 # Frodo Library 5.x - @rockcarver/frodo-lib
 
-A hybrid (ESM and CJS) library to manage PingOne Advanced Identity Cloud environments, ForgeOps deployments, and classic deployments.
+A library to manage PingOne Advanced Identity Cloud environments, ForgeOps deployments, and classic deployments. It ships as one ES module build that both `import` and `require` load (Node.js 22.12 or later).
 
 Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the command line tool to manage SaaS and self-hosted deployments. This includes the capability metadata and registry (`frodo-lib`'s `mcp` module) behind frodo-cli's turn-key MCP server — see frodo-cli's [MCP Server](https://github.com/rockcarver/frodo-cli#mcp-server) docs if you're looking to use MCP; frodo-lib itself doesn't run one, though it's the primitive a custom MCP integration built directly on the library could use.
 
@@ -31,7 +31,7 @@ The per-file `./types/*` deep-import subpath is deprecated.
 
 ### Node.js Versions
 
-- 5.x (current): tested against Node.js 22, 24, and 26 (the CI matrix).
+- 5.x (current): needs Node.js 22.12 or later, the first 22.x that can `require()` an ES module without a flag; tested against Node.js 22, 24, and 26 (the CI matrix).
 - 4.x: added support for Node.js 22, 24, and 26; dropped support for
   Node.js 18 and 20.
 
@@ -61,8 +61,13 @@ version, with replacements — is maintained in the
 - **5.0.0** removes function and constant exports from the package root.
   Use the `frodo.mcp`, `frodo.utils.terminal`, and
   `frodo.idm.managed.schema` facades; internal MCP helpers have no replacement.
-  The root retains only `frodo`, `state`, and `FrodoError` at runtime; type
-  exports remain available.
+  The root retains only `frodo`, `state`, and `FrodoError` at runtime, plus the
+  `'module.exports'` slot that `require()` returns; type exports remain
+  available.
+- **5.0.0** ships one ES module build (`dist/index.mjs`) instead of a CommonJS
+  and an ES module build. `require()` needs Node.js 22.12 or later, Jest in
+  CommonJS mode cannot load the real library, and clearing `require.cache` no
+  longer resets it; see the [Migration Guide](../MIGRATION.md#one-es-module-build-instead-of-two).
 - **5.x** deprecates the `./types/*` deep-import subpath (see
   [Using the library](#using-the-library)).
 - **5.x** journey imports now validate structural references by default; see
@@ -181,13 +186,13 @@ The library automatically refreshes session and access tokens before they expire
 |   16    | :white_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign:  | :heavy_minus_sign: |
 |   18    | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
 |   20    | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
-|   22    | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: | :white_check_mark:  | :white_check_mark: |
+|   22    | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: | :white_check_mark:  | 22.12 or later     |
 |   24    | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
 |   26    | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
 |   28    | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign:  | :heavy_minus_sign: |
 
 The table reflects the Node.js versions each release line was tested
-against. The test matrix currently runs Node 22, 24, and 26.
+against. The test matrix currently runs Node 22 (the latest 22.x), 24, and 26. frodo-lib 5.x needs Node.js 22.12 or later because it is one ES module build that `require()` loads.
 
 ## Considerations
 
@@ -207,7 +212,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 
 For those who want to contribute or are just curious about the build process.
 
-- Make sure you have **Node.js 22** or newer (**26** preferred — the CI matrix runs 22, 24, and 26) and npm installed.
+- Make sure you have **Node.js 22.12** or newer (**26** preferred — the CI matrix runs 22, 24, and 26) and npm installed.
 - Clone this repo
   ```console
   git clone https://github.com/rockcarver/frodo-lib.git
@@ -254,6 +259,8 @@ const {
   state,
 } = require('@rockcarver/frodo-lib');
 ```
+
+`require()` loads the same ES module build as `import`, so both give one `state` and one `FrodoError`. It needs Node.js 22.12 or later; older versions throw `ERR_REQUIRE_ESM`, and Jest in CommonJS mode cannot load the real library. The [Migration Guide](../MIGRATION.md#one-es-module-build-instead-of-two) lists what changed.
 
 ### Import data-model types (TypeScript)
 

@@ -4,7 +4,7 @@ Read by the issue gate's scope check (Repo Concierge). The check is off for a re
 
 ## Purpose
 
-Frodo Library (`@rockcarver/frodo-lib`) is a hybrid (ESM and CJS) TypeScript library to manage PingOne Advanced Identity Cloud environments, ForgeOps deployments and classic deployments. It powers frodo-cli, including the capability metadata and registry behind the CLI's MCP server.
+Frodo Library (`@rockcarver/frodo-lib`) is a TypeScript library, shipped as one ES module build that both `import` and `require` load, to manage PingOne Advanced Identity Cloud environments, ForgeOps deployments and classic deployments. It powers frodo-cli, including the capability metadata and registry behind the CLI's MCP server.
 
 ## In scope
 
