@@ -7,7 +7,7 @@ import { isolatedChildEnv } from '../test/support/runWorkers';
 /*
  * scripts/patch-axios-types.cjs is the `prepare` script of the package: it points the `require` condition of the
  * `types` entry in node_modules/axios/package.json at ./index.d.ts, which the declaration bundler can read
- * (BUILD-ENV.md section 2.3). It finds axios through its own location, so each test copies it into a small fake
+ * (the build notes of the repository). It finds axios through its own location, so each test copies it into a small fake
  * project in a temporary folder and runs it there; the real node_modules is never touched. The script starts no
  * process, so these tests cannot start themselves again. No build is needed.
  */
