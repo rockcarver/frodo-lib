@@ -119,15 +119,18 @@ not bundle dts).
 **Why `prepare` and not `postinstall`**: npm runs `prepare` on `npm ci` and on
 a plain `npm install` in this repository, and before `npm pack` and
 `npm publish`, but not when someone installs the published package from the
-registry. A `postinstall` script ships in the package and runs (or, on npm 12,
-is listed as "install scripts blocked") on every consumer install, although
-axios is bundled and there is nothing to patch there. npm 12 lists a
-dependency's `prepare` only for a source that is not a registry (git, a file
-or a link), so a registry install prints nothing for this package; installing
-a tarball from a file path still prints the notice. The script is therefore
-not in the `files` list either, and `npm run test:packed` (check T1) fails when
-the packed `package.json` has a `preinstall`, `install` or `postinstall`
-script or the tarball holds a `scripts/` folder.
+registry. A `postinstall` script ships in the package and runs on every
+consumer install, although axios is bundled and there is nothing to patch
+there; and npm 11.21 and npm 12 list it as an install script that is not
+covered by `allowScripts` (npm 12 prints "install scripts blocked"; npm 11.14
+and older print nothing). npm 12 lists a dependency's `prepare` only for a
+source that is not a registry (git, a file, a URL or a link). So, measured with
+npm 12.0.2: registry installs print no notice for this package; a file-path
+install (`npm i ./rockcarver-frodo-lib-<version>.tgz`) still prints one notice,
+now naming `prepare`. That is accepted: nobody installs the library that way.
+The script is not in the `files` list either, and `npm run test:packed`
+(check T1) fails when the packed `package.json` has a `preinstall`, `install`
+or `postinstall` script or the tarball holds a `scripts/` folder.
 
 **Contributor rule**: use `npm ci` (it runs `prepare`). After
 `npm ci --ignore-scripts` run `node scripts/patch-axios-types.cjs` before

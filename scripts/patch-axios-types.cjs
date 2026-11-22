@@ -12,7 +12,7 @@
  * the declaration bundler inline axios's types.
  *
  * Idempotent; runs as the `prepare` script (see package.json): `npm ci` and a
- * plain `npm install` in this repository run it, so does `npm pack` and
+ * plain `npm install` in this repository run it, so do `npm pack` and
  * `npm publish`, and a consumer who installs the published package never does.
  * After `npm ci --ignore-scripts` run it by hand before `npm run build`.
  */
