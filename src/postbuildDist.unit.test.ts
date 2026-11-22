@@ -30,6 +30,10 @@ const PLAIN = 'createRequire(import.meta.url)';
 const bundle = (line: string) =>
   `import { createRequire } from "node:module";\nvar __require = /* #__PURE__ */ (() => ${line})();\nexport {};\n`;
 
+// The name of the CommonJS bundle that 5.0.0 no longer builds (spelled in parts so that a search for stale
+// references to it finds only real ones).
+const OLD_BUNDLE = ['index', 'js'].join('.');
+
 const SHIPPED = [
   'index.d.cts',
   'index.d.mts',
@@ -90,9 +94,9 @@ describe('distProblems', () => {
     expect(postbuild.distProblems([...SHIPPED].reverse())).toEqual([]);
   });
 
-  test('reports an extra index.js', () => {
-    expect(postbuild.distProblems([...SHIPPED, 'index.js'])).toEqual([
-      'unexpected: dist/index.js',
+  test('reports an extra CommonJS bundle', () => {
+    expect(postbuild.distProblems([...SHIPPED, OLD_BUNDLE])).toEqual([
+      `unexpected: dist/${OLD_BUNDLE}`,
     ]);
   });
 
@@ -142,9 +146,11 @@ describe('finishDist', () => {
       'index.mjs.map': '{}',
       'index.d.mts': 'export {};\n',
       'index.d.mts.map': '{}',
-      'index.js': 'module.exports = {};\n',
+      [OLD_BUNDLE]: 'module.exports = {};\n',
     });
-    expect(postbuild.finishDist(dir)).toEqual(['unexpected: dist/index.js']);
+    expect(postbuild.finishDist(dir)).toEqual([
+      `unexpected: dist/${OLD_BUNDLE}`,
+    ]);
   });
 
   test('reports every file as missing when tsdown wrote nothing', () => {

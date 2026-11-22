@@ -3,6 +3,9 @@
 // login round trip asks. No tenant, no network beyond the loopback interface.
 const http = require('node:http');
 
+const COOKIE_NAME = 'iPlanetDirectoryPro';
+const FAKE_TOKEN = 'FAKE-SESSION-TOKEN';
+
 function start() {
   const log = [];
   const server = http.createServer((req, res) => {
@@ -26,7 +29,7 @@ function start() {
       if (url.startsWith('/am/json/serverinfo/*')) {
         return send(200, {
           _id: '*',
-          cookieName: 'iPlanetDirectoryPro',
+          cookieName: COOKIE_NAME,
           domains: [],
           realm: '/',
           secureCookie: false,
@@ -37,11 +40,11 @@ function start() {
         return send(
           200,
           {
-            tokenId: 'FAKE-SESSION-TOKEN',
+            tokenId: FAKE_TOKEN,
             successUrl: '/am/console',
             realm: '/',
           },
-          { 'set-cookie': 'iPlanetDirectoryPro=FAKE-SESSION-TOKEN; Path=/' }
+          { 'set-cookie': `${COOKIE_NAME}=${FAKE_TOKEN}; Path=/` }
         );
       }
       if (url.includes('idFromSession')) {

@@ -434,7 +434,7 @@ test('paths and links must point at files that exist', () => {
       skill(
         SKILL(
           {},
-          'See `src/real.ts` and [AGENTS](../../../AGENTS.md#x), `dist/index.js`, `origin/main`, `src/<Name>Api.ts`, `src/**/*.ts`, `decisions/NNNN-x.md`, https://example.com/a/b.md.\n'
+          'See `src/real.ts` and [AGENTS](../../../AGENTS.md#x), `dist/index.mjs`, `origin/main`, `src/<Name>Api.ts`, `src/**/*.ts`, `decisions/NNNN-x.md`, https://example.com/a/b.md.\n'
         )
       )
     )
