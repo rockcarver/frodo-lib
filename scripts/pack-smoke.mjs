@@ -27,6 +27,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -183,12 +184,13 @@ function run(command, args, { cwd, env, timeout = 180_000 }) {
 }
 
 function describeFailure(label, r) {
-  const tail = `${r.stdout}\n${r.stderr}`
-    .trim()
-    .split('\n')
-    .slice(-6)
-    .join(' | ')
-    .slice(0, 600);
+  const lines = `${r.stdout}\n${r.stderr}`.trim().split('\n');
+  // the first lines hold the message, the last ones the stack's end: keep both
+  const shown =
+    lines.length > 8
+      ? [...lines.slice(0, 4), '...', ...lines.slice(-3)]
+      : lines;
+  const tail = shown.join(' | ').slice(0, 800);
   return `${label} exited ${r.status ?? r.signal ?? r.error?.message}: ${tail}`;
 }
 
@@ -351,27 +353,25 @@ function checkTypes(ctx, [id, module, moduleResolution, files]) {
   return { files: files.length };
 }
 
-function checkEsbuild(ctx) {
-  const esbuild = path.join(REPO, 'node_modules', 'esbuild', 'bin', 'esbuild');
-  if (!fs.existsSync(esbuild))
+async function checkEsbuild(ctx) {
+  // The JavaScript API, not `node bin/esbuild`: when an install runs the postinstall script of esbuild, that script
+  // replaces bin/esbuild by the native executable, which node cannot run as a script.
+  let esbuild;
+  try {
+    esbuild = createRequire(import.meta.url)('esbuild');
+  } catch {
     throw new Error('esbuild is not installed: run npm ci');
+  }
   const out = path.join(ctx.consumer, 'bundle', 'out.cjs');
-  must(
-    'esbuild',
-    run(
-      process.execPath,
-      [
-        esbuild,
-        path.join(ctx.consumer, 'bundle', 'app.cjs'),
-        '--bundle',
-        '--platform=node',
-        '--format=cjs',
-        `--outfile=${out}`,
-        '--log-level=error',
-      ],
-      { cwd: ctx.consumer, env: ctx.env }
-    )
-  );
+  await esbuild.build({
+    absWorkingDir: ctx.consumer,
+    entryPoints: [path.join(ctx.consumer, 'bundle', 'app.cjs')],
+    bundle: true,
+    platform: 'node',
+    format: 'cjs',
+    outfile: out,
+    logLevel: 'error',
+  });
   const r = run(ctx.node, [out], {
     cwd: ctx.consumer,
     env: ctx.env,
@@ -468,7 +468,7 @@ function selected(id, group, only) {
 
 // ------------------------------------------------------------------------------------------------------- main
 
-function main() {
+async function main() {
   const opts = parseArgs(process.argv.slice(2));
   const log = (line) => console.error(line);
 
@@ -569,7 +569,7 @@ function main() {
       const started = Date.now();
       let entry;
       try {
-        entry = { id, ok: true, ms: 0, detail: fn() };
+        entry = { id, ok: true, ms: 0, detail: await fn() };
       } catch (e) {
         entry = {
           id,
@@ -608,4 +608,4 @@ function main() {
   return ok ? 0 : 1;
 }
 
-process.exitCode = main();
+process.exitCode = await main();
