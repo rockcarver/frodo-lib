@@ -403,12 +403,16 @@ describe('the exit code of scripts/pack-smoke.mjs', () => {
     WHOLE_RUN_TIMEOUT_MS
   );
 
-  test(
-    'T1 names a scripts folder in the tarball (the axios patch is not shipped)',
-    () => {
+  // The check is on the folder, not on one file: a tarball that holds some other file of scripts/ fails too
+  test.each([
+    ['the axios patch', 'scripts/patch-axios-types.cjs'],
+    ['another script', 'scripts/other.cjs'],
+  ])(
+    'T1 names a scripts folder in the tarball (%s)',
+    (_what, file) => {
       const { status, detail } = tarballDetail(
         { scripts: { prepare: AXIOS_PATCH } },
-        { 'scripts/patch-axios-types.cjs': '// the patch\n' }
+        { [file]: '// a file of the scripts folder\n' }
       );
       expect(status).toBe(1);
       expect(detail).toContain('scripts/ is in the tarball');
