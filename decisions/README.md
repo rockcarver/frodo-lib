@@ -75,3 +75,4 @@ A decision that binds more than one repository is a core record: the same file i
 | 0017 | [Proxy support is guarded by a short named set of tests, not by running the suite through a proxy](0017-proxy-support-is-guarded-by-a-short-named-set-of-tests.md) | accepted |
 | 0018 | [The access profile and the pre-flight scope check share one set of rules](0018-the-access-profile-and-the-preflight-check-share-one-set-of-rules.md) | accepted |
 | 0019 | [Facade methods follow the CRUDQ naming convention, with pull and push for file sets](0019-crudq-naming-for-facade-methods-with-pull-and-push.md) | accepted |
+| 0020 | [frodo-lib ships one ES module build, and CommonJS programs load it with require](0020-frodo-lib-ships-one-es-module-build-that-commonjs-programs-can-require.md) | proposed |
