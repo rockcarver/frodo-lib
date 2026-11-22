@@ -121,7 +121,8 @@ describe('the packed package', () => {
 function fakeTarball(
   folder: string,
   indexMjs: string,
-  extraPackageJson: Record<string, unknown> = {}
+  extraPackageJson: Record<string, unknown> = {},
+  extraDist: Record<string, string> = {}
 ): string {
   const root = path.join(folder, 'package');
   fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
@@ -134,6 +135,9 @@ function fakeTarball(
     })
   );
   fs.writeFileSync(path.join(root, 'dist', 'index.mjs'), indexMjs);
+  for (const [name, text] of Object.entries(extraDist)) {
+    fs.writeFileSync(path.join(root, 'dist', name), text);
+  }
   const tarball = path.join(folder, 'fake.tgz');
   const r = spawnSync('tar', ['-czf', tarball, '-C', folder, 'package'], {
     env: isolatedChildEnv(),
@@ -145,16 +149,38 @@ function fakeTarball(
 
 const HARDENED_LINE =
   'var r = createRequire(import.meta.url ?? (typeof __filename !== "undefined" ? __filename : process.cwd() + "/x.js"));';
-const FAKE_BUNDLE = (line: string) =>
-  [
-    'import { createRequire } from "node:module";',
-    line,
-    'const FrodoError = 1, frodo = 2, state = 3;',
-    'export { FrodoError, frodo, state };',
-    'const commonJsExports = { FrodoError: FrodoError, frodo: frodo, state: state };',
-    "export { commonJsExports as 'module.exports' };",
-    '',
-  ].join('\n');
+const SLOT_LINES = [
+  'const commonJsExports = { FrodoError: FrodoError, frodo: frodo, state: state };',
+  "export { commonJsExports as 'module.exports' };",
+];
+const MAP_LINE = '//# sourceMappingURL=index.mjs.map';
+/** A small bundle as the build leaves it; the options break one thing at a time. */
+const FAKE_BUNDLE = (
+  line: string,
+  options: {
+    slot?: boolean;
+    list?: string;
+    map?: 'last' | 'missing' | 'before-slot';
+  } = {}
+) => {
+  const {
+    slot = true,
+    list = 'export { FrodoError, frodo, state };',
+    map = 'last',
+  } = options;
+  return (
+    [
+      'import { createRequire } from "node:module";',
+      line,
+      'const FrodoError = 1, frodo = 2, state = 3;',
+      list,
+      ...(map === 'before-slot' ? [MAP_LINE] : []),
+      ...(slot ? SLOT_LINES : []),
+      '',
+      ...(map === 'last' ? [MAP_LINE] : []),
+    ].join('\n') + '\n'
+  );
+};
 
 describe('the exit code of scripts/pack-smoke.mjs', () => {
   let folder: string;
@@ -248,6 +274,71 @@ describe('the exit code of scripts/pack-smoke.mjs', () => {
       );
       expect(String(clean.report.results[0].detail)).not.toContain(
         'dependencies is not empty'
+      );
+    },
+    WHOLE_RUN_TIMEOUT_MS
+  );
+
+  /** Run T9 on a fake bundle that has a hardened createRequire line; return the exit status and T9's detail. */
+  function staticDetail(options: Parameters<typeof FAKE_BUNDLE>[1]) {
+    fs.rmSync(path.join(folder, 'package'), { recursive: true, force: true });
+    const { status, report } = staticCheck(FAKE_BUNDLE(HARDENED_LINE, options));
+    return { status, detail: String(report.results[0].detail) };
+  }
+
+  test(
+    'T9 fails, naming the slot, when the bundle has no module.exports export',
+    () => {
+      const { status, detail } = staticDetail({ slot: false });
+      expect(status).toBe(1);
+      expect(detail).toContain("0 'module.exports' export(s)");
+    },
+    WHOLE_RUN_TIMEOUT_MS
+  );
+
+  test(
+    'T9 fails when the export list of the bundle exports module.exports as well (the module would not load)',
+    () => {
+      const { status, detail } = staticDetail({
+        list: 'export { FrodoError, frodo, state, state as "module.exports" };',
+      });
+      expect(status).toBe(1);
+      expect(detail).toContain('2 export(s) of that name in all');
+    },
+    WHOLE_RUN_TIMEOUT_MS
+  );
+
+  test(
+    'T9 fails when the sourceMappingURL comment is not the last line, or is gone',
+    () => {
+      for (const map of ['before-slot', 'missing'] as const) {
+        const { status, detail } = staticDetail({ map });
+        expect(status).toBe(1);
+        expect(detail).toContain('must end with its //# sourceMappingURL');
+      }
+    },
+    WHOLE_RUN_TIMEOUT_MS
+  );
+
+  test(
+    'T1 names a declaration file that carries the module.exports key',
+    () => {
+      const declaration = 'export { x as "module.exports" };\n';
+      const r = runOn(
+        fakeTarball(
+          folder,
+          FAKE_BUNDLE(HARDENED_LINE),
+          {},
+          {
+            'index.d.mts': declaration,
+            'index.d.cts': declaration,
+          }
+        ),
+        'T1-tarball'
+      );
+      expect(r.status).toBe(1);
+      expect(String(r.report.results[0].detail)).toContain(
+        'index.d.mts names module.exports'
       );
     },
     WHOLE_RUN_TIMEOUT_MS

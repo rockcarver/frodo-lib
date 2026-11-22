@@ -17,7 +17,7 @@
  *    (src/index.ts) still exports the three values and types only. The local names come from the bundle's own
  *    `export { ... }` statement, which must exist exactly once and must export each of the three names exactly once.
  *    The appended lines come after the bundle (and before its `//# sourceMappingURL` comment), so no line of the
- *    source map moves.
+ *    source map moves. A bundle whose own export list already exports that name is refused.
  * 4. Fails unless dist/ holds exactly the five files the package ships and the declarations do not name the key.
  *
  * Usage: node scripts/postbuild-dist.cjs [dist-directory]   (default: dist/ of this repository). Exit code 1 and a
@@ -78,11 +78,17 @@ const SLOT_NAME = 'module.exports';
 const EXPORT_LIST = /^export \{([^}]*)\};?[ \t]*$/gm;
 /** Any other export at the start of a line. */
 const OTHER_EXPORT = /^export (?!\{)/m;
-/** The statement this script appends. */
-const SLOT_EXPORT = /^export \{ ([A-Za-z_$][\w$]*) as 'module\.exports' \};$/gm;
+/** The comment line that opens the three lines this script appends: it marks them as this script's own. */
+const SLOT_COMMENT =
+  '// Interoperability slot for require(), added by scripts/postbuild-dist.cjs (decisions/0020): not a capability.';
+const IDENTIFIER = '[A-Za-z_$][\\w$]*';
+/** The three lines this script appends (comment, declaration, export), as a whole. */
+const SLOT_BLOCK = new RegExp(
+  `^${SLOT_COMMENT.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\nconst (${IDENTIFIER}) = \\{ FrodoError: [^\\n]* \\};\\nexport \\{ \\1 as '${SLOT_NAME.replace('.', '\\.')}' \\};$`,
+  'gm'
+);
 /** The comment that points at the source map, when it is the last line of the bundle. */
 const SOURCE_MAP_LINE = /\n\/\/# sourceMappingURL=[^\n]*\n?$/;
-const IDENTIFIER = '[A-Za-z_$][\\w$]*';
 const SPECIFIER = new RegExp(
   `^(${IDENTIFIER}|"[^"]*"|'[^']*')(?:\\s+as\\s+(${IDENTIFIER}|"[^"]*"|'[^']*'))?$`
 );
@@ -109,37 +115,46 @@ function readExportList(list) {
 
 /**
  * Append the 'module.exports' export to the bundle: one plain object with the three root values, built from the
- * local names of the bundle's own export list. A bundle that already has it is returned unchanged.
+ * local names of the bundle's own export list. A bundle that has the three lines this script appended is returned
+ * unchanged; a bundle whose own export list exports that name is refused.
  * @param {string} source the text of dist/index.mjs
  * @returns {string} the text with the slot
- * @throws {Error} when the bundle has no export list, more than one, another form of export, or an export list that
- * does not export each of FrodoError, frodo and state exactly once
+ * @throws {Error} when the bundle has no export list, more than one, another form of export, an export list that
+ * does not export each of FrodoError, frodo and state exactly once, or an export of 'module.exports' that is not
+ * the single one this script appended
  */
 function addModuleExportsSlot(source) {
-  const present = [...source.matchAll(SLOT_EXPORT)];
-  if (present.length > 0) {
-    const name = present[0][1];
-    const declared = count(source, `\nconst ${name} = { FrodoError: `);
-    if (present.length !== 1 || declared !== 1) {
-      throw new Error(
-        `found ${present.length} '${SLOT_NAME}' export(s) and ${declared} declaration(s) of ${name}; expected one of each`
-      );
-    }
-    return source;
-  }
   const other = OTHER_EXPORT.exec(source);
   if (other) {
     throw new Error(
       `found an export that is not an export list (${source.slice(other.index, other.index + 40).split('\n')[0]}); the bundler changed what it emits`
     );
   }
-  const lists = [...source.matchAll(EXPORT_LIST)];
-  if (lists.length !== 1) {
+  const lists = [...source.matchAll(EXPORT_LIST)].map((match) => ({
+    text: match[0],
+    exported: readExportList(match[1]),
+  }));
+  const slotExports = lists.reduce(
+    (sum, list) => sum + (list.exported.get(SLOT_NAME)?.length ?? 0),
+    0
+  );
+  const appended = [...source.matchAll(SLOT_BLOCK)].length;
+  if (slotExports > 0) {
+    // the only 'module.exports' export that may be there is the one this script appended, once
+    if (slotExports !== 1 || appended !== 1 || lists.length !== 2) {
+      throw new Error(
+        `found ${slotExports} export(s) of '${SLOT_NAME}' in ${lists.length} export list(s), ${appended} of them appended by this script; expected none (the bundle's own export list must not export it) or exactly the one this script appended`
+      );
+    }
+    return source;
+  }
+  const plain = lists;
+  if (plain.length !== 1) {
     throw new Error(
-      `expected exactly one export list in dist/index.mjs, found ${lists.length}; the bundler changed what it emits`
+      `expected exactly one export list in dist/index.mjs, found ${plain.length}; the bundler changed what it emits`
     );
   }
-  const exported = readExportList(lists[0][1]);
+  const exported = plain[0].exported;
   const locals = {};
   for (const root of ROOT_NAMES) {
     const found = exported.get(root) ?? [];
@@ -156,7 +171,7 @@ function addModuleExportsSlot(source) {
     ', '
   );
   const slot =
-    `// Interoperability slot for require(), added by scripts/postbuild-dist.cjs (decisions/0020): not a capability.\n` +
+    `${SLOT_COMMENT}\n` +
     `const ${name} = { ${members} };\n` +
     `export { ${name} as '${SLOT_NAME}' };\n`;
   const mapLine = SOURCE_MAP_LINE.exec(source);
@@ -197,24 +212,48 @@ function distProblems(names) {
 }
 
 /**
+ * Finish dist/ in place and say what was done.
+ * @param {string} distDir the dist directory
+ * @returns {{problems: string[], hardened: boolean, slot: 'added' | 'present' | null, appendedLines: number}}
+ * the problems found (empty when dist/ is done), whether the createRequire line was rewritten by this run, and
+ * whether the 'module.exports' export was added by this run or was there already (null when nothing could be done)
+ */
+function finishDistReport(distDir) {
+  const mts = path.join(distDir, 'index.d.mts');
+  const mjs = path.join(distDir, 'index.mjs');
+  if (!fs.existsSync(mts) || !fs.existsSync(mjs)) {
+    return {
+      problems: distProblems(
+        fs.existsSync(distDir) ? fs.readdirSync(distDir) : []
+      ),
+      hardened: false,
+      slot: null,
+      appendedLines: 0,
+    };
+  }
+  fs.copyFileSync(mts, path.join(distDir, 'index.d.cts'));
+  const source = fs.readFileSync(mjs, 'utf8');
+  const hardened = hardenCreateRequire(source);
+  const finished = addModuleExportsSlot(hardened);
+  if (finished !== source) fs.writeFileSync(mjs, finished);
+  return {
+    problems: [
+      ...distProblems(fs.readdirSync(distDir)),
+      ...declarationProblems('index.d.mts', fs.readFileSync(mts, 'utf8')),
+    ],
+    hardened: hardened !== source,
+    slot: finished !== hardened ? 'added' : 'present',
+    appendedLines: finished.split('\n').length - hardened.split('\n').length,
+  };
+}
+
+/**
  * Finish dist/ in place.
  * @param {string} distDir the dist directory
  * @returns {string[]} the problems found; empty when dist/ is done
  */
 function finishDist(distDir) {
-  const mts = path.join(distDir, 'index.d.mts');
-  const mjs = path.join(distDir, 'index.mjs');
-  if (!fs.existsSync(mts) || !fs.existsSync(mjs)) {
-    return distProblems(fs.existsSync(distDir) ? fs.readdirSync(distDir) : []);
-  }
-  fs.copyFileSync(mts, path.join(distDir, 'index.d.cts'));
-  const source = fs.readFileSync(mjs, 'utf8');
-  const finished = addModuleExportsSlot(hardenCreateRequire(source));
-  if (finished !== source) fs.writeFileSync(mjs, finished);
-  return [
-    ...distProblems(fs.readdirSync(distDir)),
-    ...declarationProblems('index.d.mts', fs.readFileSync(mts, 'utf8')),
-  ];
+  return finishDistReport(distDir).problems;
 }
 
 module.exports = {
@@ -224,6 +263,7 @@ module.exports = {
   distProblems,
   declarationProblems,
   finishDist,
+  finishDistReport,
 };
 
 if (require.main === module) {
@@ -231,15 +271,24 @@ if (require.main === module) {
     const distDir = process.argv[2]
       ? path.resolve(process.argv[2])
       : path.join(__dirname, '..', 'dist');
-    const problems = finishDist(distDir);
-    if (problems.length > 0) {
+    const report = finishDistReport(distDir);
+    if (report.problems.length > 0) {
       console.error(
-        `postbuild-dist: dist/ is not what the package ships:\n  ${problems.join('\n  ')}`
+        `postbuild-dist: dist/ is not what the package ships:\n  ${report.problems.join('\n  ')}`
       );
       process.exit(1);
     }
     console.log(
-      "postbuild-dist: dist/ holds the five shipped files, index.d.cts added, createRequire hardened, 'module.exports' added"
+      [
+        'postbuild-dist: index.d.cts copied from index.d.mts',
+        report.hardened
+          ? 'createRequire hardened'
+          : 'createRequire was hardened already',
+        report.slot === 'added'
+          ? `'module.exports' added (${report.appendedLines} lines appended: ${ROOT_NAMES.join(', ')})`
+          : `'module.exports' was there already, nothing appended`,
+        'dist/ holds the five shipped files',
+      ].join('; ')
     );
   } catch (e) {
     console.error(`postbuild-dist: ${e.message}`);

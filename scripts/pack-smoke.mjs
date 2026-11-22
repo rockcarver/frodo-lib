@@ -317,17 +317,36 @@ function checkStatic(ctx) {
       `dist/index.mjs has ${plain} plain and ${hardened} hardened createRequire lines, expected 0 and 1`
     );
   }
-  // the 'module.exports' export that the post-build step appends: one statement, one object with the three values
+  // the 'module.exports' export that the post-build step appends: one statement, one object with the three values,
+  // no other export of that name in any quote style
   const slots = [
     ...text.matchAll(/^export \{ (\w+) as 'module\.exports' \};$/gm),
   ];
+  const named = count(
+    text.replace(/as\s+["']module\.exports["']/g, 'as @@'),
+    'as @@'
+  );
   const declared =
     slots.length === 1
       ? count(text, `\nconst ${slots[0][1]} = { FrodoError: `)
       : 0;
-  if (slots.length !== 1 || declared !== 1) {
+  if (slots.length !== 1 || declared !== 1 || named !== 1) {
     throw new Error(
-      `dist/index.mjs has ${slots.length} 'module.exports' export(s) and ${declared} slot declaration(s), expected 1 and 1`
+      `dist/index.mjs has ${slots.length} 'module.exports' export(s) of the appended form, ${named} export(s) of that name in all, and ${declared} slot declaration(s), expected 1, 1 and 1`
+    );
+  }
+  // the source map comment is still the last line and the slot comes before it, so no mapped line has moved
+  const lines = text.trimEnd().split('\n');
+  const slotLine = lines.indexOf(
+    `export { ${slots[0][1]} as 'module.exports' };`
+  );
+  if (
+    lines[lines.length - 1] !== '//# sourceMappingURL=index.mjs.map' ||
+    slotLine < 0 ||
+    slotLine > lines.length - 2
+  ) {
+    throw new Error(
+      `dist/index.mjs must end with its //# sourceMappingURL=index.mjs.map comment as the last line, with the slot before it (last line: ${lines[lines.length - 1].slice(0, 60)})`
     );
   }
   return { plain, hardened, slot: slots[0][1] };

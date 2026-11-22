@@ -23,6 +23,12 @@ type Postbuild = {
   distProblems: (names: string[]) => string[];
   declarationProblems: (name: string, text: string) => string[];
   finishDist: (distDir: string) => string[];
+  finishDistReport: (distDir: string) => {
+    problems: string[];
+    hardened: boolean;
+    slot: 'added' | 'present' | null;
+    appendedLines: number;
+  };
 };
 
 let postbuild: Postbuild;
@@ -196,12 +202,12 @@ describe('addModuleExportsSlot', () => {
     expect(postbuild.addModuleExportsSlot(once)).toBe(once);
   });
 
-  test('throws when a slot export is there without its declaration', () => {
+  test('throws when an export of module.exports is there without the lines of this script', () => {
     expect(() =>
       postbuild.addModuleExportsSlot(
         `${bundle(PLAIN)}export { missing as 'module.exports' };\n`
       )
-    ).toThrow(/1 'module\.exports' export\(s\) and 0 declaration/);
+    ).toThrow(/found 1 export\(s\) of 'module\.exports'.*0 of them appended/);
   });
 
   test('throws when the bundle has no export list', () => {
@@ -240,6 +246,66 @@ describe('addModuleExportsSlot', () => {
     ).toThrow(/not an export list/);
   });
 
+  test("throws, naming what it found, when the bundle's own export list already exports module.exports", () => {
+    for (const quote of ['"', "'"]) {
+      expect(() =>
+        postbuild.addModuleExportsSlot(
+          bundle(
+            PLAIN,
+            `export { FrodoError, frodo, state, state as ${quote}module.exports${quote} };`
+          )
+        )
+      ).toThrow(/found 1 export\(s\) of 'module\.exports'.*0 of them appended/);
+    }
+  });
+
+  test('throws when the own list exports module.exports and the lines of this script are there as well', () => {
+    const appended = postbuild.addModuleExportsSlot(bundle(PLAIN));
+    const withOwn = appended.replace(
+      'export { FrodoError, frodo, state };',
+      'export { FrodoError, frodo, state, state as "module.exports" };'
+    );
+    expect(() => postbuild.addModuleExportsSlot(withOwn)).toThrow(
+      /found 2 export\(s\) of 'module\.exports'.*1 of them appended/
+    );
+  });
+
+  test('throws on two exports of module.exports: the lines of this script and one more statement', () => {
+    const appended = postbuild.addModuleExportsSlot(bundle(PLAIN));
+    expect(() =>
+      postbuild.addModuleExportsSlot(
+        `${appended}export { commonJsExports as 'module.exports' };\n`
+      )
+    ).toThrow(/found 2 export\(s\) of 'module\.exports'/);
+  });
+
+  test('throws on two copies of the lines of this script', () => {
+    const once = postbuild.addModuleExportsSlot(bundle(PLAIN));
+    const slot = once.slice(once.indexOf('// Interoperability slot'));
+    expect(() => postbuild.addModuleExportsSlot(`${once}${slot}`)).toThrow(
+      /found 2 export\(s\) of 'module\.exports'.*2 of them appended/
+    );
+  });
+
+  test('reads quoted export names, a trailing comma and a list that spans lines', async () => {
+    const lists = [
+      `export { FrodoError as 'FrodoError', frodo as "frodo", state };`,
+      'export { FrodoError, frodo, state, };',
+      'export {\n  FrodoError,\n  frodo,\n  state,\n};',
+    ];
+    for (const list of lists) {
+      const out = postbuild.addModuleExportsSlot(
+        bundle(PLAIN.replace('createRequire(import.meta.url)', '1'), list)
+      );
+      expect(out).toContain(
+        'FrodoError: FrodoError, frodo: frodo, state: state'
+      );
+      const ns = await load(out);
+      expect(ns['module.exports'].frodo).toBe(ns.frodo);
+      expect(ns['module.exports'].FrodoError).toBe(ns.FrodoError);
+    }
+  });
+
   test('chooses a local name that the bundle does not use yet', async () => {
     const source = `const commonJsExports = 'taken';\n${bundle(PLAIN)}`;
     const out = postbuild.addModuleExportsSlot(source);
@@ -263,6 +329,15 @@ describe('declarationProblems', () => {
     );
     expect(problems).toHaveLength(1);
     expect(problems[0]).toMatch(/index\.d\.mts names 'module\.exports'.*5\.6/);
+  });
+
+  test('reports a declaration file that names the key with single quotes', () => {
+    expect(
+      postbuild.declarationProblems(
+        'index.d.cts',
+        "export { x as 'module.exports' };"
+      )
+    ).toHaveLength(1);
   });
 });
 
@@ -322,6 +397,23 @@ describe('finishDist', () => {
     );
   });
 
+  test('says what it did: hardened and added on the first run, nothing on the second', () => {
+    fakeDist(goodDist());
+    const first = postbuild.finishDistReport(dir);
+    expect(first).toEqual({
+      problems: [],
+      hardened: true,
+      slot: 'added',
+      appendedLines: 4,
+    });
+    expect(postbuild.finishDistReport(dir)).toEqual({
+      problems: [],
+      hardened: false,
+      slot: 'present',
+      appendedLines: 0,
+    });
+  });
+
   test('reports a dist/ with a CommonJS bundle left in it', () => {
     fakeDist({ ...goodDist(), [OLD_BUNDLE]: 'module.exports = {};\n' });
     expect(postbuild.finishDist(dir)).toEqual([
@@ -377,10 +469,37 @@ describe('the script, run as the build runs it', () => {
     fakeDist(goodDist());
     const r = runScript(dir);
     expect(r.status).toBe(0);
-    expect(r.stdout).toContain("'module.exports' added");
+    expect(r.stdout).toContain("'module.exports' added (");
     expect(fs.readdirSync(dir).sort()).toEqual(SHIPPED);
     // a second run, as `node scripts/postbuild-dist.cjs` after a build, must not fail
     expect(runScript(dir).status).toBe(0);
+  });
+
+  test('prints what it did, and says so when a second run has nothing to do', () => {
+    fakeDist(goodDist());
+    const first = runScript(dir);
+    expect(first.stdout).toContain('createRequire hardened;');
+    expect(first.stdout).toContain(
+      "'module.exports' added (4 lines appended: FrodoError, frodo, state)"
+    );
+    const second = runScript(dir);
+    expect(second.stdout).toContain('createRequire was hardened already');
+    expect(second.stdout).toContain(
+      "'module.exports' was there already, nothing appended"
+    );
+  });
+
+  test("exits 1 when the bundle's own export list already exports module.exports", () => {
+    fakeDist({
+      ...goodDist(),
+      'index.mjs': bundle(
+        PLAIN,
+        'export { FrodoError, frodo, state, state as "module.exports" };'
+      ),
+    });
+    const r = runScript(dir);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain("export(s) of 'module.exports'");
   });
 
   test('exits 1 and names the file when dist/ holds a file that is not shipped', () => {
