@@ -441,7 +441,9 @@ function checksFor(ctx, opts) {
     ];
   }
   return [
-    ['T1-tarball', 'tarball', () => checkTarball(ctx)],
+    // T1 and T9 read the unpacked tarball only: they run BEFORE the install, so that a tarball that the install cannot
+    // handle (a dependency that npm cannot fetch offline, say) is still reported by the check that names the reason
+    ['T1-tarball', 'tarball', () => checkTarball(ctx), false],
     [
       'T2-destructure',
       'require',
@@ -479,7 +481,7 @@ function checksFor(ctx, opts) {
       () => checkTypes(ctx, mode),
     ]),
     ['T8-esbuild', 'bundle', () => checkEsbuild(ctx)],
-    ['T9-static', 'static', () => checkStatic(ctx)],
+    ['T9-static', 'static', () => checkStatic(ctx), false],
   ];
 }
 
@@ -557,23 +559,6 @@ async function main() {
         recursive: true,
       });
     }
-    must(
-      'npm install',
-      run(
-        'npm',
-        [
-          'install',
-          '--offline',
-          '--no-audit',
-          '--no-fund',
-          '--ignore-scripts',
-          '--no-package-lock',
-          tarball,
-        ],
-        { cwd: consumer, env, timeout: 300_000 }
-      )
-    );
-
     const tscCandidates = [
       opts.typescript &&
         path.join(opts.typescript, 'node_modules', 'typescript', 'bin', 'tsc'),
@@ -588,25 +573,56 @@ async function main() {
       tsc: tscCandidates.find((c) => fs.existsSync(c)) ?? tscCandidates[0],
     };
 
-    for (const [id, group, fn] of checksFor(ctx, opts)) {
-      if (!selected(id, group, opts.only)) continue;
-      const started = Date.now();
-      let entry;
-      try {
-        entry = { id, ok: true, ms: 0, detail: await fn() };
-      } catch (e) {
-        entry = {
-          id,
-          ok: false,
-          ms: 0,
-          detail: String(e.message ?? e).slice(0, 1500),
-        };
+    const chosen = checksFor(ctx, opts).filter(([id, group]) =>
+      selected(id, group, opts.only)
+    );
+    const done = new Map();
+    const runChecks = async (list) => {
+      for (const [id, , fn] of list) {
+        const started = Date.now();
+        let entry;
+        try {
+          entry = { id, ok: true, ms: 0, detail: await fn() };
+        } catch (e) {
+          entry = {
+            id,
+            ok: false,
+            ms: 0,
+            detail: String(e.message ?? e).slice(0, 1500),
+          };
+        }
+        entry.ms = Date.now() - started;
+        done.set(id, entry);
+        log(
+          `CHECK ${entry.ok ? 'ok  ' : 'FAIL'} ${id} (${entry.ms} ms)${entry.ok ? '' : `: ${entry.detail}`}`
+        );
       }
-      entry.ms = Date.now() - started;
-      results.push(entry);
-      log(
-        `CHECK ${entry.ok ? 'ok  ' : 'FAIL'} ${id} (${entry.ms} ms)${entry.ok ? '' : `: ${entry.detail}`}`
-      );
+    };
+    const needsInstall = ([, , , install]) => install !== false;
+    try {
+      await runChecks(chosen.filter((c) => !needsInstall(c)));
+      if (chosen.some(needsInstall)) {
+        must(
+          'npm install',
+          run(
+            'npm',
+            [
+              'install',
+              '--offline',
+              '--no-audit',
+              '--no-fund',
+              '--ignore-scripts',
+              '--no-package-lock',
+              tarball,
+            ],
+            { cwd: consumer, env, timeout: 300_000 }
+          )
+        );
+        await runChecks(chosen.filter(needsInstall));
+      }
+    } finally {
+      // the results in the order of the list, whatever ran first
+      results.push(...chosen.map(([id]) => done.get(id)).filter(Boolean));
     }
   } catch (e) {
     results.push({

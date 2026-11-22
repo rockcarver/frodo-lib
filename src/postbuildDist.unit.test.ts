@@ -339,6 +339,22 @@ describe('finishDist', () => {
     ]);
   });
 
+  test('reports the missing file, and creates nothing, when only index.d.mts exists', () => {
+    fakeDist({ 'index.d.mts': 'export {};\n' });
+    const problems = postbuild.finishDist(dir);
+    expect(problems).toContain('missing: dist/index.mjs');
+    expect(fs.existsSync(path.join(dir, 'index.d.cts'))).toBe(false);
+  });
+
+  test('reports the missing file, and changes no file, when only index.mjs exists', () => {
+    const mjs = bundle(PLAIN);
+    fakeDist({ 'index.mjs': mjs });
+    const problems = postbuild.finishDist(dir);
+    expect(problems).toContain('missing: dist/index.d.mts');
+    expect(fs.readFileSync(path.join(dir, 'index.mjs'), 'utf8')).toBe(mjs);
+    expect(fs.existsSync(path.join(dir, 'index.d.cts'))).toBe(false);
+  });
+
   test('reports every file as missing when tsdown wrote nothing', () => {
     expect(postbuild.finishDist(dir)).toHaveLength(5);
     expect(postbuild.finishDist(path.join(dir, 'no-such-dist'))).toHaveLength(

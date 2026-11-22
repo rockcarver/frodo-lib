@@ -118,12 +118,20 @@ describe('the packed package', () => {
 });
 
 /** Pack a fake package that holds only the given dist/index.mjs into a tarball and return its path. */
-function fakeTarball(folder: string, indexMjs: string): string {
+function fakeTarball(
+  folder: string,
+  indexMjs: string,
+  extraPackageJson: Record<string, unknown> = {}
+): string {
   const root = path.join(folder, 'package');
   fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
   fs.writeFileSync(
     path.join(root, 'package.json'),
-    JSON.stringify({ name: '@rockcarver/frodo-lib', version: '0.0.0' })
+    JSON.stringify({
+      name: '@rockcarver/frodo-lib',
+      version: '0.0.0',
+      ...extraPackageJson,
+    })
   );
   fs.writeFileSync(path.join(root, 'dist', 'index.mjs'), indexMjs);
   const tarball = path.join(folder, 'fake.tgz');
@@ -157,18 +165,11 @@ describe('the exit code of scripts/pack-smoke.mjs', () => {
     fs.rmSync(folder, { recursive: true, force: true });
   });
 
-  /** Run the static check on a fake tarball; the script starts only npm, tar and node, never itself. */
-  function staticCheck(indexMjs: string) {
+  /** Run the script on a fake tarball; it starts only npm, tar and node, never itself. */
+  function runOn(tarball: string, only: string) {
     const r = spawnSync(
       process.execPath,
-      [
-        SCRIPT,
-        '--json',
-        '--only',
-        'T9-static',
-        '--tarball',
-        fakeTarball(folder, indexMjs),
-      ],
+      [SCRIPT, '--json', '--only', only, '--tarball', tarball],
       {
         cwd: resolve('.'),
         env: isolatedChildEnv(),
@@ -178,6 +179,8 @@ describe('the exit code of scripts/pack-smoke.mjs', () => {
     );
     return { status: r.status, report: JSON.parse(r.stdout) as Report };
   }
+  const staticCheck = (indexMjs: string) =>
+    runOn(fakeTarball(folder, indexMjs), 'T9-static');
 
   test(
     'is 1 and the report says ok: false when a check fails',
@@ -203,6 +206,49 @@ describe('the exit code of scripts/pack-smoke.mjs', () => {
       expect(report.results.map((r) => [r.id, r.ok])).toEqual([
         ['T9-static', true],
       ]);
+    },
+    WHOLE_RUN_TIMEOUT_MS
+  );
+
+  test(
+    'names a dependency of the package in T1, which runs before the install that cannot fetch it',
+    () => {
+      const withDependency = runOn(
+        fakeTarball(folder, FAKE_BUNDLE(HARDENED_LINE), {
+          dependencies: { 'left-pad': '1.3.0' },
+        }),
+        'T1-tarball'
+      );
+      expect(withDependency.status).toBe(1);
+      expect(String(withDependency.report.results[0].detail)).toContain(
+        'dependencies is not empty'
+      );
+      // with a check that needs the install selected, the install fails offline (the dependency is not in any
+      // cache) and the report still carries the T1 result that names the reason
+      fs.rmSync(path.join(folder, 'package'), { recursive: true, force: true });
+      const installFails = runOn(
+        fakeTarball(folder, FAKE_BUNDLE(HARDENED_LINE), {
+          dependencies: { 'left-pad': '1.3.0' },
+        }),
+        'T1-tarball,T2-shape'
+      );
+      expect(installFails.status).toBe(1);
+      expect(installFails.report.results.map((r) => r.id)).toEqual([
+        'T1-tarball',
+        'setup',
+      ]);
+      expect(String(installFails.report.results[0].detail)).toContain(
+        'dependencies is not empty'
+      );
+      // without a dependency the message is not there
+      fs.rmSync(path.join(folder, 'package'), { recursive: true, force: true });
+      const clean = runOn(
+        fakeTarball(folder, FAKE_BUNDLE(HARDENED_LINE)),
+        'T1-tarball'
+      );
+      expect(String(clean.report.results[0].detail)).not.toContain(
+        'dependencies is not empty'
+      );
     },
     WHOLE_RUN_TIMEOUT_MS
   );
