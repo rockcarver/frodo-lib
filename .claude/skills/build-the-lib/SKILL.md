@@ -32,7 +32,7 @@ npm ci
 npm run build
 ```
 
-It runs `generate-help`, `tsdown`, `scripts/postbuild-dist.cjs`, `clean-types` and `generate-types` and takes seconds. Results: `dist/` with exactly five files (`index.mjs`, its map, `index.d.mts`, its map and `index.d.cts`, a copy of the `.d.mts`) and `types/` (the deprecated deep-import type tree). There is one JavaScript build: CommonJS programs `require()` the `.mjs` file. `dist/` and `types/` are gitignored build output.
+It runs `generate-help`, `tsdown`, `scripts/postbuild-dist.cjs`, `clean-types` and `generate-types` and takes seconds. Results: `dist/` with exactly five files (`index.mjs`, its map, `index.d.mts`, its map and `index.d.cts`, a copy of the `.d.mts`) and `types/` (the deprecated deep-import type tree). There is one JavaScript build: CommonJS programs `require()` the `.mjs` file. `npm run build` is the only complete build: `npm run dev` skips the post-build step (no `index.d.cts`, no `'module.exports'` export). `dist/` and `types/` are gitignored build output.
 
 How you know it worked:
 

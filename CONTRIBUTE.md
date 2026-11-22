@@ -127,7 +127,7 @@ To create a good and consistent developer experience for library users, library 
 
 ##### Public API surface
 
-The package root exports only `frodo`, `state`, `FrodoError`, and types, plus the one `'module.exports'` slot that `require()` returns (an interoperability slot, not a capability: [decisions/0020](decisions/0020-frodo-lib-ships-one-es-module-build-that-commonjs-programs-can-require.md)). Add new runtime capabilities to the facade (`frodo.<domain>...`), not as package-root exports. Do not use wildcard value re-exports (`export * from`) in `src/index.ts`.
+The package root exports only `frodo`, `state`, `FrodoError`, and types. (The build adds one interoperability key, `'module.exports'`, to the built JavaScript only, for `require()`: [decisions/0020](decisions/0020-frodo-lib-ships-one-es-module-build-that-commonjs-programs-can-require.md).) Add new runtime capabilities to the facade (`frodo.<domain>...`), not as package-root exports. Do not use wildcard value re-exports (`export * from`) in `src/index.ts`.
 
 The MCP capability registry infers a method's operation type from its name prefix: `create`, `count`, `read` (a plural name reads all), `update`, `delete`, `query` or `search`, `list`, `export` and `import`. Any other name is a "special" capability and needs a reviewed entry in `src/mcp/CapabilityMetadata.ts`; the capability registry test fails until it has one (pure helpers are usually marked `excluded: true` with a reason). A conventionally named method only needs an entry when the inferred defaults are wrong.
 

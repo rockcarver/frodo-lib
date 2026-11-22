@@ -94,6 +94,12 @@ false` keeps the `.mjs` and `.d.mts` names that `exports` points at.
   convention when the CLI hit exactly this trap with the `@inquirer/*`
   packages (cli #772, 2026-10).
 - `target: 'es2022'`.
+- `npm run dev` (`tsdown --watch`, then `tsdown --dts-only`) does NOT run the
+  post-build step: a watch build leaves `dist/` without `index.d.cts`, with the
+  plain `createRequire(import.meta.url)` and without the `'module.exports'`
+  export. That is enough for the CLI link (it reads `types` and bundles the
+  `.mjs`), but `npm run build` is the only complete build: run it before
+  `npm run test:packed`, a pull request or a release check.
 
 ### 2.3 The axios dts patch (postinstall — do not remove)
 
@@ -118,17 +124,23 @@ surface is a namespace — there is no `default` export; import named members.
 
 What makes `require()` behave like the old CommonJS build:
 
-- `src/index.ts` exports a fourth name, `'module.exports'`: a plain mutable
-  object `{ FrodoError, frodo, state }`. Node.js returns it from `require()`
-  instead of the sealed, null-prototype namespace object, so
+- The post-build step appends a fourth export, `'module.exports'`, to
+  `dist/index.mjs`: a plain mutable object `{ FrodoError, frodo, state }` built
+  from the local names of the bundle's own export list (it refuses to run unless
+  the bundle exports each of the three names exactly once). Node.js returns it
+  from `require()` instead of the sealed, null-prototype namespace object, so
   `lib.hasOwnProperty('frodo')`, `String(lib)` and assigning a top-level member
-  keep working. `import` callers see it as a fourth key. It is an interoperability
-  slot, not a capability; `src/index.test.ts` names it as the one allowed
-  addition.
+  keep working. `import` callers see it as a fourth key. It is an
+  interoperability slot, not a capability. It is in the JavaScript only: the
+  source of the root (`src/index.ts`) and the declarations do not have it,
+  because a declaration file that names a string export cannot be parsed by
+  TypeScript before 5.6 (found in review, 5.4.5 and 5.5.4). The build fails when
+  a declaration file names it, and `npm run test:packed` checks the declarations
+  and the JavaScript.
 - `exports` gives `import` and `require` each their own `types` entry
   (`index.d.mts` and `index.d.cts`); without the `.d.cts`, TypeScript under
   `node16` fails on every version tested.
-- The post-build step hardens `createRequire(import.meta.url)` so that an esbuild
+- The post-build step also hardens `createRequire(import.meta.url)` so that an esbuild
   bundle of a CommonJS program, where `import.meta.url` is undefined, still starts.
 - `engines.node` is `>=22.12` and `.nvmrc` names 22.12.0. Older versions get
   Node's own `ERR_REQUIRE_ESM`.
@@ -161,7 +173,7 @@ What breaks for consumers is in [MIGRATION.md](MIGRATION.md).
 - `src/index.ts` carries ~230 lines of explicit `export type {...} from
 './module'` blocks re-exporting the 120 data-model type names consumers
   (frodo-cli) actually import. Before #687, those names were
-  declared-but-unexported in `dist/index.d.ts` (TS2459 for deep-import
+  declared-but-unexported in `dist/index.d.mts` (then still `index.d.ts`; TS2459 for deep-import
   consumers).
 - The `./types/*` exports subpath (restored in #685 after the #676 allowlist
   dropped it) is DEPRECATED: it only resolves under `moduleResolution:
@@ -295,10 +307,11 @@ directives.
 `files` allowlist (2026-10): `dist` (five files since 5.0.0: `index.mjs`,
 `index.d.mts`, `index.d.cts` and two maps), `scripts/patch-axios-types.cjs`
 (**required** — it is the postinstall hook), LICENSE, README, CHANGELOG —
-13 files instead of 450. Dropped from the tarball: the `types/` tree
-(consumers resolve `dist/index.d.ts` via the exports map; `types/` was an
-internal duplicate surface), `examples/` with their lockfiles, scripts not
-needed at install, `RECORD_REPLAY.md`, `CONTRIBUTE.md`. Verified (and since 5.0.0
+13 files instead of 450 when the list was made (`types/`, the deprecated
+`./types/*` deep-import tree, was added to `files` later, so the tarball holds it
+today). Dropped from the tarball: `examples/` with their lockfiles, scripts not
+needed at install, `RECORD_REPLAY.md`, `CONTRIBUTE.md`. Consumers resolve
+`dist/index.d.mts` (or `index.d.cts` for `require`) via the exports map. Verified (and since 5.0.0
 by `npm run test:packed` on every change): the packed tarball installs
 offline and loads with `require` and `import`; postinstall gracefully skips
 when axios is absent.
@@ -421,5 +434,5 @@ update pull request that skipped it.
 | 2026-11-10 | The `Proxy Tests` step of the `Test` job runs `npm run test:proxy` (the named proxy tests and a live probe through the squid container, `FRODO_PROXY_LIVE=1`, which warns and skips the request through the proxy while the tenant does not answer 2xx without it) instead of the whole suite a second time; a jest setup file hides the proxy variables of the machine from every test file, which fixes 11 suites that failed behind a dead proxy; `src/pipelineWorkflow.test.ts` pins the step; decision `0017` | #982            |
 | 2026-11-14 | Dependabot policy (core `0023`): 7-day cooldown, bundled packages and the bundler one pull request each, only the named `tooling` group auto-merges and only for lockfile versions 7 days old, GitHub Actions never; the three policy files (`.github/dependabot.yml`, `.github/workflows/dependabot-auto-merge.yml`, `scripts/dependabot-auto-merge.mjs`) count as guidance and their two tests run in `Validate guidance` | #1091, #1092, this PR |
 | 2026-11-15 | The decision of the Dependabot auto-merge moves out of this repository: `dependabot-auto-merge.yml` calls the shared action [gearsnlevers/dependabot-auto-merge-action](https://github.com/gearsnlevers/dependabot-auto-merge-action) (v1.0.0, pinned by its full commit SHA, also used by frodo-cli); `scripts/dependabot-auto-merge.mjs` and its test are deleted; `src/dependabotWorkflow.unit.test.ts` pins the properties of the workflow, and the guidance job runs it and `src/dependabotPolicy.unit.test.ts`; the job skips the Dependabot pull requests that move the pin; the manual run has a `dry-run` input; a security update of a tooling package is armed after the age test, as core `0023` says (the own script refused it, the action does not) | #1093 (this PR) |
-| 2026-11-21 | One ES module build (`dist/index.mjs`, `index.d.mts` and a copy `index.d.cts`) instead of a CommonJS and an ES module build: `require()` loads it on Node.js 22.12 or later, `engines` and `.nvmrc` follow, the root exports a plain `'module.exports'` object so that `require` keeps its shape, `scripts/postbuild-dist.cjs` finishes `dist/`, `npm run test:packed` tests the packed tarball; the pipeline jobs for the oldest Node.js, other TypeScript versions and a Jest canary are proposed to the maintainers |
+| 2026-11-21 | One ES module build (`dist/index.mjs`, `index.d.mts` and a copy `index.d.cts`) instead of a CommonJS and an ES module build: `require()` loads it on Node.js 22.12 or later, `engines` and `.nvmrc` follow, `scripts/postbuild-dist.cjs` finishes `dist/` and adds a plain `'module.exports'` export to the JavaScript (not to the source or the declarations) so that `require` keeps its shape, `npm run test:packed` tests the packed tarball; the pipeline jobs for the oldest Node.js, other TypeScript versions and a Jest canary are proposed to the maintainers |
 | planned    | Polly→nock — DEFERRED (deep record-harness coupling; revisit on Node 28 or real breakage)                                                                                                                                                                           | —               |

@@ -706,9 +706,10 @@ Still working: `const { frodo, state } = require('@rockcarver/frodo-lib')`,
 `FrodoError` (`new`, `extends`, `instanceof`), the `createInstance*` factories,
 `require.resolve`, workers and forked processes, `Object.keys`, a spread and
 `Object.assign` of the result, patching a member of the facade
-(`lib.frodo.login.getTokens = stub`), TypeScript programs under `commonjs`,
-`node16`, `nodenext` and `bundler` module resolution (the package ships
-`index.d.cts` for `require`), ts-node, tsx, and esbuild bundles. The
+(`lib.frodo.login.getTokens = stub`), TypeScript programs (5.4 and later were
+checked) under `commonjs`, `node16`, `nodenext` and `bundler` module
+resolution (the package ships `index.d.cts` for `require`), ts-node, tsx, and
+esbuild bundles. The
 `./types/*` deep-import subpath is unchanged.
 
 Four things break:
@@ -733,9 +734,10 @@ Four things break:
    state create an instance with `frodo.createInstance(...)` (it has a `state`
    of its own), or run the code in a separate process.
 4. **The result of `require()` and the namespace of `import` differ in one
-   key.** The module exports a fourth name, `module.exports`: a plain object
-   that holds `FrodoError`, `frodo` and `state`, which is what Node.js returns
-   from `require()` (the module namespace object of an ES module is sealed and
+   key.** The JavaScript of the package exports a fourth name, `module.exports`
+   (the type declarations do not list it, so TypeScript before 5.6 can still
+   read them): a plain object that holds `FrodoError`, `frodo` and `state`,
+   which is what Node.js returns from `require()` (the module namespace object of an ES module is sealed and
    has no prototype, so `lib.hasOwnProperty('frodo')`, `String(lib)` and
    assigning a top-level member would throw without it). `Object.keys` of
    `await import('@rockcarver/frodo-lib')` now lists `module.exports` next to

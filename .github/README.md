@@ -61,9 +61,9 @@ version, with replacements — is maintained in the
 - **5.0.0** removes function and constant exports from the package root.
   Use the `frodo.mcp`, `frodo.utils.terminal`, and
   `frodo.idm.managed.schema` facades; internal MCP helpers have no replacement.
-  The root retains only `frodo`, `state`, and `FrodoError` at runtime, plus the
-  `'module.exports'` slot that `require()` returns; type exports remain
-  available.
+  The root retains only `frodo`, `state`, and `FrodoError` at runtime; type
+  exports remain available. (The built JavaScript also carries a `module.exports`
+  export for `require()`; the types do not list it.)
 - **5.0.0** ships one ES module build (`dist/index.mjs`) instead of a CommonJS
   and an ES module build. `require()` needs Node.js 22.12 or later, Jest in
   CommonJS mode cannot load the real library, and clearing `require.cache` no
