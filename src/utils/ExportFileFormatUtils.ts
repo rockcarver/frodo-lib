@@ -1,6 +1,3 @@
-import slugify from 'slugify';
-import { deleteDeepByKeys, stringify } from './JsonUtils';
-
 /**
  * The format of the files that the library writes and reads: the JSON text of an export, the names of its files and
  * the placeholders in it. Everything here is a pure function (text from data, data from text, names from names): it
@@ -8,6 +5,8 @@ import { deleteDeepByKeys, stringify } from './JsonUtils';
  * functions with the file system and the state (and with `FrodoError`); a file set builds on them without the file
  * system.
  */
+import slugify from 'slugify';
+import { deleteDeepByKeys, stringify } from './JsonUtils';
 
 /** The key under which the export envelope (the metadata of an export) is kept. */
 const META_KEY = 'meta';
@@ -204,12 +203,12 @@ export function withTrailingNewline(text: string): string {
 }
 
 /**
- * The name of the file for an object: `<name>.<type>.<suffix>`, where the name is made a slug (an `http://` or `https://`
- * at its start is dropped; only letters, digits, whitespace and `$*_+~.()'"!-@` are kept; whitespace becomes `-`).
- * Two authentication modules whose names differ only in case (`Federation` and `federation`) must not meet on a file
- * system that ignores case: `Federation` gives `federation.authenticationModules.json` and `federation` gives
- * `federation_.authenticationModules.json` (the case applies to the type `authenticationModules` only, and to these two
- * spellings only).
+ * The name of the file for an object: `<name>.<type>.<suffix>`. The name is made a slug: an `http://` or `https://` at its
+ * start is dropped, only letters, digits, whitespace and `$*_+~.()'"!-@` are kept, and whitespace becomes `-`.
+ *
+ * Two authentication modules whose names differ only in case, `Federation` and `federation`, must not meet on a file
+ * system that ignores case. So for the type `authenticationModules`, and for these two spellings only, `Federation` gives
+ * `federation.authenticationModules.json` and `federation` gives `federation_.authenticationModules.json`.
  * @param {string} name the name of the object
  * @param {string} type the type of the object
  * @param {string} suffix the suffix. Default: json
