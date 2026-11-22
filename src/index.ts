@@ -99,8 +99,9 @@ export type {
 // deep-import subpath, which only resolves under the deprecated node10
 // moduleResolution (deprecated in TS 6.0, removed in TS 7.0) - see the 4.10.0
 // types incident. Re-exported here so the root entry is the complete public
-// type surface; the ./types/* subpath is now redundant (deprecated in 4.12.0,
-// removed in 5.0.0). Grouped by source module, sorted by name.
+// type surface; the ./types/* subpath is now redundant (deprecated in 4.12.0 and
+// still shipped for existing consumers; its removal is planned for a future
+// major version). Grouped by source module, sorted by name.
 
 export type { AgentType } from './api/AgentApi';
 
