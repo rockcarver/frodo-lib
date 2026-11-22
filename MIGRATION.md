@@ -661,6 +661,16 @@ releases missed):
   imported and the journeys reported as unresolved are what they were. A caller
   that depends on the old write order of installed journeys has to order them
   itself.
+- `frodo.utils.saveJsonToFile` and `frodo.utils.saveToFile` no longer change the
+  object they are given. Writing the file used to add the `meta` header to the
+  object and to delete `_rev` and the modified properties (`lastModifiedBy`,
+  `lastModifiedDate`, `modified`, `modifiedDate`, `lastChangeDate`,
+  `lastChangedBy`, `lastChanged`, `createdBy`, `creationDate`, `createdDate`)
+  from it at every depth, as a side effect; the file is now written from a copy
+  and the object is as it was before the call. The file is the same as before.
+  Code that used the object after saving it and relied on that removal has to
+  remove the keys itself (`frodo.utils.json.deleteDeepByKey`), and code that
+  relied on the added `meta` calls `frodo.utils.getMetadata()`.
 
 **Deprecation**:
 
