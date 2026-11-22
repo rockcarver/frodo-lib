@@ -10,6 +10,11 @@ export { frodo, FrodoError, state };
 // and assigning to a top-level export would fail; this plain object keeps them
 // working. It holds the same values as the named exports above and nothing
 // else: new capabilities go on the facade, not here.
+// No module that FrodoLib imports (directly or not) may import this file:
+// building the object reads `frodo` and `state` when the module is evaluated,
+// so such a module fails with a ReferenceError (an import cycle) whenever a
+// test or tool loads FrodoLib first. Import from './lib/FrodoLib' and
+// './ops/FrodoError' instead.
 // See https://github.com/rockcarver/frodo-lib/blob/main/decisions/0020-frodo-lib-ships-one-es-module-build-that-commonjs-programs-can-require.md
 const commonJsExports = { FrodoError, frodo, state };
 export { commonJsExports as 'module.exports' };
