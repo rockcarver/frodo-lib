@@ -16,7 +16,7 @@ import path from 'node:path';
 const ROOT = process.cwd();
 const DEPENDABOT = path.join(ROOT, '.github/dependabot.yml');
 const PACKAGE_JSON = path.join(ROOT, 'package.json');
-const SOURCEMAP = path.join(ROOT, 'dist/index.js.map');
+const SOURCEMAP = path.join(ROOT, 'dist/index.mjs.map');
 
 const text = fs.readFileSync(DEPENDABOT, 'utf8');
 const devDependencies = Object.keys(

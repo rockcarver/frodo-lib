@@ -14,7 +14,8 @@
  *      sockets (verified empirically on Node v24 — see CHANGELOG).
  *
  * The opt-out and exit cells spawn a fresh Node process against the built
- * CJS dist bundle because FRODO_NO_KEEPALIVE is evaluated at module load time
+ * dist bundle (dist/index.mjs, which the CommonJS child script loads with
+ * require) because FRODO_NO_KEEPALIVE is evaluated at module load time
  * and the jest worker already has the module graph loaded. They use async
  * spawn (not spawnSync) so the jest-hosted loopback server can serve while
  * the child runs.
@@ -29,7 +30,7 @@ import { generateAmApi } from './BaseApi';
 
 const REPO_ROOT = resolve('.');
 const TMP_DIR = resolve('.', 'test', 'fs_tmp');
-const DIST_ENTRY = resolve('.', 'dist', 'index.js');
+const DIST_ENTRY = resolve('.', 'dist', 'index.mjs');
 const CHILD_SCRIPT = resolve(TMP_DIR, 'BaseApi.keepalive-child.cjs');
 
 function createServer(): Promise<http.Server> {

@@ -11,8 +11,7 @@ Records that bind this procedure: [decisions/0001](../../../decisions/0001-every
 
 ## 1. Prerequisites
 
-- Node.js 22 or later (CI runs 22, 24 and 26; `engines` allows 20 or later) with the npm that ships with it.
-- `.nvmrc` still says 18.17.0, which contradicts `engines` and CI: do not trust `nvm use` without an argument, pick 22 or later yourself.
+- Node.js 22.12 or later (CI runs 22, 24 and 26; `engines` says `>=22.12`, the first 22.x that can `require()` an ES module without a flag) with the npm that ships with it. `.nvmrc` names 22.12.0.
 - Clone into a directory named exactly `frodo-lib`. `src/utils/AutoSetupPolly.ts` finds the recordings through the last `frodo-xxx` path segment (`xxx` is any three word characters), so any other name breaks every recorded test. Checked: a clone named `frodo-lib-2` failed 29 of the 39 tests in `src/api/AgentApi.test.ts` with "Polly replay integrity check failed". A suffixed name next to a real `frodo-lib` clone hides the problem, because it silently reads (and when recording, writes) the sibling's recordings. Give a second checkout its own parent folder instead: `~/work/issue-123/frodo-lib`.
 
 ## 2. Install
@@ -33,7 +32,7 @@ npm ci
 npm run build
 ```
 
-It runs `generate-help`, `tsdown`, `clean-types` and `generate-types` and takes seconds. Results: `dist/index.js` (CJS), `dist/index.mjs` (ESM) with declarations, and `types/` (the deprecated deep-import type tree). `dist/` and `types/` are gitignored build output.
+It runs `generate-help`, `tsdown`, `scripts/postbuild-dist.cjs`, `clean-types` and `generate-types` and takes seconds. Results: `dist/` with exactly five files (`index.mjs`, its map, `index.d.mts`, its map and `index.d.cts`, a copy of the `.d.mts`) and `types/` (the deprecated deep-import type tree). There is one JavaScript build: CommonJS programs `require()` the `.mjs` file. `npm run build` is the only complete build: `npm run dev` skips the post-build step (no `index.d.cts`, no `'module.exports'` export). `dist/` and `types/` are gitignored build output.
 
 How you know it worked:
 
@@ -41,7 +40,7 @@ How you know it worked:
 - After any change to the dependency graph, both of these print `0` (see the dependencies instruction file):
 
   ```console
-  grep -c 'require("@' dist/index.js
+  grep -c '__require("@' dist/index.mjs
   grep -c 'from "@' dist/index.mjs
   ```
 
@@ -63,7 +62,7 @@ npm test                                                   # everything
 ```
 
 - Always go through these scripts. A bare `npx jest` fails before running anything with `TypeError: Cannot read properties of undefined (reading 'resolve')`, because the `--experimental-vm-modules` flag is missing (checked).
-- Tests run on the sources, with one exception: two tests in `src/api/BaseApi.connectionReuse.test.ts` start a child process against `dist/index.js`. Run `npm run build` once in a fresh clone before the first full `npm test`. Without a build exactly those two fail and everything else passes (checked: 160 of 161 suites). CI builds first.
+- Tests run on the sources, with one exception: two tests in `src/api/BaseApi.connectionReuse.test.ts` start a child process against `dist/index.mjs`, and `src/packedPackage.test.ts` packs the package and installs the tarball offline (`npm run test:packed` runs the same checks without Jest). Run `npm run build` once in a fresh clone before the first full `npm test`. Without a build the tests that need `dist/` fail (the two child-process tests and the packed-package tests) and everything else passes. CI builds first.
 - The full suite takes about half a minute on a laptop (161 suites, about 2,490 tests and 888 snapshots when this was written; the counts drift).
 - A failing run writes `frodo-lib-jest-exceptions.log` (gitignored); CI prints it on failure.
 - Two kinds of tests exist: recorded tests (`autoSetupPolly()`, replay HTTP from `src/test/mock-recordings`) and `*.unit.test.ts` files that inject fakes. A recorded test that cannot find its recording fails (decisions/0002). Do not run `npm run test:update` or any `test:record*` script to get a run green: decide first whether a snapshot change is expected or a regression, and say so in the pull request. Recording needs a tenant: see the create-test-recordings skill (maintainers only).

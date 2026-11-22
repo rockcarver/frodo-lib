@@ -85,7 +85,7 @@ npm test
 Tests passing is the start. Exercise the changed code and try what the pull request claims:
 
 - A throwaway test file next to the module (call it `zzProbe.test.ts`), run with `npm run test:only -- zzProbe`, and delete before you lint or commit anything.
-- The built bundle: `node -e "const { frodo } = require('./dist/index.js'); ..."` after `npm run build`.
+- The built bundle: `node -e "const { frodo } = require('./dist/index.mjs'); ..."` after `npm run build` (Node.js 22.12 or later can `require()` the ES module), or `npm run test:packed` to try the packed package as a consumer.
 - HTTP behaviour without a tenant: a loopback `http.createServer` and a `State` pointed at it, the way `src/api/BaseApi.connectionReuse.test.ts` does.
 - Reproduce the reported problem on a clean `origin/main` checkout first (it must fail), then on the branch (it must be fixed). If you cannot reproduce it, say so.
 

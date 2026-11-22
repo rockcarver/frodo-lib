@@ -17,7 +17,7 @@ OR
 
 ### Prerequisites
 
-- Node.js 22 or later (the CI matrix runs 22, 24, and 26)
+- Node.js 22.12 or later (the CI matrix runs 22, 24, and 26)
 - npm (included with Node.js)
 - A GUI editor is highly recommended. The current developers use [VSCode](https://code.visualstudio.com/), but you are welcome to use others, like [Atom](https://atom.io/) or [Sublime](https://www.sublimetext.com/), etc. The repository contains configuration files for VSCode's [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) and [prettier](https://prettier.io/) add-ons, which will automatically lint the code and apply coding styles when using VSCode. The same files may work for other editors with similar add-ons, but this has not been tested.
 
@@ -58,7 +58,7 @@ npx tsc --noEmit
 npm test
 ```
 
-`npm test` runs on the sources (ts-jest), so no build is needed first, except for two tests in `src/api/BaseApi.connectionReuse.test.ts` that start a child process against `dist/` (build once before the first full run); otherwise `npm run build` is only needed to check the bundle, for example after a dependency change. Run a subset with `npm run test:only -- <path pattern>`. Always go through these scripts: a bare `npx jest` fails because it lacks the `--experimental-vm-modules` flag. The directory you clone into must be named `frodo-lib`, because `src/utils/AutoSetupPolly.ts` finds the recordings through that path segment.
+`npm test` runs on the sources (ts-jest), so no build is needed first, except for two tests in `src/api/BaseApi.connectionReuse.test.ts` that start a child process against `dist/` and for `src/packedPackage.test.ts`, which packs the package and installs the tarball offline (build once before the first full run; without a build these tests fail, they never skip); otherwise `npm run build` is only needed to check the bundle, for example after a dependency change. `npm run test:packed` runs the packed checks without Jest. Run a subset with `npm run test:only -- <path pattern>`. Always go through these scripts: a bare `npx jest` fails because it lacks the `--experimental-vm-modules` flag. The directory you clone into must be named `frodo-lib`, because `src/utils/AutoSetupPolly.ts` finds the recordings through that path segment.
 
 Do not edit `CHANGELOG.md` in a PR. It is generated at release time from what merged since the last release (the `Generate and promote AI changelog` step of `.github/workflows/pipeline.yml`), so write a clear PR title and description. The typedoc output in `docs/` is regenerated and committed by the same release job, so do not edit it either.
 
@@ -73,15 +73,18 @@ Unit tests in frodo-lib replay recorded HTTP responses instead of calling a real
 Frodo Library adheres to the following folder and file structure:
 
 ```preformated
-├── dist                     Build output (generated, gitignored): index.js
-│                            (CommonJS), index.mjs (ESM) and their type
-│                            declarations.
+├── dist                     Build output (generated, gitignored): index.mjs
+│                            (the one ES module build, which `require` and
+│                            `import` both load) and its type declarations
+│                            (index.d.mts, and a copy index.d.cts).
 ├── docs                     Typedoc generated documentation (committed by the
 │                            release job).
 ├── examples                 Sample code how to use the library.
 ├── resources                Resource files.
-├── scripts                  Build scripts: help generation, the types
-│                            deprecation banner, the axios types patch.
+├── scripts                  Build scripts: help generation, the post-build
+│                            step for dist/, the types deprecation banner,
+│                            the axios types patch, the packed-package
+│                            checks (pack-smoke).
 ├── src                      Source files.
 │   ├── api                  Api layer modules. Abstraction of platform
 │   │   │                    REST APIs.
@@ -110,7 +113,9 @@ Frodo Library adheres to the following folder and file structure:
 │   │   ├── snapshots        Snapshot files (Jest).
 │   │   └── utils            Test utilities.
 │   └── utils                Utility modules.
-├── test                     Jest setup (Polly replay integrity guard).
+├── test                     Jest setup (Polly replay integrity guard) and
+│                            the probes of the packed-package checks
+│                            (pack-smoke).
 └── types                    Type declarations (generated, gitignored).
 ```
 
@@ -122,7 +127,7 @@ To create a good and consistent developer experience for library users, library 
 
 ##### Public API surface
 
-The package root exports only `frodo`, `state`, `FrodoError`, and types. Add new runtime capabilities to the facade (`frodo.<domain>...`), not as package-root exports. Do not use wildcard value re-exports (`export * from`) in `src/index.ts`.
+The package root exports only `frodo`, `state`, `FrodoError`, and types. (The build adds one interoperability key, `'module.exports'`, to the built JavaScript only, for `require()`: [decisions/0020](decisions/0020-frodo-lib-ships-one-es-module-build-that-commonjs-programs-can-require.md).) Add new runtime capabilities to the facade (`frodo.<domain>...`), not as package-root exports. Do not use wildcard value re-exports (`export * from`) in `src/index.ts`.
 
 The MCP capability registry infers a method's operation type from its name prefix: `create`, `count`, `read` (a plural name reads all), `update`, `delete`, `query` or `search`, `list`, `export` and `import`. Any other name is a "special" capability and needs a reviewed entry in `src/mcp/CapabilityMetadata.ts`; the capability registry test fails until it has one (pure helpers are usually marked `excluded: true` with a reason). A conventionally named method only needs an entry when the inferred defaults are wrong.
 

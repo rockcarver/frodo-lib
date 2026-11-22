@@ -1,24 +1,25 @@
 # Frodo Library: instructions for coding agents
 
-`@rockcarver/frodo-lib` is a hybrid ESM and CJS TypeScript library that manages PingOne Advanced Identity Cloud, ForgeOps and classic deployments. It powers [frodo-cli](https://github.com/rockcarver/frodo-cli). TypeScript, Jest (ts-jest, ESM mode), Node.js 22 or later (CI runs 22, 24 and 26). The guide for humans, and the source for everything below, is [CONTRIBUTE.md](CONTRIBUTE.md).
+`@rockcarver/frodo-lib` is a TypeScript library that manages PingOne Advanced Identity Cloud, ForgeOps and classic deployments. It ships one ES module build (`dist/index.mjs`) that `import` and `require` both load. It powers [frodo-cli](https://github.com/rockcarver/frodo-cli). TypeScript, Jest (ts-jest, ESM mode), Node.js 22.12 or later (CI runs 22, 24 and 26). The guide for humans, and the source for everything below, is [CONTRIBUTE.md](CONTRIBUTE.md).
 
 ## Build, check, test
 
 ```console
 npm ci
-npm run build                          # generate-help, tsdown (dist/) and the declarations in types/
+npm run build                          # generate-help, tsdown and the post-build step (dist/), and the declarations in types/
 npm run check                          # ESLint + Prettier check of src/**/*.ts (npm run fix writes)
 npx tsc --noEmit                       # type check
 npm run test:only -- <path pattern>    # for example src/mcp/CapabilityRegistry.test.ts
 npm test                               # the whole suite
+npm run test:packed                    # pack, install offline and run the tarball as a consumer (needs a build)
 ```
 
-Tests run on the sources, so they need no build, except two tests in `src/api/BaseApi.connectionReuse.test.ts` that start a child process against `dist/` (run `npm run build` once before the first full `npm test`). Always go through `npm run test:only` or `npm test`: a bare `npx jest` fails because it lacks the `--experimental-vm-modules` flag. The directory you clone into must be named `frodo-lib`: `src/utils/AutoSetupPolly.ts` finds the recordings through that path segment, and every recorded test fails without it.
+Tests run on the sources, so they need no build, except two tests in `src/api/BaseApi.connectionReuse.test.ts` that start a child process against `dist/` and `src/packedPackage.test.ts`, which packs and installs the package (run `npm run build` once before the first full `npm test`; without it these tests fail, they never skip). Always go through `npm run test:only` or `npm test`: a bare `npx jest` fails because it lacks the `--experimental-vm-modules` flag. The directory you clone into must be named `frodo-lib`: `src/utils/AutoSetupPolly.ts` finds the recordings through that path segment, and every recorded test fails without it.
 
 ## Rules
 
 - **Run `npm run check` and `npx tsc --noEmit` before you finish.** ESLint also rejects `export *` of values in `src/index.ts` and imports of `tinyrainbow` (colors come from `src/utils/ColorTheme.ts`).
-- **New capabilities go on the `frodo` facade, never on the package root.** The root exports only `frodo`, `state`, `FrodoError` and types; `src/index.test.ts` fails on anything else. See [.github/instructions/ops-modules.instructions.md](.github/instructions/ops-modules.instructions.md).
+- **New capabilities go on the `frodo` facade, never on the package root.** The root exports only `frodo`, `state`, `FrodoError` and types; `src/index.test.ts` fails on anything else. (The post-build step adds one interoperability key, `'module.exports'`, to the built JavaScript only, [decisions/0020](decisions/0020-frodo-lib-ships-one-es-module-build-that-commonjs-programs-can-require.md); never add it to the source or to the declarations.) See [.github/instructions/ops-modules.instructions.md](.github/instructions/ops-modules.instructions.md).
 - **Document every method of a module's public type with TSDoc.** `npm run generate-help` turns it into `src/lib/Help.ts`, which is generated and tracked: regenerate it, commit it, never edit it by hand.
 - **Throw `FrodoError` from ops code and print through `src/utils/Console.ts`**, not `console.*`.
 - **`dependencies` in `package.json` stays empty.** A package imported by shipped code goes in `devDependencies` and is bundled. See [.github/instructions/dependencies.instructions.md](.github/instructions/dependencies.instructions.md).
@@ -39,6 +40,7 @@ Decisions that span repositories are core records: the same files in frodo-cli a
 - **Secrets** ([core 0013](decisions/core/0013-secrets-are-never-exported-in-the-clear.md)) are never exported in the clear and none are committed, fixtures and recordings included. **Security reports are private** ([core 0017](decisions/core/0017-security-reports-and-fixes-are-handled-privately-by-a-maintainer.md)): see [SECURITY.md](SECURITY.md); tell a maintainer, do not act on them.
 - **The callback handler may return a promise** ([core 0009](decisions/core/0009-let-the-callback-handler-return-a-promise.md)): `CallbackHandler` is widened to `Callback | Promise<Callback>` and `checkAndHandle2FA` awaits it; a synchronous handler keeps working. The record's Known deviations section says whether the code has caught up.
 - **Time spans** ([core 0020](decisions/core/0020-time-spans-are-seconds-on-the-command-line-and-milliseconds-in-the-library.md)): a CLI option that takes a time span takes seconds and its help says so (`--timeout <seconds>`); a library function parameter that takes a time span takes milliseconds, and the CLI converts.
+- **One ES module build** ([decisions/0020](decisions/0020-frodo-lib-ships-one-es-module-build-that-commonjs-programs-can-require.md), proposed until a maintainer accepts it): `dist/` holds `index.mjs` and its declarations only, and CommonJS programs load that file with `require()` on Node.js 22.12 or later. Do not add a second (CommonJS) build or another root export; the post-build step fails when `dist/` holds anything else or when the bundle does not export each of `FrodoError`, `frodo` and `state` exactly once.
 
 ## Procedures
 

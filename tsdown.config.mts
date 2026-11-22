@@ -40,7 +40,7 @@ const baseConfig = {
   sourcemap: true,
   clean: true,
   platform: 'node',
-  fixedExtension: false, // keep dist/index.js (cjs) + dist/index.mjs (esm)
+  fixedExtension: false, // one ES module build: dist/index.mjs and dist/index.d.mts
   define: {
     __LIB_BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
   },
@@ -58,19 +58,12 @@ const baseConfig = {
   },
 };
 
-// ESM build: splitting on (tsdown default), mirrors tsup esmConfig.
+// One ES module build. A CommonJS program loads it with require() (Node.js 22.12
+// or later); scripts/postbuild-dist.cjs adds dist/index.d.cts and hardens the
+// one createRequire line. See decisions/0020-frodo-lib-ships-one-es-module-build-that-commonjs-programs-can-require.md
 const esmConfig = {
   ...baseConfig,
   format: 'esm',
 };
 
-// CJS build: no code splitting, mirrors tsup cjsConfig (splitting: false).
-const cjsConfig = {
-  ...baseConfig,
-  format: 'cjs',
-  outputOptions: {
-    codeSplitting: false,
-  },
-};
-
-export default [esmConfig, cjsConfig];
+export default [esmConfig];

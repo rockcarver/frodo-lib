@@ -18,7 +18,8 @@ TypeScript sources (src/)
   ├─ jest 30 .............. test (test counts shift with the suite; see §4)
   │
   ├─ generate-help ........ scripts/generate-help.mjs (help data for frodo-cli)
-  ├─ tsdown (rolldown) .... bundle src/index.ts -> dist/index.{js,mjs} + dts
+  ├─ tsdown (rolldown) .... bundle src/index.ts -> dist/index.mjs + dts (one ES module build)
+  ├─ postbuild-dist ....... scripts/postbuild-dist.cjs: index.d.cts copy, createRequire hardening, dist/ file check
   ├─ tsc .................. emit types/ (the public type surface)
   │
   ├─ typedoc .............. docs/ (GitHub Pages on release)
@@ -39,14 +40,23 @@ Release automation:
 
 ## 2. Bundler: tsdown (replaced tsup 2026-10)
 
-**What it does**: bundles `src/index.ts` into a hybrid package:
+**What it does**: bundles `src/index.ts` into one ES module build that both
+`import` and `require` load (Node.js 22.12 or later; [decision record](https://github.com/rockcarver/frodo-lib/blob/main/decisions/0020-frodo-lib-ships-one-es-module-build-that-commonjs-programs-can-require.md)),
+then `scripts/postbuild-dist.cjs` finishes `dist/`:
 
-| Output                       | Format   | Role                                                                                                                                                                                             |
-| ---------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `dist/index.js`              | CJS      | `"require"` condition (~6.6 MB)                                                                                                                                                                  |
-| `dist/index.mjs`             | ESM      | `"import"` condition (~6.5 MB)                                                                                                                                                                   |
-| `dist/index.d.ts` / `.d.mts` | dts      | type surface (tsdown, oxc resolver). Since #687 (4.12.0), re-exports all 120 data-model type names from the root entry — this is the supported consumer type surface                             |
-| `types/`                     | tsc emit | the full per-file public type tree (kept on tsc deliberately — same emitter as before, per plan). Serves the deprecated `./types/*` deep-import subpath; scheduled for removal in a future major |
+| Output                        | Role                                                                                                                                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `dist/index.mjs`              | the one JavaScript build (~7.5 MB): the target of `main` and of the `"import"` and `"require"` conditions. Its `createRequire(import.meta.url)` line is hardened by the post-build step         |
+| `dist/index.mjs.map`          | source map                                                                                                                                                                                       |
+| `dist/index.d.mts`            | type surface (tsdown, oxc resolver). Since #687 (4.12.0), re-exports all 120 data-model type names from the root entry — this is the supported consumer type surface                             |
+| `dist/index.d.cts`            | a byte copy of `index.d.mts`, written by the post-build step; the `"require"` condition names it so that TypeScript under `node16` and `nodenext` accepts a `require`                            |
+| `dist/index.d.mts.map`        | declaration map                                                                                                                                                                                  |
+| `types/`                      | the full per-file public type tree (kept on tsc deliberately — same emitter as before, per plan). Serves the deprecated `./types/*` deep-import subpath; scheduled for removal in a future major |
+
+The post-build step fails the build unless `dist/` holds exactly those five
+files and the bundler emitted the one `createRequire(import.meta.url)` line it
+expects, so a bundler change that adds a second build or a second line is
+noticed at once.
 
 **Why tsdown**: tsup is unmaintained and had a real defect (below). Build
 time dropped from ~3.0 s to ~1.75 s. Verified at migration: 62/62 export
@@ -65,11 +75,11 @@ comma-sequenced constructor bodies (jose error classes) into invalid JS —
 - **Config must be `tsdown.config.mts`** — this repo is `"type": "commonjs"`
   and Node 24's config loader cannot load an ESM-syntax `.ts` config here
   (the CLI, being `"type": "module"`, uses plain `.ts`).
-- Two config objects are exported: ESM (splitting on, default) and CJS
-  (`outputOptions: { codeSplitting: false }` — keeps `dist/index.js` a
-  single file).
+- One config object is exported: the ES module build (splitting on, default).
+  There is no CommonJS config any more: CommonJS programs `require()` the
+  `.mjs` file.
 - `dts: { resolver: 'oxc' }` is ~5× faster than `tsc`; `fixedExtension:
-false` preserves the `.js`/`.mjs` naming consumers already resolve.
+false` keeps the `.mjs` and `.d.mts` names that `exports` points at.
 - `deps.neverBundle` lists every devDependency (tsup bundled them too —
   that is why this repo has no `dependencies` field yet effectively ships
   runtime deps inside the bundle).
@@ -84,6 +94,12 @@ false` preserves the `.js`/`.mjs` naming consumers already resolve.
   convention when the CLI hit exactly this trap with the `@inquirer/*`
   packages (cli #772, 2026-10).
 - `target: 'es2022'`.
+- `npm run dev` (`tsdown --watch`, then `tsdown --dts-only`) does NOT run the
+  post-build step: a watch build leaves `dist/` without `index.d.cts`, with the
+  plain `createRequire(import.meta.url)` and without the `'module.exports'`
+  export. That is enough for the CLI link (it reads `types` and bundles the
+  `.mjs`), but `npm run build` is the only complete build: run it before
+  `npm run test:packed`, a pull request or a release check.
 
 ### 2.3 The axios dts patch (postinstall — do not remove)
 
@@ -97,13 +113,46 @@ have it: axios is bundled, not a runtime dependency). If the dts build ever
 fails with "CommonJS dts modules cannot be bundled", this patch is the
 first thing to check. The CLI does not need this (it does not bundle dts).
 
-### 2.4 Side effect fixed: the ESM entry
+### 2.4 The one ES module build and how `require` loads it
 
 tsup's `dist/index.mjs` threw `Dynamic require of "util" is not supported`
-on import (unnoticed; all known consumers use CJS). tsdown's ESM output
-imports cleanly (verified: namespace import exposes all 62 keys). Note the
-ESM surface is a namespace — there is no `default` export; import named
-members.
+on import (unnoticed; all known consumers used CJS). tsdown's ESM output
+imports cleanly, and since 5.0.0 it is the only build: Node.js 22.12 and later
+`require()` an ES module without a flag, so the CommonJS bundle (and its second
+copy of `state` and `FrodoError`, and 20 MB of package size) is gone. The
+surface is a namespace — there is no `default` export; import named members.
+
+What makes `require()` behave like the old CommonJS build:
+
+- The post-build step appends a fourth export, `'module.exports'`, to
+  `dist/index.mjs`: a plain mutable object `{ FrodoError, frodo, state }` built
+  from the local names of the bundle's own export list (it refuses to run unless
+  the bundle exports each of the three names exactly once, and it refuses a bundle
+  whose export list already exports `module.exports`). Node.js returns it
+  from `require()` instead of the sealed, null-prototype namespace object, so
+  `lib.hasOwnProperty('frodo')`, `String(lib)` and assigning a top-level member
+  keep working. `import` callers see it as a fourth key. It is an
+  interoperability slot, not a capability. It is in the JavaScript only: the
+  source of the root (`src/index.ts`) and the declarations do not have it,
+  because a declaration file that names a string export cannot be parsed by
+  TypeScript before 5.6 (measured with TypeScript 5.4.5 and 5.5.4). The build fails when
+  a declaration file names it, and `npm run test:packed` checks the declarations
+  and the JavaScript.
+- `exports` gives `import` and `require` each their own `types` entry
+  (`index.d.mts` and `index.d.cts`); without the `.d.cts`, TypeScript under
+  `node16` fails on every version tested.
+- The post-build step also hardens `createRequire(import.meta.url)` so that an esbuild
+  bundle of a CommonJS program, where `import.meta.url` is undefined, still starts.
+- `engines.node` is `>=22.12` and `.nvmrc` names 22.12.0. Older versions get
+  Node's own `ERR_REQUIRE_ESM`.
+
+`npm run test:packed` (also run by `npm test` as `src/packedPackage.test.ts`,
+after a build) packs the tree, installs the tarball offline into a scratch
+folder and checks the tarball, `require`, `import`, a login round trip against a
+loopback fake AM, TypeScript under five module resolutions and an esbuild bundle.
+Not covered by it (they need the network, so they belong to the pipeline): the
+oldest Node.js, other TypeScript versions and a Jest canary.
+What breaks for consumers is in [MIGRATION.md](MIGRATION.md).
 
 ---
 
@@ -112,9 +161,9 @@ members.
 - Lib: `5.9` (exact pin; PR #668). CLI aligned to `^5.9.3`.
 - Policy: stay on 5.9.x. Do **not** adopt TS 6/7 until `typedoc` (≤6.0),
   `typescript-eslint` (<6.1) and `ts-jest` (<7) accept them.
-- `npm run build` = `generate-help && tsdown && clean-types && generate-types`:
-  help data first (it feeds the bundle), then the bundle, then the tsc
-  `types/` tree. `generate-types` = `tsc` (deliberately unchanged from the
+- `npm run build` = `generate-help && tsdown && postbuild-dist && clean-types && generate-types`:
+  help data first (it feeds the bundle), then the bundle, the post-build step
+  for `dist/`, then the tsc `types/` tree. `generate-types` = `tsc` (deliberately unchanged from the
   pre-tsdown emitter — the public type surface is byte-compatible) followed
   by `scripts/deprecate-types-subpath.cjs`, which stamps the formal
   `@deprecated` banner for the `./types/*` subpath onto every generated
@@ -125,14 +174,14 @@ members.
 - `src/index.ts` carries ~230 lines of explicit `export type {...} from
 './module'` blocks re-exporting the 120 data-model type names consumers
   (frodo-cli) actually import. Before #687, those names were
-  declared-but-unexported in `dist/index.d.ts` (TS2459 for deep-import
+  declared-but-unexported in `dist/index.d.mts` (then still `index.d.ts`; TS2459 for deep-import
   consumers).
 - The `./types/*` exports subpath (restored in #685 after the #676 allowlist
   dropped it) is DEPRECATED: it only resolves under `moduleResolution:
 node` (node10), which TypeScript 6 deprecates and 7 removes. Consumers
   should import from the root entry. Removal is planned for a future
   major (5.0.0 stable notes carry the deprecation).
-- Known d.ts imperatives for 5.0.0 cleanup: `dist/index.d.ts` line 1
+- Known d.ts imperatives for 5.0.0 cleanup: `dist/index.d.mts` line 1
   `import { Reader } from "properties-reader"` is unresolvable for
   external consumers (properties-reader is a devDependency), and the d.ts
   maps point at unpublished `src/` paths. Two TS2411 index-signature
@@ -256,14 +305,17 @@ directives.
 
 ## 6. npm package contents
 
-`files` allowlist (2026-10): `dist`, `scripts/patch-axios-types.cjs`
+`files` allowlist (2026-10): `dist` (five files since 5.0.0: `index.mjs`,
+`index.d.mts`, `index.d.cts` and two maps), `scripts/patch-axios-types.cjs`
 (**required** — it is the postinstall hook), LICENSE, README, CHANGELOG —
-13 files instead of 450. Dropped from the tarball: the `types/` tree
-(consumers resolve `dist/index.d.ts` via the exports map; `types/` was an
-internal duplicate surface), `examples/` with their lockfiles, scripts not
-needed at install, `RECORD_REPLAY.md`, `CONTRIBUTE.md`. Verified: packed
-tarball installs and imports cleanly in CJS and ESM modes; postinstall
-gracefully skips when axios is absent.
+13 files instead of 450 when the list was made (`types/`, the deprecated
+`./types/*` deep-import tree, was added to `files` later, so the tarball holds it
+today). Dropped from the tarball: `examples/` with their lockfiles, scripts not
+needed at install, `RECORD_REPLAY.md`, `CONTRIBUTE.md`. Consumers resolve
+`dist/index.d.mts` (or `index.d.cts` for `require`) via the exports map. Verified (and since 5.0.0
+by `npm run test:packed` on every change): the packed tarball installs
+offline and loads with `require` and `import`; postinstall gracefully skips
+when axios is absent.
 
 ---
 
@@ -383,4 +435,5 @@ update pull request that skipped it.
 | 2026-11-10 | The `Proxy Tests` step of the `Test` job runs `npm run test:proxy` (the named proxy tests and a live probe through the squid container, `FRODO_PROXY_LIVE=1`, which warns and skips the request through the proxy while the tenant does not answer 2xx without it) instead of the whole suite a second time; a jest setup file hides the proxy variables of the machine from every test file, which fixes 11 suites that failed behind a dead proxy; `src/pipelineWorkflow.test.ts` pins the step; decision `0017` | #982            |
 | 2026-11-14 | Dependabot policy (core `0023`): 7-day cooldown, bundled packages and the bundler one pull request each, only the named `tooling` group auto-merges and only for lockfile versions 7 days old, GitHub Actions never; the three policy files (`.github/dependabot.yml`, `.github/workflows/dependabot-auto-merge.yml`, `scripts/dependabot-auto-merge.mjs`) count as guidance and their two tests run in `Validate guidance` | #1091, #1092, this PR |
 | 2026-11-15 | The decision of the Dependabot auto-merge moves out of this repository: `dependabot-auto-merge.yml` calls the shared action [gearsnlevers/dependabot-auto-merge-action](https://github.com/gearsnlevers/dependabot-auto-merge-action) (v1.0.0, pinned by its full commit SHA, also used by frodo-cli); `scripts/dependabot-auto-merge.mjs` and its test are deleted; `src/dependabotWorkflow.unit.test.ts` pins the properties of the workflow, and the guidance job runs it and `src/dependabotPolicy.unit.test.ts`; the job skips the Dependabot pull requests that move the pin; the manual run has a `dry-run` input; a security update of a tooling package is armed after the age test, as core `0023` says (the own script refused it, the action does not) | #1093 (this PR) |
+| 2026-11-21 | One ES module build (`dist/index.mjs`, `index.d.mts` and a copy `index.d.cts`) instead of a CommonJS and an ES module build: `require()` loads it on Node.js 22.12 or later, `engines` and `.nvmrc` follow, `scripts/postbuild-dist.cjs` finishes `dist/` and adds a plain `'module.exports'` export to the JavaScript (not to the source or the declarations) so that `require` keeps its shape, `npm run test:packed` tests the packed tarball; the pipeline jobs for the oldest Node.js, other TypeScript versions and a Jest canary are proposed to the maintainers |
 | planned    | Polly→nock — DEFERRED (deep record-harness coupling; revisit on Node 28 or real breakage)                                                                                                                                                                           | —               |
