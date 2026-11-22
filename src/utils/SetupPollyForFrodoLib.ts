@@ -36,6 +36,9 @@ const FRODO_MOCK_HOSTS = process.env.FRODO_MOCK_HOSTS
       'http://openam-frodo-dev.classic.com:8080',
     ];
 
+// The command line the recording names are made from, set by setupPollyForFrodoLib.
+let argv: string[] = process.argv;
+
 let recordIfMissing = false;
 let mode = MODES.REPLAY;
 
@@ -163,7 +166,7 @@ function getFrodoArgsId({ start, state }: { start: number; state: State }) {
   const args: string[] = [];
   const params: string[] = [];
   let expectValue = false;
-  process.argv
+  argv
     .filter((_v, i) => i >= start)
     .map((v) => {
       if (v.startsWith('--')) {
@@ -206,7 +209,7 @@ different, for example when testing different encodings: generic, pem, base64hma
 function getFrodoArgValue({ name }: { name: string }) {
   let result: string = '';
   let expectValue = false;
-  process.argv.map((v) => {
+  argv.map((v) => {
     if (v === name) {
       expectValue = true;
     } else if (expectValue) {
@@ -246,42 +249,42 @@ function getFrodoCommand({ state }: { state: State }) {
   try {
     if (mode !== MODES.RECORD)
       debugMessage({
-        message: `SetupPollyForFrodoLib.getFrodoCommand: process.argv=${process.argv}`,
+        message: `SetupPollyForFrodoLib.getFrodoCommand: process.argv=${argv}`,
         state,
       });
     if (
-      !process.argv[1].endsWith('frodo') &&
-      !process.argv[1].endsWith('frodo.exe') &&
-      !process.argv[1].endsWith('app.cjs')
+      !argv[1].endsWith('frodo') &&
+      !argv[1].endsWith('frodo.exe') &&
+      !argv[1].endsWith('app.cjs')
     ) {
       cmd =
-        path.parse(process.argv[1]).name.replace('-', '/') +
+        path.parse(argv[1]).name.replace('-', '/') +
         '/' +
         getFrodoArgsId({ start: 2, state });
     } else {
-      cmd = process.argv[2] + '/';
+      cmd = argv[2] + '/';
       let i = 3;
       if (cmd === 'info/') {
         cmd += getFrodoArgsId({ start: 3, state });
       } else {
         if (
-          process.argv[i] === 'export' ||
-          process.argv[i] === 'pull' ||
-          process.argv[i] === 'push' ||
-          process.argv[i] === 'import' ||
-          process.argv[i] === 'list' ||
-          process.argv[i] === 'delete' ||
-          process.argv[i] === 'count' ||
-          process.argv[i] === 'describe' ||
-          process.argv[i] === 'enable' ||
-          process.argv[i] === 'disable'
+          argv[i] === 'export' ||
+          argv[i] === 'pull' ||
+          argv[i] === 'push' ||
+          argv[i] === 'import' ||
+          argv[i] === 'list' ||
+          argv[i] === 'delete' ||
+          argv[i] === 'count' ||
+          argv[i] === 'describe' ||
+          argv[i] === 'enable' ||
+          argv[i] === 'disable'
         ) {
-          cmd += process.argv[i++] + '/';
+          cmd += argv[i++] + '/';
         }
-        let firstParamIndex = process.argv.findIndex((a) => a.startsWith('-'));
+        let firstParamIndex = argv.findIndex((a) => a.startsWith('-'));
         firstParamIndex =
-          firstParamIndex === -1 ? process.argv.length : firstParamIndex;
-        cmd += process.argv.slice(i, firstParamIndex).join('-');
+          firstParamIndex === -1 ? argv.length : firstParamIndex;
+        cmd += argv.slice(i, firstParamIndex).join('-');
         if (!cmd.endsWith('/')) {
           cmd += '/';
         }
@@ -294,7 +297,7 @@ function getFrodoCommand({ state }: { state: State }) {
       type: 'error',
       state,
     });
-    printMessage({ message: process.argv, type: 'error', state });
+    printMessage({ message: argv, type: 'error', state });
     cmd = 'error';
   }
   if (mode !== MODES.RECORD)
@@ -305,13 +308,31 @@ function getFrodoCommand({ state }: { state: State }) {
   return cmd;
 }
 
+/**
+ * Sets up the process-wide record and replay of HTTP traffic: one Polly instance
+ * that replays the recordings found for this process, or records them.
+ *
+ * The recording names are made from the command line. The routes are set up
+ * here, once, and take the name then. A caller that runs this function later
+ * than it started (the library does: it imports this module on demand) hands
+ * over the command line it had at the start, and the names are made from that
+ * one, also by the shutdown message of a recording run.
+ * @param {Object} params
+ * @param {any} [params.matchRequestsBy] how requests are matched to recordings
+ * @param {State} params.state State object
+ * @param {string[]} [params.argv] the command line to name the recordings after, default the live `process.argv`
+ * @returns {Polly} the Polly instance
+ */
 export function setupPollyForFrodoLib({
   matchRequestsBy = orderedMatchRequestsBy(false),
   state,
+  argv: loadTimeArgv,
 }: {
   matchRequestsBy?: any;
   state: State;
+  argv?: string[];
 }): Polly {
+  argv = loadTimeArgv ?? process.argv;
   const polly = new Polly('default');
 
   polly.configure({
