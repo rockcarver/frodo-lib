@@ -40,14 +40,14 @@ exports.leakedEnv = () =>
 // round trip. A variable name of the bundler or a Node.js warning would be a weaker witness (the names change with
 // the bundler, the warning exists on one Node.js version only). The control is a process with FRODO_MOCK=1: it must
 // run the wrapper, so that the probe cannot pass because it looks at the wrong function.
+//
+// A second witness is another package of Polly: graceful-fs, which its file persister loads, replaces fs.close and
+// fs.closeSync in the process the moment it is evaluated. A process without FRODO_MOCK must leave both alone, the
+// control must have replaced them.
+//
+// The modules these functions need are required inside them, so that the other probes, which share this file, load
+// nothing they do not use (a Node.js built without the inspector would otherwise fail every probe).
 // ------------------------------------------------------------------------------------------------------------------
-const { spawnSync } = require('node:child_process');
-const fs = require('node:fs');
-const inspector = require('node:inspector');
-const os = require('node:os');
-const path = require('node:path');
-const { fileURLToPath } = require('node:url');
-const { start } = require('../fakeAm.cjs');
 
 /** A string that only @pollyjs/core contains: the error of a request that no recording answers. */
 const POLLY_CORE_MARKER = 'Recording for the following request is not found';
@@ -64,6 +64,8 @@ const post = (session, method, params = {}) =>
  * marker, the largest first: the script itself, then the wrapper that holds the whole module.
  */
 async function pollyCoreRuns(session, file) {
+  const fs = require('node:fs');
+  const { fileURLToPath } = require('node:url');
   const text = fs.readFileSync(file, 'utf8');
   const first = text.indexOf(POLLY_CORE_MARKER);
   if (first < 0 || text.indexOf(POLLY_CORE_MARKER, first + 1) >= 0) {
@@ -96,7 +98,11 @@ async function pollyCoreRuns(session, file) {
  * count covers everything that ran from the load on.
  */
 exports.measurePollyCore = async (load) => {
+  const fs = require('node:fs');
+  const inspector = require('node:inspector');
+  const { start } = require('../fakeAm.cjs');
   const file = fs.realpathSync(require.resolve(exports.PKG));
+  const closeBefore = [fs.close, fs.closeSync];
   const session = new inspector.Session();
   session.connect();
   await post(session, 'Profiler.enable');
@@ -124,6 +130,8 @@ exports.measurePollyCore = async (load) => {
     fake.server.close();
   }
   out.requests = fake.log.length;
+  out.fsClosePatched =
+    fs.close !== closeBefore[0] || fs.closeSync !== closeBefore[1];
   out.pollyCoreRuns = await pollyCoreRuns(session, file);
   session.disconnect();
   console.log('MEASURE ' + JSON.stringify(out));
@@ -140,11 +148,15 @@ function envWithout(extra = {}) {
 
 /**
  * The judging side of T10: run `probeFile measure` twice. Without FRODO_MOCK the module wrapper of @pollyjs/core must
- * not have run and the login must work; with FRODO_MOCK=1 (the control, an empty recordings folder of its own) it
- * must have run. Where the control prints the localStorage warning of Node.js 26 (it comes from a package of Polly),
+ * not have run, fs.close and fs.closeSync must be the ones of Node.js and the login must work; with FRODO_MOCK=1 (the
+ * control, an empty recordings folder of its own) the wrapper must have run and both functions must be replaced. Where the control prints the localStorage warning of Node.js 26 (it comes from a package of Polly),
  * the run without FRODO_MOCK must not print it.
  */
 exports.checkPollyLoadedLazily = (probeFile) => {
+  const { spawnSync } = require('node:child_process');
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
   const recordings = fs.mkdtempSync(path.join(os.homedir(), 'polly-lazy-'));
   const measure = (label, extra) => {
     const r = spawnSync(process.execPath, [probeFile, 'measure'], {
@@ -176,11 +188,15 @@ exports.checkPollyLoadedLazily = (probeFile) => {
       plain.login === true &&
       plain.pollyCoreRuns === 0 &&
       control.pollyCoreRuns >= 1 &&
+      plain.fsClosePatched === false &&
+      control.fsClosePatched === true &&
       !(controlWarned && warned);
     return {
       ok,
       pollyCoreRuns: plain.pollyCoreRuns,
       controlPollyCoreRuns: control.pollyCoreRuns,
+      fsClosePatched: plain.fsClosePatched,
+      controlFsClosePatched: control.fsClosePatched,
       login: plain.login,
       requests: plain.requests,
       warned,
