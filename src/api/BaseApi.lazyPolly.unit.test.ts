@@ -14,6 +14,7 @@
  */
 import { jest } from '@jest/globals';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
+import type { State } from '../shared/State';
 
 type SetupArgs = { state: unknown; argv?: string[] };
 
@@ -44,10 +45,25 @@ async function loadBaseApi() {
   return await import('./BaseApi');
 }
 
+type BaseApiModule = Awaited<ReturnType<typeof loadBaseApi>>;
+
+/** The number of request interceptors an instance of BaseApi has (axios keeps a hole for a removed one). */
+async function requestInterceptorCount(baseApi: BaseApiModule) {
+  const { default: StateImpl } = await import('../shared/State');
+  const instance = baseApi.generateAmAuthApi({
+    resource: {},
+    anonymous: true,
+    state: StateImpl({}),
+  });
+  return (instance.interceptors.request as any).handlers.filter(Boolean)
+    .length as number;
+}
+
 /** A request through a fresh instance of BaseApi whose transport is the given function. */
 async function sendRequest(
-  baseApi: Awaited<ReturnType<typeof loadBaseApi>>,
-  onSend: () => void = () => {}
+  baseApi: BaseApiModule,
+  onSend: () => void = () => {},
+  state?: State
 ) {
   const { default: StateImpl } = await import('../shared/State');
   const adapter = async (
@@ -65,7 +81,7 @@ async function sendRequest(
   const instance = baseApi.generateAmAuthApi({
     resource: {},
     anonymous: true,
-    state: StateImpl({}),
+    state: state ?? StateImpl({}),
     requestOverride: { adapter },
   });
   return await instance.get('http://127.0.0.1:1/am/json/serverinfo/version');
@@ -97,6 +113,14 @@ describe('BaseApi loads the record and replay setup only when FRODO_MOCK is set'
     expect(setupCalls).toHaveLength(0);
   });
 
+  test('1b: an instance has no gate without FRODO_MOCK and exactly one request interceptor more with it', async () => {
+    delete process.env.FRODO_MOCK;
+    const without = await requestInterceptorCount(await loadBaseApi());
+    process.env.FRODO_MOCK = '1';
+    const withMock = await requestInterceptorCount(await loadBaseApi());
+    expect(withMock).toBe(without + 1);
+  });
+
   test.each(['1', 'record'])(
     '2: loads the setup once, with the command line of the load time, when FRODO_MOCK is %s',
     async (value) => {
@@ -126,6 +150,22 @@ describe('BaseApi loads the record and replay setup only when FRODO_MOCK is set'
     const setupDoneWhenSent: boolean[] = [];
     await sendRequest(baseApi, () => setupDoneWhenSent.push(setupDone));
     expect(setupDoneWhenSent).toEqual([true]);
+  });
+
+  test('3b: the gate runs before the curl command is built, curlirize is registered first', async () => {
+    process.env.FRODO_MOCK = '1';
+    factoryDelayMs = 50;
+    let setupDone = false;
+    setupBehavior = () => {
+      setupDone = true;
+    };
+    const { default: StateImpl } = await import('../shared/State');
+    const state = StateImpl({});
+    state.setCurlirize(true);
+    const setupDoneWhenPrinted: boolean[] = [];
+    state.setCurlirizeHandler(() => setupDoneWhenPrinted.push(setupDone));
+    await sendRequest(await loadBaseApi(), () => {}, state);
+    expect(setupDoneWhenPrinted[0]).toBe(true);
   });
 
   describe('when the setup fails', () => {
