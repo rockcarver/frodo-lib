@@ -2,14 +2,18 @@
   "name": "@rockcarver/frodo-lib",
   "version": "5.0.0-49",
   "type": "commonjs",
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": {
-      "require": "./dist/index.js",
-      "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts"
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.mjs"
+      }
     },
     "./types/*": "./types/*"
   },
@@ -37,7 +41,7 @@
     "clean-types": "rimraf types",
     "generate-types": "tsc && node scripts/deprecate-types-subpath.cjs",
     "generate-help": "node scripts/generate-help.mjs",
-    "build": "npm run generate-help && npx tsdown && npm run clean-types && npm run generate-types",
+    "build": "npm run generate-help && npx tsdown && node scripts/postbuild-dist.cjs && npm run clean-types && npm run generate-types",
     "doc": "npx typedoc",
     "prettier:fix": "prettier --write \"src/**/*.ts\"",
     "dev": "npx tsdown --watch src --onSuccess 'npx tsdown --dts-only'",
@@ -62,7 +66,7 @@
     "devops"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12"
   },
   "repository": {
     "type": "git",
@@ -118,6 +122,7 @@
     "axios": "^1.13.4",
     "axios-mock-adapter": "^2.1.0",
     "axios-retry": "^4.4.0",
+    "esbuild": "0.28.2",
     "eslint": "10.14.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-import-x": "4.18.0",
