@@ -938,7 +938,7 @@ describe('what a helper accepts is what the library reads (the real getFilePath 
     );
 
     expect(violations.slice(0, 5)).toEqual([]);
-    // the corpus has both kinds in it
+    // the corpus has both sorts in it
     expect(accepted).toBeGreaterThan(50000);
     expect(refused).toBeGreaterThan(50000);
   });

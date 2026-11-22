@@ -274,7 +274,7 @@ function withKeyAtDepth(key: string, depth: number): object {
 
 /**
  * The inputs, as new objects: a test may change them. Handwritten shapes first, then the stripped keys at depth 1 to
- * 3, arrays of objects, and pseudo-random trees.
+ * 3, arrays of objects, and pseudo-random objects.
  * @returns {DifferentialCase[]} the cases, each with a unique id
  */
 export function differentialCases(): DifferentialCase[] {
@@ -426,10 +426,10 @@ export function differentialCases(): DifferentialCase[] {
     });
   }
 
-  // pseudo-random trees
+  // pseudo-random objects
   const random = mulberry32(20261122);
   for (let i = 0; i < 140; i++) {
-    add(`random tree ${i}`, randomObject(random, 2));
+    add(`random object ${i}`, randomObject(random, 2));
   }
 
   return cases;
@@ -467,7 +467,7 @@ export const TYPED_FILENAME_CASES: [string, string, string | undefined][] = [
   ['../x', 'script', undefined],
   ['', 'script', undefined],
   ['   ', 'script', undefined],
-  ['odd $*_+~.()\'"!-@ characters', 'script', undefined],
+  ['odd $*_+~.()\'"!-@', 'script', undefined],
   ['more <>:|?# [] {} ^ % & = , ; odd', 'script', undefined],
   ['unicode é ü ß', 'script', undefined],
   ['日本語', 'script', undefined],
