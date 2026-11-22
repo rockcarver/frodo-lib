@@ -70,14 +70,14 @@ node mytool.mjs
 
 Things that must hold for this to work:
 
-- **Set `FRODO_MOCK` before frodo-lib is loaded.** The hook is installed when the library's HTTP layer is first imported (`src/api/BaseApi.ts`). In an ES module, static `import`s are hoisted above any `process.env.FRODO_MOCK = ...` line, so either set the variable in the shell (as above) or load the library with a dynamic `import()` after setting it.
+- **Set `FRODO_MOCK` before frodo-lib is loaded.** Whether record and replay is used is decided when the library's HTTP layer is first imported (`src/api/BaseApi.ts`): a process that has not set the variable by then never loads record and replay. In an ES module, static `import`s are hoisted above any `process.env.FRODO_MOCK = ...` line, so either set the variable in the shell (as above) or load the library with a dynamic `import()` after setting it.
 - **Set `FRODO_MOCK_HOSTS` to your host(s)** unless you only use the built-in frodo development hosts. See [Hosts](#hosts).
 - **Set `FRODO_TEST_NAME`** for anything that is not the `frodo` binary. See [Recording identity and layout](#recording-identity-and-layout).
 - **Credentials must be well-formed in replay mode.** The login code still runs; it just receives its responses from the recordings. A service account JWK must be a valid key (it signs the assertion), but it does not have to belong to any real tenant.
 
 ## How it works
 
-frodo-lib uses [Polly.js](https://netflix.github.io/pollyjs/) with its Node HTTP adapter and file-system persister. When `FRODO_MOCK` is set, `api/BaseApi.ts` calls `setupPollyForFrodoLib()` (`src/utils/SetupPollyForFrodoLib.ts`) at module load. Every HTTP request frodo-lib makes through axios is then either
+frodo-lib uses [Polly.js](https://netflix.github.io/pollyjs/) with its Node HTTP adapter and file-system persister. When `FRODO_MOCK` is set, `api/BaseApi.ts` imports `src/utils/SetupPollyForFrodoLib.ts` on demand as soon as the library is loaded and calls its `setupPollyForFrodoLib()`; every axios instance waits for that setup before it sends its first request, so no request goes out untouched. Without `FRODO_MOCK` the Polly packages are never evaluated: a process that does not record or replay does not pay for them. Every HTTP request frodo-lib makes through axios is then either
 
 - **replayed** from a recording on disk (`FRODO_MOCK=1`), failing with `Recording for the following request is not found` if there is none; or
 - **passed to the real server and recorded** (`FRODO_MOCK=record`).
@@ -284,6 +284,9 @@ Every `.har` file that exists but never shows up in the log is a candidate. Befo
 - **`recordFailedRequests` is on**, so 4xx/5xx responses are recorded too. That is what lets you test failure paths.
 - **One `FRODO_TEST_NAME` per invocation.** Reusing a name overwrites; there is no collision warning.
 - **HTTP keep-alive agents are disabled in record mode** so the recording adapter sees every request.
+- **The setup runs right after the importing code's synchronous run, not at the `require` or `import` itself.** The library takes a copy of `process.argv` when it is loaded and the recording names are made from that copy, so a program may change its command line after loading the library (a command line program does) without renaming its recordings. The `FRODO_MOCK*` and `FRODO_TEST_NAME` variables are different: they are read when the setup runs. Set them before the library is loaded, as above, and leave them alone afterwards.
+- **A failing setup rejects the first request.** A setup that throws rejects the first request of every axios instance with that error. It is never an unhandled rejection that ends the process, and no request goes out untouched.
+- **Record and replay prints the `ExperimentalWarning: localStorage is not available` of Node.js 26.** It comes from a package that Polly uses, and only a process that sets `FRODO_MOCK` loads it. A program that records or replays and wants a quiet stderr starts Node.js with `--no-warnings`.
 - **Environment inherits into child processes.** If you spawn a tool from a test, it sees your `FRODO_MOCK*` variables. That is intended, but remember to clear or override them when a spawned process should hit the real network.
 
 ## In-process helper for Jest tests (frodo-lib's own tests)
@@ -317,7 +320,7 @@ Exporting these as a public, programmatic API would be a natural next step if mo
 
 | File | What it holds |
 | --- | --- |
-| `src/api/BaseApi.ts` | Installs the process-wide hook when `FRODO_MOCK` is set; disables keep-alive agents in record mode. |
+| `src/api/BaseApi.ts` | Imports the setup on demand when `FRODO_MOCK` is set (with a copy of the command line of that moment), makes every axios instance wait for it; disables keep-alive agents in record mode. |
 | `src/utils/SetupPollyForFrodoLib.ts` | Modes, routing, recording names, hosts, shared login cassettes, replay-time rewrites, expiry, shutdown countdown. |
 | `src/utils/PollyUtils.ts` | Matching rules (`defaultMatchRequestsBy`, `orderedMatchRequestsBy`) and secret masking (`filterRecording`). |
 | `src/utils/FrodoNodeHttpAdapter.ts` | Node HTTP adapter that strips proxy prefixes from URLs so proxied and direct runs record the same. |

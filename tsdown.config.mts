@@ -45,6 +45,12 @@ const baseConfig = {
     __LIB_BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
   },
   deps: { neverBundle: devDeps, onlyBundle: false },
+  // One JavaScript file. A dynamic import() inside the library (record and replay
+  // of HTTP traffic, see src/api/BaseApi.ts) would otherwise become a second file
+  // of dist/, and https://github.com/rockcarver/frodo-lib/blob/main/decisions/0020-frodo-lib-ships-one-es-module-build-that-commonjs-programs-can-require.md
+  // (one ES module build) ships exactly one: the imported module stays in
+  // dist/index.mjs, evaluated when the import() runs and not when the file loads.
+  outputOptions: { codeSplitting: false },
   // Silence the INEFFECTIVE_DYNAMIC_IMPORT warning: FrodoLib.ts is both
   // statically imported (index.ts, mcp/*) and dynamically imported
   // (SecretsOps.ts). That split is intentional (the lazy SecretsOps import

@@ -36,7 +36,6 @@ import {
   redactBody,
   redactHeaderValue,
 } from '../utils/SensitiveDataUtils';
-import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
 
 export type ResourceConfig = { apiVersion?: string };
 
@@ -46,8 +45,26 @@ export type RetryEverythingStrategy = 'everything';
 export type RetryStrategy =
   RetryNothingStrategy | RetryNetworkStrategy | RetryEverythingStrategy;
 
+// Record and replay of HTTP traffic (Polly) is loaded only by a process that sets
+// FRODO_MOCK: the packages it needs are a visible part of every load, and a process
+// without FRODO_MOCK never uses them. The setup module is imported on demand, so
+// it is evaluated only here, and every axios instance waits for it before its
+// first request (createAxiosInstance), so no request goes out untouched. The
+// command line is copied now, because the setup reads it a moment later and the
+// program that loaded the library may have changed it in between (a recording is
+// named after it).
+let mockReady: Promise<void> | undefined;
 if (process.env.FRODO_MOCK) {
-  setupPollyForFrodoLib({ state: StateImpl({}) });
+  const argvAtLoad = [...process.argv];
+  mockReady = import('../utils/SetupPollyForFrodoLib').then(
+    ({ setupPollyForFrodoLib }) => {
+      setupPollyForFrodoLib({ state: StateImpl({}), argv: argvAtLoad });
+    }
+  );
+  // A setup that fails rejects the first request with its error. Without a
+  // request nobody awaits the promise: this keeps that from being an unhandled
+  // rejection that ends the process.
+  mockReady.catch(() => {});
 }
 
 // all agents
@@ -187,6 +204,15 @@ function createAxiosInstance(
   // request holds the credential that attachCredentialInterceptor puts on it.
   if (state.getCurlirize()) {
     curlirizeRequests(axiosInstance, state);
+  }
+
+  // Record and replay must be set up before the first request of this instance
+  // goes out (see mockReady above). Without FRODO_MOCK there is nothing to wait for.
+  if (mockReady) {
+    axiosInstance.interceptors.request.use(async (config) => {
+      await mockReady;
+      return config;
+    });
   }
 
   const globalRetryConfig = state.getAxiosRetryConfig();
