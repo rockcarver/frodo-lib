@@ -127,14 +127,15 @@ What makes `require()` behave like the old CommonJS build:
 - The post-build step appends a fourth export, `'module.exports'`, to
   `dist/index.mjs`: a plain mutable object `{ FrodoError, frodo, state }` built
   from the local names of the bundle's own export list (it refuses to run unless
-  the bundle exports each of the three names exactly once). Node.js returns it
+  the bundle exports each of the three names exactly once, and it refuses a bundle
+  whose export list already exports `module.exports`). Node.js returns it
   from `require()` instead of the sealed, null-prototype namespace object, so
   `lib.hasOwnProperty('frodo')`, `String(lib)` and assigning a top-level member
   keep working. `import` callers see it as a fourth key. It is an
   interoperability slot, not a capability. It is in the JavaScript only: the
   source of the root (`src/index.ts`) and the declarations do not have it,
   because a declaration file that names a string export cannot be parsed by
-  TypeScript before 5.6 (found in review, 5.4.5 and 5.5.4). The build fails when
+  TypeScript before 5.6 (measured with TypeScript 5.4.5 and 5.5.4). The build fails when
   a declaration file names it, and `npm run test:packed` checks the declarations
   and the JavaScript.
 - `exports` gives `import` and `require` each their own `types` entry
