@@ -10,6 +10,14 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-50] - 2026-11-22
+
+### Added
+- Introduced a single ES module build, `dist/index.mjs`, which CommonJS programs can require. This simplifies the package structure by eliminating the need for separate CommonJS and ES module bundles. CommonJS programs can continue using `require('@rockcarver/frodo-lib')` without changes, as Node.js 22.12+ supports loading ES modules via `require()` (#1133).
+
+### Changed
+- The axios type patch now runs as a `prepare` script instead of a `postinstall` script, removing the install script from the published package. This change prevents unnecessary install script executions during consumer installs, enhancing package installation efficiency (#1135).
+
 ## [v5.0.0-49] - 2026-11-21
 
 ### Added
@@ -3061,6 +3069,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-50]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-49...v5.0.0-50
 [v5.0.0-49]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-48...v5.0.0-49
 [v5.0.0-48]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-47...v5.0.0-48
 [v5.0.0-47]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-46...v5.0.0-47

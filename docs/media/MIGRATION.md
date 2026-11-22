@@ -691,6 +691,65 @@ before it shows them, and a failed read of the list is indistinguishable from
 a missing feature. Create the service account and handle the error instead.
 frodo-cli no longer calls it.
 
+#### One ES module build instead of two
+
+5.0.0 ships one JavaScript build, `dist/index.mjs`, instead of a CommonJS
+bundle (`dist/index.js`) and an ES module bundle. `require()`, `import` and
+`import()` of `@rockcarver/frodo-lib` all load the same file, so a program that
+mixes them now gets one `state` object and one `FrodoError` class (before, each
+format had its own copy of both). `package.json` keeps `"type": "commonjs"`, has
+no `module` field, and says `"node": ">=22.12"` in `engines`: from Node.js 22.12
+on, `require()` loads an ES module without a flag. The reasons are in the
+[decision record](https://github.com/rockcarver/frodo-lib/blob/main/decisions/0020-frodo-lib-ships-one-es-module-build-that-commonjs-programs-can-require.md).
+
+Still working: `const { frodo, state } = require('@rockcarver/frodo-lib')`,
+`FrodoError` (`new`, `extends`, `instanceof`), the `createInstance*` factories,
+`require.resolve`, workers and forked processes, `Object.keys`, a spread and
+`Object.assign` of the result, patching a member of the facade
+(`lib.frodo.login.getTokens = stub`), TypeScript programs (5.4 and later were
+checked) under `commonjs`, `node16`, `nodenext` and `bundler` module
+resolution (the package ships `index.d.cts` for `require`), ts-node, tsx, and
+esbuild bundles. The
+`./types/*` deep-import subpath is unchanged.
+
+Four things break:
+
+1. **Jest in CommonJS mode cannot load the real library.** `require()` of the
+   package in a test fails with `Must use import to load ES Module`; Jest refuses
+   to `require` an ES module file, and no ES-module-only package can change that.
+   A `jest.mock('@rockcarver/frodo-lib', () => ({ ... }))` with a factory still
+   works, because the real module is never loaded. To use the real library write
+   the tests as ES modules and run Jest 30 with
+   `NODE_OPTIONS=--experimental-vm-modules` (measured on Node.js 24.9 or later;
+   it did not work with Jest 29), or stay on 4.x.
+2. **Node.js older than 22.12 cannot `require()` the package.** Node.js 22.0 to
+   22.11 and 20.0 to 20.18, and any Node.js started with
+   `--no-experimental-require-module`, throw `ERR_REQUIRE_ESM`. Upgrade to
+   Node.js 22.12 or later (22.12.0 prints one `ExperimentalWarning` on the first
+   `require()`, later versions print nothing), or load the package with
+   `import()`, which works on every version.
+3. **Clearing `require.cache` no longer resets the library.**
+   `delete require.cache[require.resolve('@rockcarver/frodo-lib')]` followed by
+   `require()` returns the same module with its `state` kept. To get a fresh
+   state create an instance with `frodo.createInstance(...)` (it has a `state`
+   of its own), or run the code in a separate process.
+4. **The result of `require()` and the namespace of `import` differ in one
+   key.** The JavaScript of the package exports a fourth name, `module.exports`
+   (the type declarations do not list it, so TypeScript before 5.6 can still
+   read them): a plain object that holds `FrodoError`, `frodo` and `state`,
+   which is what Node.js returns from `require()` (the module namespace object of an ES module is sealed and
+   has no prototype, so `lib.hasOwnProperty('frodo')`, `String(lib)` and
+   assigning a top-level member would throw without it). `Object.keys` of
+   `await import('@rockcarver/frodo-lib')` now lists `module.exports` next to
+   the three names; skip it if you enumerate the keys. Assigning to a member of
+   the object that `require()` returns (`lib.frodo = stub`) changes that object
+   only, not what `import` callers read; patch a member of the facade instead
+   (`lib.frodo.login.getTokens = stub`), which is the same object for everyone.
+   The object that `require()` returns also prints differently from the one of
+   4.x: `Object.prototype.toString.call(lib)` and `String(lib)` give
+   `[object Object]` instead of `[object Module]`, and it has no
+   `Symbol.toStringTag` key (its only own keys are the three names).
+
 ## Upgrading to 4.x
 
 ### From 3.x
