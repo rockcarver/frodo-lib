@@ -168,6 +168,7 @@ jobs:
         run: |
           npm run test:only -- --runTestsByPath \
             src/agentSkills.test.ts \
+            src/claudeRules.test.ts \
             src/decisionRecords.test.ts \
             src/dependabotPolicy.unit.test.ts \
             src/dependabotWorkflow.unit.test.ts \
