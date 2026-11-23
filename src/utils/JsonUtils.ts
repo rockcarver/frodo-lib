@@ -31,12 +31,12 @@ export type Json = {
    * changes nothing. Every own enumerable string key of the second object is applied to the first
    * object, except the key __proto__, which is never copied (symbol keys are ignored). Two arrays
    * are merged by index, and the first array is never shortened. Two objects are merged key by key
-   * when the value of the first object is a plain object (the value of the second object may be a
-   * plain object or a class instance: an AxiosHeaders instance merges into the plain headers of the
-   * first object), or when both are instances of the same class. A class instance of the first
-   * object is never changed by a value of another class, a plain object included: the value of the
-   * second object replaces it (a plain object given as httpsAgent replaces the shared default agent
-   * and is not merged into it). The built-in value types are never merged, because their own
+   * when the value of the first object is a plain object; the value of the second object may be a
+   * plain object or a class instance (an AxiosHeaders instance merges into the plain headers of the
+   * first object). A class instance of the first object is never changed: the value of the second
+   * object replaces it, whatever its class, a plain object and an instance of the same class
+   * included (a plain object or an https.Agent given as httpsAgent replaces the shared default
+   * agent and is not merged into it). The built-in value types are never merged, because their own
    * enumerable keys are not their value: a Date, RegExp, Error, Map, Set, WeakMap, WeakSet,
    * Promise, ArrayBuffer, SharedArrayBuffer, typed array, DataView, Buffer or boxed primitive
    * replaces the other value and is replaced by it. In every other case the value of the second
@@ -208,10 +208,8 @@ export function cloneDeep(obj: any): any {
  * | --- | --- | --- |
  * | array | array | merged by index; the first array is never shortened |
  * | plain object | plain object | merged key by key |
- * | plain object | class instance | the source replaces the target (a plain object given as `httpsAgent` replaces the shared default agent and is never merged into it) |
  * | class instance | plain object | merged: the own enumerable string keys of the instance are added to the plain object (an `AxiosHeaders` instance merges into the default headers) |
- * | class instance | instance of the same class | merged key by key |
- * | class instance | instance of another class | the source replaces the target (an `https.Agent` replaces the shared default agent and is never merged into it) |
+ * | plain object or class instance | class instance (of any class) | the source replaces the target, which is never changed (a plain object or an `https.Agent` given as `httpsAgent` replaces the shared default agent and is never merged into it) |
  * | Date, RegExp, Error, Map, Set, WeakMap, WeakSet, Promise, ArrayBuffer, SharedArrayBuffer, typed array, DataView, Buffer or boxed primitive | anything | the source replaces the target: the own enumerable keys of these are not their value |
  * | anything | one of those built-in value types | the source replaces the target |
  * | array | object that is not an array | the source replaces the target |
@@ -295,9 +293,9 @@ function isMergeableObject(value: any): boolean {
 
 /**
  * Check if the keys of a value of the second object are to be merged into the value of the first object: both are
- * mergeable objects, and the value of the first object is a plain object or an instance of the same class as the value
- * of the second object. A class instance of the first object is never changed by a source of another class (a plain
- * object included): the source replaces it.
+ * mergeable objects and the value of the first object is a plain object. The value of the second object may be a plain
+ * object or a class instance. A class instance of the first object is never changed by a merge, whatever the source:
+ * the source replaces it, so no override can reach into a shared instance of the first object.
  * @param source value of the second object
  * @param target value of the first object
  * @returns true to merge key by key, false to replace the target by the source
@@ -306,8 +304,7 @@ function canMergeObjects(source: any, target: any): boolean {
   return (
     isMergeableObject(source) &&
     isMergeableObject(target) &&
-    (isPlainObject(target) ||
-      Object.getPrototypeOf(source) === Object.getPrototypeOf(target))
+    isPlainObject(target)
   );
 }
 
