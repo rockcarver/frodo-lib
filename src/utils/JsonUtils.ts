@@ -1,3 +1,5 @@
+import { types } from 'util';
+
 export type Json = {
   /**
    * Compare two json objects
@@ -22,10 +24,30 @@ export type Json = {
    */
   cloneDeep(obj: any): any;
   /**
-   * Deep merge two objects
-   * @param obj1 first object
-   * @param obj2 second object
-   * @returns merged first and second object
+   * Deep merge the second object into the first. The first object is changed and returned. A first
+   * argument that is null, undefined or otherwise falsy is returned as it is; a first argument that
+   * is truthy and not an object, a frozen first object and a property of the first object that has
+   * only a getter throw a TypeError. A second argument that is null, undefined or not an object
+   * changes nothing. Every own enumerable string key of the second object is applied to the first
+   * object, except the key __proto__, which is never copied (symbol keys are ignored). Two arrays
+   * are merged by index, and the first array is never shortened. Two objects are merged key by key
+   * when the value of the first object is a plain object; the value of the second object may be a
+   * plain object or a class instance (an AxiosHeaders instance merges into the plain headers of the
+   * first object). A class instance of the first object is never changed: the value of the second
+   * object replaces it, whatever its class, a plain object and an instance of the same class
+   * included (a plain object or an https.Agent given as httpsAgent replaces the shared default
+   * agent and is not merged into it). The built-in value types are never merged, because their own
+   * enumerable keys are not their value: a Date, RegExp, Error, Map, Set, WeakMap, WeakSet,
+   * Promise, ArrayBuffer, SharedArrayBuffer, typed array, DataView, Buffer or boxed primitive
+   * replaces the other value and is replaced by it. In every other case the value of the second
+   * object replaces the value of the first object, whatever the type of either: a scalar replaces
+   * an object or an array, an object or an array replaces a scalar (also 0, an empty string, false,
+   * null and undefined), null replaces anything, an array replaces an object, an object replaces an
+   * array, and a function replaces and is replaced. A key whose value is undefined in the second
+   * object is assigned too. Values that are assigned are shared with the second object, not copied.
+   * @param obj1 first object, changed by the merge
+   * @param obj2 second object, merged into the first and not changed
+   * @returns the first object, with the second object merged into it
    */
   mergeDeep(obj1: any, obj2: any): any;
   /**
@@ -173,21 +195,117 @@ export function cloneDeep(obj: any): any {
 }
 
 /**
- * Deep merge two objects
- * @param obj1 first object
- * @param obj2 second object
- * @returns merged first and second object
+ * Deep merge the second object into the first. The first object is changed and returned. A first argument that is
+ * null, undefined or otherwise falsy is returned as it is; a first argument that is truthy and not an object, a frozen
+ * first object and a property of the first object that has only a getter throw a TypeError. A second argument that is
+ * null, undefined or not an object changes nothing.
+ *
+ * Every own enumerable string key of the second object is applied to the first object (symbol keys are ignored), except
+ * the key `__proto__`, which is never copied. With `source` the value of the second object and `target` the own value
+ * of the first object under the same key, what happens is:
+ *
+ * | source | target | result |
+ * | --- | --- | --- |
+ * | array | array | merged by index; the first array is never shortened |
+ * | plain object | plain object | merged key by key |
+ * | class instance | plain object | merged: the own enumerable string keys of the instance are added to the plain object (an `AxiosHeaders` instance merges into the default headers) |
+ * | plain object or class instance | class instance (of any class) | the source replaces the target, which is never changed (a plain object or an `https.Agent` given as `httpsAgent` replaces the shared default agent and is never merged into it) |
+ * | Date, RegExp, Error, Map, Set, WeakMap, WeakSet, Promise, ArrayBuffer, SharedArrayBuffer, typed array, DataView, Buffer or boxed primitive | anything | the source replaces the target: the own enumerable keys of these are not their value |
+ * | anything | one of those built-in value types | the source replaces the target |
+ * | array | object that is not an array | the source replaces the target |
+ * | object that is not an array | array | the source replaces the target |
+ * | scalar, null, undefined or function | anything | the source replaces the target (also when the target is 0, an empty string, false, null or undefined) |
+ * | object or array | scalar, null, undefined or function | the source replaces the target |
+ *
+ * A plain object is an object whose prototype is `Object.prototype` or null. A key whose value is undefined in the
+ * second object is assigned too. A value that is assigned is shared with the second object, not copied.
+ * @param obj1 first object, changed by the merge
+ * @param obj2 second object, merged into the first and not changed
+ * @returns the first object, with the second object merged into it
  */
 export function mergeDeep(obj1: any, obj2: any): any {
-  if (obj1) {
-    for (const key of Object.keys(obj2)) {
-      // eslint-disable-next-line no-prototype-builtins
-      if (!obj1.hasOwnProperty(key) || typeof obj2[key] !== 'object')
-        obj1[key] = obj2[key];
-      else mergeDeep(obj1[key], obj2[key]);
-    }
+  if (!obj1 || obj2 === null || typeof obj2 !== 'object') return obj1;
+  for (const key of Object.keys(obj2)) {
+    if (key === '__proto__') continue;
+    const source = obj2[key];
+    const target = Object.prototype.hasOwnProperty.call(obj1, key)
+      ? obj1[key]
+      : undefined;
+    if (
+      (Array.isArray(source) && Array.isArray(target)) ||
+      canMergeObjects(source, target)
+    )
+      mergeDeep(target, source);
+    else obj1[key] = source;
   }
   return obj1;
+}
+
+/**
+ * Check if a value is a plain object: an object whose prototype is Object.prototype or null. SensitiveDataUtils keeps a
+ * private copy of this check that is also a type predicate.
+ * @param value value to check
+ * @returns true if the value is a plain object, false otherwise (null, scalars, arrays, class instances and functions)
+ */
+function isPlainObject(value: any): boolean {
+  if (value === null || typeof value !== 'object') return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+/**
+ * Check if a value is one of the built-in value types: objects whose own enumerable keys are not their value, so that
+ * merging keys into them makes no sense
+ * @param value value to check
+ * @returns true if the value is a Date, RegExp, Error, Map, Set, WeakMap, WeakSet, Promise, ArrayBuffer,
+ * SharedArrayBuffer, typed array, DataView, Buffer or boxed primitive, false otherwise
+ */
+function isBuiltInValue(value: any): boolean {
+  return (
+    types.isDate(value) ||
+    types.isRegExp(value) ||
+    // util.types.isNativeError is deprecated and Error.isError needs Node.js 24: an Error, subclasses included, has this tag
+    Object.prototype.toString.call(value) === '[object Error]' ||
+    types.isMap(value) ||
+    types.isSet(value) ||
+    types.isWeakMap(value) ||
+    types.isWeakSet(value) ||
+    types.isPromise(value) ||
+    types.isAnyArrayBuffer(value) ||
+    types.isArrayBufferView(value) ||
+    types.isBoxedPrimitive(value)
+  );
+}
+
+/**
+ * Check if a value is an object that can take keys by a merge: an object that is not an array and not a built-in value
+ * @param value value to check
+ * @returns true if the value is such an object, false otherwise
+ */
+function isMergeableObject(value: any): boolean {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    !isBuiltInValue(value)
+  );
+}
+
+/**
+ * Check if the keys of a value of the second object are to be merged into the value of the first object: both are
+ * mergeable objects and the value of the first object is a plain object. The value of the second object may be a plain
+ * object or a class instance. A class instance of the first object is never changed by a merge, whatever the source:
+ * the source replaces it, so no override can reach into a shared instance of the first object.
+ * @param source value of the second object
+ * @param target value of the first object
+ * @returns true to merge key by key, false to replace the target by the source
+ */
+function canMergeObjects(source: any, target: any): boolean {
+  return (
+    isMergeableObject(source) &&
+    isMergeableObject(target) &&
+    isPlainObject(target)
+  );
 }
 
 /**
