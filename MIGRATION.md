@@ -158,6 +158,26 @@ releases missed):
   failure. The `ERROR - can't save <file>` line is no longer printed through
   the print handler, so the caller prints the thrown error once.
   `frodo.utils.saveToFile` propagates the same error.
+- `frodo.utils.saveJsonToFile` and `frodo.utils.saveToFile` no longer change the
+  object they are given. Writing the file used to add the `meta` header to the
+  object and to delete `_rev` and the ten modified properties (`lastModifiedBy`,
+  `lastModifiedDate`, `modified`, `modifiedDate`, `lastChangeDate`,
+  `lastChangedBy`, `lastChanged`, `createdBy`, `creationDate`, `createdDate`)
+  from it at every depth, as a side effect. The file is now written from the
+  object as it is, and the object is as it was before the call. For data that is
+  plain JSON the file is the one it was, with these exceptions. An object that is
+  saved more than once used to keep the `meta` header of its first save, so the
+  second file had the same `exportDate`; every file now gets a header of its own.
+  A later save of the same object that asks to keep `_rev` or the modified
+  properties now writes them (the first save had removed them from the object,
+  so the second file lacked them). The keys that are left out are now also left
+  out of what a `toJSON` method or a getter returns (they were kept there), and
+  a frozen object can be saved (it used to fail when a key had to be added or
+  removed). Code that used the object after saving it and relied on the removal
+  has to remove the keys itself, exact names only:
+  `frodo.utils.json.deleteDeepByKey(object, key, true)` for each key (without
+  `true` it also removes every key that merely contains the name).
+  Code that relied on the added `meta` calls `frodo.utils.getMetadata()`.
 - `frodo.mapping.deleteMappings` (`src/ops/MappingOps.ts`) now tries every
   mapping. A mapping that cannot be deleted no longer stops the others: after
   all of them were tried, the function throws one `FrodoError` that carries one
@@ -661,16 +681,6 @@ releases missed):
   imported and the journeys reported as unresolved are what they were. A caller
   that depends on the old write order of installed journeys has to order them
   itself.
-- `frodo.utils.saveJsonToFile` and `frodo.utils.saveToFile` no longer change the
-  object they are given. Writing the file used to add the `meta` header to the
-  object and to delete `_rev` and the modified properties (`lastModifiedBy`,
-  `lastModifiedDate`, `modified`, `modifiedDate`, `lastChangeDate`,
-  `lastChangedBy`, `lastChanged`, `createdBy`, `creationDate`, `createdDate`)
-  from it at every depth, as a side effect; the file is now written from a copy
-  and the object is as it was before the call. The file is the same as before.
-  Code that used the object after saving it and relied on that removal has to
-  remove the keys itself (`frodo.utils.json.deleteDeepByKey`), and code that
-  relied on the added `meta` calls `frodo.utils.getMetadata()`.
 
 **Deprecation**:
 

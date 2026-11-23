@@ -1092,6 +1092,7 @@ describe('assertInside reads both paths as they are written', () => {
     ['a root with a double slash', '/w//dir', '/w/dir/x'],
     ['a target with a double slash', '/w/dir', '/w//dir//x'],
     ['a target with dots in the middle', '/w/dir', '/w/dir/./a/./b'],
+    ['a path of Windows with slashes', 'C:/cfg', 'C:/cfg/x.json'],
     [
       'a target that starts above the root of the file system, where `..` stays at the root',
       '/w',
@@ -1111,6 +1112,11 @@ describe('assertInside reads both paths as they are written', () => {
     ],
     ['a relative target of an absolute root', '/w/dir', 'w/dir/x'],
     ['an absolute target of a relative root', 'w/dir', '/w/dir/x'],
+    [
+      'a path of Windows with backslashes is one name, not a path (POSIX rules)',
+      'C:\\cfg',
+      'C:\\cfg\\x.json',
+    ],
     ['a target that is the working directory', 'a', '.'],
     [
       'a root that is the working directory and a target that leaves it',
@@ -1247,7 +1253,7 @@ describe('the pure rewrite and the wrapper give the same path', () => {
 describe('the module stays pure', () => {
   const imports = importSpecifiersOf('src/utils/FileSetPathUtils.ts');
 
-  it('imports nothing from the api, ops or lib layers or from the package root (decisions/0004: imports point downward)', () => {
+  it('imports nothing from the api, ops or lib layers or from the package root (layers and dependency direction: https://github.com/rockcarver/frodo-lib/blob/main/decisions/0004-layers-and-dependency-direction.md)', () => {
     expect(imports.filter((s) => UPWARD_PATTERN.test(s))).toEqual([]);
   });
 

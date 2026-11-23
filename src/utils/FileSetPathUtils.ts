@@ -79,6 +79,12 @@ function segmentsOf(path: string): { absolute: boolean; segments: string[] } {
  * part of `/set/alpha`). Both paths are read as they are written: a relative root and a relative target are compared with
  * each other and are never resolved against a working directory, and an absolute path is never inside a relative one, or
  * the other way round.
+ *
+ * The rules are POSIX rules on every platform: `/` separates and a backslash is an ordinary character. A path of Windows
+ * with backslashes is therefore one name, not a path: `assertInside('C:\\cfg', 'C:\\cfg\\x.json')` throws, while
+ * `assertInside('C:/cfg', 'C:/cfg/x.json')` does not. A caller that holds such a path hands it over with `/` (the rewrite of
+ * `getFilePath` of `ExportImportUtils` does the same before it reads a path). The tests of this module run on Linux
+ * only: the cross-platform job of the pipeline runs a short list of other files.
  * @param {string} root the folder
  * @param {string} target the path that has to be inside it
  * @throws {Error} if the target is the root itself, or outside it

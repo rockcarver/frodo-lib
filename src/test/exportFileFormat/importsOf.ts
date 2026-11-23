@@ -3,8 +3,9 @@ import { resolve } from 'path';
 
 /**
  * The module specifiers that a source file imports or re-exports, in the order they appear: `import ... from 'x'`,
- * `import 'x'`, `export ... from 'x'`, `import('x')` and `require('x')`. A type-only import counts as well (record 0004:
- * the direction rule applies to types too). Comments are removed first, so a word in a comment is not an import.
+ * `import 'x'`, `export ... from 'x'`, `import('x')` and `require('x')`. A type-only import counts as well, as
+ * https://github.com/rockcarver/frodo-lib/blob/main/decisions/0004-layers-and-dependency-direction.md (layers and dependency direction)
+ * says: the direction rule applies to types too. Comments are removed first, so a word in a comment is not an import.
  * Used by the tests that keep the pure modules of `src/utils` free of upward imports and of the file system.
  * @param {string} sourcePath path of the source file, relative to the root of the repository
  * @returns {string[]} the specifiers
@@ -28,7 +29,10 @@ export function importSpecifiersOf(sourcePath: string): string[] {
   return specifiers;
 }
 
-/** The layers of the library that a module of the foundation (`src/utils`) must not import (record 0004). */
+/**
+ * The layers of the library that a module of the foundation (`src/utils`) must not import, see
+ * https://github.com/rockcarver/frodo-lib/blob/main/decisions/0004-layers-and-dependency-direction.md (layers and dependency direction).
+ */
 export const UPWARD_PATTERN = /^\.\.\/(api|ops|lib)(\/|$)|^\.\.\/index$/;
 
 /** The built-in modules that reach the file system, the machine or other processes. */
