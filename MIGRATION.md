@@ -570,10 +570,10 @@ releases missed):
   and an `httpsAgent` or `httpAgent` override replaces the default agent of
   that instance whatever it is: an `Agent` instance of any class, the class of
   the shared default agent included (it threw before), or a plain object (it
-  was merged key by key into the shared default agent, which changed it for
-  every later request of the process, the verification of certificates
-  included). A caller that relied on one of the errors has to check the values
-  first; such callers cannot be counted from here.
+  was merged key by key into the shared default agent, which changed that
+  agent for every later request of the process). A caller that relied on one
+  of the errors has to check the values first; such callers cannot be counted
+  from here.
 - `frodo.cloud.feature.readFeatures` (`src/ops/cloud/FeatureOps.ts`) now throws
   a `FrodoError` when the list of features cannot be read, for example HTTP 403
   for a credential without the scope `fr:idc:feature:*`. Before, it returned an

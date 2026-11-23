@@ -1382,12 +1382,13 @@ describe('mergeDeep', () => {
     describe('an httpsAgent that could reach into the shared default agent', () => {
       // An `httpsAgent` of a request override must never be merged into the
       // shared default agent (a ProxyAgent, which holds the https.Agent it uses
-      // for a direct connection): merged, a plain object `{ httpsAgent: {
-      // options: { rejectUnauthorized: false } } }`, or an agent made from the
-      // class of the shared agent (`frodo.factory.generateAmApi({}).defaults.
-      // httpsAgent.constructor`) with `rejectUnauthorized: false`, would turn
-      // the verification of certificates off for every later request of the
-      // process. The probe is a local TLS server with an expired certificate.
+      // for a direct connection): a merge changes that agent for every later
+      // request of the process. With an agent made from the class of the shared
+      // agent (`frodo.factory.generateAmApi({}).defaults.httpsAgent.
+      // constructor`) and `rejectUnauthorized: false`, a merge turns the
+      // verification of certificates off for every later request, and the
+      // probe below is red with such a merge. The probe is a local TLS server
+      // with an expired certificate.
       let server: https.Server;
       let baseURL: string;
       const priorNoProxy = process.env.NO_PROXY;
