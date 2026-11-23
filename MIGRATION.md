@@ -545,27 +545,34 @@ releases missed):
   primitive is a value, not a bag of keys: it replaces the other value and is
   replaced by it (it used to take the keys of a plain object over it, and to
   be left as it was when it came from the second object). A class instance of
-  the first object is no longer changed by a value of another class: a plain
-  object or an instance of another class replaces it (it used to be merged
-  into it, key by key). What does not change: a class instance in the second
-  object merges its own enumerable string keys into a plain object of the
-  first (an `AxiosHeaders` instance into the default headers of a factory
-  request), two instances of the same class merge, the first object is changed
-  and returned, arrays merge by index, a falsy first argument is returned as
-  it is, the values of the second object are shared and not copied, and a
-  first argument that is truthy and not an object, a frozen first object and a
-  property that has only a getter still throw a `TypeError`. Visible through
-  the factory: a `proxy` object in the `requestOverride` of
-  `frodo.factory.generateAmApi` and the other `generate*Api` methods now takes
-  effect (it was dropped over the default `proxy: false`), `proxy: null` now
-  becomes `null` (it was dropped; axios leaves its own proxy lookup on for
-  `null` and switches it off for `false`), and an `httpsAgent` or `httpAgent`
-  override replaces the default agent of that instance, an `Agent` instance
-  (it threw) or a plain object (it was merged key by key into the shared
-  default agent, which changed it for every later request of the process, the
-  verification of certificates included). A caller that relied on one of the
-  errors has to check the values first; such callers cannot be counted from
-  here.
+  the first object is never changed: the value of the second object replaces
+  it, whatever its class, a plain object and an instance of the same class
+  included (it used to be merged into it, key by key; two `URLSearchParams`
+  used to leave the first and lose the second). So code that merged into an
+  `AxiosHeaders` instance, for example `mergeDeep(config, { headers })` with
+  an `AxiosHeaders` instance in `config.headers`, now gets the plain headers
+  in place of the instance and has to use the `set` method of the instance;
+  the library does that itself for the `config.headers` of
+  `frodo.oauth2oidc.endpoint.accessTokenRfc7523AuthZGrant`, which keeps the
+  headers of the caller as before. What does not change: a class instance in
+  the second object merges its own enumerable string keys into a plain object
+  of the first (an `AxiosHeaders` instance into the default headers of a
+  factory request), the first object is changed and returned, arrays merge by
+  index, a falsy first argument is returned as it is, the values of the second
+  object are shared and not copied, and a first argument that is truthy and
+  not an object, a frozen first object and a property that has only a getter
+  still throw a `TypeError`. Visible through the factory: a `proxy` object in
+  the `requestOverride` of `frodo.factory.generateAmApi` and the other
+  `generate*Api` methods now takes effect (it was dropped over the default
+  `proxy: false`), `proxy: null` now becomes `null` (it was dropped; axios
+  leaves its own proxy lookup on for `null` and switches it off for `false`),
+  and an `httpsAgent` or `httpAgent` override replaces the default agent of
+  that instance whatever it is: an `Agent` instance of any class, the class of
+  the shared default agent included (it threw before), or a plain object (it
+  was merged key by key into the shared default agent, which changed it for
+  every later request of the process, the verification of certificates
+  included). A caller that relied on one of the errors has to check the values
+  first; such callers cannot be counted from here.
 - `frodo.cloud.feature.readFeatures` (`src/ops/cloud/FeatureOps.ts`) now throws
   a `FrodoError` when the list of features cannot be read, for example HTTP 403
   for a credential without the scope `fr:idc:feature:*`. Before, it returned an
