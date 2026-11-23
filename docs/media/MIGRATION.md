@@ -158,6 +158,26 @@ releases missed):
   failure. The `ERROR - can't save <file>` line is no longer printed through
   the print handler, so the caller prints the thrown error once.
   `frodo.utils.saveToFile` propagates the same error.
+- `frodo.utils.saveJsonToFile` and `frodo.utils.saveToFile` no longer change the
+  object they are given. Writing the file used to add the `meta` header to the
+  object and to delete `_rev` and the ten modified properties (`lastModifiedBy`,
+  `lastModifiedDate`, `modified`, `modifiedDate`, `lastChangeDate`,
+  `lastChangedBy`, `lastChanged`, `createdBy`, `creationDate`, `createdDate`)
+  from it at every depth, as a side effect. The file is now written from the
+  object as it is, and the object is as it was before the call. For data that is
+  plain JSON the file is the one it was, with these exceptions. An object that is
+  saved more than once used to keep the `meta` header of its first save, so the
+  second file had the same `exportDate`; every file now gets a header of its own.
+  A later save of the same object that asks to keep `_rev` or the modified
+  properties now writes them (the first save had removed them from the object,
+  so the second file lacked them). The keys that are left out are now also left
+  out of what a `toJSON` method or a getter returns (they were kept there), and
+  a frozen object can be saved (it used to fail when a key had to be added or
+  removed). Code that used the object after saving it and relied on the removal
+  has to remove the keys itself, exact names only:
+  `frodo.utils.json.deleteDeepByKey(object, key, true)` for each key (without
+  `true` it also removes every key that merely contains the name).
+  Code that relied on the added `meta` calls `frodo.utils.getMetadata()`.
 - `frodo.mapping.deleteMappings` (`src/ops/MappingOps.ts`) now tries every
   mapping. A mapping that cannot be deleted no longer stops the others: after
   all of them were tried, the function throws one `FrodoError` that carries one
@@ -503,6 +523,57 @@ releases missed):
   and `frodo role import -f` of frodo-cli import the first item of their file
   with these methods, so they import one item once they use a library with this
   change.
+- `frodo.utils.json.mergeDeep` (`src/utils/JsonUtils.ts`, also the MCP
+  capability `utils.json.mergeDeep` and every library function that merges
+  with it) no longer throws or drops a value when the two values of a key are
+  of different types: the value of the second object replaces the value of the
+  first, whatever the type of either. Before, a number, string or `true` that
+  an object or an array with at least one key replaced threw a `TypeError` (an
+  empty object or array left the value as it was, without an error), a `null`
+  that replaced a value that is not falsy threw one too, a null or undefined
+  second argument threw (when the first argument was not falsy), and an object
+  or an array that replaced `0`, `''`, `false`, `null` or `undefined` was
+  dropped without an error, as was a `null` that replaced `0`, `''`, `false`
+  or `undefined`. Now an array replaces an object and an object replaces an
+  array (the old result was an array or an object with the keys of both), a
+  second argument that is not an object changes nothing, an object without
+  prototype or a JSON key named `hasOwnProperty` no longer throws, and an
+  object that replaces a function is no longer merged onto the function. The
+  key `__proto__` is no longer copied (it used to replace the prototype of the
+  result). A `Date`, `RegExp`, `Error`, `Map`, `Set`, `WeakMap`, `WeakSet`,
+  `Promise`, `ArrayBuffer`, typed array, `DataView`, `Buffer` or boxed
+  primitive is a value, not a bag of keys: it replaces the other value and is
+  replaced by it (it used to take the keys of a plain object over it, and to
+  be left as it was when it came from the second object). A class instance of
+  the first object is never changed: the value of the second object replaces
+  it, whatever its class, a plain object and an instance of the same class
+  included (it used to be merged into it, key by key; two `URLSearchParams`
+  used to leave the first and lose the second). So code that merged into an
+  `AxiosHeaders` instance, for example `mergeDeep(config, { headers })` with
+  an `AxiosHeaders` instance in `config.headers`, now gets the value of the
+  second object in place of the instance (here the plain `headers`) and has to
+  use the `set` method of the instance; the library does that itself for the
+  `config.headers` of
+  `frodo.oauth2oidc.endpoint.accessTokenRfc7523AuthZGrant`, which keeps the
+  headers of the caller as before. What does not change: a class instance in
+  the second object merges its own enumerable string keys into a plain object
+  of the first (an `AxiosHeaders` instance into the default headers of a
+  factory request), the first object is changed and returned, arrays merge by
+  index, a falsy first argument is returned as it is, the values of the second
+  object are shared and not copied, and a first argument that is truthy and
+  not an object, a frozen first object and a property that has only a getter
+  still throw a `TypeError`. Visible through the factory: a `proxy` object in
+  the `requestOverride` of `frodo.factory.generateAmApi` and the other
+  `generate*Api` methods now takes effect (it was dropped over the default
+  `proxy: false`), `proxy: null` now becomes `null` (it was dropped; axios
+  leaves its own proxy lookup on for `null` and switches it off for `false`),
+  and an `httpsAgent` or `httpAgent` override replaces the default agent of
+  that instance whatever it is: an `Agent` instance of any class, the class of
+  the shared default agent included (it threw before), or a plain object (it
+  was merged key by key into the shared default agent, which changed that
+  agent for every later request of the process). A caller that relied on one
+  of the errors has to check the values first; such callers cannot be counted
+  from here.
 - `frodo.cloud.feature.readFeatures` (`src/ops/cloud/FeatureOps.ts`) now throws
   a `FrodoError` when the list of features cannot be read, for example HTTP 403
   for a credential without the scope `fr:idc:feature:*`. Before, it returned an

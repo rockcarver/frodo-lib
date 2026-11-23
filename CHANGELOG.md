@@ -10,6 +10,17 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-51] - 2026-11-23
+
+### Added
+- Introduced pure functions for export file format and file name rules, enhancing modularity and testability. These functions are now part of `ExportImportUtils.ts`, which maintains its public API by wrapping these new implementations (#1138).
+
+### Changed
+- Polly, the library for recording and replaying HTTP traffic, is now loaded only when the `FRODO_MOCK` environment variable is set. This change reduces unnecessary evaluations and warnings during library loading (#1137).
+
+### Fixed
+- Resolved an issue in `frodo.utils.json.mergeDeep` where type conflicts could result in errors or dropped values. The function now handles type conflicts more gracefully and includes tests to ensure consistent behavior (#1139).
+
 ## [v5.0.0-50] - 2026-11-22
 
 ### Added
@@ -3069,6 +3080,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-51]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-50...v5.0.0-51
 [v5.0.0-50]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-49...v5.0.0-50
 [v5.0.0-49]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-48...v5.0.0-49
 [v5.0.0-48]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-47...v5.0.0-48
