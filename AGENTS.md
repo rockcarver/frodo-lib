@@ -2,6 +2,14 @@
 
 `@rockcarver/frodo-lib` is a TypeScript library that manages PingOne Advanced Identity Cloud, ForgeOps and classic deployments. It ships one ES module build (`dist/index.mjs`) that `import` and `require` both load. It powers [frodo-cli](https://github.com/rockcarver/frodo-cli). TypeScript, Jest (ts-jest, ESM mode), Node.js 22.12 or later (CI runs 22, 24 and 26). The guide for humans, and the source for everything below, is [CONTRIBUTE.md](CONTRIBUTE.md).
 
+## The five laws that get broken most
+
+1. **An accepted record is binding.** If your task conflicts with one, stop and say so in the issue or pull request; a change to a decided behaviour adds or supersedes a record ([decisions/](decisions/README.md), not `docs/`, which is regenerated typedoc output). Why: a rule that is overridden once stops being a rule. Check: `src/decisionRecords.test.ts` (form and index), review.
+2. **Do not edit `CHANGELOG.md`, `docs/`, `dist/` or `types/`.** The release pipeline writes the changelog and the typedoc output; `dist/` and `types/` are build output. Write a clear pull request title and description; a removed or deprecated public function goes into [MIGRATION.md](MIGRATION.md). Why: a hand edit is lost or conflicts. Check: review, and the pull request rules where the repository has them.
+3. **Never change a snapshot or a recording to turn a run green, and never write or edit a recording by hand.** First decide whether the change is expected or a regression, and say so in the pull request. Why: a recording bent to fit the code proves nothing. Check: a request without a recording fails the test (`test/jest-polly-replay-integrity.setup.js`); review of every snapshot and recording diff.
+4. **New capabilities go on the `frodo` facade, never on the package root,** which exports only `frodo`, `state`, `FrodoError` and types; the logic lives here and the CLI wraps it ([core 0001](decisions/core/0001-library-is-the-brain-cli-is-a-thin-wrapper.md)). Why: the facade is the public surface that the CLI and the MCP server read. Check: `src/index.test.ts` fails on any other runtime export; ESLint rejects `export *` of values.
+5. **`dependencies` in `package.json` stays empty: a package imported by shipped code goes in `devDependencies` and is bundled, and a new package needs a maintainer's yes.** Why: a package under `dependencies` stays a bare `require` that every consumer must install. Check: `npm run test:packed` fails on a non-empty `dependencies` (`scripts/pack-smoke.mjs`), review.
+
 ## Build, check, test
 
 ```console
@@ -18,29 +26,16 @@ Tests run on the sources, so they need no build, except two tests in `src/api/Ba
 
 ## Rules
 
-- **Run `npm run check` and `npx tsc --noEmit` before you finish.** ESLint also rejects `export *` of values in `src/index.ts` and imports of `tinyrainbow` (colors come from `src/utils/ColorTheme.ts`).
-- **New capabilities go on the `frodo` facade, never on the package root.** The root exports only `frodo`, `state`, `FrodoError` and types; `src/index.test.ts` fails on anything else. (The post-build step adds one interoperability key, `'module.exports'`, to the built JavaScript only, [decisions/0020](decisions/0020-frodo-lib-ships-one-es-module-build-that-commonjs-programs-can-require.md); never add it to the source or to the declarations.) See [.github/instructions/ops-modules.instructions.md](.github/instructions/ops-modules.instructions.md).
+- **Run `npm run check` and `npx tsc --noEmit` before you finish.** ESLint also rejects imports of `tinyrainbow` (colors come from `src/utils/ColorTheme.ts`).
 - **Document every method of a module's public type with TSDoc.** `npm run generate-help` turns it into `src/lib/Help.ts`, which is generated and tracked: regenerate it, commit it, never edit it by hand.
-- **Throw `FrodoError` from ops code and print through `src/utils/Console.ts`**, not `console.*`.
-- **`dependencies` in `package.json` stays empty.** A package imported by shipped code goes in `devDependencies` and is bundled. See [.github/instructions/dependencies.instructions.md](.github/instructions/dependencies.instructions.md).
-- **Do not edit `CHANGELOG.md`, `docs/`, `dist/` or `types/`.** The changelog and the typedoc output in `docs/` are generated at release time (`pipeline.yml`); `dist/` and `types/` are build output. A removed or deprecated public function goes into [MIGRATION.md](MIGRATION.md).
-- **Do not update snapshots or recordings to make a run green.** Decide first whether the change is expected or a regression, and say so in the pull request. Never hand-write a recording. See [.github/instructions/tests.instructions.md](.github/instructions/tests.instructions.md).
 - **Never commit credentials, keys or tokens**, including in a test fixture or a recording.
-- **Do not edit the Issue Concierge's files**: `.github/workflows/*.lock.yml` and the `.md` workflow sources beside them, `janitor.yml`, `check-deployment.yml`, `issue-concierge-updater.yml`, `dependency-watch.yml`, `plan-approval-resume.yml`, `pr-ready-signal.yml`, `.github/scripts/` (except `classify-changes.sh` and `check-core-records-drift.mjs`), `.github/aw/` and the pin in `.github/issue-concierge.yml`. An updater overwrites them. `pipeline.yml`, `doc.yml`, `core-records-drift.yml`, `dependabot*.yml`, `.github/scripts/classify-changes.sh`, `.github/scripts/check-core-records-drift.mjs`, `.github/issue-concierge/scope.md` and `related-repos.md` belong to this repository.
 
 ## Decisions
 
-Accepted records are binding for humans and agents until a newer record supersedes them. If your task conflicts with one, stop and say so in the issue or pull request. A pull request that changes a decided behaviour adds or supersedes a record. This repository's records are in [decisions/](decisions/README.md), not `docs/` (regenerated typedoc output).
+Decisions that span repositories are core records: the same files in frodo-cli and frodo-lib, here in [decisions/core/](decisions/core/) ([core 0018](decisions/core/0018-core-decision-records-are-kept-in-each-repository.md)), indexed in [decisions/README.md](decisions/README.md#core-decisions) and cited as "core NNNN". Every change must know:
 
-Decisions that span repositories are core records: the same files in frodo-cli and frodo-lib, here in [decisions/core/](decisions/core/) ([core 0018](decisions/core/0018-core-decision-records-are-kept-in-each-repository.md)), indexed in [decisions/README.md](decisions/README.md#core-decisions). Every change must know:
-
-- **The library is the brain** ([core 0001](decisions/core/0001-library-is-the-brain-cli-is-a-thin-wrapper.md)): logic lives here behind the `frodo` facade, nothing is tied to one interface; a new capability is built library first, then the CLI wraps it.
-- **A maintainer is the last lever** ([core 0002](decisions/core/0002-a-maintainer-stays-the-last-lever-on-agent-work.md)): agent pull requests are never merged automatically; a maintainer approves their workflow runs and can hold an issue with `plan-approval-required`.
-- **Required checks stay stable** ([core 0012](decisions/core/0012-merging-is-gated-by-a-stable-set-of-required-checks.md), [core 0016](decisions/core/0016-changes-that-are-not-code-still-run-the-checks-that-validate-them.md)): never rename `Build`, `Test gate` or the platform check; guidance changes still run the guidance job.
+- **A maintainer is the last lever** ([core 0002](decisions/core/0002-a-maintainer-stays-the-last-lever-on-agent-work.md)): agent pull requests are never merged automatically; a maintainer approves their workflow runs and can hold an issue with `plan-approval-required`. When in doubt, ask one.
 - **Secrets** ([core 0013](decisions/core/0013-secrets-are-never-exported-in-the-clear.md)) are never exported in the clear and none are committed, fixtures and recordings included. **Security reports are private** ([core 0017](decisions/core/0017-security-reports-and-fixes-are-handled-privately-by-a-maintainer.md)): see [SECURITY.md](SECURITY.md); tell a maintainer, do not act on them.
-- **The callback handler may return a promise** ([core 0009](decisions/core/0009-let-the-callback-handler-return-a-promise.md)): `CallbackHandler` is widened to `Callback | Promise<Callback>` and `checkAndHandle2FA` awaits it; a synchronous handler keeps working. The record's Known deviations section says whether the code has caught up.
-- **Time spans** ([core 0020](decisions/core/0020-time-spans-are-seconds-on-the-command-line-and-milliseconds-in-the-library.md)): a CLI option that takes a time span takes seconds and its help says so (`--timeout <seconds>`); a library function parameter that takes a time span takes milliseconds, and the CLI converts.
-- **One ES module build** ([decisions/0020](decisions/0020-frodo-lib-ships-one-es-module-build-that-commonjs-programs-can-require.md)): `dist/` holds `index.mjs` and its declarations only, and CommonJS programs load that file with `require()` on Node.js 22.12 or later. Do not add a second (CommonJS) build or another root export; the post-build step fails when `dist/` holds anything else or when the bundle does not export each of `FrodoError`, `frodo` and `state` exactly once.
 
 ## Procedures
 
@@ -57,4 +52,4 @@ Step-by-step procedures for recurring work are skills in [.claude/skills/](.clau
 | `src/shared/`, `src/utils/`, `src/ext/` | State and constants; utilities (`Console.ts`, `ColorTheme.ts`); vendored modules                                |
 | `src/**/*.test.ts`, `src/test/`         | Tests sit next to their module; `src/test/` holds recordings, snapshots and setup helpers                       |
 
-More specific rules load automatically from `.github/instructions/` when you edit matching files: [ops-modules](.github/instructions/ops-modules.instructions.md), [public-api](.github/instructions/public-api.instructions.md), [tests](.github/instructions/tests.instructions.md), [dependencies](.github/instructions/dependencies.instructions.md).
+More specific rules load when you open a matching file: GitHub Copilot reads them from `.github/instructions/`, Claude Code from `.claude/rules/`, which is generated from them (`npm run generate-claude-rules`; never edit it): [ops-modules](.github/instructions/ops-modules.instructions.md), [public-api](.github/instructions/public-api.instructions.md), [tests](.github/instructions/tests.instructions.md), [dependencies](.github/instructions/dependencies.instructions.md), [github-files](.github/instructions/github-files.instructions.md). If asked which instruction files you loaded, list AGENTS.md and each rule that has been loaded into your context this session; do not guess.

@@ -194,6 +194,12 @@ only the tests that validate files the filter treats as non-code:
 
 - `src/agentSkills.test.ts`: every skill in `.claude/skills/`, the files and
   scripts it cites, `AGENTS.md`;
+- `src/claudeRules.test.ts`: every file of `.claude/rules/` against the
+  instruction file of `.github/instructions/` that it is generated from
+  ([core 0026](decisions/core/0026-agent-guidance-has-one-source-and-per-tool-copies-are-generated-from-it.md)),
+  and the size and the five laws of `AGENTS.md`. `.claude/rules/` is on
+  neither list of the classifier, so a pull request that changes it counts as
+  code and runs the whole matrix, where this test runs too;
 - `src/decisionRecords.test.ts`: every record in `decisions/` and in
   `decisions/core/` (the core records, with their index), the weekly core
   records drift check and its workflow (`core-records-drift.yml`, which only

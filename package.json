@@ -41,6 +41,7 @@
     "clean-types": "rimraf types",
     "generate-types": "tsc && node scripts/deprecate-types-subpath.cjs",
     "generate-help": "node scripts/generate-help.mjs",
+    "generate-claude-rules": "node scripts/generate-claude-rules.mjs",
     "build": "npm run generate-help && npx tsdown && node scripts/postbuild-dist.cjs && npm run clean-types && npm run generate-types",
     "doc": "npx typedoc",
     "prettier:fix": "prettier --write \"src/**/*.ts\"",
