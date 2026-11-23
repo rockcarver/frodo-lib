@@ -19,9 +19,10 @@
  *  - which pairs of objects merge and which replace each other (plain objects
  *    and class instances of the same class or of another class, the built-in
  *    value types), one row of the table of the TSDoc each;
- *  - that a plain object never changes a class instance of the first object
- *    (a plain object as `httpsAgent` replaces the shared default agent and
- *    does not turn the verification of certificates off);
+ *  - that nothing changes a class instance of the first object (a plain
+ *    object, an instance of another class and an instance of the same class
+ *    as `httpsAgent` replace the shared default agent and do not turn the
+ *    verification of certificates off);
  *  - the arguments (a falsy first argument comes back as it is, a second
  *    argument that is not an object changes nothing);
  *  - arrays, merged by index;
@@ -56,8 +57,6 @@ import {
   X509CertificateGenerator,
 } from '@peculiar/x509';
 import { AxiosHeaders } from 'axios';
-import { frodo } from '../index';
-import { getPrivateKey, getPublicKey } from '../test/utils/TestUtils';
 import JsonUtils, { mergeDeep } from './JsonUtils';
 
 // ---------------------------------------------------------------------------
@@ -136,21 +135,24 @@ const SYM = Symbol('s');
  * are the fixed test PEMs of TestUtils; @peculiar/x509 signs with WebCrypto
  * keys, so the PEMs are imported as PKCS#8 and SPKI.
  */
-async function createExpiredCertificate(): Promise<{
+async function createExpiredCertificate(
+  privateKey: string,
+  publicKey: string
+): Promise<{
   key: string;
   cert: string;
 }> {
   const alg = { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' };
   const signingKey = await webcrypto.subtle.importKey(
     'pkcs8',
-    createPrivateKey(getPrivateKey()).export({ type: 'pkcs8', format: 'der' }),
+    createPrivateKey(privateKey).export({ type: 'pkcs8', format: 'der' }),
     alg,
     true,
     ['sign']
   );
-  const publicKey = await webcrypto.subtle.importKey(
+  const verifyKey = await webcrypto.subtle.importKey(
     'spki',
-    createPublicKey(getPublicKey()).export({ type: 'spki', format: 'der' }),
+    createPublicKey(publicKey).export({ type: 'spki', format: 'der' }),
     alg,
     true,
     ['verify']
@@ -161,7 +163,7 @@ async function createExpiredCertificate(): Promise<{
     issuer: 'CN=127.0.0.1',
     notBefore: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
     notAfter: new Date(Date.now() - 24 * 60 * 60 * 1000),
-    publicKey,
+    publicKey: verifyKey,
     signingKey,
     signingAlgorithm: 'RSASSA-PKCS1-v1_5',
     extensions: [
@@ -170,7 +172,7 @@ async function createExpiredCertificate(): Promise<{
       new KeyUsagesExtension(0x80, true), // digitalSignature
     ],
   });
-  return { key: getPrivateKey(), cert: cert.toString('pem') };
+  return { key: privateKey, cert: cert.toString('pem') };
 }
 
 const show = (value: unknown): string =>
@@ -960,14 +962,24 @@ describe('mergeDeep', () => {
       expect(first.a).toStrictEqual({ y: 2, x: 1 });
     });
 
-    test('class instance into an instance of the same class: merged key by key, the first instance stays', () => {
+    test('class instance into an instance of the same class: replaces it by reference, the first instance is not changed', () => {
       const target = new Foo();
       target.x = 5;
       const source = new Foo();
       (source as any).extra = { k: 1 };
       const first: any = mergeDeep({ a: target }, { a: source });
-      expect(first.a).toBe(target);
-      expect(first.a).toMatchObject({ x: 1, extra: { k: 1 } });
+      expect(first.a).toBe(source);
+      expect(target.x).toBe(5);
+      expect(target).not.toHaveProperty('extra');
+    });
+
+    test('two URLSearchParams replace each other, the second is not lost', () => {
+      const first = new URLSearchParams('a=1');
+      const second = new URLSearchParams('b=2');
+      const result: any = mergeDeep({ params: first }, { params: second });
+      expect(result.params).toBe(second);
+      expect(first.toString()).toBe('a=1');
+      expect(result.params.toString()).toBe('b=2');
     });
 
     test('the same rules apply at every depth of a class instance', () => {
@@ -1263,21 +1275,27 @@ describe('mergeDeep', () => {
   describe('what a caller of the public factory sees', () => {
     // The request override of frodo.factory.generate*Api reaches mergeDeep: the
     // default configuration of the instance is the first object (the default
-    // headers, `proxy: false` and a shared agent that is not an https.Agent),
-    // the override the second.
+    // headers, `proxy: false` and a shared ProxyAgent), the override the
+    // second.
     const resource = { apiVersion: 'protocol=2.1,resource=1.0' };
     const switches = ['FRODO_MOCK', 'FRODO_POLLY_MODE'] as const;
     const saved: Record<string, string | undefined> = {};
+    let frodo: (typeof import('../index'))['frodo'];
+    let testKeys: typeof import('../test/utils/TestUtils');
 
-    beforeEach(() => {
-      // a record run (`FRODO_POLLY_MODE=record`) gives the instance no agents
+    beforeAll(async () => {
+      // Both record switches are cleared before the library is loaded: with
+      // FRODO_MOCK, BaseApi sets up Polly when it is loaded, and with either
+      // switch set to `record` an instance gets no agents of its own.
       for (const name of switches) {
         saved[name] = process.env[name];
         delete process.env[name];
       }
+      ({ frodo } = await import('../index'));
+      testKeys = await import('../test/utils/TestUtils');
     });
 
-    afterEach(() => {
+    afterAll(() => {
       for (const name of switches) {
         if (saved[name] === undefined) delete process.env[name];
         else process.env[name] = saved[name];
@@ -1361,19 +1379,24 @@ describe('mergeDeep', () => {
       });
     });
 
-    describe('a plain object as httpsAgent', () => {
-      // A plain object as `httpsAgent` must never be merged into the shared
-      // default agent (a ProxyAgent, which holds the https.Agent it uses for a
-      // direct connection): merged, `{ httpsAgent: { httpsAgent: { options: {
-      // rejectUnauthorized: false } } } }` would turn the verification of
-      // certificates off for every later request of the process. The probe is
-      // a local TLS server with an expired certificate.
+    describe('an httpsAgent that could reach into the shared default agent', () => {
+      // An `httpsAgent` of a request override must never be merged into the
+      // shared default agent (a ProxyAgent, which holds the https.Agent it uses
+      // for a direct connection): merged, a plain object `{ httpsAgent: {
+      // options: { rejectUnauthorized: false } } }`, or an agent made from the
+      // class of the shared agent (`frodo.factory.generateAmApi({}).defaults.
+      // httpsAgent.constructor`) with `rejectUnauthorized: false`, would turn
+      // the verification of certificates off for every later request of the
+      // process. The probe is a local TLS server with an expired certificate.
       let server: https.Server;
       let baseURL: string;
       const priorNoProxy = process.env.NO_PROXY;
 
       beforeAll(async () => {
-        const { key, cert } = await createExpiredCertificate();
+        const { key, cert } = await createExpiredCertificate(
+          testKeys.getPrivateKey(),
+          testKeys.getPublicKey()
+        );
         server = https.createServer({ key, cert }, (_req, res) => {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ status: 'ok' }));
@@ -1453,6 +1476,46 @@ describe('mergeDeep', () => {
         expect(
           await failure(frodo.factory.generateAmApi(resource, { baseURL }))
         ).toMatch(/CERT_HAS_EXPIRED|certificate has expired/i);
+      });
+      test('an agent made from the class of the shared default agent replaces it, and the default instance still verifies the certificate', async () => {
+        const shared = frodo.factory.generateAmApi(resource).defaults
+          .httpsAgent as any;
+        const SharedAgentClass = shared.constructor;
+        const own = new SharedAgentClass({ rejectUnauthorized: false });
+        try {
+          // the same class: the merge of two instances of one class once merged
+          expect(Object.getPrototypeOf(own)).toBe(
+            Object.getPrototypeOf(shared)
+          );
+          expect(own).not.toBe(shared);
+          const before = snapshot(shared);
+          const beforeConnect = JSON.stringify(shared.connectOpts);
+          const inner = shared.httpsAgent;
+          const beforeInner = JSON.stringify(inner.options);
+          // the agent replaces the default of that instance by reference, and
+          // it accepts the certificate: the server works
+          const control = frodo.factory.generateAmApi(resource, {
+            baseURL,
+            httpsAgent: own,
+          });
+          expect(control.defaults.httpsAgent).toBe(own);
+          expect((await control.get('/')).status).toBe(200);
+          // the shared default agent is as it was
+          expect(snapshot(shared)).toBe(before);
+          expect(JSON.stringify(shared.connectOpts)).toBe(beforeConnect);
+          expect(shared.connectOpts.rejectUnauthorized).toBe(true);
+          expect(shared.httpsAgent).toBe(inner);
+          expect(JSON.stringify(inner.options)).toBe(beforeInner);
+          expect(
+            frodo.factory.generateAmApi(resource).defaults.httpsAgent
+          ).toBe(shared);
+          // and a request of the default instance still refuses the certificate
+          expect(
+            await failure(frodo.factory.generateAmApi(resource, { baseURL }))
+          ).toMatch(/CERT_HAS_EXPIRED|certificate has expired/i);
+        } finally {
+          own.destroy?.();
+        }
       });
     });
 
