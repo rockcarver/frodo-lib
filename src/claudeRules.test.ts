@@ -129,6 +129,7 @@ describe('parseInstructionFile', () => {
       "---\napplyTo: 'a/b'\napplyTo: 'c/d'\n---\n",
       /more than once/,
     ],
+    ['no applyTo line', '---\n\n---\n\n# Title\n', /applyTo is missing/],
     ['an empty value', file("''"), /empty/],
     ['a missing value', file(''), /empty/],
     ['an empty item', file("'a/b,,c'"), /empty item/],
