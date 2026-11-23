@@ -550,9 +550,10 @@ releases missed):
   included (it used to be merged into it, key by key; two `URLSearchParams`
   used to leave the first and lose the second). So code that merged into an
   `AxiosHeaders` instance, for example `mergeDeep(config, { headers })` with
-  an `AxiosHeaders` instance in `config.headers`, now gets the plain headers
-  in place of the instance and has to use the `set` method of the instance;
-  the library does that itself for the `config.headers` of
+  an `AxiosHeaders` instance in `config.headers`, now gets the value of the
+  second object in place of the instance (here the plain `headers`) and has to
+  use the `set` method of the instance; the library does that itself for the
+  `config.headers` of
   `frodo.oauth2oidc.endpoint.accessTokenRfc7523AuthZGrant`, which keeps the
   headers of the caller as before. What does not change: a class instance in
   the second object merges its own enumerable string keys into a plain object
