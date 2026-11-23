@@ -16,24 +16,26 @@
  *    does to a scalar, null, undefined, an array, an object, a Date, a Map, a
  *    Set, a class instance, a function, a frozen object, a getter and a
  *    symbol key);
+ *  - which pairs of objects merge and which replace each other (plain objects
+ *    and class instances of the same class or of another class, the built-in
+ *    value types), one row of the table of the TSDoc each;
  *  - the arguments (a falsy first argument comes back as it is, a second
  *    argument that is not an object changes nothing);
  *  - arrays, merged by index;
  *  - the keys that must never reach `Object.prototype` and the own-key test;
- *  - what a caller of the public factory sees (a proxy and an https agent in
- *    the request override);
- *  - a seeded fuzz over JSON values: never throws, gives the result of the
- *    rules of the merge in frodo-cli, and the result of the old function
+ *  - what a caller of the public factory sees (a proxy, an https agent and
+ *    AxiosHeaders in the request override);
+ *  - a seeded fuzz over JSON values: never throws, gives the result of a
+ *    reference implementation of the rules, and the result of the old function
  *    wherever the old function had no type conflict to meet.
  *
  * Hermetic: made-up values, no network, no recording, no file.
  */
 import https from 'https';
 import { inspect, isDeepStrictEqual } from 'util';
-import { describe, expect, test } from '@jest/globals';
-import '../index';
-import { generateAmApi } from '../api/BaseApi';
-import StateImpl from '../shared/State';
+import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
+import { AxiosHeaders } from 'axios';
+import { frodo } from '../index';
 import JsonUtils, { mergeDeep } from './JsonUtils';
 
 // ---------------------------------------------------------------------------
@@ -59,13 +61,14 @@ function legacyMergeDeep(obj1: any, obj2: any): any {
 }
 
 /**
- * The rules of the hand-written merge of frodo-cli (`lodashMerge` of
- * `src/utils/FrConfig.ts`), copied: both values are objects that are not
- * arrays, or both are arrays, then merge; anything else, the second value
- * wins. It is the reference of the fuzz. It does not know `__proto__`, which
- * the fuzz keys never contain.
+ * The rules for JSON values, written out once more as a reference
+ * implementation: both values are objects that are not arrays, or both are
+ * arrays, then merge; anything else, the second value wins. It is the
+ * reference of the fuzz, which has only JSON values (no class instance, no
+ * built-in value type). It does not know `__proto__`, which the fuzz keys never
+ * contain.
  */
-function cliRulesMerge(target: any, source: any): any {
+function referenceMerge(target: any, source: any): any {
   if (!source) return target;
   for (const key of Object.keys(source)) {
     const s = source[key];
@@ -79,7 +82,7 @@ function cliRulesMerge(target: any, source: any): any {
       !Array.isArray(t)
         ? true
         : Array.isArray(s) && Array.isArray(t);
-    if (bothObjects) cliRulesMerge(t, s);
+    if (bothObjects) referenceMerge(t, s);
     else target[key] = s;
   }
   return target;
@@ -87,6 +90,19 @@ function cliRulesMerge(target: any, source: any): any {
 
 class Foo {
   x = 1;
+}
+
+class Other {
+  z = 9;
+}
+
+class Sub extends Foo {
+  w = 3;
+}
+
+/** Stands for the shared default agent of the factory: a class that is not https.Agent. */
+class SharedDefaultAgent {
+  maxSockets = 7;
 }
 
 const SYM = Symbol('s');
@@ -555,15 +571,14 @@ const rows: Row[] = [
   },
   {
     id: 'E6',
-    label: 'a class instance of the second object replaces a plain object',
+    label:
+      'a class instance of the second object is merged into a plain object of the first, as before',
     make: () => ({ target: { a: { y: 2 } }, source: { a: new Foo() } }),
-    expected: { a: new Foo() },
+    expected: { a: { y: 2, x: 1 } },
     check: (result, _target, source) => {
-      expect(result.a).toBe(source.a);
-      expect(result.a).toBeInstanceOf(Foo);
-      expect(result.a).not.toHaveProperty('y');
+      expect(Object.getPrototypeOf(result.a)).toBe(Object.prototype);
+      expect(result.a).not.toBe(source.a);
     },
-    fixed: true,
   },
   {
     id: 'E7',
@@ -700,7 +715,7 @@ describe('mergeDeep', () => {
         )
         .map((row) => row.id);
       expect(differs).toEqual(fixedIds);
-      expect(fixedIds).toHaveLength(26);
+      expect(fixedIds).toHaveLength(25);
     });
   });
 
@@ -713,8 +728,18 @@ describe('mergeDeep', () => {
       ['false', false],
       ['NaN', NaN],
     ])(
-      'a falsy first argument (%s) is returned as it is and the second is not read',
+      'a falsy first argument (%s) is returned as it is, without reading the second argument',
       (_name, first) => {
+        // reading the keys of this second argument throws
+        const tripwire = new Proxy(
+          {},
+          {
+            ownKeys: () => {
+              throw new Error('the second argument was read');
+            },
+          }
+        );
+        expect(mergeDeep(first, tripwire)).toBe(first);
         expect(mergeDeep(first, { a: 1 })).toBe(first);
         expect(mergeDeep(first, null)).toBe(first);
         expect(mergeDeep(first, undefined)).toBe(first);
@@ -819,22 +844,147 @@ describe('mergeDeep', () => {
     });
   });
 
-  describe('what is a plain object', () => {
-    test('a Date, a Map, a Set, a class instance and a function of the second object replace the value of the first', () => {
-      const date = new Date(5);
-      const map = new Map([[1, 2]]);
-      const set = new Set([1]);
-      const foo = new Foo();
-      const fn = () => 1;
+  describe('which pairs of objects merge and which replace each other', () => {
+    // One test per row of the table in the TSDoc. `source` is the value of the
+    // second object, `target` the value of the first object under the same key.
+    test('plain object into plain object: merged key by key, the first object stays', () => {
+      const target = { x: 1 };
+      const first: any = mergeDeep({ a: target }, { a: { y: 2 } });
+      expect(first.a).toBe(target);
+      expect(first.a).toStrictEqual({ x: 1, y: 2 });
+    });
+
+    test('plain object into a class instance: merged into the instance, which stays', () => {
+      const target = new Foo();
+      const first: any = mergeDeep({ a: target }, { a: { y: 2 } });
+      expect(first.a).toBe(target);
+      expect(first.a).toBeInstanceOf(Foo);
+      expect(first.a).toMatchObject({ x: 1, y: 2 });
+    });
+
+    test('class instance into a plain object: its own enumerable string keys are merged into the plain object, which stays plain', () => {
+      const target = { y: 2, x: 0 };
+      const first: any = mergeDeep({ a: target }, { a: new Foo() });
+      expect(first.a).toBe(target);
+      expect(Object.getPrototypeOf(first.a)).toBe(Object.prototype);
+      expect(first.a).toStrictEqual({ y: 2, x: 1 });
+    });
+
+    test('class instance into an instance of the same class: merged key by key, the first instance stays', () => {
+      const target = new Foo();
+      target.x = 5;
+      const source = new Foo();
+      (source as any).extra = { k: 1 };
+      const first: any = mergeDeep({ a: target }, { a: source });
+      expect(first.a).toBe(target);
+      expect(first.a).toMatchObject({ x: 1, extra: { k: 1 } });
+    });
+
+    test('the same rules apply at every depth of a class instance', () => {
+      class Holder {
+        inner = { k: 2 };
+        list = [9];
+      }
       const first = mergeDeep(
-        { d: { k: 1 }, m: { k: 1 }, s: { k: 1 }, f: { k: 1 }, g: { k: 1 } },
-        { d: date, m: map, s: set, f: foo, g: fn }
+        { a: { inner: { j: 1 }, list: [1, 2], keep: true } },
+        { a: new Holder() }
       );
-      expect(first.d).toBe(date);
-      expect(first.m).toBe(map);
-      expect(first.s).toBe(set);
-      expect(first.f).toBe(foo);
-      expect(first.g).toBe(fn);
+      expect(first.a).toStrictEqual({
+        inner: { j: 1, k: 2 },
+        list: [9, 2],
+        keep: true,
+      });
+    });
+
+    test('class instance into an instance of another class: replaces it by reference, the first instance is not changed', () => {
+      const target = new Other();
+      const source = new Foo();
+      const first: any = mergeDeep({ a: target }, { a: source });
+      expect(first.a).toBe(source);
+      expect(target).toStrictEqual(new Other());
+      expect(first.a).not.toHaveProperty('z');
+    });
+
+    test('an instance of a subclass into an instance of its base class (and the other way round) is another class: it replaces', () => {
+      const base = new Foo();
+      const sub = new Sub();
+      expect((mergeDeep({ a: base }, { a: sub }) as any).a).toBe(sub);
+      expect(base).toStrictEqual(new Foo());
+      expect((mergeDeep({ a: sub }, { a: base }) as any).a).toBe(base);
+      expect(sub).toStrictEqual(new Sub());
+    });
+
+    test('an https.Agent into the shared default agent (another class): replaces it by reference and the shared agent is not changed', () => {
+      const shared = new SharedDefaultAgent();
+      const own = new https.Agent({ maxSockets: 3 });
+      const first: any = mergeDeep({ httpsAgent: shared }, { httpsAgent: own });
+      expect(first.httpsAgent).toBe(own);
+      expect(shared).toStrictEqual(new SharedDefaultAgent());
+      expect(own.maxSockets).toBe(3);
+    });
+
+    test('a function and a scalar of the second object replace an instance; an instance replaces a scalar and a function', () => {
+      const fn = () => 1;
+      const foo = new Foo();
+      const first: any = mergeDeep(
+        { a: new Foo(), b: new Foo(), c: 1, d: () => 2 },
+        { a: fn, b: 's', c: foo, d: foo }
+      );
+      expect(first.a).toBe(fn);
+      expect(first.b).toBe('s');
+      expect(first.c).toBe(foo);
+      expect(first.d).toBe(foo);
+    });
+
+    describe('the built-in value types are never merged', () => {
+      // the own enumerable keys of these are not their value
+      const builtIns: [string, () => any][] = [
+        ['a Date', () => new Date(5)],
+        ['a RegExp', () => /x/g],
+        ['an Error', () => new Error('made up')],
+        ['a subclass of Error', () => new (class MadeUp extends Error {})('x')],
+        ['a Map', () => new Map([[1, 2]])],
+        ['a Set', () => new Set([1])],
+        ['a WeakMap', () => new WeakMap()],
+        ['a WeakSet', () => new WeakSet()],
+        ['a Promise', () => Promise.resolve(1)],
+        ['an ArrayBuffer', () => new ArrayBuffer(2)],
+        ['a SharedArrayBuffer', () => new SharedArrayBuffer(2)],
+        ['a typed array', () => new Uint8Array([1, 2])],
+        ['a DataView', () => new DataView(new ArrayBuffer(2))],
+        ['a Buffer', () => Buffer.from('ab')],
+        ['a boxed Number', () => new Number(1)],
+        ['a boxed String', () => new String('ab')],
+        ['a boxed Boolean', () => new Boolean(true)],
+        ['a boxed Symbol', () => Object(Symbol('s'))],
+        ['a boxed BigInt', () => Object(BigInt(1))],
+      ];
+
+      test.each(builtIns)(
+        '%s replaces a plain object and a class instance, and is replaced by a plain object, a class instance and its own type',
+        (_name, make) => {
+          // as the second value: it replaces
+          const value = make();
+          expect((mergeDeep({ a: { x: 1 } }, { a: value }) as any).a).toBe(
+            value
+          );
+          expect((mergeDeep({ a: new Foo() }, { a: value }) as any).a).toBe(
+            value
+          );
+          // as the first value: it is replaced and is not changed
+          const held = make();
+          const before = show(held);
+          const plain = { x: 1 };
+          expect((mergeDeep({ a: held }, { a: plain }) as any).a).toBe(plain);
+          const foo = new Foo();
+          expect((mergeDeep({ a: held }, { a: foo }) as any).a).toBe(foo);
+          expect(show(held)).toBe(before);
+          expect(held).not.toHaveProperty('x');
+          // against a value of its own type
+          const other = make();
+          expect((mergeDeep({ a: make() }, { a: other }) as any).a).toBe(other);
+        }
+      );
     });
 
     test('an object without prototype in the second object is plain: it merges', () => {
@@ -969,6 +1119,20 @@ describe('mergeDeep', () => {
       expect(first.a).toStrictEqual({ y: 2 });
     });
 
+    test('a value of the first object that is own but not enumerable is merged into', () => {
+      const first: any = {};
+      const inner = { x: 1 };
+      Object.defineProperty(first, 'a', {
+        value: inner,
+        enumerable: false,
+        writable: true,
+        configurable: true,
+      });
+      mergeDeep(first, { a: { y: 2 } });
+      expect(first.a).toBe(inner);
+      expect(first.a).toStrictEqual({ x: 1, y: 2 });
+    });
+
     test('a JSON key named hasOwnProperty in the second object is copied and the keys after it still merge', () => {
       const result = mergeDeep(
         { a: { x: 1 }, b: { y: 1 } },
@@ -993,19 +1157,43 @@ describe('mergeDeep', () => {
 
   describe('what a caller of the public factory sees', () => {
     // The request override of frodo.factory.generate*Api reaches mergeDeep: the
-    // default configuration of the instance is the first object (it holds
-    // `proxy: false` and a shared https agent), the override the second.
-    // generateAmApi is what the facade method calls.
-    const state = () => StateImpl({});
+    // default configuration of the instance is the first object (the default
+    // headers, `proxy: false` and a shared agent that is not an https.Agent),
+    // the override the second.
+    const resource = { apiVersion: 'protocol=2.1,resource=1.0' };
+    const switches = ['FRODO_MOCK', 'FRODO_POLLY_MODE'] as const;
+    const saved: Record<string, string | undefined> = {};
+
+    beforeEach(() => {
+      // a record run (`FRODO_POLLY_MODE=record`) gives the instance no agents
+      for (const name of switches) {
+        saved[name] = process.env[name];
+        delete process.env[name];
+      }
+    });
+
+    afterEach(() => {
+      for (const name of switches) {
+        if (saved[name] === undefined) delete process.env[name];
+        else process.env[name] = saved[name];
+      }
+    });
+
+    /** The fields of an agent that are strings, numbers or booleans, as text. */
+    const snapshot = (agent: any): string =>
+      JSON.stringify(
+        Object.fromEntries(
+          Object.keys(agent)
+            .filter((key) =>
+              ['string', 'number', 'boolean'].includes(typeof agent[key])
+            )
+            .map((key) => [key, agent[key]])
+        )
+      );
 
     test('a proxy object in the request override is applied over the default proxy: false (it was dropped)', () => {
-      const request = generateAmApi({
-        resource: {},
-        requestOverride: {
-          proxy: { protocol: 'http', host: 'proxy.example.com', port: 8080 },
-        },
-        requiredScopes: [],
-        state: state(),
+      const request = frodo.factory.generateAmApi(resource, {
+        proxy: { protocol: 'http', host: 'proxy.example.com', port: 8080 },
       });
       expect(request.defaults.proxy).toStrictEqual({
         protocol: 'http',
@@ -1016,29 +1204,50 @@ describe('mergeDeep', () => {
 
     test('an https agent in the request override replaces the default agent by reference and leaves the shared agent alone (it threw)', () => {
       const own = new https.Agent({ maxSockets: 3 });
-      const defaultAgent = generateAmApi({
-        resource: {},
-        requiredScopes: [],
-        state: state(),
-      }).defaults.httpsAgent;
-      const defaultMaxSockets = defaultAgent.maxSockets;
-      const request = generateAmApi({
-        resource: {},
-        requestOverride: { httpsAgent: own },
-        requiredScopes: [],
-        state: state(),
+      const shared = frodo.factory.generateAmApi(resource).defaults.httpsAgent;
+      expect(shared).toBeDefined();
+      expect(shared).not.toBeInstanceOf(https.Agent);
+      const before = snapshot(shared);
+      const request = frodo.factory.generateAmApi(resource, {
+        httpsAgent: own,
       });
       expect(request.defaults.httpsAgent).toBe(own);
       expect(own.maxSockets).toBe(3);
-      expect(defaultAgent.maxSockets).toBe(defaultMaxSockets);
+      expect(snapshot(shared)).toBe(before);
+      expect(frodo.factory.generateAmApi(resource).defaults.httpsAgent).toBe(
+        shared
+      );
+    });
+
+    test('an AxiosHeaders instance in the request override merges into the default headers: they survive, its values win (it merged before)', () => {
+      const request = frodo.factory.generateAmApi(resource, {
+        headers: new AxiosHeaders({
+          'X-Made-Up': 'yes',
+          'Content-Type': 'text/plain',
+        }),
+      });
+      const headers = request.defaults.headers as any;
+      expect(headers['X-Made-Up']).toBe('yes');
+      expect(headers['Content-Type']).toBe('text/plain');
+      expect(headers['Accept-API-Version']).toBe(resource.apiVersion);
+      expect(headers['User-Agent']).toBeDefined();
+      expect(headers['X-ForgeRock-TransactionId']).toBeDefined();
+    });
+
+    test('a Headers instance in the request override has no own keys to merge and leaves the default headers as they are', () => {
+      const request = frodo.factory.generateAmApi(resource, {
+        headers: new Headers({ 'X-Made-Up': 'yes' }) as any,
+      });
+      const headers = request.defaults.headers as any;
+      expect(headers['Content-Type']).toBe('application/json');
+      expect(headers['Accept-API-Version']).toBe(resource.apiVersion);
+      expect(headers['User-Agent']).toBeDefined();
     });
 
     test('a header and a timeout in the request override still merge with the defaults', () => {
-      const request = generateAmApi({
-        resource: {},
-        requestOverride: { headers: { 'X-Made-Up': 'yes' }, timeout: 5000 },
-        requiredScopes: [],
-        state: state(),
+      const request = frodo.factory.generateAmApi(resource, {
+        headers: { 'X-Made-Up': 'yes' },
+        timeout: 5000,
       });
       expect(request.defaults.timeout).toBe(5000);
       expect(request.defaults.headers).toMatchObject({
@@ -1048,7 +1257,7 @@ describe('mergeDeep', () => {
     });
 
     test('the merge of a default configuration and the overrides in the shape the factory uses', () => {
-      const shared = new https.Agent({ keepAlive: true, maxSockets: 7 });
+      const shared = new SharedDefaultAgent();
       const own = new https.Agent({ maxSockets: 3 });
       const defaults = () => ({
         timeout: 30000,
@@ -1063,6 +1272,13 @@ describe('mergeDeep', () => {
       const withAgent = mergeDeep(defaults(), { httpsAgent: own });
       expect(withAgent.httpsAgent).toBe(own);
       expect(shared.maxSockets).toBe(7);
+      const withHeaders = mergeDeep(defaults(), {
+        headers: new AxiosHeaders({ 'X-B': 'b' }),
+      });
+      expect({ ...withHeaders.headers }).toStrictEqual({
+        'X-A': 'a',
+        'X-B': 'b',
+      });
     });
   });
 
@@ -1145,7 +1361,7 @@ describe('mergeDeep', () => {
     };
     const clone = (value: any): any => JSON.parse(JSON.stringify(value));
 
-    test('5000 pairs: never throws, changes only the first object and returns it, equals the rules of the merge in frodo-cli, equals the old function where it had no type conflict', () => {
+    test('5000 pairs: never throws, changes only the first object and returns it, equals the reference implementation of the rules, equals the old function where it had no type conflict', () => {
       const nextPair = pairsFrom(20261122);
       const problems: string[] = [];
       let withConflict = 0;
@@ -1173,9 +1389,12 @@ describe('mergeDeep', () => {
         if (!isDeepStrictEqual(source, second))
           problems.push(`changes the second: ${input}`);
         if (
-          !isDeepStrictEqual(result, cliRulesMerge(clone(first), clone(second)))
+          !isDeepStrictEqual(
+            result,
+            referenceMerge(clone(first), clone(second))
+          )
         )
-          problems.push(`differs from the rules of frodo-cli: ${input}`);
+          problems.push(`differs from the reference implementation: ${input}`);
         if (
           found.size === 0 &&
           !isDeepStrictEqual(
