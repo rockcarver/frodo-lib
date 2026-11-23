@@ -507,15 +507,29 @@ describe('the "Validate guidance" job', () => {
     }
   });
 
-  test('continues every line of the list with a backslash but the last', () => {
-    // A line without its backslash would end the command there: the tests after it would silently not run.
-    const lines = (
-      block.match(/^\s+src\/[A-Za-z0-9_.-]+\.test\.ts\s*\\?$/gm) ?? []
-    ).map((l) => l.trimEnd());
-    expect(lines.length).toBeGreaterThan(1);
-    for (const line of lines.slice(0, -1))
-      expect(line.endsWith('\\')).toBe(true);
-    expect(lines[lines.length - 1].endsWith('\\')).toBe(false);
+  test('the command continues through every path of the list, whatever its folder', () => {
+    // A line without its backslash ends the command there: the tests after it would silently not run.
+    // A trailing backslash on the last path would run the command into the next line.
+    const lines = block.split('\n');
+    const start = lines.findIndex((l) => l.includes('--runTestsByPath'));
+    expect(start).toBeGreaterThan(-1);
+    const command: string[] = [];
+    for (let i = start; i < lines.length; i++) {
+      command.push(lines[i].trim());
+      if (!lines[i].trimEnd().endsWith('\\')) break;
+    }
+    const withoutBackslash = (line: string) => line.replace(/\s*\\$/, '');
+    const inCommand = command
+      .filter((l) => l.startsWith('src/'))
+      .map(withoutBackslash);
+    const inBlock = lines
+      .map((l) => l.trim())
+      .filter((l) => l.startsWith('src/'))
+      .map(withoutBackslash);
+    expect(inBlock.length).toBeGreaterThan(1);
+    expect(inCommand.sort()).toEqual(inBlock.sort());
+    expect(command[command.length - 1]).toMatch(/^src\//);
+    expect(command[command.length - 1].endsWith('\\')).toBe(false);
   });
 
   test('lists every test that reads a guidance file', () => {
