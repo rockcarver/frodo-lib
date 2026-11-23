@@ -19,6 +19,9 @@
  *  - which pairs of objects merge and which replace each other (plain objects
  *    and class instances of the same class or of another class, the built-in
  *    value types), one row of the table of the TSDoc each;
+ *  - that a plain object never changes a class instance of the first object
+ *    (a plain object as `httpsAgent` replaces the shared default agent and
+ *    does not turn the verification of certificates off);
  *  - the arguments (a falsy first argument comes back as it is, a second
  *    argument that is not an object changes nothing);
  *  - arrays, merged by index;
@@ -31,11 +34,30 @@
  *
  * Hermetic: made-up values, no network, no recording, no file.
  */
+import { createPrivateKey, createPublicKey, webcrypto } from 'crypto';
 import https from 'https';
+import { AddressInfo } from 'net';
 import { inspect, isDeepStrictEqual } from 'util';
-import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from '@jest/globals';
+import 'reflect-metadata';
+import {
+  BasicConstraintsExtension,
+  GeneralName,
+  KeyUsagesExtension,
+  SubjectAlternativeNameExtension,
+  X509CertificateGenerator,
+} from '@peculiar/x509';
 import { AxiosHeaders } from 'axios';
 import { frodo } from '../index';
+import { getPrivateKey, getPublicKey } from '../test/utils/TestUtils';
 import JsonUtils, { mergeDeep } from './JsonUtils';
 
 // ---------------------------------------------------------------------------
@@ -106,6 +128,50 @@ class SharedDefaultAgent {
 }
 
 const SYM = Symbol('s');
+
+/**
+ * A self-signed certificate for 127.0.0.1 that expired yesterday (the same one
+ * BaseApi.expiredCert.test.ts makes): a client that verifies certificates
+ * refuses it, a client that does not verify them accepts it. The signing keys
+ * are the fixed test PEMs of TestUtils; @peculiar/x509 signs with WebCrypto
+ * keys, so the PEMs are imported as PKCS#8 and SPKI.
+ */
+async function createExpiredCertificate(): Promise<{
+  key: string;
+  cert: string;
+}> {
+  const alg = { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' };
+  const signingKey = await webcrypto.subtle.importKey(
+    'pkcs8',
+    createPrivateKey(getPrivateKey()).export({ type: 'pkcs8', format: 'der' }),
+    alg,
+    true,
+    ['sign']
+  );
+  const publicKey = await webcrypto.subtle.importKey(
+    'spki',
+    createPublicKey(getPublicKey()).export({ type: 'spki', format: 'der' }),
+    alg,
+    true,
+    ['verify']
+  );
+  const cert = await X509CertificateGenerator.create({
+    serialNumber: '01',
+    subject: 'CN=127.0.0.1',
+    issuer: 'CN=127.0.0.1',
+    notBefore: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+    notAfter: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    publicKey,
+    signingKey,
+    signingAlgorithm: 'RSASSA-PKCS1-v1_5',
+    extensions: [
+      new SubjectAlternativeNameExtension([new GeneralName('ip', '127.0.0.1')]),
+      new BasicConstraintsExtension(false, undefined, true),
+      new KeyUsagesExtension(0x80, true), // digitalSignature
+    ],
+  });
+  return { key: getPrivateKey(), cert: cert.toString('pem') };
+}
 
 const show = (value: unknown): string =>
   inspect(value, { depth: null, compact: true, breakLength: Infinity });
@@ -564,10 +630,15 @@ const rows: Row[] = [
   },
   {
     id: 'E5',
-    label: 'a plain object is merged into a class instance of the first object',
+    label:
+      'a plain object of the second object replaces a class instance of the first, it is not merged into it',
     make: () => ({ target: { a: new Foo() }, source: { a: { y: 2 } } }),
-    expected: { a: Object.assign(new Foo(), { y: 2 }) },
-    check: (result) => expect(result.a).toBeInstanceOf(Foo),
+    expected: { a: { y: 2 } },
+    check: (result, _target, source) => {
+      expect(result.a).toBe(source.a);
+      expect(result.a).not.toBeInstanceOf(Foo);
+    },
+    fixed: true,
   },
   {
     id: 'E6',
@@ -715,7 +786,7 @@ describe('mergeDeep', () => {
         )
         .map((row) => row.id);
       expect(differs).toEqual(fixedIds);
-      expect(fixedIds).toHaveLength(25);
+      expect(fixedIds).toHaveLength(26);
     });
   });
 
@@ -854,12 +925,31 @@ describe('mergeDeep', () => {
       expect(first.a).toStrictEqual({ x: 1, y: 2 });
     });
 
-    test('plain object into a class instance: merged into the instance, which stays', () => {
+    test('plain object into a class instance: replaces it by reference, the instance is not changed', () => {
       const target = new Foo();
-      const first: any = mergeDeep({ a: target }, { a: { y: 2 } });
-      expect(first.a).toBe(target);
-      expect(first.a).toBeInstanceOf(Foo);
-      expect(first.a).toMatchObject({ x: 1, y: 2 });
+      const source = { y: 2 };
+      const first: any = mergeDeep({ a: target }, { a: source });
+      expect(first.a).toBe(source);
+      expect(target).toStrictEqual(new Foo());
+      expect(target).not.toHaveProperty('y');
+    });
+
+    test('plain object into an https.Agent, an AxiosHeaders instance and an instance of a subclass: replaces it, the instance is not changed', () => {
+      const agent = new https.Agent({ maxSockets: 7 });
+      const headers = new AxiosHeaders({ 'X-H': '1' });
+      const sub = new Sub();
+      const insecure = { options: { rejectUnauthorized: false } };
+      const first: any = mergeDeep(
+        { agent, headers, sub },
+        { agent: insecure, headers: { 'X-B': '2' }, sub: { w: 0 } }
+      );
+      expect(first.agent).toBe(insecure);
+      expect(agent.maxSockets).toBe(7);
+      expect(agent.options.rejectUnauthorized).toBeUndefined();
+      expect(first.headers).toStrictEqual({ 'X-B': '2' });
+      expect(headers.has('X-B')).toBe(false);
+      expect(first.sub).toStrictEqual({ w: 0 });
+      expect(sub.w).toBe(3);
     });
 
     test('class instance into a plain object: its own enumerable string keys are merged into the plain object, which stays plain', () => {
@@ -995,18 +1085,19 @@ describe('mergeDeep', () => {
       });
     });
 
-    test('an object without prototype counts as a plain object: a class instance merges into it and it merges into a class instance', () => {
+    test('an object without prototype counts as a plain object: a class instance merges into it, and it replaces a class instance', () => {
       const bare = Object.create(null);
       bare.n = 1;
       const intoBare: any = mergeDeep({ a: bare }, { a: new Foo() });
       expect(intoBare.a).toBe(bare);
       expect({ ...intoBare.a }).toStrictEqual({ n: 1, x: 1 });
+      // the other way round it is a source like any plain object: it replaces an instance
       const foo = new Foo();
       const bareSource = Object.create(null);
       bareSource.n = 2;
       const intoFoo: any = mergeDeep({ a: foo }, { a: bareSource });
-      expect(intoFoo.a).toBe(foo);
-      expect(foo).toMatchObject({ x: 1, n: 2 });
+      expect(intoFoo.a).toBe(bareSource);
+      expect(foo).toStrictEqual(new Foo());
     });
 
     test('an object without prototype in the first object takes a plain object of the second', () => {
@@ -1267,6 +1358,101 @@ describe('mergeDeep', () => {
       expect(request.defaults.headers).toMatchObject({
         'X-Made-Up': 'yes',
         'Content-Type': 'application/json',
+      });
+    });
+
+    describe('a plain object as httpsAgent', () => {
+      // A plain object as `httpsAgent` must never be merged into the shared
+      // default agent (a ProxyAgent, which holds the https.Agent it uses for a
+      // direct connection): merged, `{ httpsAgent: { httpsAgent: { options: {
+      // rejectUnauthorized: false } } } }` would turn the verification of
+      // certificates off for every later request of the process. The probe is
+      // a local TLS server with an expired certificate.
+      let server: https.Server;
+      let baseURL: string;
+      const priorNoProxy = process.env.NO_PROXY;
+
+      beforeAll(async () => {
+        const { key, cert } = await createExpiredCertificate();
+        server = https.createServer({ key, cert }, (_req, res) => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'ok' }));
+        });
+        await new Promise<void>((resolve) => {
+          server.listen(0, '127.0.0.1', () => resolve());
+        });
+        baseURL = `https://127.0.0.1:${(server.address() as AddressInfo).port}`;
+        process.env.NO_PROXY = '127.0.0.1,localhost';
+      });
+
+      afterAll(async () => {
+        if (priorNoProxy === undefined) delete process.env.NO_PROXY;
+        else process.env.NO_PROXY = priorNoProxy;
+        await new Promise<void>((resolve, reject) => {
+          server.close((error) => (error ? reject(error) : resolve()));
+        });
+      });
+
+      /** The text of the error of a request, or 'no error'. */
+      const failure = async (request: any): Promise<string> => {
+        try {
+          await request.get('/');
+          return 'no error';
+        } catch (error) {
+          return `${(error as any).code ?? ''} ${(error as any).message ?? ''}`;
+        }
+      };
+
+      test('the shared default agent is not changed by the plain objects, which replace it', () => {
+        const shared = frodo.factory.generateAmApi(resource).defaults
+          .httpsAgent as any;
+        const before = snapshot(shared);
+        const beforeConnect = JSON.stringify(shared.connectOpts);
+        // the https.Agent that the shared ProxyAgent uses for a direct connection
+        const inner = shared.httpsAgent;
+        const beforeInner = JSON.stringify(inner.options);
+        expect(shared.connectOpts.rejectUnauthorized).toBe(true);
+        expect(inner.options.rejectUnauthorized).toBe(true);
+        for (const insecure of [
+          { httpsAgent: { options: { rejectUnauthorized: false } } },
+          { connectOpts: { rejectUnauthorized: false } },
+          { options: { rejectUnauthorized: false } },
+          { rejectUnauthorized: false },
+        ]) {
+          const request = frodo.factory.generateAmApi(resource, {
+            httpsAgent: insecure as any,
+          });
+          expect(request.defaults.httpsAgent).not.toBe(shared);
+          expect(snapshot(shared)).toBe(before);
+          expect(JSON.stringify(shared.connectOpts)).toBe(beforeConnect);
+          expect(shared.httpsAgent).toBe(inner);
+          expect(JSON.stringify(inner.options)).toBe(beforeInner);
+        }
+        expect(frodo.factory.generateAmApi(resource).defaults.httpsAgent).toBe(
+          shared
+        );
+      });
+
+      test('a request of the default instance still verifies the certificate after the plain objects were given', async () => {
+        // a client that does not verify accepts the certificate: the server works
+        const control = frodo.factory.generateAmApi(resource, {
+          baseURL,
+          httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+        });
+        expect((await control.get('/')).status).toBe(200);
+        for (const insecure of [
+          { httpsAgent: { options: { rejectUnauthorized: false } } },
+          { connectOpts: { rejectUnauthorized: false } },
+          { options: { rejectUnauthorized: false } },
+          { rejectUnauthorized: false },
+        ]) {
+          frodo.factory.generateAmApi(resource, {
+            httpsAgent: insecure as any,
+          });
+        }
+        expect(
+          await failure(frodo.factory.generateAmApi(resource, { baseURL }))
+        ).toMatch(/CERT_HAS_EXPIRED|certificate has expired/i);
       });
     });
 
