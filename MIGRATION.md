@@ -158,31 +158,6 @@ releases missed):
   failure. The `ERROR - can't save <file>` line is no longer printed through
   the print handler, so the caller prints the thrown error once.
   `frodo.utils.saveToFile` propagates the same error.
-- `frodo.utils.json.mergeDeep` (`src/utils/JsonUtils.ts`, also the MCP
-  capability `utils.json.mergeDeep` and every library function that merges
-  with it) no longer throws or drops a value when the two values of a key are
-  of different types: the value of the second object replaces the value of the
-  first, whatever the type of either. Before, a number, string or `true` that
-  an object or an array replaced threw a `TypeError`, a `null` that replaced a
-  value that is not falsy threw one too, a null or undefined second argument
-  threw (when the first argument was not falsy), and an object that replaced
-  `0`, `''`, `false`, `null` or `undefined` was dropped without an error, as
-  was a `null` that replaced `0`, `''`, `false` or `undefined`. Now an array
-  replaces an object and an object replaces an array (the old result was an
-  array or an object with the keys of both), a `Date`, `Map`, `Set` or class
-  instance of the second object replaces the value of the first instead of
-  being merged into it, a second argument that is not an object changes
-  nothing, and an object without prototype or a JSON key named
-  `hasOwnProperty` no longer throws. The key `__proto__` is no longer copied
-  (it used to replace the prototype of the result). What does not change: the
-  first object is changed and returned, arrays merge by index, a falsy first
-  argument is returned as it is, and the values of the second object are
-  shared, not copied. Visible through the factory: a `proxy` object in the
-  `requestOverride` of `frodo.factory.generateAmApi` and the other
-  `generate*Api` methods now takes effect (it was dropped over the default
-  `proxy: false`), and an `httpsAgent` there now replaces the default agent
-  (it threw). A caller that relied on one of the errors has to check the
-  values first; such callers cannot be counted from here.
 - `frodo.mapping.deleteMappings` (`src/ops/MappingOps.ts`) now tries every
   mapping. A mapping that cannot be deleted no longer stops the others: after
   all of them were tried, the function throws one `FrodoError` that carries one
@@ -528,6 +503,31 @@ releases missed):
   and `frodo role import -f` of frodo-cli import the first item of their file
   with these methods, so they import one item once they use a library with this
   change.
+- `frodo.utils.json.mergeDeep` (`src/utils/JsonUtils.ts`, also the MCP
+  capability `utils.json.mergeDeep` and every library function that merges
+  with it) no longer throws or drops a value when the two values of a key are
+  of different types: the value of the second object replaces the value of the
+  first, whatever the type of either. Before, a number, string or `true` that
+  an object or an array replaced threw a `TypeError`, a `null` that replaced a
+  value that is not falsy threw one too, a null or undefined second argument
+  threw (when the first argument was not falsy), and an object that replaced
+  `0`, `''`, `false`, `null` or `undefined` was dropped without an error, as
+  was a `null` that replaced `0`, `''`, `false` or `undefined`. Now an array
+  replaces an object and an object replaces an array (the old result was an
+  array or an object with the keys of both), a `Date`, `Map`, `Set` or class
+  instance of the second object replaces the value of the first instead of
+  being merged into it, a second argument that is not an object changes
+  nothing, and an object without prototype or a JSON key named
+  `hasOwnProperty` no longer throws. The key `__proto__` is no longer copied
+  (it used to replace the prototype of the result). What does not change: the
+  first object is changed and returned, arrays merge by index, a falsy first
+  argument is returned as it is, and the values of the second object are
+  shared, not copied. Visible through the factory: a `proxy` object in the
+  `requestOverride` of `frodo.factory.generateAmApi` and the other
+  `generate*Api` methods now takes effect (it was dropped over the default
+  `proxy: false`), and an `httpsAgent` there now replaces the default agent
+  (it threw). A caller that relied on one of the errors has to check the
+  values first; such callers cannot be counted from here.
 - `frodo.cloud.feature.readFeatures` (`src/ops/cloud/FeatureOps.ts`) now throws
   a `FrodoError` when the list of features cannot be read, for example HTTP 403
   for a credential without the scope `fr:idc:feature:*`. Before, it returned an
