@@ -3,7 +3,6 @@ import fs from 'fs';
 import { chmod, lstat, readdir, readFile, writeFile } from 'fs/promises';
 import { dirname, join } from 'path';
 import { Reader } from 'properties-reader';
-import slugify from 'slugify';
 import { SearchResult, SearchTargetFilterOperation } from '../api/ApiTypes';
 import { generateGovernanceApi } from '../api/BaseApi';
 import { VariableSkeleton } from '../api/cloud/VariablesApi';
@@ -28,7 +27,21 @@ import {
   updateProgressIndicator,
   verboseMessage,
 } from './Console';
-import { deleteDeepByKeys, isEqualJson, stringify } from './JsonUtils';
+import {
+  buildExportEnvelope,
+  escapePlaceholders,
+  getTypedFilename,
+  joinWorkingDirectory,
+  normalizeFilePath,
+  parseExportJson,
+  resolvePlaceholders as resolvePlaceholdersInText,
+  serializeExportJson,
+  unescapePlaceholders,
+  withTrailingNewline,
+} from './ExportFileFormatUtils';
+import { isEqualJson } from './JsonUtils';
+
+export { escapePlaceholders, getTypedFilename, unescapePlaceholders };
 
 export type ExportImport = {
   getMetadata(): ExportMetaData;
@@ -330,28 +343,6 @@ export function validateImport(metadata): boolean {
   return metadata || true;
 }
 
-export function getTypedFilename(
-  name: string,
-  type: string,
-  suffix = 'json'
-): string {
-  // Special case: Handle both "Federation" and "federation" authentication modules
-  // to avoid filename conflicts in case-insensitive filesystems
-  if (type === 'authenticationModules' && name.toLowerCase() === 'federation') {
-    if (name === 'Federation') {
-      return `federation.${type}.${suffix}`;
-    }
-    if (name === 'federation') {
-      return `federation_.${type}.${suffix}`;
-    }
-  }
-
-  const slug = slugify(name.replace(/^http(s?):\/\//, ''), {
-    remove: /[^\w\s$*_+~.()'"!\-@]+/g,
-  });
-  return `${slug}.${type}.${suffix}`;
-}
-
 export function getWorkingDirectory({
   mkdirs = false,
   state,
@@ -389,10 +380,13 @@ export function getFilePath({
   mkdirs: boolean;
   state: State;
 }): string {
-  fileName = fileName.replaceAll('\\', '/').replaceAll('C:', '');
-  const path = state.getDirectory()
-    ? `${getWorkingDirectory({ mkdirs, state })}/${fileName}`
-    : fileName;
+  fileName = normalizeFilePath(fileName);
+  const directory = state.getDirectory();
+  if (directory) {
+    // creates the working directory when mkdirs is true
+    getWorkingDirectory({ mkdirs, state });
+  }
+  const path = joinWorkingDirectory(directory, fileName);
   // If the fileName contains directories, make those directories.
   if (mkdirs && fileName.includes('/')) {
     const dir = path.substring(0, path.lastIndexOf('/'));
@@ -408,7 +402,8 @@ export function getFilePath({
 }
 
 /**
- * Save object to file in Frodo export format
+ * Save object to file in Frodo export format. The object (or the list of objects) is not changed: the metadata is added
+ * to, and the properties that are not kept are removed from, a copy that is written.
  * @param {any} data data object
  * @param {string} identifier key of identifier in the data object
  * @param {string} filename file name
@@ -433,16 +428,7 @@ export function saveToFile({
   keepModifiedProperties?: boolean;
   state: State;
 }): void {
-  const exportData = {};
-  exportData[type] = {};
-
-  if (Array.isArray(data)) {
-    data.forEach((element) => {
-      exportData[type][element[identifier]] = element;
-    });
-  } else {
-    exportData[type][data[identifier]] = data;
-  }
+  const exportData = buildExportEnvelope({ type, data, identifier });
   saveJsonToFile({
     data: exportData,
     includeMeta,
@@ -453,23 +439,8 @@ export function saveToFile({
 }
 
 /**
- * Check whether a value is the export metadata envelope: either export
- * metadata as produced by {@link getMetadata}, or the empty `{}` placeholder
- * callers put in a file template before the envelope is filled in
- * @param {unknown} value value to check
- * @returns {boolean} true if the value is an export metadata envelope, false otherwise
- */
-function isExportMetaData(value: unknown): boolean {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  const candidate = value as Partial<ExportMetaData>;
-  return (
-    Object.keys(candidate).length === 0 ||
-    typeof candidate.exportTool === 'string'
-  );
-}
-
-/**
- * Save JSON object to file
+ * Save JSON object to file. The object is not changed: the metadata is added to, and the properties that are not kept
+ * are removed from, a copy that is written.
  * @param {object} data data object
  * @param {string} filename file name
  * @param {boolean} includeMeta true to include metadata, false otherwise. Default: true
@@ -493,39 +464,14 @@ export function saveJsonToFile({
   keepModifiedProperties?: boolean;
   state: State;
 }): void {
-  const exportData = data;
-  if (includeMeta && !exportData['meta'])
-    exportData['meta'] = getMetadata({ state });
-  // Only strip the export envelope (or its empty placeholder). Any other
-  // top-level `meta` is real data (e.g. the IGA `meta` relationship config on
-  // a managed object) and must survive.
-  if (!includeMeta && isExportMetaData(exportData['meta']))
-    delete exportData['meta'];
-  const keysToDelete = [];
-  if (!keepRev) {
-    keysToDelete.push('_rev');
-  }
-  if (!keepModifiedProperties) {
-    keysToDelete.push(
-      ...[
-        'lastModifiedBy',
-        'lastModifiedDate',
-        'modified',
-        'modifiedDate',
-        'lastChangeDate',
-        'lastChangedBy',
-        'lastChanged',
-        'createdBy',
-        'creationDate',
-        'createdDate',
-      ]
-    );
-  }
-  if (keysToDelete.length) {
-    deleteDeepByKeys(exportData, keysToDelete, true);
-  }
   saveTextToFile({
-    data: stringify(exportData),
+    data: serializeExportJson({
+      data,
+      metadata: getMetadata({ state }),
+      includeMeta,
+      keepRev,
+      keepModifiedProperties,
+    }),
     filename,
     state,
   });
@@ -805,7 +751,7 @@ export function saveTextToFile({
     // create the directory portion of the path if it doesn't exist so bare
     // library consumers don't fail with ENOENT when they never called init*
     ensureDirectoryForFile(filename);
-    fs.writeFileSync(filename, data + (data.endsWith('\n') ? '' : '\n'));
+    fs.writeFileSync(filename, withTrailingNewline(data));
   } catch (error) {
     throw new FrodoError(`Error saving ${filename}`, error);
   }
@@ -911,7 +857,7 @@ export function readJsonFile({
     content = replaceEnvSpecificValues({ content, state });
   }
   try {
-    return JSON.parse(content);
+    return parseExportJson(content);
   } catch (error) {
     throw new FrodoError(`Error parsing JSON from ${filePath}`, error);
   }
@@ -955,55 +901,16 @@ export function replaceEnvSpecificValues({
   content: string;
   state: State;
 }): string {
-  const BASE64_PRE_ENCODED_PREFIX = 'BASE64:';
-
-  let newContent = content;
-  const placeholders = content.match(/\\*?\${.*?}/g);
-  if (!placeholders) {
-    return newContent;
-  }
-  const resolvable = placeholders.filter((p) => !p.startsWith('\\\\'));
-  for (const placeholder of resolvable) {
-    let placeholderName = placeholder.replace(/\${(.*)}/, '$1');
-    let decodeValue = false;
-    if (placeholderName.startsWith(BASE64_PRE_ENCODED_PREFIX)) {
-      decodeValue = true;
-      placeholderName = placeholderName.substring(
-        BASE64_PRE_ENCODED_PREFIX.length
-      );
-    }
-    const value = placeholderValue(placeholderName, state);
-    if (value === undefined) {
-      throw new FrodoError(
-        `No value found for placeholder "${placeholderName}"`
-      );
-    }
-    const resolvedValue = decodeValue
-      ? Buffer.from(value, 'base64').toString('utf-8')
-      : value;
-
-    newContent = newContent.replaceAll(placeholder, resolvedValue);
-  }
-  return unescapePlaceholders(newContent);
-}
-/**
- * Escape any placeholders so they are not resolved as environment placeholders
- *
- * @param {object} content the object to escape placeholders in
- * @returns {object} a new object with all `${` sequences escaped
- */
-export function escapePlaceholders(content: object): object {
-  return JSON.parse(JSON.stringify(content).replace(/\$\{/g, '\\\\${'));
-}
-
-/**
- * Unescape any escaped placeholders back to their original form
- 
- * @param {string} content the raw content to unescape
- * @returns {string} the content with all escaped placeholders restored
- */
-export function unescapePlaceholders(content: string): string {
-  return content.replace(/\\\\\${/g, '${');
+  return resolvePlaceholdersInText({
+    content,
+    lookup: (name) => {
+      const value = placeholderValue(name, state);
+      if (value === undefined) {
+        throw new FrodoError(`No value found for placeholder "${name}"`);
+      }
+      return value;
+    },
+  });
 }
 
 export function substituteEnvParams(input: string, reader: Reader): string {
