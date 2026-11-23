@@ -9372,12 +9372,12 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Json",
     methodName: "mergeDeep",
     signature: "mergeDeep(obj1: any, obj2: any): any",
-    description: "Deep merge two objects",
+    description: "Deep merge the second object into the first. The first object is changed and returned; a first argument that is null, undefined or otherwise falsy is returned as it is. A second argument that is null, undefined or not an object changes nothing. Every own enumerable key of the second object is applied to the first object, except the key __proto__, which is never copied. A plain object of the second object is merged key by key into an object of the first object that is not an array, and an array of the second object is merged by index into an array of the first object (the first array is never shortened). In every other case the value of the second object replaces the value of the first object, whatever the type of either: a scalar replaces an object or an array, an object or an array replaces a scalar (also 0, an empty string, false, null and undefined), null replaces anything, an array replaces an object, an object replaces an array, and a Date, Map, Set, class instance or function replaces the value instead of being merged. A key whose value is undefined in the second object is assigned too. Values that are assigned are shared with the second object, not copied.",
     params: [
-      { name: "obj1", type: "", description: "first object", required: true },
-      { name: "obj2", type: "", description: "second object", required: true },
+      { name: "obj1", type: "", description: "first object, changed by the merge", required: true },
+      { name: "obj2", type: "", description: "second object, merged into the first and not changed", required: true },
     ],
-    returns: "merged first and second object",
+    returns: "the first object, with the second object merged into it",
   },
   {
     typeName: "Json",
