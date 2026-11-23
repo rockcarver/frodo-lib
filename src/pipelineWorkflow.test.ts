@@ -507,6 +507,17 @@ describe('the "Validate guidance" job', () => {
     }
   });
 
+  test('continues every line of the list with a backslash but the last', () => {
+    // A line without its backslash would end the command there: the tests after it would silently not run.
+    const lines = (
+      block.match(/^\s+src\/[A-Za-z0-9_.-]+\.test\.ts\s*\\?$/gm) ?? []
+    ).map((l) => l.trimEnd());
+    expect(lines.length).toBeGreaterThan(1);
+    for (const line of lines.slice(0, -1))
+      expect(line.endsWith('\\')).toBe(true);
+    expect(lines[lines.length - 1].endsWith('\\')).toBe(false);
+  });
+
   test('lists every test that reads a guidance file', () => {
     // A test that reads records, skills, AGENTS.md, CONTRIBUTE.md, the Dependabot
     // policy files and the like validates files the code filter treats as
