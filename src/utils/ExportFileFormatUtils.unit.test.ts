@@ -267,6 +267,63 @@ describe('serializeExportJson', () => {
   });
 });
 
+describe('serializeExportJson with values that are not plain JSON', () => {
+  const written = (data: object, options = {}) =>
+    serializeExportJson({ data, metadata: {}, includeMeta: false, ...options });
+
+  test('a property whose value is a function is written as an empty object, as it always was', () => {
+    expect(written({ f() {}, a: 1, _rev: 'x' })).toBe(
+      '{\n  "a": 1,\n  "f": {}\n}\n'
+    );
+  });
+
+  test('the keys that are left out are left out of what toJSON or a getter returns, too', () => {
+    expect(
+      written({ o: { toJSON: () => ({ _rev: 'x', modified: 1, v: 1 }) } })
+    ).toBe('{\n  "o": {\n    "v": 1\n  }\n}\n');
+    expect(
+      written({
+        get g() {
+          return { _rev: 'x', v: 1 };
+        },
+      })
+    ).toBe('{\n  "g": {\n    "v": 1\n  }\n}\n');
+  });
+
+  test('a circular reference throws a RangeError and leaves the data as it was', () => {
+    const data: Record<string, unknown> = { a: 1, _rev: 'x' };
+    data.self = data;
+    expect(() => written(data)).toThrow(RangeError);
+    expect(data._rev).toBe('x');
+    expect(Object.keys(data)).toEqual(['a', '_rev', 'self']);
+  });
+
+  test('a BigInt throws a TypeError', () => {
+    expect(() => written({ a: 1n })).toThrow(TypeError);
+  });
+
+  test('frozen data is written, and stays as it is', () => {
+    const data = Object.freeze({ z: 1, a: 2, _rev: 'x' });
+    expect(written(data)).toBe('{\n  "a": 2,\n  "z": 1\n}\n');
+    expect(data._rev).toBe('x');
+  });
+
+  test('an object without a prototype is written in its own order, at the top and nested, as it always was', () => {
+    const bare = () => Object.assign(Object.create(null), { z: 1, a: 2 });
+    expect(written(bare())).toBe('{\n  "z": 1,\n  "a": 2\n}\n');
+    expect(written({ n: bare() })).toBe(
+      '{\n  "n": {\n    "z": 1,\n    "a": 2\n  }\n}\n'
+    );
+  });
+
+  test('the metadata is added to an object without a prototype at the end of its own order', () => {
+    const bare = Object.assign(Object.create(null), { z: 1 });
+    expect(serializeExportJson({ data: bare, metadata: { m: 1 } })).toBe(
+      '{\n  "z": 1,\n  "meta": {\n    "m": 1\n  }\n}\n'
+    );
+  });
+});
+
 describe('parseExportJson', () => {
   test.each([
     [
@@ -718,7 +775,7 @@ describe('escapePlaceholders and unescapePlaceholders', () => {
 describe('the module stays pure', () => {
   const imports = importSpecifiersOf('src/utils/ExportFileFormatUtils.ts');
 
-  test('imports nothing from the api, ops or lib layers or from the package root (decisions/0004: imports point downward)', () => {
+  test('imports nothing from the api, ops or lib layers or from the package root (layers and dependency direction: https://github.com/rockcarver/frodo-lib/blob/main/decisions/0004-layers-and-dependency-direction.md)', () => {
     expect(imports.filter((s) => UPWARD_PATTERN.test(s))).toEqual([]);
   });
 
@@ -726,9 +783,7 @@ describe('the module stays pure', () => {
     expect(imports.filter((s) => NODE_IO_MODULES.includes(s))).toEqual([]);
   });
 
-  test('imports only slugify and modules of src/utils', () => {
-    expect(
-      imports.filter((s) => s !== 'slugify' && !/^\.\/[A-Za-z]+Utils$/.test(s))
-    ).toEqual([]);
+  test('imports only slugify', () => {
+    expect(imports).toEqual(['slugify']);
   });
 });

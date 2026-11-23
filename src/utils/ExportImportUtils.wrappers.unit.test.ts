@@ -172,9 +172,9 @@ describe('saveJsonToFile writes the bytes it wrote before the split', () => {
     );
   });
 
-  test('data that cannot be turned into JSON throws, not a FrodoError, and writes nothing', () => {
+  test('data with a circular reference throws a RangeError, not a FrodoError, writes nothing and is left as it was', () => {
     const state = makeFixedState();
-    const circular: Record<string, unknown> = { a: 1 };
+    const circular: Record<string, unknown> = { a: 1, _rev: 'x' };
     circular.self = circular;
     const filename = nextFile();
     let thrown: unknown;
@@ -183,9 +183,11 @@ describe('saveJsonToFile writes the bytes it wrote before the split', () => {
     } catch (error) {
       thrown = error;
     }
-    expect(thrown).toBeDefined();
+    expect(thrown).toBeInstanceOf(RangeError);
     expect(thrown).not.toBeInstanceOf(FrodoError);
     expect(fs.existsSync(filename)).toBe(false);
+    expect(Object.keys(circular)).toEqual(['a', '_rev', 'self']);
+    expect(circular._rev).toBe('x');
   });
 });
 

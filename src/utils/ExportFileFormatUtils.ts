@@ -6,7 +6,6 @@
  * system.
  */
 import slugify from 'slugify';
-import { deleteDeepByKeys, stringify } from './JsonUtils';
 
 /** The key under which the export envelope (the metadata of an export) is kept. */
 const META_KEY = 'meta';
@@ -32,11 +31,6 @@ const MODIFIED_PROPERTY_KEYS = [
 const BASE64_PRE_ENCODED_PREFIX = 'BASE64:';
 
 /**
- * Gives the value for the name of a placeholder, or undefined if there is none (an empty string is a value).
- */
-export type PlaceholderLookup = (name: string) => string | undefined;
-
-/**
  * Whether a value is the export envelope: the metadata of an export (it names the tool that wrote it), or the empty
  * `{}` placeholder that a caller puts in a file template before the envelope is filled in.
  * @param {unknown} value value to check
@@ -52,27 +46,76 @@ function isExportEnvelope(value: unknown): boolean {
 }
 
 /**
- * Turn data into the text of an export file: a copy of the data with the envelope handled, `_rev` and the modified
- * properties removed at every depth, the keys sorted at every depth, indented by two spaces, with one newline at the
- * end. The data and the metadata are never changed; the work is done on copies.
+ * A copy of an object with its keys in sorted order, so that the same data always gives the same text. Arrays and values
+ * that are not objects are returned as they are (the keys of an array are its positions).
+ * @param {unknown} value the value
+ * @returns {unknown} the sorted copy of an object, any other value as it is
+ */
+function withSortedKeys(value: unknown): unknown {
+  return value instanceof Object && !(value instanceof Array)
+    ? Object.keys(value)
+        .sort()
+        .reduce((sorted, key) => {
+          sorted[key] = value[key];
+          return sorted;
+        }, {})
+    : value;
+}
+
+/**
+ * The top level of the data as it is written: with `includeMeta`, the metadata is added unless the data already has a
+ * `meta` that is not empty; without it, the export envelope is left out and any other `meta` stays. The data is not
+ * changed: the top level is copied (an array has no envelope and is returned as it is).
+ * @param {unknown} data the data
+ * @param {object} metadata the metadata header to add
+ * @param {boolean} includeMeta true to include the metadata header, false to remove the envelope
+ * @returns {unknown} the top level to write
+ */
+function withEnvelope(
+  data: unknown,
+  metadata: object,
+  includeMeta: boolean
+): unknown {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return data;
+  const top: Record<string, unknown> = Object.fromEntries(Object.entries(data));
+  if (includeMeta && !top[META_KEY]) {
+    top[META_KEY] = metadata;
+  }
+  if (!includeMeta && isExportEnvelope(top[META_KEY])) {
+    delete top[META_KEY];
+  }
+  return top;
+}
+
+/**
+ * Turn data into the text of an export file: with the envelope handled, `_rev` and the modified properties left out at
+ * every depth, the keys sorted at every depth, indented by two spaces, with one newline at the end. The data and the
+ * metadata are never changed. The text is written in one pass: nothing is copied but the objects that are being sorted,
+ * one at a time, as they are written, so a large export does not need a second copy of itself in memory.
  *
  * The envelope (the top level `meta` key): with `includeMeta`, the metadata given is added unless the data already has a
  * `meta` that is not empty (null, an empty string, zero and false count as empty); without `includeMeta`, a top level
- * `meta` is removed only if it is the export envelope (it has an `exportTool` that is a string, or it is the empty
+ * `meta` is left out only if it is the export envelope (it has an `exportTool` that is a string, or it is the empty
  * object). Any other top level `meta` is data, for example the `meta` relationship configuration of an IGA managed
  * object, and stays.
  *
- * `_rev` is removed unless `keepRev` is set. These ten keys are removed unless `keepModifiedProperties` is set:
+ * `_rev` is left out unless `keepRev` is set. These ten keys are left out unless `keepModifiedProperties` is set:
  * `lastModifiedBy`, `lastModifiedDate`, `modified`, `modifiedDate`, `lastChangeDate`, `lastChangedBy`, `lastChanged`,
- * `createdBy`, `creationDate` and `createdDate`. A key is removed when it equals one of these exactly, whatever its
+ * `createdBy`, `creationDate` and `createdDate`. A key is left out when it equals one of these exactly, whatever its
  * value, and its value goes with it.
+ *
+ * For data that is plain JSON (what a server sends and what a file holds) the text is what it always was. The two writers
+ * of `ExportImportUtils.ts` used to remove the keys from the data itself before `toJSON` of a value ran and to turn a
+ * function-valued property into `{}`: the keys are now left out of what `toJSON` returns, and a function-valued property is
+ * still written as `{}`.
  * @param {object} data the data to write; not changed
  * @param {object} metadata the metadata header to add (origin, versions, date and so on); not changed
  * @param {boolean} includeMeta true to include the metadata header, false to remove the envelope. Default: true
  * @param {boolean} keepRev true to keep the `_rev` keys. Default: false
  * @param {boolean} keepModifiedProperties true to keep the modified properties. Default: false
  * @returns {string} the text of the file
- * @throws {TypeError} if the data cannot be turned into JSON (a circular reference, a BigInt)
+ * @throws {TypeError} if the data holds a BigInt
+ * @throws {RangeError} if the data holds a circular reference
  */
 export function serializeExportJson({
   data,
@@ -87,21 +130,22 @@ export function serializeExportJson({
   keepRev?: boolean;
   keepModifiedProperties?: boolean;
 }): string {
-  const exportData = JSON.parse(JSON.stringify(data));
-  if (includeMeta && !exportData[META_KEY]) {
-    exportData[META_KEY] = JSON.parse(JSON.stringify(metadata));
-  }
-  if (!includeMeta && isExportEnvelope(exportData[META_KEY])) {
-    delete exportData[META_KEY];
-  }
-  const keysToDelete = [
+  const leftOut = new Set([
     ...(keepRev ? [] : REV_KEYS),
     ...(keepModifiedProperties ? [] : MODIFIED_PROPERTY_KEYS),
-  ];
-  if (keysToDelete.length) {
-    deleteDeepByKeys(exportData, keysToDelete, true);
-  }
-  return withTrailingNewline(stringify(exportData));
+  ]);
+  let isTopLevel = true;
+  const replacer = (key: string, value: unknown): unknown => {
+    if (isTopLevel) {
+      // the first call is the data itself, under the key ''
+      isTopLevel = false;
+      const top = withEnvelope(value, metadata, includeMeta);
+      // as for any other object, one that has no prototype is not sorted (it is written in its own order)
+      return value instanceof Object ? withSortedKeys(top) : top;
+    }
+    return leftOut.has(key) ? undefined : withSortedKeys(value);
+  };
+  return withTrailingNewline(JSON.stringify(data, replacer, 2));
 }
 
 /**
@@ -123,7 +167,7 @@ export function parseExportJson(content: string): object {
  * appear in the text, and not at all if the text has none. A `${` that is never closed with a `}` is not a placeholder
  * and the text is then returned as it is.
  * @param {string} content the text
- * @param {PlaceholderLookup} lookup gives the value for a name
+ * @param {(name: string) => string | undefined} lookup gives the value for a name, or undefined if there is none (an empty string is a value)
  * @returns {string} the text with the placeholders filled and the escaped placeholders unescaped
  * @throws {Error} if the lookup gives no value for a name; the message names the placeholder, never a value
  */
@@ -132,7 +176,7 @@ export function resolvePlaceholders({
   lookup,
 }: {
   content: string;
-  lookup: PlaceholderLookup;
+  lookup: (name: string) => string | undefined;
 }): string {
   let newContent = content;
   const placeholders = content.match(/\\*?\${.*?}/g);
