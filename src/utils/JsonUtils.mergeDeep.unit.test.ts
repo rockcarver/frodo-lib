@@ -1103,7 +1103,7 @@ describe('mergeDeep', () => {
       });
     }
 
-    const kind = (value: any): string =>
+    const typeOf = (value: any): string =>
       value === null
         ? 'null'
         : Array.isArray(value)
@@ -1113,17 +1113,17 @@ describe('mergeDeep', () => {
             : 'scalar';
 
     /**
-     * The type conflicts of a pair: the kinds that differ at a key both sides
+     * The type conflicts of a pair: the types that differ at a key both sides
      * have, walked the way the merge walks (only an object with an object, an
-     * array with an array, is entered). The kinds object to scalar, array to
+     * array with an array, is entered). The pairs object to scalar, array to
      * scalar, scalar to scalar, null to scalar and null to null are no
      * conflict: the old function handled them.
      */
     const conflicts = (target: any, source: any, found = new Set<string>()) => {
       for (const key of Object.keys(source)) {
         if (!(key in target)) continue;
-        const from = kind(target[key]);
-        const to = kind(source[key]);
+        const from = typeOf(target[key]);
+        const to = typeOf(source[key]);
         if (
           (from === 'object' && to === 'object') ||
           (from === 'array' && to === 'array')
@@ -1150,11 +1150,11 @@ describe('mergeDeep', () => {
       const problems: string[] = [];
       let withConflict = 0;
       let withoutConflict = 0;
-      const kinds = new Set<string>();
+      const conflictTypes = new Set<string>();
       for (let i = 0; i < 5000; i++) {
         const { first, second } = nextPair();
         const found = conflicts(first, second);
-        found.forEach((entry) => kinds.add(entry));
+        found.forEach((entry) => conflictTypes.add(entry));
         if (found.size === 0) withoutConflict++;
         else withConflict++;
         const input = JSON.stringify([first, second]);
@@ -1189,10 +1189,10 @@ describe('mergeDeep', () => {
       }
       expect(problems.slice(0, 3)).toEqual([]);
       expect(problems).toHaveLength(0);
-      // the property is not vacuous: most pairs have a conflict, of every kind
+      // the property is not vacuous: most pairs have a conflict, of every type
       expect(withConflict).toBeGreaterThan(3000);
       expect(withoutConflict).toBeGreaterThan(500);
-      expect([...kinds].sort()).toEqual([
+      expect([...conflictTypes].sort()).toEqual([
         'array->null',
         'array->object',
         'null->array',
