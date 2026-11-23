@@ -240,14 +240,15 @@ export async function accessToken({
 
 /**
  * Set the content type of a form post on the headers of a request config. The headers may be an AxiosHeaders instance
- * (or any object with a set method): a merge would replace such an instance by the plain headers it merges into, and
- * with it every header the caller put there, so the content type is set through the set method of the instance.
+ * (or any object with a set method): a merge would replace such an instance by the value it merges, and with it every
+ * header the caller put there, so the content type is set through the set method of the instance. A config that is
+ * null comes back as it is.
  * @param {AxiosRequestConfig} config request config of the caller, changed and returned
  * @returns {AxiosRequestConfig} the config with the content type of a form post
  */
 function setFormContentType(config: AxiosRequestConfig): AxiosRequestConfig {
   const contentType = 'application/x-www-form-urlencoded';
-  const headers: any = config.headers;
+  const headers: any = config?.headers;
   if (headers && typeof headers.set === 'function') {
     headers.set('content-type', contentType);
     return config;
