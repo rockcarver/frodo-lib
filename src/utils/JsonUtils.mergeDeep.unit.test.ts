@@ -995,6 +995,20 @@ describe('mergeDeep', () => {
       });
     });
 
+    test('an object without prototype counts as a plain object: a class instance merges into it and it merges into a class instance', () => {
+      const bare = Object.create(null);
+      bare.n = 1;
+      const intoBare: any = mergeDeep({ a: bare }, { a: new Foo() });
+      expect(intoBare.a).toBe(bare);
+      expect({ ...intoBare.a }).toStrictEqual({ n: 1, x: 1 });
+      const foo = new Foo();
+      const bareSource = Object.create(null);
+      bareSource.n = 2;
+      const intoFoo: any = mergeDeep({ a: foo }, { a: bareSource });
+      expect(intoFoo.a).toBe(foo);
+      expect(foo).toMatchObject({ x: 1, n: 2 });
+    });
+
     test('an object without prototype in the first object takes a plain object of the second', () => {
       const inner = Object.create(null);
       inner.x = 1;
