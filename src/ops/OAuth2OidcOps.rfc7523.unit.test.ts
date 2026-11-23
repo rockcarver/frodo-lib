@@ -95,6 +95,48 @@ describe('OAuth2OidcOps.accessTokenRfc7523AuthZGrant', () => {
     expect(Object.keys(headers.toJSON())).toHaveLength(1);
   });
 
+  test('5: a config that is null reaches the request as it was given, as before', async () => {
+    await grant(null);
+    expect(sentConfig()).toBeNull();
+  });
+
+  test('6: a fetch Headers instance of the caller stays the same instance, keeps its headers and gets the content type', async () => {
+    const headers = new Headers({ Cookie: 'made-up' });
+    const config = { headers: headers as any };
+    await grant(config);
+    expect(sentConfig()).toBe(config);
+    expect(sentConfig().headers).toBe(headers);
+    expect(headers.get('Cookie')).toBe('made-up');
+    expect(headers.get('content-type')).toBe(
+      'application/x-www-form-urlencoded'
+    );
+  });
+
+  test('7: any object with a set method gets the content type through it, and stays the same object', async () => {
+    const calls: unknown[][] = [];
+    const headers = {
+      Cookie: 'made-up',
+      set: (...args: unknown[]) => calls.push(args),
+    };
+    const config = { headers: headers as any };
+    await grant(config);
+    expect(sentConfig().headers).toBe(headers);
+    expect(calls).toStrictEqual([
+      ['content-type', 'application/x-www-form-urlencoded'],
+    ]);
+    expect(headers.Cookie).toBe('made-up');
+    expect(Object.keys(headers)).toStrictEqual(['Cookie', 'set']);
+  });
+
+  test('8: plain headers that have a string header named set are plain headers: merged, not called', async () => {
+    await grant({ headers: { set: 'made-up', Cookie: 'made-up' } });
+    expect(sentConfig().headers).toStrictEqual({
+      set: 'made-up',
+      Cookie: 'made-up',
+      'content-type': 'application/x-www-form-urlencoded',
+    });
+  });
+
   test('4: the other fields of the config of the caller are kept', async () => {
     await grant({ timeout: 5000, headers: { 'X-Made-Up': 'yes' } });
     expect(sentConfig().timeout).toBe(5000);
