@@ -510,24 +510,39 @@ releases missed):
   first, whatever the type of either. Before, a number, string or `true` that
   an object or an array replaced threw a `TypeError`, a `null` that replaced a
   value that is not falsy threw one too, a null or undefined second argument
-  threw (when the first argument was not falsy), and an object that replaced
-  `0`, `''`, `false`, `null` or `undefined` was dropped without an error, as
-  was a `null` that replaced `0`, `''`, `false` or `undefined`. Now an array
-  replaces an object and an object replaces an array (the old result was an
-  array or an object with the keys of both), a `Date`, `Map`, `Set` or class
-  instance of the second object replaces the value of the first instead of
-  being merged into it, a second argument that is not an object changes
-  nothing, and an object without prototype or a JSON key named
-  `hasOwnProperty` no longer throws. The key `__proto__` is no longer copied
-  (it used to replace the prototype of the result). What does not change: the
-  first object is changed and returned, arrays merge by index, a falsy first
-  argument is returned as it is, and the values of the second object are
-  shared, not copied. Visible through the factory: a `proxy` object in the
+  threw (when the first argument was not falsy), and an object or an array
+  that replaced `0`, `''`, `false`, `null` or `undefined` was dropped without
+  an error, as was a `null` that replaced `0`, `''`, `false` or `undefined`.
+  Now an array replaces an object and an object replaces an array (the old
+  result was an array or an object with the keys of both), a second argument
+  that is not an object changes nothing, an object without prototype or a JSON
+  key named `hasOwnProperty` no longer throws, and an object that replaces a
+  function is no longer merged onto the function. The key `__proto__` is no
+  longer copied (it used to replace the prototype of the result). A `Date`,
+  `RegExp`, `Error`, `Map`, `Set`, `WeakMap`, `WeakSet`, `Promise`,
+  `ArrayBuffer`, typed array, `DataView`, `Buffer` or boxed primitive is a
+  value, not a bag of keys: it replaces the other value and is replaced by it
+  (it used to take the keys of a plain object over it, and to be left as it
+  was when it came from the second object), and a class instance replaces an
+  instance of another class (it used to take its keys). What does not change:
+  a plain object and a class instance still merge, so an `AxiosHeaders`
+  instance in the second object merges its own enumerable string keys into the
+  plain object of the first (the default headers of a factory request), a
+  plain object merges into an instance, and two instances of the same class
+  merge; the first object is changed and returned, arrays merge by index, a
+  falsy first argument is returned as it is, the values of the second object
+  are shared and not copied, and a first argument that is truthy and not an
+  object, a frozen first object and a property that has only a getter still
+  throw a `TypeError`. Visible through the factory: a `proxy` object in the
   `requestOverride` of `frodo.factory.generateAmApi` and the other
   `generate*Api` methods now takes effect (it was dropped over the default
-  `proxy: false`), and an `httpsAgent` there now replaces the default agent
-  (it threw). A caller that relied on one of the errors has to check the
-  values first; such callers cannot be counted from here.
+  `proxy: false`), `proxy: null` now becomes `null` (it was dropped; axios
+  leaves its own proxy lookup on for `null` and switches it off for `false`),
+  and an `httpsAgent` or `httpAgent` that is an `Agent` instance now replaces
+  the default agent (it threw). A plain object given as `httpsAgent` or
+  `httpAgent` is still merged key by key into the shared default agent, as
+  before. A caller that relied on one of the errors has to check the values
+  first; such callers cannot be counted from here.
 - `frodo.cloud.feature.readFeatures` (`src/ops/cloud/FeatureOps.ts`) now throws
   a `FrodoError` when the list of features cannot be read, for example HTTP 403
   for a credential without the scope `fr:idc:feature:*`. Before, it returned an
