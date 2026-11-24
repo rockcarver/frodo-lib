@@ -48,7 +48,7 @@ async function startServer(name: string): Promise<Server> {
         method: req.method,
         url: req.url,
         host: req.headers.host,
-        authorization: req.headers.authorization,
+        authorization: req.headers['authorization'] as string,
         cookie: req.headers.cookie,
         version: req.headers['accept-api-version'] as string,
         apiKey: req.headers['x-api-key'] as string,

@@ -287,7 +287,7 @@ describe('a path that tries to leave the host', () => {
   const hostile = [
     'https://evil.example/x',
     '//evil.example/x',
-    'a@evil.example/x',
+    'a@evil-host/x',
     '@evil.example:443/x',
     'x/@evil.example:443/y',
     '..',
@@ -373,7 +373,7 @@ describe('a path that tries to leave the host', () => {
       state: newState(),
     });
     await api.getRawKeys({
-      endpoint: 'a@evil.example/x',
+      endpoint: 'a@evil-host/x',
       state: newState(),
     });
     await api.getRawWs({
@@ -382,7 +382,7 @@ describe('a path that tries to leave the host', () => {
     });
     expect(calls.map((c) => c.url)).toEqual([
       'https://openam-matrix.example.com///evil.example/x',
-      'https://openam-matrix.example.com/a@evil.example/x',
+      'https://openam-matrix.example.com/a@evil-host/x',
       'https://openam-matrix.example.com/https://evil.example/x',
     ]);
   });

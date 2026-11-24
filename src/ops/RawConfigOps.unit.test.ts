@@ -270,7 +270,7 @@ describe('a path with a root that is not supported', () => {
     'iga2/x',
     'https://evil.example/x',
     '//evil.example/x',
-    'a@evil.example/x',
+    'a@evil-host/x',
     '..',
     '%2e%2e/openidm/config/x',
     '\\evil.example\\x',
