@@ -54,23 +54,26 @@ export type Service = {
     globalConfig?: boolean
   ): Promise<AmServiceSkeleton>;
   /**
-   * Deletes a single next descendent without deleting the parent service
-   * @param {string} descendentId The parent service
-   * @param {string} nextDescendentName The name of the next descendent to delete
+   * Deletes one next descendent of a service and leaves the service itself in place. The descendent is looked up in the list that the server gives for the service and deleted by the id it is listed with, so the name must match a listed id exactly, case included.
+   * @param {string} serviceId The service that holds the descendent
+   * @param {string} nextDescendentName The id (the name) of the next descendent to delete
    * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+   * @returns {Promise<AmServiceSkeleton>} Promise resolving to the deleted descendent
+   * @throws {FrodoError} If the service has no next descendent of that name. Nothing is deleted then.
    */
   deleteServiceNextDescendent(
-    descendentId: string,
+    serviceId: string,
     nextDescendentName: string,
     globalConfig?: boolean
   ): Promise<AmServiceSkeleton>;
   /**
-   * Deletes all next descendents without deleting the parent service
-   * @param {string} descendentId The parent service
+   * Deletes all next descendents of a service and leaves the service itself in place.
+   * @param {string} serviceId The service that holds the descendents
    * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+   * @returns {Promise<AmServiceSkeleton[]>} Promise resolving to the deleted descendents
    */
   deleteServiceNextDescendents(
-    descendentId: string,
+    serviceId: string,
     globalConfig?: boolean
   ): Promise<AmServiceSkeleton[]>;
   /**
@@ -166,11 +169,12 @@ export default (state: State): Service => {
     },
 
     /**
-     * Deletes a single next descendent without deleting the parent service
-     * @param {string} serviceId The parent service
-     * @param {string} nextDescendentName The name of the next descendent to delete
+     * Deletes one next descendent of a service and leaves the service itself in place. The descendent is looked up in the list that the server gives for the service and deleted by the id it is listed with, so the name must match a listed id exactly, case included.
+     * @param {string} serviceId The service that holds the descendent
+     * @param {string} nextDescendentName The id (the name) of the next descendent to delete
      * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
-     * @returns {Promise<AmServiceSkeleton>} The deleted service descendent
+     * @returns {Promise<AmServiceSkeleton>} Promise resolving to the deleted descendent
+     * @throws {FrodoError} If the service has no next descendent of that name. Nothing is deleted then.
      */
     async deleteServiceNextDescendent(
       serviceId: string,
@@ -186,10 +190,10 @@ export default (state: State): Service => {
     },
 
     /**
-     * Deletes all next descendents without deleting the parent service
-     * @param {string} serviceId The parent service
+     * Deletes all next descendents of a service and leaves the service itself in place.
+     * @param {string} serviceId The service that holds the descendents
      * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
-     * @returns {Promise<AmServiceSkeleton[]>} The deleted service descendents
+     * @returns {Promise<AmServiceSkeleton[]>} Promise resolving to the deleted descendents
      */
     async deleteServiceNextDescendents(
       serviceId: string,
@@ -704,13 +708,13 @@ export async function putFullServices({
 }
 
 /**
- * Deletes a single next descendent from the parent service.
- * @param {string} serviceId The parent service
- * @param {string} nextDescendentName The next descendent to delete
+ * Deletes one next descendent of a service and leaves the service itself in place. The descendent is looked up in the list that the server gives for the service and deleted by the id it is listed with, so the name must match a listed id exactly, case included.
+ * @param {string} serviceId The service that holds the descendent
+ * @param {string} nextDescendentName The id (the name) of the next descendent to delete
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
- * @returns {Promise<AmServiceSkeleton>} The deleted service descendent
+ * @returns {Promise<AmServiceSkeleton>} Promise resolving to the deleted descendent
+ * @throws {FrodoError} If the service has no next descendent of that name. Nothing is deleted then.
  */
-
 export async function deleteServiceNextDescendent({
   serviceId,
   nextDescendentName,
@@ -759,12 +763,11 @@ export async function deleteServiceNextDescendent({
 }
 
 /**
- * Deletes all next descendents from the parent service.
- * @param {string} serviceId The parent service
+ * Deletes all next descendents of a service and leaves the service itself in place.
+ * @param {string} serviceId The service that holds the descendents
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
- * @returns {Promise<AmServiceSkeleton[]>} The deleted service descendents
+ * @returns {Promise<AmServiceSkeleton[]>} Promise resolving to the deleted descendents
  */
-
 export async function deleteServiceNextDescendents({
   serviceId,
   globalConfig = false,
@@ -812,7 +815,7 @@ export async function deleteServiceNextDescendents({
  * Deletes the specified service and its descendents.
  * @param {string} serviceId The service to delete
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
- * @return {Promise<AmServiceSkeleton>} The deleted service
+ * @returns {Promise<AmServiceSkeleton>} The deleted service
  */
 export async function deleteFullService({
   serviceId,
