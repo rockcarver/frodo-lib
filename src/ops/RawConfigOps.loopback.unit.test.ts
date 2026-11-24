@@ -4,9 +4,10 @@
  *        npm run test:only RawConfigOps.loopback.unit
  *
  * Raw config through the whole library chain (ops, api, HTTP client) against
- * two local servers, no recording and no tenant. Server A stands for the
- * tenant host, server B for any other host: the IDM host where a test sets
- * one, a host that a path names where it does not. Credentials are made up.
+ * local servers, no recording and no tenant. Server A stands for the tenant
+ * host, server B for any other host that a path names, and, in the tests of a
+ * hostile path under the openidm root, server C for the IDM host. In the other
+ * tests B stands for the IDM host. Credentials are made up.
  *
  * They show which server a raw request goes to (the IDM host of a connection
  * is honoured; the `am` root works on a host whose context is not /am), which
@@ -77,20 +78,24 @@ async function startServer(name: string): Promise<Server> {
 
 let a: Server;
 let b: Server;
+let c: Server;
 
 beforeAll(async () => {
   a = await startServer('A');
   b = await startServer('B');
+  c = await startServer('C');
 });
 
 afterAll(async () => {
   await a.close();
   await b.close();
+  await c.close();
 });
 
 beforeEach(() => {
   a.received.length = 0;
   b.received.length = 0;
+  c.received.length = 0;
 });
 
 const MAIN_TOKEN = 'sample-main-bearer-token';
@@ -410,7 +415,17 @@ describe('the roots at the root of the host', () => {
  * nothing, not even a request without a credential.
  */
 describe('a path that tries to send the request somewhere else', () => {
-  const hostRoots = ['iga', 'keys', 'monitoring', 'ws', 'environment'];
+  // the root, and whether the connection has an IDM host (server C) that the openidm root goes to
+  const hostileRoots: [string, boolean][] = [
+    ['iga', false],
+    ['keys', false],
+    ['monitoring', false],
+    ['ws', false],
+    ['environment', false],
+    ['am', false],
+    ['openidm', false],
+    ['openidm', true],
+  ];
   const tails = (bPort: number) => [
     `https://127.0.0.1:${bPort}/x`,
     `//127.0.0.1:${bPort}/x`,
@@ -430,10 +445,14 @@ describe('a path that tries to send the request somewhere else', () => {
     `#@127.0.0.1:${bPort}`,
   ];
 
-  test.each(hostRoots)(
-    '1: on the %s root, B sees nothing and A sees the host it was sent to',
-    async (root) => {
-      const rawConfig = RawConfigOps(newState());
+  test.each(hostileRoots)(
+    '1: on the %s root (IDM host: %s), B sees nothing and the host it was sent to sees every request',
+    async (root, withIdmHost) => {
+      const rawConfig = RawConfigOps(
+        newState({ idmHost: withIdmHost ? `${c.origin}/openidm` : '' })
+      );
+      const target = withIdmHost ? c : a;
+      const other = withIdmHost ? a : c;
       let sent = 0;
       for (const tail of tails(b.port)) {
         for (const send of [
@@ -451,10 +470,11 @@ describe('a path that tries to send the request somewhere else', () => {
       }
 
       expect(b.received).toHaveLength(0);
-      expect(a.received.length).toBeGreaterThan(0);
-      expect(a.received.length).toBeLessThanOrEqual(sent);
-      for (const request of a.received) {
-        expect(request.host).toBe(`127.0.0.1:${a.port}`);
+      expect(other.received).toHaveLength(0);
+      expect(target.received.length).toBeGreaterThan(0);
+      expect(target.received.length).toBeLessThanOrEqual(sent);
+      for (const request of target.received) {
+        expect(request.host).toBe(`127.0.0.1:${target.port}`);
       }
     }
   );
