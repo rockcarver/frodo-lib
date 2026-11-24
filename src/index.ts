@@ -231,7 +231,11 @@ export type {
 
 export type { ConnectionProfileInterface } from './ops/ConnectionProfileOps';
 
-export type { ConnectorSkeleton } from './ops/ConnectorOps';
+export type {
+  ConnectorReference,
+  ConnectorServerReference,
+  ConnectorSkeleton,
+} from './ops/ConnectorOps';
 
 export type { EmailTemplateSkeleton } from './ops/EmailTemplateOps';
 
@@ -291,7 +295,11 @@ export type {
 
 export type { AccessTokenMetaType } from './ops/OAuth2OidcOps';
 
-export type { ExportMetaData } from './ops/OpsTypes';
+export type {
+  ExportMetaData,
+  ObjectReference,
+  ReferenceDependency,
+} from './ops/OpsTypes';
 
 export type {
   PolicyExportInterface,

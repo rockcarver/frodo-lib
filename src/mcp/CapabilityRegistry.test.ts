@@ -886,6 +886,149 @@ describe('MCP capability foundation', () => {
     expect(getUnreviewedSpecialCapabilities()).toEqual([]);
   });
 
+  test.each([
+    {
+      id: 'idm.connector.findConnectorReferences',
+      objectType: 'ConnectorReference',
+      parameter: 'connectorId',
+      sources: [
+        /mappings/,
+        /applications of every realm/,
+        /schedules/,
+        /login configuration/,
+      ],
+      sourceValues: [
+        /\(mapping, application, schedule, authentication-module\)/,
+      ],
+      requests: /about seven requests on Cloud with two realms/,
+      dependency: /hard for all four/,
+      notSeen: [
+        /connector names inside script text/,
+        /route patterns of the access configuration/,
+        /link tables/,
+        /running reconciliations/,
+        /governance applications/,
+      ],
+    },
+    {
+      id: 'idm.connector.findConnectorServerReferences',
+      objectType: 'ConnectorServerReference',
+      parameter: 'serverName',
+      sources: [/server clusters/, /connector definitions/],
+      sourceValues: [/\(server-cluster, connector\)/],
+      requests: /two requests, however many servers are asked for/,
+      dependency: /soft for a server cluster/,
+      notSeen: [
+        /the connector server process itself/,
+        /OAuth2 client that a platform keeps/,
+        /remoteConnectorServers, remoteConnectorServersGroups\) are not read/,
+        /script text/,
+      ],
+    },
+  ])(
+    'finding the references to $objectType is one reviewed, low-risk, read-only search',
+    ({
+      id,
+      objectType,
+      parameter,
+      sources,
+      sourceValues,
+      requests,
+      dependency,
+      notSeen,
+    }) => {
+      const capabilities = buildCapabilityInventory(frodo, {
+        includeTopLevelDomains: ['idm'],
+        includeUtils: false,
+      });
+      const references = capabilities.find(
+        (capability) => capability.id === id
+      );
+      expect(references).toBeDefined();
+      expect(references).toMatchObject({
+        operationType: 'search',
+        objectType,
+        argumentMode: 'positional',
+        mutating: false,
+        destructive: false,
+        riskClass: 'low',
+        supportsRealm: false,
+      });
+      // one id or a list of ids is one parameter: the type says so in words, the
+      // description says what each form answers
+      expect(references?.parameters).toEqual([
+        expect.objectContaining({
+          name: parameter,
+          type: 'string | string[]',
+          required: true,
+          position: 0,
+          description: expect.stringMatching(/does not have to exist/),
+        }),
+      ]);
+      expect(references?.parameters?.[0].description).toMatch(
+        /One (id|name) answers an array of references; a list answers an object with references and unreadable/
+      );
+      expect(references?.parameters?.[0].schema).toBeUndefined();
+      // the notes name the sources, the flag of each, what is not seen and the rules
+      for (const pattern of [...sources, ...sourceValues, ...notSeen]) {
+        expect(references?.notes).toMatch(pattern);
+      }
+      expect(references?.notes).toMatch(requests);
+      expect(references?.notes).toMatch(dependency);
+      expect(references?.notes).toMatch(/never proof/);
+      expect(references?.notes).toMatch(/Fails closed/);
+      expect(references?.notes).toMatch(/returns no partial list/);
+      expect(references?.notes).toMatch(/is none, not a failure/);
+      expect(references?.notes).toMatch(/Read-only\.$/);
+      // the list form names what it could not read, and the notes say to read it
+      expect(references?.notes).toMatch(
+        /unreadable \(the sources that could not be read, empty when every source was read\)/
+      );
+      expect(references?.notes).toMatch(
+        /read unreadable before relying on an empty list/
+      );
+      // the flag is not equated with what the platform does, and nothing is claimed about it
+      expect(references?.notes).toMatch(
+        /not what the platform does when the (connector|server) is deleted, which this tool does not say/
+      );
+      expect(references?.notes).not.toMatch(/observed/);
+      // "an empty array is never proof" is said once
+      expect(
+        (references?.notes?.match(/never proof|not proof/g) ?? []).length
+      ).toBe(1);
+      // the notes name no command line option, command or environment variable of the CLI
+      expect(references?.notes).not.toMatch(/--|FRODO_|\bfrodo\b/);
+      // it is a reviewed entry, not an inferred default
+      expect(getUnreviewedSpecialCapabilities()).toEqual([]);
+    }
+  );
+
+  test('the reference lookups of the connector family have one Help.ts entry per form, and the first is the one id form', () => {
+    for (const [method, single, list] of [
+      ['findConnectorReferences', 'connectorId', 'connectorIds'],
+      ['findConnectorServerReferences', 'serverName', 'serverNames'],
+    ]) {
+      const docs = getHelpMetadataByMethod(method);
+      expect(docs.map((doc) => doc.params.map((param) => param.name))).toEqual([
+        [single],
+        [list],
+      ]);
+      expect(docs.map((doc) => doc.params[0].type)).toEqual([
+        'string',
+        'string[]',
+      ]);
+      for (const doc of docs) {
+        expect(doc.description).toMatch(/never proof/);
+        expect(doc.description).not.toMatch(/--|FRODO_|\bfrodo\b/);
+      }
+      // the one id form fails closed, the list form names what it could not read
+      expect(docs[0].description).toMatch(/Fails closed/);
+      expect(docs[1].description).toMatch(
+        /does not fail when a source cannot be read.*`unreadable`/
+      );
+    }
+  });
+
   test('never advertises an empty parameter contract when Help.ts reports required params', () => {
     // Regression guard for the script.getLibraryScriptNames bug class: a
     // capability must never end up with an empty/undefined parameter list
