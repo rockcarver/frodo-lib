@@ -10,6 +10,15 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-53] - 2026-11-24
+
+### Added
+- Implemented a retry mechanism for failed background token refreshes, ensuring a single retry and warning in case of failure. This prevents unhandled promise rejections that could terminate the process (commit 9f3233212, #1147).
+
+### Fixed
+- Resolved an issue where a refresh timer that the state no longer holds would incorrectly attempt to log in, preventing unnecessary login attempts (commit 15a088957).
+- Addressed errors in the token auto-refresh timer by catching exceptions and clearing the fired timer state, enhancing stability during credential refresh operations (commit 4d249569e, #1147).
+
 ## [v5.0.0-52] - 2026-11-24
 
 ### Added
@@ -3091,6 +3100,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-53]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-52...v5.0.0-53
 [v5.0.0-52]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-51...v5.0.0-52
 [v5.0.0-51]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-50...v5.0.0-51
 [v5.0.0-50]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-49...v5.0.0-50
