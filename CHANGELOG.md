@@ -10,6 +10,17 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-52] - 2026-11-24
+
+### Added
+- Introduced raw config support for IGA, Logs, LogKeys, and WS-Fed APIs, including an optional API version header. This enhancement allows for more flexible configuration management and integration capabilities (#1144).
+- Added functionality to identify references to a connector and a connector server. This feature aids in managing dependencies and ensuring safe deletions within `ConnectorOps` (#1143).
+
+### Fixed
+- Resolved an issue where blank lines were included between markup lines in the SAML metadata export. The export now omits these lines, ensuring consistent metadata output regardless of the number of saves (#1146).
+- Fixed the API version handling in the log keys client to ensure it functions correctly with or without a bearer token (#36e6c7741).
+- Restored the options form, IDM host, and AM root in the raw config, correcting previous omissions and ensuring complete configuration support (commit 1508bfb4a).
+
 ## [v5.0.0-51] - 2026-11-23
 
 ### Added
@@ -3080,6 +3091,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-52]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-51...v5.0.0-52
 [v5.0.0-51]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-50...v5.0.0-51
 [v5.0.0-50]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-49...v5.0.0-50
 [v5.0.0-49]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-48...v5.0.0-49
