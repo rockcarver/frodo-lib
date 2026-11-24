@@ -92,6 +92,13 @@ import {
 } from './IdpOps';
 import { isAgentTypeOffered } from './internal/AgentTypeHelpers';
 import {
+  defineReferenceSource as defineSource,
+  findReferencesInSources,
+  joinReferences,
+  type ReferenceReads,
+  type ReferenceSource,
+} from './internal/ReferenceLookup';
+import {
   CustomNodeExportInterface,
   deleteNode,
   importCustomNodes,
@@ -103,7 +110,11 @@ import {
 import { readCIMDProfiles } from './OAuth2CIMDProfileOps';
 import { readOAuth2Clients } from './OAuth2ClientOps';
 import { readOAuth2Provider } from './OAuth2ProviderOps';
-import { ResultCallback, type ExportMetaData } from './OpsTypes';
+import {
+  ResultCallback,
+  type ExportMetaData,
+  type ReferenceDependency,
+} from './OpsTypes';
 import { forEachLeafCondition } from './PolicyOps';
 import { readSaml2ProviderStubs } from './Saml2Ops';
 import {
@@ -2236,7 +2247,7 @@ export const JOURNEY_REFERENCE_SOURCES = {
  * necessarily protected (see {@link findJourneyReferences} for what was
  * observed).
  */
-export type JourneyReferenceDependency = 'hard' | 'soft';
+export type JourneyReferenceDependency = ReferenceDependency;
 
 /**
  * One place that names a journey, found by {@link findJourneyReferences}.
@@ -2490,21 +2501,17 @@ function findNamingFields(
 }
 
 /** The data of the one set of reads that feeds the join: one entry per source. */
-export type JourneyReferenceReads = Partial<
-  Record<JourneyReference['source'], unknown>
->;
+export type JourneyReferenceReads = ReferenceReads<JourneyReference['source']>;
 
-export type JourneyReferenceSource = {
-  /** The `source` of the references that this source yields. One row per source. */
-  source: JourneyReference['source'];
-  /** What the read is called in an error. */
-  label: string;
-  /** Present if the source is only read for some deployments. */
-  appliesTo?: (state: State) => boolean;
-  read: (state: State) => Promise<unknown>;
-  /** Pure: the references to one journey in what `read` returned. */
-  find: (data: unknown, journeyId: string) => JourneyReference[];
-};
+/**
+ * One source of {@link findJourneyReferences}: what is read, and how the
+ * references to one journey are found in it (the shared row of the reference
+ * lookups, see `internal/ReferenceLookup.ts`).
+ */
+export type JourneyReferenceSource = ReferenceSource<
+  JourneyReference['source'],
+  JourneyReference
+>;
 
 /** Make a source row from typed reader and matcher. */
 function defineReferenceSource<T>(row: {
@@ -2514,7 +2521,7 @@ function defineReferenceSource<T>(row: {
   read: (state: State) => Promise<T>;
   find: (data: T, journeyId: string) => JourneyReference[];
 }): JourneyReferenceSource {
-  return row as unknown as JourneyReferenceSource;
+  return defineSource<JourneyReference['source'], JourneyReference, T>(row);
 }
 
 /**
@@ -3074,9 +3081,7 @@ export function joinJourneyReferences(
   reads: JourneyReferenceReads,
   journeyId: string
 ): JourneyReference[] {
-  return journeyReferenceSources.flatMap((source) =>
-    source.source in reads ? source.find(reads[source.source], journeyId) : []
-  );
+  return joinReferences(journeyReferenceSources, reads, journeyId);
 }
 
 /**
@@ -3107,30 +3112,12 @@ export async function findJourneyReferences({
       `Error finding references to a journey in the ${realm}: the journey id is empty`
     );
   }
-  const sources = journeyReferenceSources.filter(
-    (source) => !source.appliesTo || source.appliesTo(state)
-  );
-  const settled = await Promise.allSettled(
-    sources.map(async (source) => source.read(state))
-  );
-  const reads: JourneyReferenceReads = {};
-  const errors: FrodoError[] = [];
-  settled.forEach((result, index) => {
-    if (result.status === 'fulfilled') {
-      reads[sources[index].source] = result.value;
-    } else {
-      errors.push(
-        new FrodoError(`Error reading ${sources[index].label}`, result.reason)
-      );
-    }
+  return findReferencesInSources({
+    sources: journeyReferenceSources,
+    state,
+    id: journeyId,
+    failure: `Error finding references to ${realm} journey ${journeyId}`,
   });
-  if (errors.length > 0) {
-    throw new FrodoError(
-      `Error finding references to ${realm} journey ${journeyId}: ${errors.map((error) => error.message).join('; ')}`,
-      errors
-    );
-  }
-  return joinJourneyReferences(reads, journeyId);
 }
 
 /**
