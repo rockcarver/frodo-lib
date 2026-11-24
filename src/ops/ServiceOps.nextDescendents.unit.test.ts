@@ -863,6 +863,24 @@ describe('deleteFullService and deleteFullServices on top of the descendents', (
       ).rejects.toBeInstanceOf(FrodoError);
     });
 
+    test('an error whose causes form a cycle and carry no answer of the server is not skipped', async () => {
+      failures(refusal);
+      const first: any = new Error('first');
+      const second: any = new Error('second');
+      first.originalErrors = [second];
+      second.originalErrors = [first];
+      getServiceDescendentsMock.mockImplementation(
+        async ({ serviceId }: any) => {
+          if (serviceId !== 'unavailable') return [];
+          throw first;
+        }
+      );
+
+      await expect(
+        ServiceOps.deleteFullServices({ globalConfig: false, state })
+      ).rejects.toBeInstanceOf(FrodoError);
+    });
+
     test('the order in which the deletes finish does not matter', async () => {
       failures(refusal, serverError);
       deleteServiceNextDescendentMock.mockImplementation(
