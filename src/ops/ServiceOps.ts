@@ -8,6 +8,7 @@ import {
   putServiceNextDescendent,
   type AmServiceSkeleton,
   type FullService,
+  type ServiceNextDescendent,
 } from '../api/ServiceApi';
 import { State } from '../shared/State';
 import {
@@ -59,7 +60,7 @@ export type Service = {
    * @param {string} nextDescendentName The id (the name) of the next descendent to delete
    * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
    * @returns {Promise<AmServiceSkeleton>} Promise resolving to the deleted descendent
-   * @throws {FrodoError} If the service has no next descendent of that name. Nothing is deleted then.
+   * @throws {FrodoError} If the service has no next descendent of that name, or the listed descendent has an id (or a type) that is blank, `.` or `..`, which cannot be used in a request path. Nothing is deleted then.
    */
   deleteServiceNextDescendent(
     serviceId: string,
@@ -72,7 +73,7 @@ export type Service = {
    * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
    * @param {ResultCallback<AmServiceSkeleton>} resultCallback Optional callback to process individual results
    * @returns {Promise<AmServiceSkeleton[]>} Promise resolving to the deleted descendents
-   * @throws {FrodoError} If the descendents cannot be read. Without a callback, also after all descendents were attempted, naming each one that could not be deleted.
+   * @throws {FrodoError} If the descendents cannot be read. Without a callback, also after all descendents were attempted, naming each one that could not be deleted. A listed descendent whose id (or type) is blank, `.` or `..` cannot be used in a request path: it is not deleted and counts as one that could not be.
    */
   deleteServiceNextDescendents(
     serviceId: string,
@@ -177,7 +178,7 @@ export default (state: State): Service => {
      * @param {string} nextDescendentName The id (the name) of the next descendent to delete
      * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
      * @returns {Promise<AmServiceSkeleton>} Promise resolving to the deleted descendent
-     * @throws {FrodoError} If the service has no next descendent of that name. Nothing is deleted then.
+     * @throws {FrodoError} If the service has no next descendent of that name, or the listed descendent has an id (or a type) that is blank, `.` or `..`, which cannot be used in a request path. Nothing is deleted then.
      */
     async deleteServiceNextDescendent(
       serviceId: string,
@@ -198,7 +199,7 @@ export default (state: State): Service => {
      * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
      * @param {ResultCallback<AmServiceSkeleton>} resultCallback Optional callback to process individual results
      * @returns {Promise<AmServiceSkeleton[]>} Promise resolving to the deleted descendents
-     * @throws {FrodoError} If the descendents cannot be read. Without a callback, also after all descendents were attempted, naming each one that could not be deleted.
+     * @throws {FrodoError} If the descendents cannot be read. Without a callback, also after all descendents were attempted, naming each one that could not be deleted. A listed descendent whose id (or type) is blank, `.` or `..` cannot be used in a request path: it is not deleted and counts as one that could not be.
      */
     async deleteServiceNextDescendents(
       serviceId: string,
@@ -315,6 +316,28 @@ function isUnavailableServiceError(error: unknown): boolean {
     (response?.data?.message ?? httpError?.httpMessage) ===
       'This operation is not available in PingOne Advanced Identity Cloud.'
   );
+}
+
+/**
+ * Refuses a listed descendent that cannot be deleted by the path of a request: its id or the id of its type is blank,
+ * `.` or `..`. The path would be resolved to the parent or to the collection, so the delete would name another object
+ * than the one that was listed.
+ * @param {ServiceNextDescendent} descendent the descendent as the server listed it
+ * @throws {FrodoError} if the id or the type of the descendent cannot be used in a request path
+ */
+function assertUsableInRequestPath(descendent: ServiceNextDescendent): void {
+  const unusable = (id: unknown) =>
+    typeof id !== 'string' || id.trim() === '' || id === '.' || id === '..';
+  if (unusable(descendent._id)) {
+    throw new FrodoError(
+      `The descendent id '${descendent._id}' cannot be used in a request path`
+    );
+  }
+  if (unusable(descendent._type?._id)) {
+    throw new FrodoError(
+      `The type '${descendent._type?._id}' of descendent '${descendent._id}' cannot be used in a request path`
+    );
+  }
 }
 
 export interface ServiceExportInterface {
@@ -724,7 +747,7 @@ export async function putFullServices({
  * @param {string} nextDescendentName The id (the name) of the next descendent to delete
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<AmServiceSkeleton>} Promise resolving to the deleted descendent
- * @throws {FrodoError} If the service has no next descendent of that name. Nothing is deleted then.
+ * @throws {FrodoError} If the service has no next descendent of that name, or the listed descendent has an id (or a type) that is blank, `.` or `..`, which cannot be used in a request path. Nothing is deleted then.
  */
 export async function deleteServiceNextDescendent({
   serviceId,
@@ -753,6 +776,7 @@ export async function deleteServiceNextDescendent({
     if (!descendent) {
       throw new FrodoError(`Descendent '${nextDescendentName}' not found`);
     }
+    assertUsableInRequestPath(descendent);
     const result = await _deleteServiceNextDescendent({
       serviceId,
       serviceType: descendent._type._id,
@@ -779,7 +803,7 @@ export async function deleteServiceNextDescendent({
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @param {ResultCallback<AmServiceSkeleton>} resultCallback Optional callback to process individual results
  * @returns {Promise<AmServiceSkeleton[]>} Promise resolving to the deleted descendents
- * @throws {FrodoError} If the descendents cannot be read. Without a callback, also after all descendents were attempted, naming each one that could not be deleted.
+ * @throws {FrodoError} If the descendents cannot be read. Without a callback, also after all descendents were attempted, naming each one that could not be deleted. A listed descendent whose id (or type) is blank, `.` or `..` cannot be used in a request path: it is not deleted and counts as one that could not be.
  */
 export async function deleteServiceNextDescendents({
   serviceId,
@@ -808,6 +832,7 @@ export async function deleteServiceNextDescendents({
       descendents.map(async (descendent) => {
         let result: AmServiceSkeleton;
         try {
+          assertUsableInRequestPath(descendent);
           result = await _deleteServiceNextDescendent({
             serviceId,
             serviceType: descendent._type._id,

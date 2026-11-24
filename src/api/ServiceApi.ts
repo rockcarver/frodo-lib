@@ -15,6 +15,19 @@ const apiVersion = 'protocol=2.0,resource=%s';
 const globalVersion = '1.0';
 const realmVersion = '1.0';
 
+/**
+ * True for a value that cannot be one segment of a request path that names an object: not a string, blank, `.` or `..`.
+ * Encoding does not help here: `.` and `..` encode to themselves and are resolved to the parent or to the collection.
+ */
+function isUnusablePathSegment(segment: unknown): boolean {
+  return (
+    typeof segment !== 'string' ||
+    segment.trim() === '' ||
+    segment === '.' ||
+    segment === '..'
+  );
+}
+
 const getApiConfig = (globalConfig: boolean) => {
   return {
     apiVersion: util.format(
@@ -246,11 +259,17 @@ export async function deleteService({
 
 /**
  * Delete service next descendent
+ *
+ * The service type and the instance id are two segments of the request path and are encoded, so that an id with `#`,
+ * `?`, `/` or `%` names the object it says and no other. An id that is blank, `.` or `..` cannot be encoded to
+ * anything that names an object (the path would be resolved to its parent or to the collection): the function throws
+ * and sends no request.
  * @param {string} serviceId service id
  * @param {string} serviceType service type
  * @param {string} serviceNextDescendentId service instance id
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<ServiceNextDescendent>} a promise resolving to a service next descendent
+ * @throws {Error} if the service type or the instance id is blank, `.` or `..`
  */
 export async function deleteServiceNextDescendent({
   serviceId,
@@ -265,14 +284,24 @@ export async function deleteServiceNextDescendent({
   globalConfig?: boolean;
   state: State;
 }): Promise<ServiceNextDescendent> {
+  for (const [what, segment] of [
+    ['service type', serviceType],
+    ['service instance id', serviceNextDescendentId],
+  ]) {
+    if (isUnusablePathSegment(segment)) {
+      throw new Error(
+        `Cannot delete a service next descendent: the ${what} '${segment}' cannot be used in a request path`
+      );
+    }
+  }
   const urlString = util.format(
     serviceURLNextDescendentTemplate,
     state.getHost(),
     getRealmPathGlobal(globalConfig, state),
     getConfigPath(globalConfig),
     serviceId,
-    serviceType,
-    serviceNextDescendentId
+    encodeURIComponent(serviceType),
+    encodeURIComponent(serviceNextDescendentId)
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
