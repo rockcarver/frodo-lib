@@ -80,7 +80,7 @@ export interface JourneyValidationFinding {
   message: string;
   /** Node associated with the finding, when applicable. */
   nodeId?: string;
-  /** The node `nodeId` as the editor shows it; absent when `nodeId` is absent or resolves to no node of the journey. */
+  /** The node `nodeId` as the editor shows it; absent when `nodeId` is absent or resolves to no node of the journey; present with only `id` when the export says nothing else about the node. */
   node?: JourneyValidationNode;
   /** Referenced node associated with the finding, when applicable. */
   targetNodeId?: string;
