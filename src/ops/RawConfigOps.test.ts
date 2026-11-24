@@ -11,7 +11,10 @@
  *
  *    The IGA tests need a tenant with IGA, so they have a recording run of
  *    their own: the same command with FRODO_RECORD_PHASE=2 in front runs only
- *    the IGA tests, and without it the IGA tests do not run.
+ *    the IGA tests, and without it the IGA tests do not run. The IGA run
+ *    overwrites and then deletes the built-in request type createEntitlement
+ *    (as the staging of the IGA request type tests does) and does not restore
+ *    it, so record it only on a tenant where that does not matter.
  *
  *    The above command assumes that you have a connection profile for
  *    'frodo-dev' on your development machine.

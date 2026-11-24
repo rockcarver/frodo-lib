@@ -12,6 +12,9 @@ import { stageVariable, variable1, variable2 } from './VariablesSetup';
 
 export function setup() {
   const ctx = autoSetupPolly();
+  // the IGA tests record in a run of their own (FRODO_RECORD_PHASE=2): the objects of the other tests are staged
+  // only in the other run, so that a tenant without IGA can record those
+  const igaPhase = process.env.FRODO_RECORD_PHASE === '2';
 
   beforeEach(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
@@ -25,28 +28,34 @@ export function setup() {
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
-      await stageVariable(variable1, true);
-      await stageVariable(variable2);
-      await stageCustomNode(customNode1, true);
-      await stageCustomNode(customNode2);
-      await stageEmailTemplate(template1, true);
-      await stageEmailTemplate(template2);
-      await stageRequestType(requestType1, true);
-      await stageRequestType(requestType3);
+      if (igaPhase) {
+        await stageRequestType(requestType1, true);
+        await stageRequestType(requestType3);
+      } else {
+        await stageVariable(variable1, true);
+        await stageVariable(variable2);
+        await stageCustomNode(customNode1, true);
+        await stageCustomNode(customNode2);
+        await stageEmailTemplate(template1, true);
+        await stageEmailTemplate(template2);
+      }
     }
   });
 
   // in recording mode, remove test data after recording
   afterAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
-      await stageVariable(variable1);
-      await stageVariable(variable2);
-      await stageCustomNode(customNode1);
-      await stageCustomNode(customNode2);
-      await stageEmailTemplate(template1);
-      await stageEmailTemplate(template2);
-      await stageRequestType(requestType1);
-      await stageRequestType(requestType3);
+      if (igaPhase) {
+        await stageRequestType(requestType1);
+        await stageRequestType(requestType3);
+      } else {
+        await stageVariable(variable1);
+        await stageVariable(variable2);
+        await stageCustomNode(customNode1);
+        await stageCustomNode(customNode2);
+        await stageEmailTemplate(template1);
+        await stageEmailTemplate(template2);
+      }
     }
   });
 }
