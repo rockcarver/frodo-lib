@@ -1275,10 +1275,9 @@ export function generateLogKeysApi({
     // only add authorization header if we have a bearer token
     ...(state.getBearerToken() && {
       Authorization: `Bearer ${state.getBearerToken()}`,
-      ...(resource?.apiVersion && {
-        'Accept-API-Version': resource.apiVersion,
-      }),
     }),
+    // only add API version if we have it, with or without a bearer token
+    ...(resource?.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
   };
   const requestConfig = mergeDeep(
     {
