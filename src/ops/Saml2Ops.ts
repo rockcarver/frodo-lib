@@ -472,6 +472,180 @@ async function exportDependencies({
 }
 
 /**
+ * A start tag or an empty-element tag of a `Signature` element, with any
+ * namespace prefix or none. White space is space, tab, carriage return and
+ * line feed; a prefix is every character up to the colon except white space
+ * and `<`, `>`, `:`, `/`, `=`, `"` and `'` (so `é:Signature` counts too).
+ */
+const SIGNATURE_ELEMENT = /<(?:[^ \t\r\n<>:/="']+:)?Signature[ \t\r\n>/]/;
+
+/** where a line starts or ends: in markup or text, in a CDATA section, in a comment */
+const OUTSIDE = 0;
+const IN_CDATA = 1;
+const IN_COMMENT = 2;
+
+const CDATA_START = '<![CDATA[';
+const CDATA_END = ']]>';
+const COMMENT_START = '<!--';
+const COMMENT_END = '-->';
+
+/**
+ * White space for the rule: space, tab and carriage return. This is the only
+ * definition of white space in the rule: a no-break space, a form feed, a byte
+ * order mark or any other Unicode space is a character like any other.
+ * @param {number} c a character code
+ * @returns {boolean} true for a space, a tab or a carriage return
+ */
+function isSpace(c: number): boolean {
+  return c === 0x20 || c === 0x09 || c === 0x0d;
+}
+
+/**
+ * A line that holds nothing but spaces and tabs (and the carriage return of a
+ * `\r\n` line ending), or nothing at all.
+ * @param {string} line one line of text, without its `\n`
+ * @returns {boolean} true if the line is blank
+ */
+function isBlankLine(line: string): boolean {
+  for (let i = 0; i < line.length; i++) {
+    if (!isSpace(line.charCodeAt(i))) return false;
+  }
+  return true;
+}
+
+/**
+ * Does a line that is not blank end with `>`, not counting the spaces, tabs
+ * and carriage return at its end?
+ * @param {string} line one line of text that is not blank
+ * @returns {boolean} true if the last character that is not a space is `>`
+ */
+function endsWithTagClose(line: string): boolean {
+  let i = line.length - 1;
+  while (i >= 0 && isSpace(line.charCodeAt(i))) i--;
+  return i >= 0 && line.charCodeAt(i) === 0x3e;
+}
+
+/**
+ * Does a line start with `<`, not counting the spaces and tabs at its start?
+ * @param {string} line one line of text
+ * @returns {boolean} true if the first character that is not a space is `<`
+ */
+function startsWithTagOpen(line: string): boolean {
+  let i = 0;
+  while (i < line.length && isSpace(line.charCodeAt(i))) i++;
+  return i < line.length && line.charCodeAt(i) === 0x3c;
+}
+
+/**
+ * Follow the CDATA sections and comments through one line.
+ * @param {string} line one line of text
+ * @param {number} start where the line starts: OUTSIDE, IN_CDATA or IN_COMMENT
+ * @returns {number} where the line ends: OUTSIDE, IN_CDATA or IN_COMMENT
+ */
+function regionAfterLine(line: string, start: number): number {
+  let region = start;
+  let pos = 0;
+  // the next start of a CDATA section and of a comment at or after pos:
+  // -2 not looked up yet, -1 there is none in the rest of the line
+  let cdata = -2;
+  let comment = -2;
+  for (;;) {
+    if (region === OUTSIDE) {
+      if (cdata !== -1 && cdata < pos) cdata = line.indexOf(CDATA_START, pos);
+      if (comment !== -1 && comment < pos) {
+        comment = line.indexOf(COMMENT_START, pos);
+      }
+      if (cdata === -1 && comment === -1) return region;
+      if (comment === -1 || (cdata !== -1 && cdata < comment)) {
+        region = IN_CDATA;
+        pos = cdata + CDATA_START.length;
+      } else {
+        region = IN_COMMENT;
+        pos = comment + COMMENT_START.length;
+      }
+    } else {
+      const end = line.indexOf(
+        region === IN_CDATA ? CDATA_END : COMMENT_END,
+        pos
+      );
+      if (end === -1) return region;
+      pos = end + (region === IN_CDATA ? CDATA_END : COMMENT_END).length;
+      region = OUTSIDE;
+    }
+  }
+}
+
+/**
+ * Remove the whitespace-only lines that sit between two lines of markup.
+ *
+ * The server puts such lines into the metadata of a remote provider (inside
+ * `ds:KeyInfo` and `EncryptionMethod`) and adds one more every time the
+ * provider is saved. A blank line (empty, or only spaces, tabs and a carriage
+ * return) is removed when the nearest line before it that is not blank ends
+ * with `>` and the nearest line after it that is not blank starts with `<`;
+ * spaces, tabs and a carriage return at the end of the first and at the start
+ * of the second line do not count. A run of blank lines between two such
+ * lines is removed as a whole. Any other character, a no-break space or a form
+ * feed for example, makes a line not blank and is not skipped at the ends of
+ * the lines either.
+ *
+ * Everything else stays as it is: blank lines at the start or the end of the
+ * document, the line endings, every line that is not blank and the text of
+ * every element that has text (certificates included). A blank line inside a
+ * CDATA section or a comment is text and stays; both are followed from line to
+ * line.
+ * A document that contains a `Signature` element (with any prefix) is returned
+ * unchanged, because white space inside signed XML is part of what the
+ * signature covers, and so is a document that contains `xml:space`, which asks
+ * for white space to be kept.
+ *
+ * The rule treats a blank line as indentation between markup lines everywhere,
+ * except inside CDATA sections and comments and in documents with `xml:space`
+ * or a `Signature` element. It reads lines, not a parsed document, so it can
+ * take a blank line that is not indentation for one: wherever a line ends with
+ * `>` and a later line starts with `<` without either being markup. Examples:
+ * a line of text that ends with `>` (such as `a > b >`); a processing
+ * instruction, or the entity value of a DOCTYPE, that goes over several lines;
+ * an element whose only content is blank lines (`<a>`, a blank line, `</a>`),
+ * which keeps one line break. Metadata from the server has none of them.
+ * @param {string} xml the metadata XML as the server returned it
+ * @returns {string} the metadata XML without the blank lines between markup lines
+ */
+export function removeBlankMarkupLines(xml: string): string {
+  if (typeof xml !== 'string' || xml.indexOf('>') === -1) return xml;
+  if (xml.indexOf('xml:space') !== -1 || SIGNATURE_ELEMENT.test(xml)) {
+    return xml;
+  }
+  const lines = xml.split('\n');
+  const kept: string[] = [];
+  // does the nearest line before that is not blank end with '>'? (false
+  // while there is none)
+  let previousEndsMarkup = false;
+  // where the last line that is not blank ends: a blank line does not change it
+  let region = OUTSIDE;
+  let i = 0;
+  while (i < lines.length) {
+    if (!isBlankLine(lines[i])) {
+      previousEndsMarkup = endsWithTagClose(lines[i]);
+      region = regionAfterLine(lines[i], region);
+      kept.push(lines[i]);
+      i++;
+      continue;
+    }
+    // the whole run of blank lines [i, end)
+    let end = i + 1;
+    while (end < lines.length && isBlankLine(lines[end])) end++;
+    const nextStartsMarkup =
+      end < lines.length && startsWithTagOpen(lines[end]);
+    if (!(region === OUTSIDE && previousEndsMarkup && nextStartsMarkup)) {
+      for (let k = i; k < end; k++) kept.push(lines[k]);
+    }
+    i = end;
+  }
+  return kept.join('\n');
+}
+
+/**
  * Include metadata in the export file
  * @param {object} providerData Object representing a SAML entity provider
  * @param {object} fileData File data object to add metadata to
@@ -497,8 +671,10 @@ async function exportMetadata({
       })}`
     );
   }
+  // the server puts whitespace-only lines between markup lines of a remote
+  // provider and adds one with every save; the export does not carry them
   fileData.saml.metadata[providerData._id] = convertBase64UrlTextToArray(
-    encodeBase64Url(metaDataResponse)
+    encodeBase64Url(removeBlankMarkupLines(metaDataResponse))
   );
 }
 
