@@ -9,9 +9,9 @@
  *
  *        FRODO_DEBUG=1 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record RawConfigOps
  *
- *    The IGA tests need a tenant with IGA, so they record in a second run:
- *    the run above records every test except the IGA ones, and the same
- *    command with FRODO_RECORD_PHASE=2 in front records only the IGA tests.
+ *    The IGA tests need a tenant with IGA, so they have a recording run of
+ *    their own: the same command with FRODO_RECORD_PHASE=2 in front runs only
+ *    the IGA tests, and without it the IGA tests do not run.
  *
  *    The above command assumes that you have a connection profile for
  *    'frodo-dev' on your development machine.
