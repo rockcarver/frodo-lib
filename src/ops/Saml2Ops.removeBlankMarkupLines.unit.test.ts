@@ -169,6 +169,14 @@ describe('removeBlankMarkupLines', () => {
         'a CDATA section that is never closed',
         '<a><![CDATA[\nfoo>\n\n<bar>\n\n</a>',
       ],
+      [
+        'a CDATA section with a bare ]] in it (not the end marker)',
+        '<a><![CDATA[x ]] y>\n\n<z ]]></a>',
+      ],
+      [
+        'a CDATA section with a bare ]> in it (not the end marker)',
+        '<a><![CDATA[x ]> y>\n\n<z ]]></a>',
+      ],
     ])('a blank line inside a CDATA section stays: %s', (_name, xml) => {
       expect(removeBlankMarkupLines(xml)).toBe(xml);
     });
@@ -184,6 +192,10 @@ describe('removeBlankMarkupLines', () => {
         '<a>\n<!-- <![CDATA[ >\n\n<b>\n-->\n</a>',
       ],
       ['a comment that is never closed', '<a>\n<!-- >\n\n<b/>\n\n</a>'],
+      [
+        'a comment with a bare -- in it (not the end marker)',
+        '<a>\n<!-- x -- y>\n\n<z -->\n</a>',
+      ],
     ])('a blank line inside %s stays', (_name, xml) => {
       expect(removeBlankMarkupLines(xml)).toBe(xml);
     });
@@ -224,9 +236,29 @@ describe('removeBlankMarkupLines', () => {
       expect(removeBlankMarkupLines(xml)).toBe(xml);
     });
 
-    test('a text line that ends in > before a line that starts with < loses the blank lines after it (the one limit of the rule)', () => {
-      expect(removeBlankMarkupLines('<a>x >\n\n</a>')).toBe('<a>x >\n</a>');
-    });
+    test.each([
+      ['a line of text that ends in >', '<a>x >\n\n</a>', '<a>x >\n</a>'],
+      [
+        'a processing instruction that goes over several lines',
+        '<a>\n<?pi data>\n\n<more?>\n</a>',
+        '<a>\n<?pi data>\n<more?>\n</a>',
+      ],
+      [
+        'the entity value of a DOCTYPE that goes over several lines',
+        '<!DOCTYPE a [\n<!ENTITY e "p>\n\n<q">\n]>\n<a/>',
+        '<!DOCTYPE a [\n<!ENTITY e "p>\n<q">\n]>\n<a/>',
+      ],
+      [
+        'an element whose only content is blank lines',
+        '<a>\n\n</a>',
+        '<a>\n</a>',
+      ],
+    ])(
+      'a blank line next to %s is taken for indentation (a known limit of a rule that reads lines)',
+      (_name, xml, expected) => {
+        expect(removeBlankMarkupLines(xml)).toBe(expected);
+      }
+    );
 
     test('a blank line between two lines of text stays', () => {
       // the line before ends in text, the line after starts with text
@@ -237,12 +269,12 @@ describe('removeBlankMarkupLines', () => {
 
   describe('white space is space, tab and carriage return', () => {
     const others = [
-      ['a no-break space', ' '],
-      ['a byte order mark', '﻿'],
+      ['a no-break space', '\u00a0'],
+      ['a byte order mark', '\ufeff'],
       ['a form feed', '\f'],
       ['a vertical tab', '\v'],
-      ['an ideographic space', '　'],
-      ['a line separator', ' '],
+      ['an ideographic space', '\u3000'],
+      ['a line separator', '\u2028'],
     ];
 
     test.each(others)('a line that holds only %s is not blank', (_name, c) => {
@@ -342,6 +374,10 @@ describe('removeBlankMarkupLines', () => {
       ['an attribute value', '<c name="Signature"/>'],
       ['a longer name', '<ds:Signature2 a="b"/>'],
       ['a name with a second colon', '<a:b:Signature>'],
+      [
+        'a lower-case signature element (the check is case sensitive)',
+        '<signature Id="s">',
+      ],
     ])('%s is not a Signature element', (_name, text) => {
       expect(removeBlankMarkupLines(`<a>\n\n${text}\n</a>`)).toBe(
         `<a>\n${text}\n</a>`

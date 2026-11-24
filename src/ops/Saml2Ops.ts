@@ -590,18 +590,24 @@ function regionAfterLine(line: string, start: number): number {
  * the lines either.
  *
  * Everything else stays as it is: blank lines at the start or the end of the
- * document, the line endings, the text of every element (certificates
- * included) and every line that is not blank. A blank line inside a CDATA
- * section or a comment is text and stays; both are followed from line to line.
+ * document, the line endings, every line that is not blank and the text of
+ * every element that has text (certificates included). A blank line inside a
+ * CDATA section or a comment is text and stays; both are followed from line to
+ * line.
  * A document that contains a `Signature` element (with any prefix) is returned
  * unchanged, because white space inside signed XML is part of what the
  * signature covers, and so is a document that contains `xml:space`, which asks
  * for white space to be kept.
  *
- * The rule reads lines, not a parsed document. The one case it gets wrong: a
- * line of text content that itself ends with `>` (for example `a > b >`),
- * followed by blank lines and a line that starts with `<`, is taken for
- * markup, and the blank lines after it are removed.
+ * The rule treats a blank line as indentation between markup lines everywhere,
+ * except inside CDATA sections and comments and in documents with `xml:space`
+ * or a `Signature` element. It reads lines, not a parsed document, so it can
+ * take a blank line that is not indentation for one: wherever a line ends with
+ * `>` and a later line starts with `<` without either being markup. Examples:
+ * a line of text that ends with `>` (such as `a > b >`); a processing
+ * instruction, or the entity value of a DOCTYPE, that goes over several lines;
+ * an element whose only content is blank lines (`<a>`, a blank line, `</a>`),
+ * which keeps one line break. Metadata from the server has none of them.
  * @param {string} xml the metadata XML as the server returned it
  * @returns {string} the metadata XML without the blank lines between markup lines
  */

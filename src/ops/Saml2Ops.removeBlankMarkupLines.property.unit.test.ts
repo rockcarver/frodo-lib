@@ -154,7 +154,7 @@ const REGIONS = [
   '<!-- <![CDATA[ -->',
   '<![CDATA[ <!-- ]]>',
 ];
-const UNICODE = [' ', '﻿', '\f', '\v', '　'];
+const UNICODE = ['\u00a0', '\ufeff', '\f', '\v', '\u3000'];
 const SIGNATURES = [
   '<ds:Signature>',
   '<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">',
