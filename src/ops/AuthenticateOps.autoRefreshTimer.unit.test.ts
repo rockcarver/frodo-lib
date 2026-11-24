@@ -13,7 +13,7 @@ import '../index';
 import { jest } from '@jest/globals';
 import { startFakeAm, type FakeAm } from '../../test/support/fakeAm';
 import FrodoLib from '../lib/FrodoLib';
-import { getTokens, MAX_TIMER_DELAY_MS } from './AuthenticateOps';
+import { MAX_TIMER_DELAY_MS } from './AuthenticateOps';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -55,7 +55,11 @@ describe('the timer that refreshes the credentials', () => {
     clearTimeout(frodo.state.getAutoRefreshTimer());
 
     expect(timers).toHaveLength(1);
-    expect(timers[0].callback).toBe(getTokens);
+    expect(timers[0].args[0]).toMatchObject({
+      forceLoginAsUser: false,
+      autoRefresh: true,
+      state: frodo.state,
+    });
     expect(timers[0].delay).toBeGreaterThan(29 * 60 * 1000 - 5000);
     expect(timers[0].delay).toBeLessThan(30 * 60 * 1000);
   });
@@ -67,7 +71,7 @@ describe('the timer that refreshes the credentials', () => {
     expect(timers).toHaveLength(1);
     expect(timers[0].delay).toBe(MAX_TIMER_DELAY_MS);
     // that timer does not refresh anything: it looks at the expiry again
-    expect(timers[0].callback).not.toBe(getTokens);
+    expect(timers[0].args[0]).toBe(false);
   });
 
   test('3: ... and when it runs, the rest of the time is waited for, up to the expiry', async () => {
@@ -82,7 +86,11 @@ describe('the timer that refreshes the credentials', () => {
     clearTimeout(frodo.state.getAutoRefreshTimer());
 
     expect(timers).toHaveLength(2);
-    expect(timers[1].callback).toBe(getTokens);
+    expect(timers[1].args[0]).toMatchObject({
+      forceLoginAsUser: false,
+      autoRefresh: true,
+      state: frodo.state,
+    });
     const remaining = 40 * DAY - MAX_TIMER_DELAY_MS;
     expect(timers[1].delay).toBeGreaterThan(remaining - 60 * 1000);
     expect(timers[1].delay).toBeLessThan(remaining);
@@ -101,6 +109,37 @@ describe('the timer that refreshes the credentials', () => {
 
     expect(timers).toHaveLength(2);
     expect(timers[1].delay).toBe(MAX_TIMER_DELAY_MS);
-    expect(timers[1].callback).not.toBe(getTokens);
+    expect(timers[1].args[0]).toBe(false);
+  });
+
+  test('5: a failed timer refresh does not throw an unhandled rejection and clears the armed timer state', async () => {
+    const frodo = await loginRecordingTimers(30 * 60 * 1000);
+    clearTimeout(frodo.state.getAutoRefreshTimer());
+    const { callback, args } = timers[0];
+
+    // simulate a transient token-endpoint failure when the proactive refresh fires
+    frodo.state.setPassword('wrong');
+    await expect(
+      (callback as (...parameters: unknown[]) => Promise<void>)(...args)
+    ).resolves.toBeUndefined();
+    expect(frodo.state.getAutoRefreshTimer()).toBeUndefined();
+  });
+
+  test('6: a successful timer refresh re-arms a fresh timer', async () => {
+    const frodo = await loginRecordingTimers(30 * 60 * 1000);
+    const firstTimer = frodo.state.getAutoRefreshTimer();
+    clearTimeout(firstTimer);
+    const { callback, args, delay } = timers[0];
+
+    const now = Date.now();
+    jest.spyOn(Date, 'now').mockReturnValue(now + delay);
+    await expect(
+      (callback as (...parameters: unknown[]) => Promise<void>)(...args)
+    ).resolves.toBeUndefined();
+    const secondTimer = frodo.state.getAutoRefreshTimer();
+    expect(secondTimer).toBeDefined();
+    expect(secondTimer).not.toBe(firstTimer);
+    expect(am.logins()).toBe(2);
+    clearTimeout(secondTimer);
   });
 });

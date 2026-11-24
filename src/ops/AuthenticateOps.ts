@@ -2256,15 +2256,60 @@ function scheduleAutoRefresh(
       ).getSeconds()}s)]`,
       state,
     });
-    timer = setTimeout(getTokens, timeout, {
-      forceLoginAsUser,
-      credentialOverride,
-      autoRefresh,
-      state,
-      // Volker's Visual Studio Code doesn't want to have it any other way.
-    }) as unknown as NodeJS.Timeout;
+    const scheduledTimer = setTimeout(
+      runAutoRefresh,
+      timeout,
+      {
+        forceLoginAsUser,
+        credentialOverride,
+        autoRefresh,
+        state,
+        // Volker's Visual Studio Code doesn't want to have it any other way.
+      },
+      () => scheduledTimer
+    ) as unknown as NodeJS.Timeout;
+    timer = scheduledTimer;
     state.setAutoRefreshTimer(timer);
     timer.unref();
+  }
+}
+
+/**
+ * Proactive token refresh callback invoked by `scheduleAutoRefresh`'s timer.
+ * Clears the fired timer reference before running `getTokens`, and catches any
+ * background refresh failure so a transient token-endpoint error degrades to
+ * BaseApi's on-demand refresh path on the next request instead of crashing the
+ * process with an unhandled rejection.
+ */
+async function runAutoRefresh(
+  params: {
+    forceLoginAsUser: boolean;
+    credentialOverride: 'user' | 'svcacct' | 'amster' | 'browser' | undefined;
+    autoRefresh: boolean;
+    state: State;
+  },
+  getScheduledTimer?: () => NodeJS.Timeout
+): Promise<void> {
+  const { state } = params;
+  if (
+    !getScheduledTimer ||
+    state.getAutoRefreshTimer() === getScheduledTimer()
+  ) {
+    state.setAutoRefreshTimer(undefined);
+  }
+  try {
+    await getTokens(params);
+  } catch (error) {
+    if (
+      !getScheduledTimer ||
+      state.getAutoRefreshTimer() === getScheduledTimer()
+    ) {
+      state.setAutoRefreshTimer(undefined);
+    }
+    debugMessage({
+      message: `AuthenticateOps.scheduleAutoRefresh: token auto-refresh failed: ${error}; the next request will retry`,
+      state,
+    });
   }
 }
 
