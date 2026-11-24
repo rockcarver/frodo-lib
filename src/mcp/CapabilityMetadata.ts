@@ -3722,7 +3722,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
 
   'rawConfig.exportRawConfig': {
-    // Arbitrary-path GET passthrough to the AM/IDM/environment API roots
+    // Arbitrary-path GET passthrough to the AM, IDM, environment, IGA,
+    // log key, monitoring log and WS-Fed API roots
     // with no per-endpoint semantics — can reach secret/credential
     // endpoints directly, undercutting every other capability's risk
     // classification. Excluded rather than reclassified: no riskClass is
@@ -3732,7 +3733,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'rawConfig.importRawConfig': {
     // Same escape-hatch shape as rawConfig.exportRawConfig, but as a write
-    // (PUT) passthrough to arbitrary AM/IDM/environment paths — strictly
+    // (PUT) passthrough to arbitrary paths under the same roots — strictly
     // higher risk than the read side. Excluded for the same reason.
     excluded: true,
   },

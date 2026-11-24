@@ -4704,7 +4704,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "RawConfig",
     methodName: "exportRawConfig",
     signature: "exportRawConfig( options: RawExportOptions ): Promise<IdObjectSkeletonInterface>",
-    description: "Exports raw configuration",
+    description: "Exports raw configuration. The first segment of the path selects the API: `am` (the host's own context, for example /am or /openam), `openidm` (the IDM host if one is set), `environment`, `iga` (governance), `keys` (log API keys), `monitoring` (logs) and `ws` (WS-Federation administration). Any other first segment is refused.",
     params: [
       { name: "options", type: "RawExportOptions", description: "The export options, including the path to the resource", required: true },
     ],
@@ -4714,7 +4714,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "RawConfig",
     methodName: "importRawConfig",
     signature: "importRawConfig( options: RawImportOptions, data: IdObjectSkeletonInterface ): Promise<IdObjectSkeletonInterface>",
-    description: "Imports raw configuration",
+    description: "Imports raw configuration. The first segment of the path selects the API, as for the export.",
     params: [
       { name: "options", type: "RawImportOptions", description: "The import options, including the path to the resource", required: true },
       { name: "data", type: "IdObjectSkeletonInterface", description: "the import data that will be pushed", required: true },

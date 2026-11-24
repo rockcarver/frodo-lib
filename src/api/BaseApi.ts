@@ -1121,6 +1121,7 @@ export function generateOauth2Api({
 /**
  * Generates an IDM Axios API instance
  * @param {object} params Params object
+ * @param {ResourceConfig} params.resource Optional resource config. When it carries an `apiVersion`, that value is sent in the Accept-API-Version header; without it no version header is sent. example: { apiVersion: 'protocol=2.1,resource=1.0' }
  * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either add
  * on extra information or override default properties https://github.com/axios/axios#request-config
  * @param {string[]} params.requiredScopes OAuth2 scope(s) this specific endpoint requires.
@@ -1130,10 +1131,12 @@ export function generateOauth2Api({
  * @returns {AxiosInstance} Returns a reaady to use Axios instance
  */
 export function generateIdmApi({
+  resource,
   requestOverride = {},
   requiredScopes,
   state,
 }: {
+  resource?: ResourceConfig;
   requestOverride?: AxiosRequestConfig;
   requiredScopes: string[];
   state: State;
@@ -1148,6 +1151,9 @@ export function generateIdmApi({
         'Content-Type': 'application/json',
         ...state.getAuthenticationHeaderOverrides(),
         ...state.getConfigurationHeaderOverrides(),
+        ...(resource?.apiVersion && {
+          'Accept-API-Version': resource.apiVersion,
+        }),
       },
       ...(process.env.FRODO_MOCK !== 'record' &&
         process.env.FRODO_POLLY_MODE !== 'record' && {
@@ -1246,6 +1252,7 @@ export function generateIdmSystemApi({
 /**
  * Generates a LogKeys API Axios instance
  * @param {object} params Params object
+ * @param {ResourceConfig} params.resource Optional resource config. When it carries an `apiVersion`, that value is sent in the Accept-API-Version header; without it no version header is sent. example: { apiVersion: 'protocol=2.1,resource=1.0' }
  * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either add
  * on extra information or override default properties https://github.com/axios/axios#request-config
  * @param {State} params.state State object
@@ -1253,9 +1260,11 @@ export function generateIdmSystemApi({
  * @returns {AxiosInstance} Returns a reaady to use Axios instance
  */
 export function generateLogKeysApi({
+  resource,
   requestOverride = {},
   state,
 }: {
+  resource?: ResourceConfig;
   requestOverride?: AxiosRequestConfig;
   state: State;
 }): AxiosInstance {
@@ -1267,6 +1276,8 @@ export function generateLogKeysApi({
     ...(state.getBearerToken() && {
       Authorization: `Bearer ${state.getBearerToken()}`,
     }),
+    // only add API version if we have it, with or without a bearer token
+    ...(resource?.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
   };
   const requestConfig = mergeDeep(
     {
@@ -1297,6 +1308,7 @@ export function generateLogKeysApi({
  * or else the end of the window that `X-RateLimit-Reset` names), unless `waitOnRateLimit` is false. An answer that
  * names no wait is rejected as it is.
  * @param {object} params Params object
+ * @param {ResourceConfig} params.resource Optional resource config. When it carries an `apiVersion`, that value is sent in the Accept-API-Version header; without it no version header is sent. example: { apiVersion: 'protocol=2.1,resource=1.0' }
  * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either add
  * on extra information or override default properties https://github.com/axios/axios#request-config
  * @param {boolean} params.waitOnRateLimit Whether to wait for the end of the rate limit window and send a request once
@@ -1307,10 +1319,12 @@ export function generateLogKeysApi({
  * @returns {AxiosInstance} Returns a reaady to use Axios instance
  */
 export function generateLogApi({
+  resource,
   requestOverride = {},
   waitOnRateLimit = true,
   state,
 }: {
+  resource?: ResourceConfig;
   requestOverride?: AxiosRequestConfig;
   waitOnRateLimit?: boolean;
   state: State;
@@ -1319,6 +1333,7 @@ export function generateLogApi({
     'User-Agent': userAgent,
     'X-API-Key': state.getLogApiKey(),
     'X-API-Secret': state.getLogApiSecret(),
+    ...(resource?.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
   };
   const requestConfig = mergeDeep(
     {
@@ -1521,10 +1536,12 @@ export function generateGovernanceApi({
  * @returns {AxiosInstance} Returns a reaady to use Axios instance
  */
 export function generateWSFedApi({
+  resource,
   requestOverride = {},
   requiredScopes,
   state,
 }: {
+  resource?: ResourceConfig;
   requestOverride?: AxiosRequestConfig;
   requiredScopes: string[];
   state: State;
@@ -1535,6 +1552,7 @@ export function generateWSFedApi({
     'x-xsrf-header': 'PingFederate',
     ...state.getAuthenticationHeaderOverrides(),
     ...state.getConfigurationHeaderOverrides(),
+    ...(resource?.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
   };
   const requestConfig = mergeDeep(
     {

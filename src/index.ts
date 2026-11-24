@@ -126,6 +126,8 @@ export type { PolicySkeleton } from './api/PoliciesApi';
 
 export type { PolicySetSkeleton } from './api/PolicySetApi';
 
+export type { ApiVersion } from './api/RawConfigApi';
+
 export type { ResourceTypeSkeleton } from './api/ResourceTypesApi';
 
 export type { Saml2ProviderSkeleton } from './api/Saml2Api';
