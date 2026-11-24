@@ -755,4 +755,129 @@ describe('deleteFullService and deleteFullServices on top of the descendents', (
       ).rejects.toBeInstanceOf(FrodoError);
     });
   });
+
+  describe('a service whose descendents fail in different ways is skipped only if every failure is a refusal', () => {
+    const refusal = () => requestError('Unavailable', UNAVAILABLE);
+    const serverError = () =>
+      requestError('Server error', { status: 500, data: { message: 'Boom' } });
+
+    /** the service "unavailable" has two descendents, "first" and "second", and each delete ends as given */
+    const failures = (first: () => Error, second?: () => Error) => {
+      getListOfServicesMock.mockResolvedValue({
+        result: ['unavailable', 'available'].map(service),
+      });
+      getServiceDescendentsMock.mockImplementation(
+        async ({ serviceId }: any) =>
+          serviceId === 'unavailable'
+            ? [descendent('first'), ...(second ? [descendent('second')] : [])]
+            : []
+      );
+      deleteServiceNextDescendentMock.mockImplementation(
+        async ({ serviceNextDescendentId }: any) => {
+          throw (serviceNextDescendentId === 'first' ? first : second)();
+        }
+      );
+    };
+
+    const deleted = () =>
+      deleteServiceMock.mock.calls.map(([args]: any[]) => args.serviceId);
+
+    test('a single refusal is skipped, as before', async () => {
+      failures(refusal);
+
+      await expect(
+        ServiceOps.deleteFullServices({ globalConfig: false, state })
+      ).resolves.toEqual([expect.objectContaining({ _id: 'available' })]);
+      expect(deleted()).toEqual(['available']);
+      expect(printMessage).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'error' })
+      );
+    });
+
+    test('two refusals are skipped', async () => {
+      failures(refusal, refusal);
+
+      await expect(
+        ServiceOps.deleteFullServices({ globalConfig: false, state })
+      ).resolves.toEqual([expect.objectContaining({ _id: 'available' })]);
+      expect(deleted()).toEqual(['available']);
+    });
+
+    test.each([
+      ['a refusal and then a server error', refusal, serverError, 'second'],
+      ['a server error and then a refusal', serverError, refusal, 'first'],
+    ])(
+      '%s is not skipped: the failure is reported',
+      async (_label, first, second, failed) => {
+        failures(first, second);
+
+        const error = await ServiceOps.deleteFullServices({
+          globalConfig: false,
+          state,
+        }).catch((error) => error);
+
+        expect(error).toBeInstanceOf(FrodoError);
+        expect(error.getCombinedMessage()).toContain("service 'unavailable'");
+        expect(error.getCombinedMessage()).toContain(`descendent '${failed}'`);
+        // the other service is still deleted
+        expect(deleted()).toEqual(['available']);
+      }
+    );
+
+    test.each([
+      [
+        'a refusal and then an error',
+        refusal,
+        () => new Error('socket hang up'),
+      ],
+      [
+        'an error and then a refusal',
+        () => new Error('socket hang up'),
+        refusal,
+      ],
+    ])(
+      'a failure without any answer of the server (%s) is not skipped either',
+      async (_label, first, second) => {
+        failures(first, second);
+
+        await expect(
+          ServiceOps.deleteFullServices({ globalConfig: false, state })
+        ).rejects.toBeInstanceOf(FrodoError);
+      }
+    );
+
+    test('an error with a cause that is not an error object is not skipped, whatever its other causes are', async () => {
+      failures(refusal);
+      getServiceDescendentsMock.mockImplementation(
+        async ({ serviceId }: any) => {
+          if (serviceId !== 'unavailable') return [];
+          throw new FrodoError('Reading failed', [
+            refusal(),
+            'not an error object' as any,
+          ]);
+        }
+      );
+
+      await expect(
+        ServiceOps.deleteFullServices({ globalConfig: false, state })
+      ).rejects.toBeInstanceOf(FrodoError);
+    });
+
+    test('the order in which the deletes finish does not matter', async () => {
+      failures(refusal, serverError);
+      deleteServiceNextDescendentMock.mockImplementation(
+        async ({ serviceNextDescendentId }: any) => {
+          // the refusal is listed first and arrives last
+          await new Promise((resolve) =>
+            setTimeout(resolve, serviceNextDescendentId === 'first' ? 20 : 0)
+          );
+          throw serviceNextDescendentId === 'first' ? refusal() : serverError();
+        }
+      );
+
+      await expect(
+        ServiceOps.deleteFullServices({ globalConfig: false, state })
+      ).rejects.toBeInstanceOf(FrodoError);
+    });
+  });
 });

@@ -300,22 +300,50 @@ export default (state: State): Service => {
 };
 
 /**
- * True if the server refused the request because it does not offer the service in PingOne Advanced Identity Cloud.
- * The error is looked at through the whole chain of errors ({@link getFailedResponse}): an operation that calls other
- * operations wraps a failure in a `FrodoError` at every level, and only the error of the request carries the answer of
- * the server.
+ * True if the server refused every request that failed because it does not offer the service in PingOne Advanced
+ * Identity Cloud. The error is looked at through the whole tree of errors: an operation that calls other operations
+ * wraps a failure in a `FrodoError` at every level, and only the error of a request carries the answer of the server.
+ * An error that holds several causes (the one of `deleteServiceNextDescendents` holds one per descendent that could not
+ * be deleted) counts as unavailable only if EVERY cause is, so that a real failure next to a refusal is never skipped
+ * with it.
  * @param {unknown} error the error that was caught, wrapped or not
- * @returns {boolean} true for the refusal of an unavailable service
+ * @returns {boolean} true if every failure behind the error is the refusal of an unavailable service
  */
 function isUnavailableServiceError(error: unknown): boolean {
-  const response = getFailedResponse(error) as
-    { status?: number; data?: { message?: string } } | undefined;
-  const httpError = error as { httpStatus?: number; httpMessage?: string };
-  return (
-    (response?.status ?? httpError?.httpStatus) === 403 &&
-    (response?.data?.message ?? httpError?.httpMessage) ===
-      'This operation is not available in PingOne Advanced Identity Cloud.'
-  );
+  const pending: unknown[] = [error];
+  const seen = new Set<unknown>();
+  let refusals = 0;
+  while (pending.length > 0) {
+    const node = pending.pop();
+    // a cause that is no error object is not known to be a refusal
+    if (!node || typeof node !== 'object') return false;
+    if (seen.has(node)) continue;
+    seen.add(node);
+    const { response, originalErrors, httpStatus, httpMessage } = node as {
+      response?: { status?: number; data?: { message?: string } };
+      originalErrors?: unknown;
+      httpStatus?: number;
+      httpMessage?: string;
+    };
+    const hasResponse = !!response && typeof response === 'object';
+    if (
+      !hasResponse &&
+      Array.isArray(originalErrors) &&
+      originalErrors.length
+    ) {
+      for (const cause of originalErrors) pending.push(cause);
+      continue;
+    }
+    if (
+      (response?.status ?? httpStatus) !== 403 ||
+      (response?.data?.message ?? httpMessage) !==
+        'This operation is not available in PingOne Advanced Identity Cloud.'
+    ) {
+      return false;
+    }
+    refusals++;
+  }
+  return refusals > 0;
 }
 
 /**
