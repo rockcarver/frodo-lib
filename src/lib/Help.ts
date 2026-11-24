@@ -5807,12 +5807,36 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Service",
     methodName: "deleteFullService",
     signature: "deleteFullService( serviceId: string, globalConfig?: boolean ): Promise<AmServiceSkeleton>",
-    description: "Deletes the specified service",
+    description: "Deletes the specified service and its descendents.",
     params: [
       { name: "serviceId", type: "string", description: "The service to delete", required: true },
       { name: "globalConfig", type: "boolean", description: "true if the global service is the target of the operation, false otherwise. Default: false.", required: false },
     ],
-    returns: "",
+    returns: "{Promise<AmServiceSkeleton>} The deleted service",
+  },
+  {
+    typeName: "Service",
+    methodName: "deleteServiceNextDescendent",
+    signature: "deleteServiceNextDescendent( serviceId: string, nextDescendentName: string, globalConfig?: boolean ): Promise<AmServiceSkeleton>",
+    description: "Deletes one next descendent of a service and leaves the service itself in place. The descendent is looked up in the list that the server gives for the service and deleted by the id it is listed with, so the name must match a listed id exactly, case included.",
+    params: [
+      { name: "serviceId", type: "string", description: "The service that holds the descendent", required: true },
+      { name: "nextDescendentName", type: "string", description: "The id (the name) of the next descendent to delete", required: true },
+      { name: "globalConfig", type: "boolean", description: "true if the global service is the target of the operation, false otherwise. Default: false.", required: false },
+    ],
+    returns: "{Promise<AmServiceSkeleton>} Promise resolving to the deleted descendent",
+  },
+  {
+    typeName: "Service",
+    methodName: "deleteServiceNextDescendents",
+    signature: "deleteServiceNextDescendents( serviceId: string, globalConfig?: boolean, resultCallback?: ResultCallback<AmServiceSkeleton> ): Promise<AmServiceSkeleton[]>",
+    description: "Deletes all next descendents of a service and leaves the service itself in place. Every descendent is attempted. Without a result callback the function throws one error after all were attempted, which names each descendent that could not be deleted. With a result callback each result is passed to it as it is known (a descendent that could not be deleted as an error that names it), nothing is thrown for such a descendent, and the descendents that were deleted are returned. A failure to read the descendents of the service always throws.",
+    params: [
+      { name: "serviceId", type: "string", description: "The service that holds the descendents", required: true },
+      { name: "globalConfig", type: "boolean", description: "true if the global service is the target of the operation, false otherwise. Default: false.", required: false },
+      { name: "resultCallback", type: "ResultCallback<AmServiceSkeleton>", description: "Optional callback to process individual results", required: false },
+    ],
+    returns: "{Promise<AmServiceSkeleton[]>} Promise resolving to the deleted descendents",
   },
   {
     typeName: "Service",
