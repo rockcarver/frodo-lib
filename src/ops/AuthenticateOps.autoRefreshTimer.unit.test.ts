@@ -112,7 +112,7 @@ describe('the timer that refreshes the credentials', () => {
     expect(timers[1].args[0]).toBe(false);
   });
 
-  test('5: a failed timer refresh does not throw an unhandled rejection and leaves no fired timer in the state', async () => {
+  test('5: a failed timer refresh does not throw an unhandled rejection and puts the retry in the place of the fired timer', async () => {
     const frodo = await loginRecordingTimers(30 * 60 * 1000);
     const firedTimer = frodo.state.getAutoRefreshTimer();
     clearTimeout(firedTimer);

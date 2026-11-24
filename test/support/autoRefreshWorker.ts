@@ -1,12 +1,12 @@
 /**
  * A process of its own whose background token refresh fails, for
  * `src/ops/AuthenticateOps.autoRefreshFailure.unit.test.ts`. Started with
- * `node -r test/support/register-ts.cjs`; takes one JSON argument (`kind`) and
+ * `node -r test/support/register-ts.cjs`; takes one JSON argument (`failure`) and
  * prints one JSON line with what it saw.
  *
  * The process logs in to a fake AM of its own with a session that has 25.5
  * seconds to live, so that the refresh timer runs half a second later, breaks
- * the next login as the kind says, and waits until the refresh and its retry
+ * the next login as the failure says, and waits until the refresh and its retry
  * have failed (the retry, which the library arms for a few seconds, runs after
  * 100 milliseconds here). A listener for `unhandledRejection` on the process
  * counts the rejections that nobody handled: the refresh of a timer must never
@@ -14,12 +14,12 @@
  */
 import FrodoLib from '../../src/lib/FrodoLib';
 import { AUTO_REFRESH_RETRY_DELAY_MS } from '../../src/ops/AuthenticateOps';
-import { breakLogin, type FailureKind } from './autoRefreshFailures';
+import { breakLogin, type FailureCase } from './autoRefreshFailures';
 import { startFakeAm } from './fakeAm';
 
 const sleep = (ms: number) => new Promise((done) => setTimeout(done, ms));
 
-async function main(kind: FailureKind) {
+async function main(failure: FailureCase) {
   const setTimeoutOriginal = global.setTimeout;
   global.setTimeout = ((
     callback: () => void,
@@ -53,7 +53,7 @@ async function main(kind: FailureKind) {
   );
   await frodo.login.getTokens();
   const timerArmed = frodo.state.getAutoRefreshTimer() !== undefined;
-  const broken = await breakLogin(kind, frodo, (line) => debug.push(line));
+  const broken = await breakLogin(failure, frodo, (line) => debug.push(line));
   const failed = () =>
     debug.filter((line) => line.includes('token auto-refresh failed')).length;
   for (let waited = 0; failed() < 2 && waited < 10_000; waited += 50) {
@@ -63,7 +63,7 @@ async function main(kind: FailureKind) {
   await sleep(300);
   broken.repair();
   const result = {
-    kind,
+    failure,
     timerArmed,
     failedLines: failed(),
     rejections,
@@ -76,7 +76,7 @@ async function main(kind: FailureKind) {
   process.exit(0);
 }
 
-main(JSON.parse(process.argv[2]).kind as FailureKind).catch((error) => {
+main(JSON.parse(process.argv[2]).failure as FailureCase).catch((error) => {
   process.stderr.write(`${error?.stack ?? error}\n`);
   process.exit(1);
 });
