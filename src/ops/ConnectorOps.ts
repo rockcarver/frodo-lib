@@ -7,6 +7,7 @@ import {
   putConfigEntity,
 } from '../api/IdmConfigApi';
 import { readSystemStatus } from '../api/IdmSystemApi';
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import {
   createProgressIndicator,
@@ -17,13 +18,26 @@ import {
 import { getMetadata } from '../utils/ExportImportUtils';
 import { FrodoError, isNotFoundError } from './FrodoError';
 import { readConfigEntitiesByType } from './IdmConfigOps';
+import { getManagedApplicationTypeOfRealm } from './internal/ManagedApplicationType';
+import {
+  defineReferenceSource,
+  findReferencesForIds,
+  type ReferenceLookupResult,
+  type ReferenceSource,
+} from './internal/ReferenceLookup';
+import { readManagedObjects } from './ManagedObjectOps';
 import {
   deleteMapping,
   MappingSkeleton,
   readMappings,
   updateMapping,
 } from './MappingOps';
-import { ExportMetaData, type ResultCallback } from './OpsTypes';
+import {
+  ExportMetaData,
+  type ObjectReference,
+  type ResultCallback,
+} from './OpsTypes';
+import { getRealms } from './RealmOps';
 
 export type Connector = {
   /**
@@ -159,6 +173,43 @@ export type Connector = {
    * @returns {Promise<Record<string, boolean>>} a promise that resolves to an object that maps the id/name of each connector (without the type prefix) to whether it is enabled
    */
   readConnectorEnabledStates(): Promise<Record<string, boolean>>;
+  /**
+   * Find what still names a connector definition, in the whole tenant, before it is deleted. Every source is read once, together, and the answer is joined in memory: the mappings (a `source` or `target` that starts with `system/<id>/`, in the `sync` configuration and in the `mapping/` configurations; a mapping that is stored in both is one reference per field, not two), the applications of every realm (`connectorId`), the schedules (`invokeContext.source`) and the login configuration (a `queryOnResource` or `passthroughAuth` value, the key compared ignoring case). That is about seven requests on Cloud with two realms (one more for each further realm) however many ids are looked up. The connector does not have to exist, so the same call after a delete lists what now points at nothing. Each reference has a source (`mapping`, `application`, `schedule` or `authentication-module`; one reference per module name and field), a dependency flag (all four are `hard`: the holder breaks at run time without the connector), the id of the holder and `from`, the field that holds the name; an application also has its realm. The answer is ordered by source, then by id and field. Not read, and so not seen: connector names inside script text, route patterns of the access configuration, link tables, running reconciliations, governance applications, other tenants and environments, and clients that call `system/<id>/` over REST; also an entry of the `sync` configuration that has no `name` (it cannot be addressed, so it is left out even when its `source` or `target` names the connector). An empty list is never proof that a connector is unused: it means only that none of those sources names it. Fails closed: if any source cannot be read in full, every source is still attempted and one error is thrown that names each source that failed; there is no partial list. A source that is not there (no `sync` configuration, no `authentication` configuration, a realm without applications) is none, not a failure. Read-only; it does not say what the platform does when the connector is deleted. A caller that holds a value that is either one id or a list calls the form that fits it (`Array.isArray` tells which): the two forms answer differently, so the facade has no single signature for the union.
+   * @param {string} connectorId id/name of the connector without the type prefix
+   * @returns {Promise<ConnectorReference[]>} a promise that resolves to every reference found
+   */
+  findConnectorReferences(connectorId: string): Promise<ConnectorReference[]>;
+  /**
+   * The same lookup for a list of connectors, with one set of reads whatever the number of ids. This form does not fail when a source cannot be read: it answers with what it found and names the sources it could not read in `unreadable`, so that a caller can list the holders it found and say what it could not check (an empty `unreadable` means every source was read). `references` is an object with one entry per distinct id, and an id that nothing names has an empty list; read it by key, because an object does not promise the order of its keys (JavaScript lists keys that look like integers first). It has no prototype, so an id such as `__proto__` is a plain key. An empty list is answered with an empty result and no request. A blank or non-string id in the list throws before anything is read. Everything the single form says about what is read and not seen holds here too, and an empty list for an id is never proof that the connector is unused.
+   * @param {string[]} connectorIds ids/names of the connectors without the type prefix
+   * @returns {Promise<object>} a promise that resolves to an object with `references` (the references to each id, as the single form returns them) and `unreadable` (the sources that could not be read)
+   */
+  findConnectorReferences(
+    connectorIds: string[]
+  ): Promise<
+    ReferenceLookupResult<ConnectorReference['source'], ConnectorReference>
+  >;
+  /**
+   * Find what still names a connector server, that is an entry of `remoteConnectorClients` of the `provisioner.openicf.connectorinfoprovider` configuration, by its name. Both sources are read once, together, and the answer is joined in memory: the server clusters (`remoteConnectorClientsGroups`: a cluster whose `serversList` has an entry with the name) and the connector definitions (`connectorRef.connectorHostRef` equal to the name). That is two requests however many names are looked up. The server does not have to exist, so the same call after a delete lists what now points at nothing. Each reference has a source and a dependency flag: `server-cluster` is `soft` (the cluster works with its other servers) and `connector` is `hard` (the connector cannot reach its system without the server), the id of the holder (the cluster name, or the connector name without the type prefix) and `from`, the field that holds the name (`serversList`, `connectorRef.connectorHostRef`). One reference per cluster, however often it lists the name. The answer is ordered by source, then by id. A connector that names a server cluster is not reported as a holder of the servers in that cluster, and the entries of `remoteConnectorServers` and `remoteConnectorServersGroups` (the platform as the client) are not read. Not read, and so not seen: the connector server process itself, any OAuth2 client that a platform keeps for a connector server, script text, other tenants and environments. An empty list is never proof that a server is unused: it means only that none of those sources names it. Fails closed: if any source cannot be read in full, every source is still attempted and one error is thrown that names each source that failed; there is no partial list. A source that is not there (no cluster list, no `provisioner.openicf.connectorinfoprovider` configuration) is none, not a failure. Read-only; it does not say what the platform does when the server is deleted. A caller that holds a value that is either one name or a list calls the form that fits it (`Array.isArray` tells which): the two forms answer differently, so the facade has no single signature for the union.
+   * @param {string} serverName name of the connector server
+   * @returns {Promise<ConnectorServerReference[]>} a promise that resolves to every reference found
+   */
+  findConnectorServerReferences(
+    serverName: string
+  ): Promise<ConnectorServerReference[]>;
+  /**
+   * The same lookup for a list of connector servers, with one set of reads whatever the number of names. This form does not fail when a source cannot be read: it answers with what it found and names the sources it could not read in `unreadable`, so that a caller can list the holders it found and say what it could not check (an empty `unreadable` means every source was read). `references` is an object with one entry per distinct name, and a name that nothing names has an empty list; read it by key, because an object does not promise the order of its keys (JavaScript lists keys that look like integers first). It has no prototype, so a name such as `__proto__` is a plain key. An empty list is answered with an empty result and no request. A blank or non-string name in the list throws before anything is read. Everything the single form says about what is read and not seen holds here too, and an empty list for a name is never proof that the server is unused.
+   * @param {string[]} serverNames names of the connector servers
+   * @returns {Promise<object>} a promise that resolves to an object with `references` (the references to each name, as the single form returns them) and `unreadable` (the sources that could not be read)
+   */
+  findConnectorServerReferences(
+    serverNames: string[]
+  ): Promise<
+    ReferenceLookupResult<
+      ConnectorServerReference['source'],
+      ConnectorServerReference
+    >
+  >;
 };
 
 export default (state: State): Connector => {
@@ -246,6 +297,18 @@ export default (state: State): Connector => {
     async readConnectorEnabledStates(): Promise<Record<string, boolean>> {
       return readConnectorEnabledStates({ state });
     },
+    // one id answers a list, a list of ids answers an object: the overloads of
+    // the type say which, this delegates both to the one function
+    findConnectorReferences: (async (connectorIds: string | string[]) =>
+      findConnectorReferences({
+        connectorIds,
+        state,
+      })) as Connector['findConnectorReferences'],
+    findConnectorServerReferences: (async (serverNames: string | string[]) =>
+      findConnectorServerReferences({
+        serverNames,
+        state,
+      })) as Connector['findConnectorServerReferences'],
   };
 };
 
@@ -1097,4 +1160,542 @@ export async function readConnectorEnabledStates({
       error
     );
   }
+}
+
+/**
+ * One place that names a connector definition, found by
+ * {@link findConnectorReferences}: a mapping, an application, a schedule or an
+ * authentication module (the login configuration). All four are `hard`: the
+ * holder breaks at run time without the connector. `id` is the id of the
+ * holder (`mapping/<name>`, or `sync/<name>` where the mapping is only in the
+ * `sync` configuration; the id of the application, with its `realm`;
+ * `schedule/<name>`; the name of the module, or `authentication`), `from` is
+ * the field that holds the connector id. An empty answer is never proof that a
+ * connector is unused, see {@link findConnectorReferences}.
+ */
+export type ConnectorReference = ObjectReference<
+  'mapping' | 'application' | 'schedule' | 'authentication-module'
+>;
+
+/**
+ * One place that names a connector server, found by
+ * {@link findConnectorServerReferences}: a server cluster that lists it (`soft`:
+ * the cluster works with its other servers) or a connector definition that
+ * names it as its host (`hard`). `id` is the cluster name, or the connector
+ * name without the type prefix; `from` is `serversList` or
+ * `connectorRef.connectorHostRef`. An empty answer is never proof that a server
+ * is unused, see {@link findConnectorServerReferences}.
+ */
+export type ConnectorServerReference = ObjectReference<
+  'server-cluster' | 'connector'
+>;
+
+const MAPPING_PREFIX = 'mapping/';
+const SCHEDULE_PREFIX = 'schedule/';
+const CONNECTOR_INFO_PROVIDER = 'provisioner.openicf.connectorinfoprovider';
+/**
+ * The fields of the login configuration that name a resource of the system, in
+ * lower case: a key is compared ignoring its case, because the spelling of
+ * `passthroughAuth` is not fixed by anything this library has read (a holder
+ * that is missed is a false negative, a key that is read too widely only a
+ * reference more).
+ */
+const AUTHENTICATION_RESOURCE_FIELDS = ['queryonresource', 'passthroughauth'];
+/** The id of an authentication holder that has no module name. */
+const AUTHENTICATION_CONFIG_ID = 'authentication';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** Reads a configuration entity; one that is not there is none (null). */
+async function readConfigEntityOrNone(
+  entityId: string,
+  state: State
+): Promise<unknown> {
+  try {
+    return await getConfigEntity({ entityId, state });
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+const byIdThenFrom = (a: ObjectReference<string>, b: ObjectReference<string>) =>
+  a.id.localeCompare(b.id) || a.from.localeCompare(b.from);
+
+/** What the mapping source reads: the `sync` configuration and the `mapping/` configurations. */
+type MappingStores = { sync: unknown; mappings: unknown };
+
+/**
+ * The mappings that name a connector. A mapping that is stored in both the
+ * `sync` configuration and as `mapping/<name>` is one reference per field: the
+ * id is `mapping/<name>` when that store holds a match for the field, else
+ * `sync/<name>`. A `sync` entry without a name cannot be addressed and is left
+ * out.
+ */
+function findMappingReferences(
+  stores: MappingStores,
+  connectorId: string
+): ConnectorReference[] {
+  const prefix = `system/${connectorId}/`;
+  const folded = new Map<
+    string,
+    { name: string; from: 'source' | 'target'; id: string }
+  >();
+  const note = (
+    name: string,
+    from: 'source' | 'target',
+    id: string | undefined
+  ) => {
+    // the sync store is noted first, so a note with an id (the mapping
+    // configuration) replaces the legacy id of the same mapping and field
+    folded.set(JSON.stringify([name, from]), {
+      name,
+      from,
+      id: id ?? `sync/${name}`,
+    });
+  };
+  const syncMappings =
+    isRecord(stores.sync) && Array.isArray(stores.sync.mappings)
+      ? stores.sync.mappings
+      : [];
+  for (const entry of syncMappings) {
+    if (!isRecord(entry) || typeof entry.name !== 'string') continue;
+    for (const from of ['source', 'target'] as const) {
+      const value = entry[from];
+      if (typeof value === 'string' && value.startsWith(prefix)) {
+        note(entry.name, from, undefined);
+      }
+    }
+  }
+  for (const entry of Array.isArray(stores.mappings) ? stores.mappings : []) {
+    if (
+      !isRecord(entry) ||
+      typeof entry._id !== 'string' ||
+      !entry._id.startsWith(MAPPING_PREFIX)
+    )
+      continue;
+    const name =
+      typeof entry.name === 'string'
+        ? entry.name
+        : entry._id.substring(MAPPING_PREFIX.length);
+    for (const from of ['source', 'target'] as const) {
+      const value = entry[from];
+      if (typeof value === 'string' && value.startsWith(prefix)) {
+        note(name, from, entry._id);
+      }
+    }
+  }
+  return [...folded.values()]
+    .map(({ name, from, id }) => ({
+      source: 'mapping' as const,
+      dependency: 'hard' as const,
+      id,
+      name,
+      from,
+    }))
+    .sort(byIdThenFrom);
+}
+
+/** The application records of every realm, each with the realm it belongs to (when the type says so). */
+type ApplicationRecords = { realm?: string; application: unknown }[];
+
+/**
+ * Reads the application records of every realm without switching the active
+ * realm. Every distinct application type is read once. On Cloud the root realm
+ * has no applications. A type that does not exist has no applications.
+ */
+async function readApplicationsOfAllRealms(
+  state: State
+): Promise<ApplicationRecords> {
+  const realms = await getRealms({ state });
+  const realmsByType = new Map<string, string[]>();
+  for (const realm of Array.isArray(realms) ? realms : []) {
+    if (typeof realm?.name !== 'string') continue;
+    if (
+      state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY &&
+      realm.name === '/'
+    ) {
+      continue;
+    }
+    const type = getManagedApplicationTypeOfRealm({
+      realmName: realm.name,
+      state,
+    });
+    realmsByType.set(type, [...(realmsByType.get(type) ?? []), realm.name]);
+  }
+  const perType = await Promise.all(
+    [...realmsByType].map(async ([type, realmNames]) => {
+      try {
+        const applications = await readManagedObjects({
+          type,
+          fields: ['name', 'connectorId'],
+          state,
+        });
+        // a type that several realms share does not say which realm an application is in
+        return applications.map((application) => ({
+          ...(realmNames.length === 1 && { realm: realmNames[0] }),
+          application,
+        }));
+      } catch (error) {
+        if (isNotFoundError(error)) {
+          return [];
+        }
+        throw error;
+      }
+    })
+  );
+  return perType.flat();
+}
+
+function findApplicationReferences(
+  records: ApplicationRecords,
+  connectorId: string
+): ConnectorReference[] {
+  return records
+    .flatMap(({ realm, application }) => {
+      if (
+        !isRecord(application) ||
+        typeof application._id !== 'string' ||
+        application.connectorId !== connectorId
+      ) {
+        return [];
+      }
+      return [
+        {
+          source: 'application' as const,
+          dependency: 'hard' as const,
+          id: application._id,
+          ...(typeof application.name === 'string' && {
+            name: application.name,
+          }),
+          ...(realm !== undefined && { realm }),
+          from: 'connectorId',
+        },
+      ];
+    })
+    .sort(byIdThenFrom);
+}
+
+function findScheduleReferences(
+  schedules: unknown,
+  connectorId: string
+): ConnectorReference[] {
+  const prefix = `system/${connectorId}/`;
+  return (Array.isArray(schedules) ? schedules : [])
+    .flatMap((schedule) => {
+      if (
+        !isRecord(schedule) ||
+        typeof schedule._id !== 'string' ||
+        !schedule._id.startsWith(SCHEDULE_PREFIX) ||
+        !isRecord(schedule.invokeContext) ||
+        typeof schedule.invokeContext.source !== 'string' ||
+        !schedule.invokeContext.source.startsWith(prefix)
+      ) {
+        return [];
+      }
+      return [
+        {
+          source: 'schedule' as const,
+          dependency: 'hard' as const,
+          id: schedule._id,
+          from: 'invokeContext.source',
+        },
+      ];
+    })
+    .sort(byIdThenFrom);
+}
+
+/**
+ * The authentication modules that name a connector: the login configuration is
+ * walked whole, and every `queryOnResource` or `passthroughAuth` property
+ * (the key is compared ignoring case) whose value starts with `system/<id>/`
+ * is one reference. The id is the `name` of the nearest enclosing object that
+ * has one (the module), else `authentication`; `from` is the dotted path
+ * without list indexes. Entries that repeat both the id and the path are one
+ * reference.
+ */
+function findAuthenticationReferences(
+  authentication: unknown,
+  connectorId: string
+): ConnectorReference[] {
+  const prefix = `system/${connectorId}/`;
+  // one reference per module name and field: entries that repeat both are one
+  const found = new Map<string, ConnectorReference>();
+  const walk = (value: unknown, path: string[], holder: string) => {
+    if (Array.isArray(value)) {
+      value.forEach((item) => walk(item, path, holder));
+      return;
+    }
+    if (!isRecord(value)) return;
+    const name =
+      typeof value.name === 'string' && value.name !== '' ? value.name : holder;
+    for (const [key, child] of Object.entries(value)) {
+      if (
+        AUTHENTICATION_RESOURCE_FIELDS.includes(key.toLowerCase()) &&
+        typeof child === 'string' &&
+        child.startsWith(prefix)
+      ) {
+        const from = [...path, key].join('.');
+        found.set(JSON.stringify([name, from]), {
+          source: 'authentication-module',
+          dependency: 'hard',
+          id: name,
+          from,
+        });
+      } else {
+        walk(child, [...path, key], name);
+      }
+    }
+  };
+  walk(authentication, [], AUTHENTICATION_CONFIG_ID);
+  return [...found.values()].sort(byIdThenFrom);
+}
+
+/**
+ * Every source that findConnectorReferences reads, in the order of the result.
+ * Adding a holder is a row here.
+ */
+const connectorReferenceSources: readonly ReferenceSource<
+  ConnectorReference['source'],
+  ConnectorReference
+>[] = [
+  defineReferenceSource<
+    ConnectorReference['source'],
+    ConnectorReference,
+    MappingStores
+  >({
+    source: 'mapping',
+    label: 'mappings',
+    read: async (state) => {
+      const [sync, mappings] = await Promise.all([
+        readConfigEntityOrNone('sync', state),
+        readConfigEntitiesByType({ type: 'mapping', state }),
+      ]);
+      return { sync, mappings };
+    },
+    find: findMappingReferences,
+  }),
+  defineReferenceSource<
+    ConnectorReference['source'],
+    ConnectorReference,
+    ApplicationRecords
+  >({
+    source: 'application',
+    label: 'applications',
+    read: readApplicationsOfAllRealms,
+    find: findApplicationReferences,
+  }),
+  defineReferenceSource<
+    ConnectorReference['source'],
+    ConnectorReference,
+    unknown
+  >({
+    source: 'schedule',
+    label: 'schedules',
+    read: async (state) =>
+      readConfigEntitiesByType({ type: 'schedule', state }),
+    find: findScheduleReferences,
+  }),
+  defineReferenceSource<
+    ConnectorReference['source'],
+    ConnectorReference,
+    unknown
+  >({
+    source: 'authentication-module',
+    label: 'authentication modules',
+    read: async (state) => readConfigEntityOrNone('authentication', state),
+    find: findAuthenticationReferences,
+  }),
+];
+
+/**
+ * Find what still names a connector definition, in the whole tenant. See the
+ * facade method for the sources, for what is not seen and for what an empty
+ * answer does and does not mean.
+ *
+ * For one id the lookup fails closed: if any source cannot be read, every source
+ * is still attempted, then one error is thrown that nests one error per source
+ * that failed. For a list of ids the same reads answer every id, and a source
+ * that cannot be read is named in `unreadable` instead of failing the call.
+ * @param {string | string[]} connectorIds id/name of the connector without the type prefix, or a list of them
+ * @returns {Promise<ConnectorReference[] | object>} a promise that resolves to every reference found for one id, or to `{ references, unreadable }` for a list
+ */
+export function findConnectorReferences(params: {
+  connectorIds: string;
+  state: State;
+}): Promise<ConnectorReference[]>;
+export function findConnectorReferences(params: {
+  connectorIds: string[];
+  state: State;
+}): Promise<
+  ReferenceLookupResult<ConnectorReference['source'], ConnectorReference>
+>;
+export function findConnectorReferences(params: {
+  connectorIds: string | string[];
+  state: State;
+}): Promise<
+  | ConnectorReference[]
+  | ReferenceLookupResult<ConnectorReference['source'], ConnectorReference>
+>;
+export async function findConnectorReferences({
+  connectorIds,
+  state,
+}: {
+  connectorIds: string | string[];
+  state: State;
+}) {
+  return findReferencesForIds({
+    sources: connectorReferenceSources,
+    state,
+    ids: connectorIds,
+    subject: 'connector',
+  });
+}
+
+function findServerClusterReferences(
+  connectorInfo: unknown,
+  serverName: string
+): ConnectorServerReference[] {
+  if (
+    !isRecord(connectorInfo) ||
+    !Array.isArray(connectorInfo.remoteConnectorClientsGroups)
+  ) {
+    return [];
+  }
+  return connectorInfo.remoteConnectorClientsGroups
+    .flatMap((cluster) => {
+      if (
+        !isRecord(cluster) ||
+        typeof cluster.name !== 'string' ||
+        !Array.isArray(cluster.serversList) ||
+        !cluster.serversList.some(
+          (server) => isRecord(server) && server.name === serverName
+        )
+      ) {
+        return [];
+      }
+      return [
+        {
+          source: 'server-cluster' as const,
+          dependency: 'soft' as const,
+          id: cluster.name,
+          from: 'serversList',
+        },
+      ];
+    })
+    .sort(byIdThenFrom);
+}
+
+/** The connectors come from readConnectors: every id starts with the type prefix. */
+function findConnectorHostReferences(
+  connectors: unknown[],
+  serverName: string
+): ConnectorServerReference[] {
+  const prefix = `${CONNECTOR_TYPE}/`;
+  return connectors
+    .flatMap((connector) => {
+      if (
+        !isRecord(connector) ||
+        typeof connector._id !== 'string' ||
+        !isRecord(connector.connectorRef) ||
+        connector.connectorRef.connectorHostRef !== serverName
+      ) {
+        return [];
+      }
+      return [
+        {
+          source: 'connector' as const,
+          dependency: 'hard' as const,
+          id: connector._id.substring(prefix.length),
+          from: 'connectorRef.connectorHostRef',
+        },
+      ];
+    })
+    .sort(byIdThenFrom);
+}
+
+/**
+ * Every source that findConnectorServerReferences reads, in the order of the
+ * result.
+ */
+const connectorServerReferenceSources: readonly ReferenceSource<
+  ConnectorServerReference['source'],
+  ConnectorServerReference
+>[] = [
+  defineReferenceSource<
+    ConnectorServerReference['source'],
+    ConnectorServerReference,
+    unknown
+  >({
+    source: 'server-cluster',
+    label: 'server clusters',
+    read: async (state) =>
+      readConfigEntityOrNone(CONNECTOR_INFO_PROVIDER, state),
+    find: findServerClusterReferences,
+  }),
+  defineReferenceSource<
+    ConnectorServerReference['source'],
+    ConnectorServerReference,
+    unknown[]
+  >({
+    source: 'connector',
+    label: 'connectors',
+    read: async (state) => readConnectors({ state }),
+    find: findConnectorHostReferences,
+  }),
+];
+
+/**
+ * Find what still names a connector server. See the facade method for the
+ * sources, for what is not seen and for what an empty answer does and does not
+ * mean.
+ *
+ * For one name the lookup fails closed: if any source cannot be read, every
+ * source is still attempted, then one error is thrown that nests one error per
+ * source that failed. For a list of names the same reads answer every name, and
+ * a source that cannot be read is named in `unreadable` instead of failing the
+ * call.
+ * @param {string | string[]} serverNames name of the connector server, or a list of them
+ * @returns {Promise<ConnectorServerReference[] | object>} a promise that resolves to every reference found for one name, or to `{ references, unreadable }` for a list
+ */
+export function findConnectorServerReferences(params: {
+  serverNames: string;
+  state: State;
+}): Promise<ConnectorServerReference[]>;
+export function findConnectorServerReferences(params: {
+  serverNames: string[];
+  state: State;
+}): Promise<
+  ReferenceLookupResult<
+    ConnectorServerReference['source'],
+    ConnectorServerReference
+  >
+>;
+export function findConnectorServerReferences(params: {
+  serverNames: string | string[];
+  state: State;
+}): Promise<
+  | ConnectorServerReference[]
+  | ReferenceLookupResult<
+      ConnectorServerReference['source'],
+      ConnectorServerReference
+    >
+>;
+export async function findConnectorServerReferences({
+  serverNames,
+  state,
+}: {
+  serverNames: string | string[];
+  state: State;
+}) {
+  return findReferencesForIds({
+    sources: connectorServerReferenceSources,
+    state,
+    ids: serverNames,
+    subject: 'connector server',
+  });
 }

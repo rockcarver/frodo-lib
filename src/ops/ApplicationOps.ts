@@ -66,6 +66,7 @@ import {
   readConnectorEnabledStates,
 } from './ConnectorOps';
 import { FrodoError, isNotFoundError } from './FrodoError';
+import { getManagedApplicationTypeOfRealm } from './internal/ManagedApplicationType';
 import {
   createManagedObject,
   deleteManagedObject,
@@ -1033,19 +1034,10 @@ export function createApplicationExportTemplate({
 }
 
 export function getRealmManagedApplication({ state }: { state: State }) {
-  let realmManagedApp = 'application';
-  if (
-    state.getDeploymentType() === constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
-    (state.getUseRealmPrefixOnManagedObjects() === true &&
-      getCurrentRealmName(state) !== '/')
-  ) {
-    realmManagedApp = `${getCurrentRealmName(state)}_application`;
-    debugMessage({
-      message: `DeploymentType === cloud or UseRealmPrefixOnManagedObjects is true, returning '${realmManagedApp}'`,
-      state: state,
-    });
-  }
-  return realmManagedApp;
+  return getManagedApplicationTypeOfRealm({
+    realmName: getCurrentRealmName(state),
+    state,
+  });
 }
 
 export async function createApplication({
