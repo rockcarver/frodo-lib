@@ -556,6 +556,37 @@ describe('the one retry of a background refresh that failed', () => {
     }
   );
 
+  test('10: an old timer that fires while a newer one sits in the slot does nothing and leaves the newer one alone', async () => {
+    const frodo = await login();
+    const old = refreshTimers()[0];
+    // a reset empties the slot without clearTimeout; the same instance then
+    // logs in again and arms a newer timer, while the old one is still pending
+    frodo.state.reset();
+    frodo.state.setHost(am.host);
+    frodo.state.setDeploymentType('classic');
+    frodo.state.setUseTokenCache(false);
+    frodo.state.setUsername('someone');
+    frodo.state.setPassword('password');
+    const printedLines = printed;
+    frodo.state.setPrintHandler((message, type) =>
+      printedLines.push({ message, type })
+    );
+    await frodo.login.getTokens();
+    expect(refreshTimers()).toHaveLength(2);
+    const newer = refreshTimers()[1].handle;
+    expect(frodo.state.getAutoRefreshTimer()).toBe(newer);
+    const logins = am.logins();
+    passTime(old.delay);
+    const cleared = jest.spyOn(global, 'clearTimeout');
+
+    await expect(fire(old)).resolves.toBeUndefined();
+
+    expect(frodo.state.getAutoRefreshTimer()).toBe(newer);
+    expect(cleared).not.toHaveBeenCalledWith(newer);
+    expect(am.logins()).toBe(logins);
+    expect(printed).toEqual([]);
+  });
+
   test.each([
     ['works', 'logs in again and prints nothing'],
     ['fails', 'prints one warning and stops'],
