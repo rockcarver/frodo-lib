@@ -22,9 +22,9 @@ import { AddressInfo } from 'net';
 import { jest } from '@jest/globals';
 import {
   breakLogin,
-  FAILURE_KINDS,
   FAILURE_TEXT,
-  type FailureKind,
+  FAILURES,
+  type FailureCase,
 } from '../../test/support/autoRefreshFailures';
 import { startFakeAm, type FakeAm } from '../../test/support/fakeAm';
 import { runWorker } from '../../test/support/runWorkers';
@@ -185,13 +185,13 @@ async function until(condition: () => boolean) {
   expect(condition()).toBe(true);
 }
 
-/** Breaks the next login of the instance in the way of the kind; returns what repairs it. */
+/** Breaks the next login of the instance in the way of the failure; returns what repairs it. */
 async function breakNextLogin(
   frodo: ReturnType<typeof FrodoLib>,
-  kind: FailureKind = 'wrong password'
+  failure: FailureCase = 'wrong password'
 ) {
   const lines = debug;
-  const broken = await breakLogin(kind, frodo, (line) => lines.push(line));
+  const broken = await breakLogin(failure, frodo, (line) => lines.push(line));
   helpers.push(broken);
   return broken;
 }
@@ -199,27 +199,27 @@ async function breakNextLogin(
 /** Lets the refresh timer fire, with the next login broken; returns what repairs it. */
 async function failFirstRefresh(
   frodo: ReturnType<typeof FrodoLib>,
-  kind: FailureKind = 'wrong password'
+  failure: FailureCase = 'wrong password'
 ) {
   // the credential is inside the freshness buffer when the timer fires
   passTime(refreshTimers()[0].delay);
-  const broken = await breakNextLogin(frodo, kind);
+  const broken = await breakNextLogin(frodo, failure);
   await fire(refreshTimers()[0]);
   return broken;
 }
 
 describe('a background refresh that fails', () => {
-  test.each(FAILURE_KINDS)(
+  test.each(FAILURES)(
     '1: %s: the callback of the timer resolves and the debug output says what failed',
-    async (kind: FailureKind) => {
+    async (failure: FailureCase) => {
       const frodo = await login();
       passTime(armed[0].delay);
-      await breakNextLogin(frodo, kind);
+      await breakNextLogin(frodo, failure);
 
       await expect(fire(armed[0])).resolves.toBeUndefined();
 
       expect(failedLines()).toHaveLength(1);
-      expect(failedLines()[0]).toContain(FAILURE_TEXT[kind]);
+      expect(failedLines()[0]).toContain(FAILURE_TEXT[failure]);
       expect(failedLines()[0]).toContain('the next request will retry');
     }
   );
@@ -249,21 +249,21 @@ describe('a background refresh that fails', () => {
 
   test('4: a process that runs the timer sees no unhandled rejection and one warning, whatever the failure was', async () => {
     const results = await Promise.all(
-      FAILURE_KINDS.map((kind) =>
+      FAILURES.map((failure) =>
         runWorker<{
-          kind: string;
+          failure: string;
           timerArmed: boolean;
           failedLines: number;
           rejections: string[];
           printed: { message: unknown; type: string }[];
-        }>('autoRefreshWorker.ts', { kind })
+        }>('autoRefreshWorker.ts', { failure })
       )
     );
 
     // two lines: the refresh and its retry failed; one warning, after the retry
     expect(results).toEqual(
-      FAILURE_KINDS.map((kind) => ({
-        kind,
+      FAILURES.map((failure) => ({
+        failure,
         timerArmed: true,
         failedLines: 2,
         rejections: [],
@@ -494,7 +494,8 @@ describe('the one retry of a background refresh that failed', () => {
   test.each(['logout', 'dispose'] as const)(
     '6: %s while the retry waits: the retry does not log in afterwards',
     async (how) => {
-      retryRealDelay = 300;
+      // logout asks the server before it clears the timer: the retry waits longer than that
+      retryRealDelay = 1000;
       const frodo = await login();
       const broken = await failFirstRefresh(frodo);
       expect(retryTimers()).toHaveLength(1);
@@ -504,7 +505,7 @@ describe('the one retry of a background refresh that failed', () => {
       await frodo.login[how]();
 
       expect(frodo.state.getAutoRefreshTimer()).toBeUndefined();
-      await new Promise((done) => setTimeout(done, 700));
+      await new Promise((done) => setTimeout(done, 1500));
       expect(am.logins()).toBe(1);
       expect(printed).toEqual([]);
     }
