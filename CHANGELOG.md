@@ -10,6 +10,11 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-54] - 2026-11-24
+
+### Added
+- Enhanced journey validation findings to include node names as displayed in the editor, alongside their IDs. This provides additional context by showing `node`, `targetNode`, and `pageNode` fields, each containing `id`, `displayName`, `nodeType`, `nodeTypeName`, and `ambiguous` attributes. This improvement aids developers in identifying nodes more intuitively during validation processes (#1148, commit 65a7342f1).
+
 ## [v5.0.0-53] - 2026-11-24
 
 ### Added
@@ -3100,6 +3105,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-54]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-53...v5.0.0-54
 [v5.0.0-53]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-52...v5.0.0-53
 [v5.0.0-52]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-51...v5.0.0-52
 [v5.0.0-51]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-50...v5.0.0-51
