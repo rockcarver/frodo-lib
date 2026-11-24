@@ -3031,6 +3031,42 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Answers "what still uses this journey?" before a delete: it reads, once and together, the nodes of every journey (an Inner Tree Evaluator or Back Channel Initialize node that names the journey, also inside a Page Node), the realm\'s default authentication journeys, every journey of the self-service settings, the OAuth2 provider\'s password grant journey, OAuth2 clients, SAML service providers (remote and hosted), AI agents, agent groups and CIMD profiles set to authenticate through the journey, the themes that link the journey (Cloud and ForgeOps only) and the policy conditions that authenticate to it, and joins them in memory (about fifteen requests plus one per SAML service provider). Each result has a source and a dependency flag. A result from another journey names the node (journeyId, nodeId, nodeType, nodeDisplayName, innerNodeId for a node inside a Page Node) and has no from field; every other result has from, the field that holds the name, and a result from an object also has its id (a theme and a policy a name, a policy its policy set as applicationName). One result per holder and field; an object that only inherits the value (inherited true, for example an AI agent whose group sets the journey) is reported too, with inherited true, and the group that holds the value is reported as well. The flag is "hard" when the holder breaks at run time without the journey (journey nodes, authentication settings, self-service, OAuth2 provider, OAuth2 clients, SAML service providers, AI agents, agent groups, CIMD profiles, policy conditions) and "soft" when it works without it (a theme that links the journey); it says what happens to the holder. The flag is separate from what Access Management does when the journey is deleted: a hard holder is not necessarily one that Access Management protects. What was observed (an observation, not a guarantee, and it may differ between versions): in November 2026, on one Cloud development tenant, with throw-away objects, Access Management refused to delete a journey that an OAuth2 client, a SAML remote service provider or a SAML hosted service provider names (a server error, HTTP 500, that names the type of the holder), and deleted a journey that an Inner Tree Evaluator node, a Back Channel Initialize node, a policy condition (authentication by service, transaction) or an AI agent names, leaving the holder unchanged and pointing at nothing. Writing the placeholder for no journey ([Empty]) as the journey name of the client or of the SAML provider was observed to let the delete through. An AI agent whose journey was deleted could no longer be updated or deleted: Access Management checks the stored journey name on every write to an existing AI agent (a validation error, HTTP 400), and a delete of the agent removed its managed identity first and then failed. Writing the placeholder (in the wrapped form, with inherited false) cleared the agent only while the journey still existed; afterwards the journey and the agent could be deleted. So a dangling reference to a deleted journey can block later maintenance of the holder. Not observed: the default journeys of the realm, the self-service journeys, the password grant journey of the OAuth2 provider, themes, agent groups and CIMD profiles. A non-empty answer is not a prediction of a refusal. An empty array is never proof that a journey is unused: it means only that none of those sources names it. The tool does not read the OAuth2 provider\'s mapping of authentication context values to journeys or the service part of the then clause of an IP or environment policy condition (their format has not been seen filled in), and it cannot see a journey that a script chooses at run time (for example through a Configuration Provider node), a journey that an application, an SDK, Amster, a connection profile or a link starts directly by its name, or a journey name inside text (URLs, REST payloads, page text, scripts of IDM endpoints, email templates, login URLs of agents). A node inside a Page Node is seen only if the read of all nodes returns that Page Node (some Page Node versions are missing from it); no node type that names a journey is known to sit inside a Page Node. A result that the tool runtime cuts is no proof either. Fails closed: if any source cannot be read in full the call fails with one error that names each source, and returns no partial list. Read-only.',
   },
+  'idm.connector.findConnectorReferences': {
+    operationType: 'search',
+    objectType: 'ConnectorReference',
+    argumentMode: 'positional',
+    parameterOverrides: {
+      connectorId: {
+        type: 'string | string[]',
+        description:
+          'Id/name of the connector without the type prefix (csv for provisioner.openicf/csv), or a list of such ids to look up many connectors with one set of reads. The connector does not have to exist, so the same call after a delete lists what now points at nothing. One id answers an array of references; a list answers an object with references and unreadable.',
+        examples: ['csv', ['csv', 'ldap']],
+      },
+    },
+    supportsRealm: false,
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Answers "what still names this connector?" before a delete: it reads, once and together, the mappings (the sync configuration and the mapping configurations: a source or target that starts with system/<connector>/; a mapping that is stored in both places is one result per field, with the id mapping/<name> where the mapping configuration holds the match and sync/<name> otherwise), the applications of every realm (connectorId; the active realm is not switched, and the Cloud root realm has none), the schedules (invokeContext.source) and the login configuration (a queryOnResource or passthroughAuth value anywhere in it, the key compared ignoring case; one result per module name and field), and joins them in memory: about seven requests on Cloud with two realms, one more for each further realm, however many connectors are asked for. Each result has a source (mapping, application, schedule, authentication-module), a dependency flag (hard for all four: the holder breaks at run time without the connector), the id of the holder, and from, the field that holds the name; a mapping and an application also have their name, and an application its realm. The flag says what happens to the holder, not what the platform does when the connector is deleted, which this tool does not say. A list of ids is answered with one set of reads, as an object with references (the results for each id, as for one id) and unreadable (the sources that could not be read, empty when every source was read): that form does not fail for a source it could not read, so read unreadable before relying on an empty list for an id. Not read, and so not seen: connector names inside script text, route patterns of the access configuration, link tables, running reconciliations, governance applications, other tenants and environments, and clients that call system/<connector>/ over REST; also an entry of the sync configuration that has no name (it cannot be addressed, so it is left out even when its source or target names the connector). An empty array is never proof that a connector is unused: it means only that none of those sources names it. A result that the tool runtime cuts is no proof either. Fails closed: for one id, if any source cannot be read in full, every source is still attempted and the call fails with one error that names each source that failed, and returns no partial list. A source that is not there (no sync configuration, no authentication configuration, a realm without applications) is none, not a failure. Read-only.',
+  },
+  'idm.connector.findConnectorServerReferences': {
+    operationType: 'search',
+    objectType: 'ConnectorServerReference',
+    argumentMode: 'positional',
+    parameterOverrides: {
+      serverName: {
+        type: 'string | string[]',
+        description:
+          'Name of the connector server (an entry of remoteConnectorClients in the provisioner.openicf.connectorinfoprovider configuration), or a list of such names to look up many servers with one set of reads. The server does not have to exist, so the same call after a delete lists what now points at nothing. One name answers an array of references; a list answers an object with references and unreadable.',
+        examples: ['zion-connector-server', ['zion-connector-server']],
+      },
+    },
+    supportsRealm: false,
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Answers "what still names this connector server?" before a delete: it reads, once and together, the server clusters (the clusters of the connector info provider configuration whose server list has an entry with the name) and the connector definitions (connectorRef.connectorHostRef equal to the name), and joins them in memory: two requests, however many servers are asked for. Each result has a source (server-cluster, connector), a dependency flag (soft for a server cluster, which works with its other servers; hard for a connector, which cannot reach its system without the server), the id of the holder (the cluster name, or the connector name without the type prefix) and from (serversList, connectorRef.connectorHostRef); one result per cluster. A connector that names a server cluster is not reported as a holder of the servers in it, and the servers and clusters that the platform itself connects to (remoteConnectorServers, remoteConnectorServersGroups) are not read. The flag says what happens to the holder, not what the platform does when the server is deleted, which this tool does not say. A list of names is answered with one set of reads, as an object with references (the results for each name, as for one name) and unreadable (the sources that could not be read, empty when every source was read): that form does not fail for a source it could not read, so read unreadable before relying on an empty list for a name. Not read, and so not seen: the connector server process itself, an OAuth2 client that a platform keeps for a connector server, script text, other tenants and environments. An empty array is never proof that a server is unused: it means only that none of those sources names it. A result that the tool runtime cuts is no proof either. Fails closed: for one name, if any source cannot be read in full, every source is still attempted and the call fails with one error that names each source that failed, and returns no partial list. A source that is not there (no cluster list, no connector info provider configuration) is none, not a failure. Read-only.',
+  },
   'authn.journey.getNodeRef': {
     // Takes a full NodeSkeleton + SingleTreeExportInterface as input, not a
     // simple identifier — internal plumbing used while processing an export
@@ -3686,7 +3722,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
 
   'rawConfig.exportRawConfig': {
-    // Arbitrary-path GET passthrough to the AM/IDM/environment API roots
+    // Arbitrary-path GET passthrough to the AM, IDM, environment, IGA,
+    // log key, monitoring log and WS-Fed API roots
     // with no per-endpoint semantics — can reach secret/credential
     // endpoints directly, undercutting every other capability's risk
     // classification. Excluded rather than reclassified: no riskClass is
@@ -3696,7 +3733,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'rawConfig.importRawConfig': {
     // Same escape-hatch shape as rawConfig.exportRawConfig, but as a write
-    // (PUT) passthrough to arbitrary AM/IDM/environment paths — strictly
+    // (PUT) passthrough to arbitrary paths under the same roots — strictly
     // higher risk than the read side. Excluded for the same reason.
     excluded: true,
   },

@@ -126,6 +126,8 @@ export type { PolicySkeleton } from './api/PoliciesApi';
 
 export type { PolicySetSkeleton } from './api/PolicySetApi';
 
+export type { ApiVersion } from './api/RawConfigApi';
+
 export type { ResourceTypeSkeleton } from './api/ResourceTypesApi';
 
 export type { Saml2ProviderSkeleton } from './api/Saml2Api';
@@ -231,7 +233,11 @@ export type {
 
 export type { ConnectionProfileInterface } from './ops/ConnectionProfileOps';
 
-export type { ConnectorSkeleton } from './ops/ConnectorOps';
+export type {
+  ConnectorReference,
+  ConnectorServerReference,
+  ConnectorSkeleton,
+} from './ops/ConnectorOps';
 
 export type { EmailTemplateSkeleton } from './ops/EmailTemplateOps';
 
@@ -253,6 +259,8 @@ export type {
   TreeExportResolverInterface,
   TreeImportOptions,
 } from './ops/JourneyOps';
+
+export type { ReferenceLookupResult } from './ops/internal/ReferenceLookup';
 
 export type { ResolvedIdentity } from './ops/ManagedObjectOps';
 
@@ -291,7 +299,11 @@ export type {
 
 export type { AccessTokenMetaType } from './ops/OAuth2OidcOps';
 
-export type { ExportMetaData } from './ops/OpsTypes';
+export type {
+  ExportMetaData,
+  ObjectReference,
+  ReferenceDependency,
+} from './ops/OpsTypes';
 
 export type {
   PolicyExportInterface,

@@ -27,7 +27,12 @@ jest.unstable_mockModule('./MappingOps', () => ({
   readMappings,
   updateMapping: unused,
 }));
+// the Console module is mocked in part: the rest of it is the real module,
+// because the managed object and realm readers that ConnectorOps imports load
+// the api layer, which imports more of it
+const actualConsole = await import('../utils/Console');
 jest.unstable_mockModule('../utils/Console', () => ({
+  ...actualConsole,
   createProgressIndicator: jest.fn(() => 'progress-id'),
   debugMessage: jest.fn(),
   stopProgressIndicator: jest.fn(),
