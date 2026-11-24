@@ -16,7 +16,6 @@
  * empty result to everything else. No recording, no tenant.
  */
 import { jest } from '@jest/globals';
-import { getApiConfig } from '../api/BaseApi';
 
 const requests: string[] = [];
 const FAILING = 'FAILING_CONTEXT';
@@ -81,7 +80,6 @@ jest.unstable_mockModule('../api/BaseApi', () => ({
   generateGovernanceApi: generate,
   generateWSFedApi: generate,
   generateReleaseApi: generate,
-  getApiConfig: generate,
 }));
 
 const { default: State } = await import('../shared/State');

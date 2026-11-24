@@ -38,10 +38,6 @@ import {
 } from '../utils/SensitiveDataUtils';
 
 export type ResourceConfig = { apiVersion?: string };
-export type ApiVersion = {
-  protocol: string;
-  resource: string;
-};
 
 export type RetryNothingStrategy = 'nothing';
 export type RetryNetworkStrategy = 'network';
@@ -889,21 +885,6 @@ function curlirizeRequests(request: AxiosInstance, state: State) {
 function curlirizeResponses(request: AxiosInstance, state: State) {
   _curlirizeResponses(request, curlirizeCallback(state, { secrets: false }));
 }
-/**
- * Generates the API version configuration used in the Accept-API-Version header.
- * @param {ApiVersion} apiVersion - The protocol and resource API versions. Defaults to protocol 2.0 and resource 1.0.
- * @returns {ResourceConfig} An object containing the formatted API version string.
- */
-export function getApiConfig(
-  apiVersion: ApiVersion = {
-    protocol: '2.0',
-    resource: '1.0',
-  }
-): ResourceConfig {
-  return {
-    apiVersion: `protocol=${apiVersion.protocol},resource=${apiVersion.resource}`,
-  };
-}
 
 /**
  * Generates an AM Axios API instance specifically for AM configuration endpoints
@@ -1140,6 +1121,7 @@ export function generateOauth2Api({
 /**
  * Generates an IDM Axios API instance
  * @param {object} params Params object
+ * @param {ResourceConfig} params.resource Optional resource config. When it carries an `apiVersion`, that value is sent in the Accept-API-Version header; without it no version header is sent. example: { apiVersion: 'protocol=2.1,resource=1.0' }
  * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either add
  * on extra information or override default properties https://github.com/axios/axios#request-config
  * @param {string[]} params.requiredScopes OAuth2 scope(s) this specific endpoint requires.
@@ -1270,6 +1252,7 @@ export function generateIdmSystemApi({
 /**
  * Generates a LogKeys API Axios instance
  * @param {object} params Params object
+ * @param {ResourceConfig} params.resource Optional resource config. When it carries an `apiVersion`, that value is sent in the Accept-API-Version header; without it no version header is sent. example: { apiVersion: 'protocol=2.1,resource=1.0' }
  * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either add
  * on extra information or override default properties https://github.com/axios/axios#request-config
  * @param {State} params.state State object
@@ -1326,6 +1309,7 @@ export function generateLogKeysApi({
  * or else the end of the window that `X-RateLimit-Reset` names), unless `waitOnRateLimit` is false. An answer that
  * names no wait is rejected as it is.
  * @param {object} params Params object
+ * @param {ResourceConfig} params.resource Optional resource config. When it carries an `apiVersion`, that value is sent in the Accept-API-Version header; without it no version header is sent. example: { apiVersion: 'protocol=2.1,resource=1.0' }
  * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either add
  * on extra information or override default properties https://github.com/axios/axios#request-config
  * @param {boolean} params.waitOnRateLimit Whether to wait for the end of the rate limit window and send a request once

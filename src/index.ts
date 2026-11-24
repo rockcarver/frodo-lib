@@ -100,7 +100,7 @@ export type {
   Writable,
 } from './api/ApiTypes';
 
-export type { ApiVersion, RetryStrategy } from './api/BaseApi';
+export type { RetryStrategy } from './api/BaseApi';
 
 export type { CircleOfTrustSkeleton } from './api/CirclesOfTrustApi';
 
@@ -125,6 +125,8 @@ export type { OAuth2TrustedJwtIssuerSkeleton } from './api/OAuth2TrustedJwtIssue
 export type { PolicySkeleton } from './api/PoliciesApi';
 
 export type { PolicySetSkeleton } from './api/PolicySetApi';
+
+export type { ApiVersion } from './api/RawConfigApi';
 
 export type { ResourceTypeSkeleton } from './api/ResourceTypesApi';
 
