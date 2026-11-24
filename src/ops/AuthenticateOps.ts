@@ -2387,12 +2387,15 @@ async function runAutoRefresh(
   isRetry = false
 ): Promise<void> {
   const { state } = params;
+  // A timer that the state does not hold any more has been cancelled by other
+  // means than clearTimeout (the state was reset): it logs in no more.
   if (
-    !getScheduledTimer ||
-    state.getAutoRefreshTimer() === getScheduledTimer()
+    getScheduledTimer &&
+    state.getAutoRefreshTimer() !== getScheduledTimer()
   ) {
-    state.setAutoRefreshTimer(undefined);
+    return;
   }
+  state.setAutoRefreshTimer(undefined);
   try {
     await getTokens(params);
   } catch (error) {
