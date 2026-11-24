@@ -152,6 +152,7 @@ export type {
   JourneyValidationCode,
   JourneyValidationFinding,
   JourneyValidationInput,
+  JourneyValidationNode,
   JourneyValidationSeverity,
 } from './utils/JourneyValidationUtils';
 

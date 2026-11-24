@@ -41,9 +41,33 @@ export type JourneyValidationCode =
   | 'MISSING_SAML_ENTITY_DEPENDENCY';
 
 /**
+ * A node of a finding, described the way the Journey Editor shows it: by the
+ * name on its card and the title of its node type, not by its ID alone. It is
+ * derived from the journey export that was validated, so it needs no request.
+ */
+export interface JourneyValidationNode {
+  /** Node ID: the same as the ID field of the finding that this object describes. */
+  id: string;
+  /** Name on the node's card in the editor. Absent when the export holds none or a blank one. */
+  displayName?: string;
+  /** Node type ID, for example `ScriptedDecisionNode`, as the tree entry or the Page Node reference declares it (the type ID of the node definition when they declare none). Absent when the export does not say. It comes from another source than `nodeTypeName` and can disagree with it on a `NODE_TYPE_MISMATCH` finding. */
+  nodeType?: string;
+  /** Title of the node type as the editor shows it, for example `Scripted Decision`. Read from the node definition, not from the tree entry or the reference that give `nodeType`, so it can disagree with `nodeType` on a `NODE_TYPE_MISMATCH` finding; absent when the export holds no definition of the node. */
+  nodeTypeName?: string;
+  /** Present and `true` when another node of the same journey (a tree node or a child of a Page Node, counted once per node ID) has the same `displayName` and `nodeType`, so that name and type alone do not tell the two apart. Only a node that has a `displayName` can be ambiguous. */
+  ambiguous?: true;
+}
+
+/**
  * A journey validation result. `severity` indicates whether the finding blocks
  * import; `journeyId` identifies the affected journey, and optional node and
  * outcome fields identify the related graph reference.
+ *
+ * Every node ID of a finding that resolves in the validated journey is also
+ * described by an object (`node`, `targetNode`, `pageNode`): the finding names
+ * the node as the editor shows it. An ID that resolves nowhere (for example the
+ * target of a connection to a node that does not exist) has no object. The
+ * `message` is unchanged and still quotes the IDs.
  */
 export interface JourneyValidationFinding {
   /** Stable identifier for the validation rule that produced this finding. */
@@ -56,8 +80,12 @@ export interface JourneyValidationFinding {
   message: string;
   /** Node associated with the finding, when applicable. */
   nodeId?: string;
+  /** The node `nodeId` as the editor shows it; absent when `nodeId` is absent or resolves to no node of the journey; present with only `id` when the export says nothing else about the node. */
+  node?: JourneyValidationNode;
   /** Referenced node associated with the finding, when applicable. */
   targetNodeId?: string;
+  /** The node `targetNodeId` as the editor shows it; absent when `targetNodeId` is absent or resolves to no node of the journey. */
+  targetNode?: JourneyValidationNode;
   /** Connection or declared outcome associated with the finding, when applicable. */
   outcome?: string;
   /** Kind of dependency missing from the journey's export section. */
@@ -71,11 +99,13 @@ export interface JourneyValidationFinding {
   dependencyId?: string;
   /** Page Node containing the referencing inner node, when applicable. */
   pageNodeId?: string;
+  /** The Page Node `pageNodeId` as the editor shows it; absent when `pageNodeId` is absent or resolves to no node of the journey. */
+  pageNode?: JourneyValidationNode;
 }
 
 interface JourneyNodeDefinition {
   _id?: string;
-  _type?: { _id?: string; version?: string };
+  _type?: { _id?: string; name?: string; version?: string };
   _outcomes?: { id?: string }[];
   nodes?: JourneyInnerNodeReference[];
   script?: string;
@@ -88,11 +118,13 @@ interface JourneyNodeDefinition {
 
 interface JourneyNodeReference {
   connections?: Record<string, string>;
+  displayName?: string;
   nodeType?: string;
 }
 
 interface JourneyInnerNodeReference {
   _id?: string;
+  displayName?: string;
   nodeType?: string;
 }
 
@@ -683,6 +715,124 @@ function checkPageNodes(
   return findings;
 }
 
+function nonBlank(value: string | undefined): string | undefined {
+  return typeof value === 'string' && value.trim() !== '' ? value : undefined;
+}
+
+function ownValue<Value>(
+  record: Record<string, Value> | undefined,
+  key: string | undefined
+): Value | undefined {
+  return record && key !== undefined && hasOwnKey(record, key)
+    ? record[key]
+    : undefined;
+}
+
+function innerNodeDefinition(
+  journey: JourneyValidationInput,
+  innerNodeId: string
+): JourneyNodeDefinition | undefined {
+  return (
+    ownValue(journey.innerNodes, innerNodeId) ??
+    ownValue(journey.innernodes, innerNodeId)
+  );
+}
+
+/**
+ * The children of the Page Nodes by ID. A Page Node reference is the only place
+ * that holds the name of an inner node.
+ */
+function pageNodeChildren(
+  journey: JourneyValidationInput
+): Map<string, JourneyInnerNodeReference> {
+  const children = new Map<string, JourneyInnerNodeReference>();
+  for (const definition of Object.values(journey.nodes || {})) {
+    if (!JOURNEY_CONTAINER_NODE_TYPES.includes(definition._type?._id || '')) {
+      continue;
+    }
+    for (const reference of definition.nodes || []) {
+      if (reference._id && !children.has(reference._id)) {
+        children.set(reference._id, reference);
+      }
+    }
+  }
+  return children;
+}
+
+/**
+ * Add to every finding the nodes it names by ID, described as the editor shows
+ * them. The fields of the finding stay as they are. The index of the journey is
+ * built once, and only when there is a finding.
+ */
+function describeFindingNodes(
+  journey: JourneyValidationInput,
+  findings: JourneyValidationFinding[]
+): JourneyValidationFinding[] {
+  if (findings.length === 0) {
+    return findings;
+  }
+  const treeNodes = journey.tree.nodes || {};
+  const children = pageNodeChildren(journey);
+
+  // the node as it is on the canvas: a tree node, else a child of a Page Node,
+  // else only a definition; the definition adds the node type title
+  const resolve = (id: string): JourneyValidationNode | undefined => {
+    const treeNode = ownValue(treeNodes, id);
+    const child = treeNode ? undefined : children.get(id);
+    const definition = treeNode
+      ? ownValue(journey.nodes, id)
+      : child
+        ? innerNodeDefinition(journey, id)
+        : (ownValue(journey.nodes, id) ?? innerNodeDefinition(journey, id));
+    if (!treeNode && !child && !definition) {
+      return undefined;
+    }
+    const placed = treeNode ?? child;
+    const displayName = nonBlank(placed?.displayName);
+    const nodeType =
+      nonBlank(placed?.nodeType) ?? nonBlank(definition?._type?._id);
+    const nodeTypeName = nonBlank(definition?._type?.name);
+    return {
+      id,
+      ...(displayName ? { displayName } : {}),
+      ...(nodeType ? { nodeType } : {}),
+      ...(nodeTypeName ? { nodeTypeName } : {}),
+    };
+  };
+
+  // nodes with the same name and node type, counted by node ID
+  const tieKey = (node: JourneyValidationNode) =>
+    JSON.stringify([node.displayName, node.nodeType]);
+  const counts = new Map<string, number>();
+  for (const id of new Set([...Object.keys(treeNodes), ...children.keys()])) {
+    const node = resolve(id);
+    if (node?.displayName) {
+      counts.set(tieKey(node), (counts.get(tieKey(node)) ?? 0) + 1);
+    }
+  }
+
+  const describe = (
+    id: string | undefined
+  ): JourneyValidationNode | undefined => {
+    const node = id === undefined ? undefined : resolve(id);
+    return node && node.displayName && (counts.get(tieKey(node)) ?? 0) > 1
+      ? { ...node, ambiguous: true }
+      : node;
+  };
+
+  return findings.map((finding) => {
+    const node = describe(finding.nodeId);
+    const targetNode = describe(finding.targetNodeId);
+    const pageNode = describe(finding.pageNodeId);
+    return {
+      ...finding,
+      ...(node ? { node } : {}),
+      ...(targetNode ? { targetNode } : {}),
+      ...(pageNode ? { pageNode } : {}),
+    };
+  });
+}
+
 /**
  * Validate journey graph references. Structural errors are marked as errors;
  * graph hygiene and outcome inconsistencies are reported as warnings.
@@ -701,7 +851,7 @@ export function validateJourneyReferences(
   ]);
   const innerNodeDefinitions = getInnerNodeDefinitions(journey);
 
-  return [
+  return describeFindingNodes(journey, [
     ...checkNodeDefinitions(journey),
     ...checkEntryAndConnections(journey, graphNodeIds),
     ...findUnreachableNodes(journey, graphNodeIds),
@@ -710,7 +860,7 @@ export function validateJourneyReferences(
     ...checkPageNodeInnerTypes(journey, innerNodeDefinitions),
     ...checkInnerNodeReuse(journey),
     ...checkNodeIdCollisions(journey),
-  ];
+  ]);
 }
 
 function pageThemeId(stage?: string): string | undefined {
@@ -845,7 +995,7 @@ export function validateJourneyDependencies<Node extends JourneyNodeDefinition>(
       }
     }
   }
-  return findings;
+  return describeFindingNodes(journey, findings);
 }
 
 /**
