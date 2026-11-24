@@ -1030,6 +1030,10 @@ describe('MCP capability foundation', () => {
       }
       // the one id form fails closed, the list form names what it could not read
       expect(docs[0].description).toMatch(/Fails closed/);
+      // a caller that holds either form is told what to do: the facade has no union signature
+      expect(docs[0].description).toMatch(
+        /A caller that holds a value that is either one (id|name) or a list calls the form that fits it \(`Array\.isArray` tells which\).*the facade has no single signature for the union\./
+      );
       expect(docs[1].description).toMatch(
         /does not fail when a source cannot be read.*`unreadable`/
       );

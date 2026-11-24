@@ -343,14 +343,19 @@ describe('findReferencesForIds', () => {
     expect(find).toHaveBeenCalledTimes(2);
   });
 
-  test('ids that look like integers are plain keys of the answer, whatever order an object gives its keys', async () => {
+  test('ids that look like integers are plain keys of an object that does not keep the order of the ids', async () => {
     const answer = await findReferencesForIds({
       sources: [row('a', { read: async () => ['10-data', '2-data'] })],
       state,
       ids: ['10', '2', 'b'],
       subject: 'thing',
     });
-    expect(Object.keys(answer.references).sort()).toEqual(['10', '2', 'b']);
+    // the answer is a plain object without a prototype, not a list, and
+    // JavaScript lists keys that look like integers first, ascending: the
+    // order of the ids ('10', '2', 'b') is not what Object.keys gives
+    expect(Array.isArray(answer.references)).toBe(false);
+    expect(Object.getPrototypeOf(answer.references)).toBeNull();
+    expect(Object.keys(answer.references)).toEqual(['2', '10', 'b']);
     expect(answer.references['10']).toEqual([{ source: 'a', id: '10' }]);
     expect(answer.references['2']).toEqual([{ source: 'a', id: '2' }]);
     expect(answer.references['b']).toEqual([]);

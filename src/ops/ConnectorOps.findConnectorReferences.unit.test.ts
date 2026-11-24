@@ -887,8 +887,37 @@ describe('the authentication modules', () => {
         { name: 'm', properties: { someOtherField: 'system/csv/account' } },
       ],
       queryOnResourceX: 'system/csv/account',
+      xqueryOnResource: 'system/csv/account',
+      passthroughAuthX: 'system/csv/account',
+      xpassthroughAuth: 'system/csv/account',
+      query_on_resource: 'system/csv/account',
     };
+    // a key is a field name or it is not: neither a longer key that starts with
+    // one nor one that ends with one is a holder
     expect(await find()).toEqual([]);
+  });
+
+  test('one module that holds the same field in two spellings is two references, one per spelling', async () => {
+    tenant.authentication = {
+      _id: 'authentication',
+      serverAuthContext: {
+        authModules: [
+          {
+            name: 'both',
+            properties: {
+              queryOnResource: 'system/csv/account',
+              queryonresource: 'system/csv/account',
+            },
+          },
+        ],
+      },
+    };
+    const found = await find();
+    expect(found.map(({ id }) => id)).toEqual(['both', 'both']);
+    expect(found.map(({ from }) => from.split('.').pop()).sort()).toEqual([
+      'queryOnResource',
+      'queryonresource',
+    ]);
   });
 
   test.each([
