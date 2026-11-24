@@ -88,7 +88,7 @@ export interface RawImportOptions {
    */
   path: string;
   /**
-   * An optional object containing the properties 'protocol' and 'resource' for the Accept-API-Version header of the import request. It takes precedence over a `_pushApiVersion` in the data. Without either, requests under /am, /environment and /iga send protocol 2.0 and resource 1.0, and requests under the other roots send no version.
+   * An optional object containing the properties 'protocol' and 'resource' for the Accept-API-Version header of the import request. For a path under /am or /environment it takes precedence over a `_pushApiVersion` in the data; a `_pushApiVersion` in the data applies to those two roots only and is removed from the data for every root. Without a version, requests under /am, /environment and /iga send protocol 2.0 and resource 1.0, and requests under the other roots send no version.
    */
   apiVersion?: ApiVersion;
 }
