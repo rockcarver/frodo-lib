@@ -495,6 +495,44 @@ describe('deleteServiceNextDescendents', () => {
     expect(completed).toEqual(['two']);
   });
 
+  test('without a callback the error names the failed descendents in the order they were listed, not in the order they failed', async () => {
+    // listed one, two, three; they fail in the order two, three, one
+    const delays: Record<string, number> = { one: 30, two: 0, three: 10 };
+    const causes: Record<string, Error> = {
+      one: requestError('Failure of one', { status: 500 }),
+      two: requestError('Failure of two', { status: 500 }),
+      three: requestError('Failure of three', { status: 500 }),
+    };
+    const failedInOrder: string[] = [];
+    deleteServiceNextDescendentMock.mockImplementation(
+      async ({ serviceNextDescendentId }: any) => {
+        await new Promise((resolve) =>
+          setTimeout(resolve, delays[serviceNextDescendentId])
+        );
+        failedInOrder.push(serviceNextDescendentId);
+        throw causes[serviceNextDescendentId];
+      }
+    );
+
+    const error = await ServiceOps.deleteServiceNextDescendents({
+      serviceId: 'CorsService',
+      globalConfig: true,
+      state,
+    }).catch((error) => error);
+
+    expect(failedInOrder).toEqual(['two', 'three', 'one']);
+    expect(error).toBeInstanceOf(FrodoError);
+    expect(error.message).toBe(
+      "Error deleting descendents of service 'CorsService': " +
+        "Error deleting descendent 'one' of service 'CorsService'; " +
+        "Error deleting descendent 'two' of service 'CorsService'; " +
+        "Error deleting descendent 'three' of service 'CorsService'"
+    );
+    expect(error.originalErrors.map((it: any) => it.originalErrors[0])).toEqual(
+      [causes.one, causes.two, causes.three]
+    );
+  });
+
   test('a failure to read the descendents throws, with or without a callback, and nothing is deleted or reported', async () => {
     getServiceDescendentsMock.mockRejectedValue(failure);
 

@@ -816,7 +816,9 @@ export async function deleteServiceNextDescendents({
   resultCallback?: ResultCallback<AmServiceSkeleton>;
   state: State;
 }): Promise<AmServiceSkeleton[]> {
-  const errors: FrodoError[] = [];
+  // the failures by position in the list, so that the error names them in the order they were listed, not in the order
+  // in which the deletes happened to fail
+  const failures: FrodoError[] = [];
   let outcomes: { result: AmServiceSkeleton }[];
   debugMessage({
     message: `ServiceOps.deleteServiceNextDescendents: start, globalConfig=${globalConfig}`,
@@ -829,7 +831,7 @@ export async function deleteServiceNextDescendents({
       state,
     });
     outcomes = await Promise.all(
-      descendents.map(async (descendent) => {
+      descendents.map(async (descendent, index) => {
         let result: AmServiceSkeleton;
         try {
           assertUsableInRequestPath(descendent);
@@ -846,7 +848,7 @@ export async function deleteServiceNextDescendents({
             error
           );
           if (resultCallback) resultCallback(failure);
-          else errors.push(failure);
+          else failures[index] = failure;
           return undefined;
         }
         if (resultCallback) resultCallback(undefined, result);
@@ -859,6 +861,7 @@ export async function deleteServiceNextDescendents({
       error
     );
   }
+  const errors = failures.filter((failure) => !!failure);
   if (errors.length > 0) {
     throw new FrodoError(
       `Error deleting descendents of service '${serviceId}': ${errors.map((error) => error.message).join('; ')}`,
