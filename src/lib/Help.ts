@@ -5829,11 +5829,12 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Service",
     methodName: "deleteServiceNextDescendents",
-    signature: "deleteServiceNextDescendents( serviceId: string, globalConfig?: boolean ): Promise<AmServiceSkeleton[]>",
-    description: "Deletes all next descendents of a service and leaves the service itself in place.",
+    signature: "deleteServiceNextDescendents( serviceId: string, globalConfig?: boolean, resultCallback?: ResultCallback<AmServiceSkeleton> ): Promise<AmServiceSkeleton[]>",
+    description: "Deletes all next descendents of a service and leaves the service itself in place. Every descendent is attempted. Without a result callback the function throws one error after all were attempted, which names each descendent that could not be deleted. With a result callback each result is passed to it as it is known (a descendent that could not be deleted as an error that names it), nothing is thrown for such a descendent, and the descendents that were deleted are returned. A failure to read the descendents of the service always throws.",
     params: [
       { name: "serviceId", type: "string", description: "The service that holds the descendents", required: true },
       { name: "globalConfig", type: "boolean", description: "true if the global service is the target of the operation, false otherwise. Default: false.", required: false },
+      { name: "resultCallback", type: "ResultCallback<AmServiceSkeleton>", description: "Optional callback to process individual results", required: false },
     ],
     returns: "{Promise<AmServiceSkeleton[]>} Promise resolving to the deleted descendents",
   },
