@@ -2275,6 +2275,21 @@ function scheduleAutoRefresh(
 }
 
 /**
+ * The text of a thrown value, for a message. Anything can be thrown: a string,
+ * an object without a prototype, an object whose `toString` throws. The
+ * conversion to text must not become a second failure.
+ * @param {unknown} error whatever was thrown
+ * @returns {string} the text of the value, or a fixed phrase when it has none
+ */
+function describeThrown(error: unknown): string {
+  try {
+    return `${error}`;
+  } catch {
+    return 'an error that cannot be shown';
+  }
+}
+
+/**
  * Proactive token refresh callback invoked by `scheduleAutoRefresh`'s timer.
  * Clears the fired timer reference before running `getTokens`, and catches any
  * background refresh failure so a transient token-endpoint error degrades to
@@ -2306,10 +2321,16 @@ async function runAutoRefresh(
     ) {
       state.setAutoRefreshTimer(undefined);
     }
-    debugMessage({
-      message: `AuthenticateOps.scheduleAutoRefresh: token auto-refresh failed: ${error}; the next request will retry`,
-      state,
-    });
+    // Nothing below may throw: this runs in a timer, where a rejected promise
+    // ends the process. A handler of the host that throws is no reason for it.
+    try {
+      debugMessage({
+        message: `AuthenticateOps.scheduleAutoRefresh: token auto-refresh failed: ${describeThrown(error)}; the next request will retry`,
+        state,
+      });
+    } catch {
+      // the failure is already dealt with: the next request tries again
+    }
   }
 }
 
