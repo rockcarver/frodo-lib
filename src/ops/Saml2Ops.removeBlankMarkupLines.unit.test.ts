@@ -73,7 +73,7 @@ describe('removeBlankMarkupLines', () => {
       expect(removeBlankMarkupLines('<a>\n\n    <b/>')).toBe('<a>\n    <b/>');
     });
 
-    test('is the same text with the lines of an export-import-export cycle', () => {
+    test('every number of saves of the server exports the same text', () => {
       // every save of the server adds one line per ds:KeyInfo: the export of
       // each state is the same text
       const exports = [0, 1, 2, 5].map((added) =>
@@ -147,15 +147,137 @@ describe('removeBlankMarkupLines', () => {
       ).toBe('<a>\nfirst paragraph\n\nsecond paragraph\n</a>');
     });
 
-    test('a blank line inside a CDATA section stays', () => {
-      const xml = '<a>\n<![CDATA[first\n\nsecond]]>\n</a>';
+    test.each([
+      [
+        'a CDATA line that ends in > and one that starts with <',
+        '<a><![CDATA[\nfoo>\n\n<bar\n]]></a>',
+      ],
+      ['several of them', '<a><![CDATA[\nfoo>\n\n  \n\t\n  <bar\n]]></a>'],
+      [
+        'a CDATA section and no text around it',
+        '<a>\n<![CDATA[\n>\n\n<\n]]>\n</a>',
+      ],
+      [
+        'a CDATA section that starts on a line of markup',
+        '<a>\n<b/><![CDATA[x>\n\n<y]]>\n</a>',
+      ],
+      [
+        'a CDATA section that holds the start of a comment',
+        '<a><![CDATA[\n<!--\n\n<b>\n]]></a>',
+      ],
+      [
+        'a CDATA section that is never closed',
+        '<a><![CDATA[\nfoo>\n\n<bar>\n\n</a>',
+      ],
+    ])('a blank line inside a CDATA section stays: %s', (_name, xml) => {
       expect(removeBlankMarkupLines(xml)).toBe(xml);
     });
 
-    test('a blank line between two lines of text that look like markup at the edges only stays', () => {
+    test.each([
+      ['a comment', '<a>\n<!--\n<x>\n\n<y>\n-->\n</a>'],
+      [
+        'a comment that starts on a line of markup',
+        '<a>\n<b/><!-- x>\n\n<y -->\n</a>',
+      ],
+      [
+        'a comment that holds the start of a CDATA section',
+        '<a>\n<!-- <![CDATA[ >\n\n<b>\n-->\n</a>',
+      ],
+      ['a comment that is never closed', '<a>\n<!-- >\n\n<b/>\n\n</a>'],
+    ])('a blank line inside %s stays', (_name, xml) => {
+      expect(removeBlankMarkupLines(xml)).toBe(xml);
+    });
+
+    test('the blank lines around a CDATA section and a comment still go', () => {
+      expect(
+        removeBlankMarkupLines(
+          '<a>\n\n<![CDATA[\nx\n\ny\n]]>\n\n<!-- c\n\nd -->\n\n<b/>\n\n</a>'
+        )
+      ).toBe('<a>\n<![CDATA[\nx\n\ny\n]]>\n<!-- c\n\nd -->\n<b/>\n</a>');
+    });
+
+    test('a CDATA section and a comment on one line are followed to their ends', () => {
+      // the comment ends on the line, the CDATA section after it does not
+      expect(
+        removeBlankMarkupLines('<a><!-- c --><![CDATA[x>\n\n<y]]>\n\n<b/></a>')
+      ).toBe('<a><!-- c --><![CDATA[x>\n\n<y]]>\n<b/></a>');
+    });
+
+    test('many CDATA sections and comments on a line are followed in linear time', () => {
+      const tokens = '<!-- a -->'.repeat(100000);
+      const start = performance.now();
+      expect(removeBlankMarkupLines(`<a>${tokens}\n\n<b/>`)).toBe(
+        `<a>${tokens}\n<b/>`
+      );
+      const cdata = '<![CDATA[ a ]]>'.repeat(100000);
+      expect(removeBlankMarkupLines(`<a>${cdata}\n\n<b/>`)).toBe(
+        `<a>${cdata}\n<b/>`
+      );
+      expect(performance.now() - start).toBeLessThan(1000);
+    });
+
+    test.each([
+      ['xml:space="preserve"', '<a xml:space="preserve">\n\n<b/>\n</a>'],
+      ["xml:space='default'", "<a>\n\n<b xml:space='default'/>\n</a>"],
+      ['xml:space in a comment', '<a>\n\n<!-- xml:space -->\n</a>'],
+    ])('a document with %s comes back byte-identical', (_name, xml) => {
+      expect(removeBlankMarkupLines(xml)).toBe(xml);
+    });
+
+    test('a text line that ends in > before a line that starts with < loses the blank lines after it (the one limit of the rule)', () => {
+      expect(removeBlankMarkupLines('<a>x >\n\n</a>')).toBe('<a>x >\n</a>');
+    });
+
+    test('a blank line between two lines of text stays', () => {
       // the line before ends in text, the line after starts with text
       const xml = '<a>x\n\ny</a>';
       expect(removeBlankMarkupLines(xml)).toBe(xml);
+    });
+  });
+
+  describe('white space is space, tab and carriage return', () => {
+    const others = [
+      ['a no-break space', ' '],
+      ['a byte order mark', '﻿'],
+      ['a form feed', '\f'],
+      ['a vertical tab', '\v'],
+      ['an ideographic space', '　'],
+      ['a line separator', ' '],
+    ];
+
+    test.each(others)('a line that holds only %s is not blank', (_name, c) => {
+      const xml = `<a>\n${c}\n<b/>`;
+      expect(removeBlankMarkupLines(xml)).toBe(xml);
+    });
+
+    test.each(others)(
+      'a markup line that ends in %s does not end the markup',
+      (_name, c) => {
+        const xml = `<a>${c}\n\n<b/>`;
+        expect(removeBlankMarkupLines(xml)).toBe(xml);
+      }
+    );
+
+    test.each(others)(
+      'a markup line that starts with %s does not start the markup',
+      (_name, c) => {
+        const xml = `<a>\n\n${c}<b/>`;
+        expect(removeBlankMarkupLines(xml)).toBe(xml);
+      }
+    );
+
+    test.each(others)(
+      'blank lines next to a line that holds only %s stay',
+      (_name, c) => {
+        const xml = `<a>\n\n${c}\n\n<b/>`;
+        expect(removeBlankMarkupLines(xml)).toBe(xml);
+      }
+    );
+
+    test('spaces, tabs and a carriage return around the markup do not matter', () => {
+      expect(removeBlankMarkupLines('<a> \t\r\n\n \t<b/>')).toBe(
+        '<a> \t\r\n \t<b/>'
+      );
     });
   });
 
@@ -203,6 +325,9 @@ describe('removeBlankMarkupLines', () => {
       ['another prefix', '<dsig:Signature>'],
       ['a prefix with a dot and a digit', '<ns1.x2:Signature Id="s">'],
       ['an empty element', '<ds:Signature/>'],
+      ['a prefix with an accent', '<é:Signature>'],
+      ['a prefix in another script', '<日本:Signature Id="s">'],
+      ['a prefix with a hyphen and an underscore', '<ns-1_x:Signature>'],
       ['a tag that continues on the next line', '<ds:Signature\nId="s">'],
     ])('a Signature element with %s is detected', (_name, tag) => {
       const xml = `<a>\n\n  ${tag}\n</a>\n\n<b/>`;
@@ -215,6 +340,8 @@ describe('removeBlankMarkupLines', () => {
       ['a closing tag only', '</ds:Signature>'],
       ['the word as the text of an element', '<b>Signature</b>'],
       ['an attribute value', '<c name="Signature"/>'],
+      ['a longer name', '<ds:Signature2 a="b"/>'],
+      ['a name with a second colon', '<a:b:Signature>'],
     ])('%s is not a Signature element', (_name, text) => {
       expect(removeBlankMarkupLines(`<a>\n\n${text}\n</a>`)).toBe(
         `<a>\n${text}\n</a>`
