@@ -896,6 +896,7 @@ describe('MCP capability foundation', () => {
         /applications of every realm/,
         /schedules/,
         /login configuration/,
+        /the key compared ignoring case; one result per module name and field/,
       ],
       sourceValues: [
         /\(mapping, application, schedule, authentication-module\)/,
@@ -908,6 +909,7 @@ describe('MCP capability foundation', () => {
         /link tables/,
         /running reconciliations/,
         /governance applications/,
+        /an entry of the sync configuration that has no name/,
       ],
     },
     {
@@ -1019,6 +1021,11 @@ describe('MCP capability foundation', () => {
       ]);
       for (const doc of docs) {
         expect(doc.description).toMatch(/never proof/);
+        // the library does not know the caller's plan, and an object does not keep the order of its keys
+        expect(doc.description).not.toMatch(/\bplan\b/);
+        expect(doc.description).not.toMatch(
+          /in the order the (ids|names) were given/
+        );
         expect(doc.description).not.toMatch(/--|FRODO_|\bfrodo\b/);
       }
       // the one id form fails closed, the list form names what it could not read

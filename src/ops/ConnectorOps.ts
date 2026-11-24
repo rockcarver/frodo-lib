@@ -174,13 +174,13 @@ export type Connector = {
    */
   readConnectorEnabledStates(): Promise<Record<string, boolean>>;
   /**
-   * Find what still names a connector definition, in the whole tenant, before it is deleted. Every source is read once, together, and the answer is joined in memory: the mappings (a `source` or `target` that starts with `system/<id>/`, in the `sync` configuration and in the `mapping/` configurations; a mapping that is stored in both is one reference per field, not two), the applications of every realm (`connectorId`), the schedules (`invokeContext.source`) and the login configuration (a `queryOnResource` or `passthroughAuth` value). That is about seven requests on Cloud with two realms (one more for each further realm) however many ids are looked up. The connector does not have to exist, so the same call after a delete lists what now points at nothing. Each reference has a source (`mapping`, `application`, `schedule` or `authentication-module`), a dependency flag (all four are `hard`: the holder breaks at run time without the connector), the id of the holder and `from`, the field that holds the name; an application also has its realm. The answer is ordered by source, then by id and field. Not read, and so not seen: connector names inside script text, route patterns of the access configuration, link tables, running reconciliations, governance applications, other tenants and environments, and clients that call `system/<id>/` over REST. An empty list is never proof that a connector is unused: it means only that none of those sources names it. Fails closed: if any source cannot be read in full, every source is still attempted and one error is thrown that names each source that failed; there is no partial list. A source that is not there (no `sync` configuration, no `authentication` configuration, a realm without applications) is none, not a failure. Read-only; it does not say what the platform does when the connector is deleted.
+   * Find what still names a connector definition, in the whole tenant, before it is deleted. Every source is read once, together, and the answer is joined in memory: the mappings (a `source` or `target` that starts with `system/<id>/`, in the `sync` configuration and in the `mapping/` configurations; a mapping that is stored in both is one reference per field, not two), the applications of every realm (`connectorId`), the schedules (`invokeContext.source`) and the login configuration (a `queryOnResource` or `passthroughAuth` value, the key compared ignoring case). That is about seven requests on Cloud with two realms (one more for each further realm) however many ids are looked up. The connector does not have to exist, so the same call after a delete lists what now points at nothing. Each reference has a source (`mapping`, `application`, `schedule` or `authentication-module`; one reference per module name and field), a dependency flag (all four are `hard`: the holder breaks at run time without the connector), the id of the holder and `from`, the field that holds the name; an application also has its realm. The answer is ordered by source, then by id and field. Not read, and so not seen: connector names inside script text, route patterns of the access configuration, link tables, running reconciliations, governance applications, other tenants and environments, and clients that call `system/<id>/` over REST; also an entry of the `sync` configuration that has no `name` (it cannot be addressed, so it is left out even when its `source` or `target` names the connector). An empty list is never proof that a connector is unused: it means only that none of those sources names it. Fails closed: if any source cannot be read in full, every source is still attempted and one error is thrown that names each source that failed; there is no partial list. A source that is not there (no `sync` configuration, no `authentication` configuration, a realm without applications) is none, not a failure. Read-only; it does not say what the platform does when the connector is deleted. A caller that holds a value that is either one id or a list calls the form that fits it (`Array.isArray` tells which): the two forms answer differently, so there is no single signature for the union.
    * @param {string} connectorId id/name of the connector without the type prefix
    * @returns {Promise<ConnectorReference[]>} a promise that resolves to every reference found
    */
   findConnectorReferences(connectorId: string): Promise<ConnectorReference[]>;
   /**
-   * The same lookup for a list of connectors, with one set of reads whatever the number of ids. This form does not fail when a source cannot be read: it answers with what it found and names the sources it could not read in `unreadable`, so that a plan can list the holders it found and say what it could not check (an empty `unreadable` means every source was read). `references` has one entry per distinct id, in the order the ids were given, and an id that nothing names has an empty list; the object has no prototype, so an id such as `__proto__` is a plain key. An empty list is answered with an empty result and no request. A blank or non-string id in the list throws before anything is read. Everything the single form says about what is read and not seen holds here too, and an empty list for an id is never proof that the connector is unused.
+   * The same lookup for a list of connectors, with one set of reads whatever the number of ids. This form does not fail when a source cannot be read: it answers with what it found and names the sources it could not read in `unreadable`, so that a caller can list the holders it found and say what it could not check (an empty `unreadable` means every source was read). `references` is an object with one entry per distinct id, and an id that nothing names has an empty list; read it by key, because an object does not promise the order of its keys (JavaScript lists keys that look like integers first). It has no prototype, so an id such as `__proto__` is a plain key. An empty list is answered with an empty result and no request. A blank or non-string id in the list throws before anything is read. Everything the single form says about what is read and not seen holds here too, and an empty list for an id is never proof that the connector is unused.
    * @param {string[]} connectorIds ids/names of the connectors without the type prefix
    * @returns {Promise<object>} a promise that resolves to an object with `references` (the references to each id, as the single form returns them) and `unreadable` (the sources that could not be read)
    */
@@ -190,7 +190,7 @@ export type Connector = {
     ReferenceLookupBatch<ConnectorReference['source'], ConnectorReference>
   >;
   /**
-   * Find what still names a connector server, that is an entry of `remoteConnectorClients` of the `provisioner.openicf.connectorinfoprovider` configuration, by its name. Both sources are read once, together, and the answer is joined in memory: the server clusters (`remoteConnectorClientsGroups`: a cluster whose `serversList` has an entry with the name) and the connector definitions (`connectorRef.connectorHostRef` equal to the name). That is two requests however many names are looked up. The server does not have to exist, so the same call after a delete lists what now points at nothing. Each reference has a source and a dependency flag: `server-cluster` is `soft` (the cluster works with its other servers) and `connector` is `hard` (the connector cannot reach its system without the server), the id of the holder (the cluster name, or the connector name without the type prefix) and `from`, the field that holds the name (`serversList`, `connectorRef.connectorHostRef`). One reference per cluster, however often it lists the name. The answer is ordered by source, then by id. A connector that names a server cluster is not reported as a holder of the servers in that cluster, and the entries of `remoteConnectorServers` and `remoteConnectorServersGroups` (the platform as the client) are not read. Not read, and so not seen: the connector server process itself, any OAuth2 client that a platform keeps for a connector server, script text, other tenants and environments. An empty list is never proof that a server is unused: it means only that none of those sources names it. Fails closed: if any source cannot be read in full, every source is still attempted and one error is thrown that names each source that failed; there is no partial list. A source that is not there (no cluster list, no `provisioner.openicf.connectorinfoprovider` configuration) is none, not a failure. Read-only; it does not say what the platform does when the server is deleted.
+   * Find what still names a connector server, that is an entry of `remoteConnectorClients` of the `provisioner.openicf.connectorinfoprovider` configuration, by its name. Both sources are read once, together, and the answer is joined in memory: the server clusters (`remoteConnectorClientsGroups`: a cluster whose `serversList` has an entry with the name) and the connector definitions (`connectorRef.connectorHostRef` equal to the name). That is two requests however many names are looked up. The server does not have to exist, so the same call after a delete lists what now points at nothing. Each reference has a source and a dependency flag: `server-cluster` is `soft` (the cluster works with its other servers) and `connector` is `hard` (the connector cannot reach its system without the server), the id of the holder (the cluster name, or the connector name without the type prefix) and `from`, the field that holds the name (`serversList`, `connectorRef.connectorHostRef`). One reference per cluster, however often it lists the name. The answer is ordered by source, then by id. A connector that names a server cluster is not reported as a holder of the servers in that cluster, and the entries of `remoteConnectorServers` and `remoteConnectorServersGroups` (the platform as the client) are not read. Not read, and so not seen: the connector server process itself, any OAuth2 client that a platform keeps for a connector server, script text, other tenants and environments. An empty list is never proof that a server is unused: it means only that none of those sources names it. Fails closed: if any source cannot be read in full, every source is still attempted and one error is thrown that names each source that failed; there is no partial list. A source that is not there (no cluster list, no `provisioner.openicf.connectorinfoprovider` configuration) is none, not a failure. Read-only; it does not say what the platform does when the server is deleted. A caller that holds a value that is either one name or a list calls the form that fits it (`Array.isArray` tells which): the two forms answer differently, so there is no single signature for the union.
    * @param {string} serverName name of the connector server
    * @returns {Promise<ConnectorServerReference[]>} a promise that resolves to every reference found
    */
@@ -198,7 +198,7 @@ export type Connector = {
     serverName: string
   ): Promise<ConnectorServerReference[]>;
   /**
-   * The same lookup for a list of connector servers, with one set of reads whatever the number of names. This form does not fail when a source cannot be read: it answers with what it found and names the sources it could not read in `unreadable`, so that a plan can list the holders it found and say what it could not check (an empty `unreadable` means every source was read). `references` has one entry per distinct name, in the order the names were given, and a name that nothing names has an empty list; the object has no prototype, so a name such as `__proto__` is a plain key. An empty list is answered with an empty result and no request. A blank or non-string name in the list throws before anything is read. Everything the single form says about what is read and not seen holds here too, and an empty list for a name is never proof that the server is unused.
+   * The same lookup for a list of connector servers, with one set of reads whatever the number of names. This form does not fail when a source cannot be read: it answers with what it found and names the sources it could not read in `unreadable`, so that a caller can list the holders it found and say what it could not check (an empty `unreadable` means every source was read). `references` is an object with one entry per distinct name, and a name that nothing names has an empty list; read it by key, because an object does not promise the order of its keys (JavaScript lists keys that look like integers first). It has no prototype, so a name such as `__proto__` is a plain key. An empty list is answered with an empty result and no request. A blank or non-string name in the list throws before anything is read. Everything the single form says about what is read and not seen holds here too, and an empty list for a name is never proof that the server is unused.
    * @param {string[]} serverNames names of the connector servers
    * @returns {Promise<object>} a promise that resolves to an object with `references` (the references to each name, as the single form returns them) and `unreadable` (the sources that could not be read)
    */
@@ -1193,8 +1193,14 @@ export type ConnectorServerReference = ObjectReference<
 const MAPPING_PREFIX = 'mapping/';
 const SCHEDULE_PREFIX = 'schedule/';
 const CONNECTOR_INFO_PROVIDER = 'provisioner.openicf.connectorinfoprovider';
-/** The fields of the login configuration that name a resource of the system. */
-const AUTHENTICATION_RESOURCE_FIELDS = ['queryOnResource', 'passthroughAuth'];
+/**
+ * The fields of the login configuration that name a resource of the system, in
+ * lower case: a key is compared ignoring its case, because the spelling of
+ * `passthroughAuth` is not fixed by anything this library has read (a holder
+ * that is missed is a false negative, a key that is read too widely only a
+ * reference more).
+ */
+const AUTHENTICATION_RESOURCE_FIELDS = ['queryonresource', 'passthroughauth'];
 /** The id of an authentication holder that has no module name. */
 const AUTHENTICATION_CONFIG_ID = 'authentication';
 
@@ -1244,12 +1250,12 @@ function findMappingReferences(
     from: 'source' | 'target',
     id: string | undefined
   ) => {
-    const key = JSON.stringify([name, from]);
-    const known = folded.get(key);
-    folded.set(key, {
+    // the sync store is noted first, so a note with an id (the mapping
+    // configuration) replaces the legacy id of the same mapping and field
+    folded.set(JSON.stringify([name, from]), {
       name,
       from,
-      id: id ?? known?.id ?? `sync/${name}`,
+      id: id ?? `sync/${name}`,
     });
   };
   const syncMappings =
@@ -1405,17 +1411,20 @@ function findScheduleReferences(
 
 /**
  * The authentication modules that name a connector: the login configuration is
- * walked whole, and every `queryOnResource` or `passthroughAuth` property whose
- * value starts with `system/<id>/` is one reference. The id is the `name` of
- * the nearest enclosing object that has one (the module), else
- * `authentication`; `from` is the dotted path without list indexes.
+ * walked whole, and every `queryOnResource` or `passthroughAuth` property
+ * (the key is compared ignoring case) whose value starts with `system/<id>/`
+ * is one reference. The id is the `name` of the nearest enclosing object that
+ * has one (the module), else `authentication`; `from` is the dotted path
+ * without list indexes. Entries that repeat both the id and the path are one
+ * reference.
  */
 function findAuthenticationReferences(
   authentication: unknown,
   connectorId: string
 ): ConnectorReference[] {
   const prefix = `system/${connectorId}/`;
-  const found: ConnectorReference[] = [];
+  // one reference per module name and field: entries that repeat both are one
+  const found = new Map<string, ConnectorReference>();
   const walk = (value: unknown, path: string[], holder: string) => {
     if (Array.isArray(value)) {
       value.forEach((item) => walk(item, path, holder));
@@ -1426,15 +1435,16 @@ function findAuthenticationReferences(
       typeof value.name === 'string' && value.name !== '' ? value.name : holder;
     for (const [key, child] of Object.entries(value)) {
       if (
-        AUTHENTICATION_RESOURCE_FIELDS.includes(key) &&
+        AUTHENTICATION_RESOURCE_FIELDS.includes(key.toLowerCase()) &&
         typeof child === 'string' &&
         child.startsWith(prefix)
       ) {
-        found.push({
+        const from = [...path, key].join('.');
+        found.set(JSON.stringify([name, from]), {
           source: 'authentication-module',
           dependency: 'hard',
           id: name,
-          from: [...path, key].join('.'),
+          from,
         });
       } else {
         walk(child, [...path, key], name);
@@ -1442,7 +1452,7 @@ function findAuthenticationReferences(
     }
   };
   walk(authentication, [], AUTHENTICATION_CONFIG_ID);
-  return found.sort(byIdThenFrom);
+  return [...found.values()].sort(byIdThenFrom);
 }
 
 /**

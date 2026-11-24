@@ -343,6 +343,19 @@ describe('findReferencesForIds', () => {
     expect(find).toHaveBeenCalledTimes(2);
   });
 
+  test('ids that look like integers are plain keys of the answer, whatever order an object gives its keys', async () => {
+    const answer = await findReferencesForIds({
+      sources: [row('a', { read: async () => ['10-data', '2-data'] })],
+      state,
+      ids: ['10', '2', 'b'],
+      subject: 'thing',
+    });
+    expect(Object.keys(answer.references).sort()).toEqual(['10', '2', 'b']);
+    expect(answer.references['10']).toEqual([{ source: 'a', id: '10' }]);
+    expect(answer.references['2']).toEqual([{ source: 'a', id: '2' }]);
+    expect(answer.references['b']).toEqual([]);
+  });
+
   test('a list names the sources it could not read and still answers with the rest', async () => {
     const answer = await findReferencesForIds({
       sources: [failing('a'), row('b'), failing('c')],

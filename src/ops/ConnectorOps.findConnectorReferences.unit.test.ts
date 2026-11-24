@@ -342,6 +342,21 @@ describe('the mappings', () => {
     ]);
   });
 
+  test('an entry of the sync configuration without a name is not seen, even when it names the connector (the public text says so)', async () => {
+    tenant.sync = syncOf(
+      { source: 'system/csv/account', target: 'managed/alpha_user' },
+      { target: 'system/csv/account' },
+      {
+        name: 'named',
+        source: 'system/csv/account',
+        target: 'managed/alpha_user',
+      }
+    );
+    expect(await find()).toEqual([
+      expect.objectContaining({ id: 'sync/named', from: 'source' }),
+    ]);
+  });
+
   test('malformed entries are skipped and do not fail the lookup', async () => {
     tenant.sync = syncOf(
       null,
@@ -814,6 +829,57 @@ describe('the authentication modules', () => {
     expect(await find()).toEqual([]);
   });
 
+  test.each([
+    ['passThroughAuth', 'passThroughAuth'],
+    ['PASSTHROUGHAUTH', 'PASSTHROUGHAUTH'],
+    ['queryonresource', 'queryonresource'],
+    ['QueryOnResource', 'QueryOnResource'],
+  ])(
+    'the key %s names a resource whatever its case, and `from` keeps the spelling it has',
+    async (key, spelling) => {
+      tenant.authentication = {
+        _id: 'authentication',
+        serverAuthContext: {
+          authModules: [
+            {
+              name: 'PASSTHROUGH',
+              properties: { [key]: 'system/csv/account' },
+            },
+          ],
+        },
+      };
+      expect(await find()).toEqual([
+        {
+          source: 'authentication-module',
+          dependency: 'hard',
+          id: 'PASSTHROUGH',
+          from: `serverAuthContext.authModules.properties.${spelling}`,
+        },
+      ]);
+    }
+  );
+
+  test('modules that repeat the id and the path are one reference, modules that differ in either are not', async () => {
+    tenant.authentication = {
+      _id: 'authentication',
+      serverAuthContext: {
+        authModules: [
+          { name: 'same', properties: { queryOnResource: 'system/csv/a' } },
+          { name: 'same', properties: { queryOnResource: 'system/csv/b' } },
+          { name: 'same', properties: { passthroughAuth: 'system/csv/a' } },
+          { name: 'other', properties: { queryOnResource: 'system/csv/a' } },
+        ],
+      },
+    };
+    expect(
+      (await find()).map(({ id, from }) => [id, from.split('.').pop()])
+    ).toEqual([
+      ['other', 'queryOnResource'],
+      ['same', 'passthroughAuth'],
+      ['same', 'queryOnResource'],
+    ]);
+  });
+
   test('a property with another name is not a reference, whatever it holds', async () => {
     tenant.authentication = {
       _id: 'authentication',
@@ -933,7 +999,7 @@ describe('the answer', () => {
     expect(Object.keys(references)).toEqual(['csv', 'ldap']);
   });
 
-  test('types: one id answers a list of references, a list of ids answers an object', async () => {
+  test('one id answers a list of references, a list of ids answers an object', async () => {
     everyHolder();
     // The annotations and the ts-expect-error line are for the reader and the
     // editor: the test run does not type-check test files (the declared types
