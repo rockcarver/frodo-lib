@@ -112,9 +112,10 @@ describe('the timer that refreshes the credentials', () => {
     expect(timers[1].args[0]).toBe(false);
   });
 
-  test('5: a failed timer refresh does not throw an unhandled rejection and clears the armed timer state', async () => {
+  test('5: a failed timer refresh does not throw an unhandled rejection and leaves no fired timer in the state', async () => {
     const frodo = await loginRecordingTimers(30 * 60 * 1000);
-    clearTimeout(frodo.state.getAutoRefreshTimer());
+    const firedTimer = frodo.state.getAutoRefreshTimer();
+    clearTimeout(firedTimer);
     const { callback, args } = timers[0];
 
     // simulate a transient token-endpoint failure when the proactive refresh fires
@@ -122,7 +123,11 @@ describe('the timer that refreshes the credentials', () => {
     await expect(
       (callback as (...parameters: unknown[]) => Promise<void>)(...args)
     ).resolves.toBeUndefined();
-    expect(frodo.state.getAutoRefreshTimer()).toBeUndefined();
+    // the fired timer is gone; the one retry of the failed refresh is armed in its place
+    const retryTimer = frodo.state.getAutoRefreshTimer();
+    expect(retryTimer).toBeDefined();
+    expect(retryTimer).not.toBe(firedTimer);
+    clearTimeout(retryTimer);
   });
 
   test('6: a successful timer refresh re-arms a fresh timer', async () => {
