@@ -472,6 +472,75 @@ async function exportDependencies({
 }
 
 /**
+ * A start tag or an empty-element tag of a `Signature` element, with or
+ * without a namespace prefix.
+ */
+const SIGNATURE_ELEMENT = /<(?:[A-Za-z0-9_.-]+:)?Signature[\s>/]/;
+
+/**
+ * A line that holds nothing but spaces and tabs (and the carriage return of a
+ * `\r\n` line ending), or nothing at all.
+ * @param {string} line one line of text, without its `\n`
+ * @returns {boolean} true if the line is blank
+ */
+function isBlankLine(line: string): boolean {
+  for (let i = 0; i < line.length; i++) {
+    const c = line.charCodeAt(i);
+    // space, tab, carriage return
+    if (c !== 0x20 && c !== 0x09 && c !== 0x0d) return false;
+  }
+  return true;
+}
+
+/**
+ * Remove the whitespace-only lines that sit between two lines of markup.
+ *
+ * The server puts such lines into the metadata of a remote provider (inside
+ * `ds:KeyInfo` and `EncryptionMethod`) and adds one more every time the
+ * provider is saved. A line is removed when it is blank (empty, or only
+ * spaces and tabs), the nearest line before it that is not blank ends with
+ * `>` and the nearest line after it that is not blank starts with `<` (leading
+ * white space ignored). A run of blank lines between two such lines is
+ * removed as a whole.
+ *
+ * Everything else stays as it is: blank lines inside text, blank lines at the
+ * start or the end of the document, the line endings and the text of every
+ * element, certificates included. A document that contains a `Signature`
+ * element is returned unchanged, because white space inside signed XML is part
+ * of what the signature covers.
+ * @param {string} xml the metadata XML as the server returned it
+ * @returns {string} the metadata XML without the blank lines between markup lines
+ */
+export function removeBlankMarkupLines(xml: string): string {
+  if (typeof xml !== 'string' || xml.indexOf('>') === -1) return xml;
+  if (SIGNATURE_ELEMENT.test(xml)) return xml;
+  const lines = xml.split('\n');
+  const kept: string[] = [];
+  // does the nearest line before that is not blank end with '>'? (false
+  // while there is none)
+  let previousEndsMarkup = false;
+  let i = 0;
+  while (i < lines.length) {
+    if (!isBlankLine(lines[i])) {
+      previousEndsMarkup = lines[i].trimEnd().endsWith('>');
+      kept.push(lines[i]);
+      i++;
+      continue;
+    }
+    // the whole run of blank lines [i, end)
+    let end = i + 1;
+    while (end < lines.length && isBlankLine(lines[end])) end++;
+    const nextStartsMarkup =
+      end < lines.length && lines[end].trimStart().startsWith('<');
+    if (!(previousEndsMarkup && nextStartsMarkup)) {
+      for (let k = i; k < end; k++) kept.push(lines[k]);
+    }
+    i = end;
+  }
+  return kept.join('\n');
+}
+
+/**
  * Include metadata in the export file
  * @param {object} providerData Object representing a SAML entity provider
  * @param {object} fileData File data object to add metadata to
@@ -497,8 +566,10 @@ async function exportMetadata({
       })}`
     );
   }
+  // the server puts whitespace-only lines between markup lines of a remote
+  // provider and adds one with every save; the export does not carry them
   fileData.saml.metadata[providerData._id] = convertBase64UrlTextToArray(
-    encodeBase64Url(metaDataResponse)
+    encodeBase64Url(removeBlankMarkupLines(metaDataResponse))
   );
 }
 
