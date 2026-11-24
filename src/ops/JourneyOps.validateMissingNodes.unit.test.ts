@@ -345,3 +345,186 @@ describe('exporting a journey is as strict as before', () => {
     ).rejects.toThrow();
   });
 });
+
+/**
+ * A finding names the nodes it holds an ID for as the Journey Editor shows
+ * them (the name on the card, the title of the type): from what the validation
+ * already has, the tree of the journey and the node definitions, without a
+ * request of its own.
+ */
+describe('validateJourneys names the nodes of a finding', () => {
+  const namedTree = {
+    nodes: {
+      page: {
+        displayName: 'Login Page',
+        nodeType: 'PageNode',
+        version: '1.0',
+        connections: { outcome: 'decision' },
+      },
+      decision: {
+        displayName: 'Check Age',
+        nodeType: 'DecisionNode',
+        version: '1.0',
+        connections: { done: SUCCESS_NODE },
+      },
+    },
+  };
+  const titled = (node: any, name: string) => ({
+    ...node,
+    _type: { ...node._type, name },
+  });
+
+  test('10: online, a missing inner node and an unreachable node are named, and no request is added', async () => {
+    journey(
+      {
+        page: titled(page, 'Page Node'),
+        decision: titled(decision, 'Decision'),
+        lockout: titled(
+          {
+            _id: 'lockout',
+            _type: { _id: 'DecisionNode', version: '1.0' },
+            _outcomes: [],
+          },
+          'Decision'
+        ),
+        inner: notFound('MessageNode node inner'),
+      },
+      {
+        nodes: {
+          ...namedTree.nodes,
+          lockout: {
+            displayName: 'Account Lockout',
+            nodeType: 'DecisionNode',
+            version: '1.0',
+            connections: {},
+          },
+        },
+      }
+    );
+
+    const findings = await JourneyOps.validateJourneys({
+      journeyIds: ['BrokenJourney'],
+      state: state(),
+    });
+
+    expect(findings).toHaveLength(2);
+    expect(findings).toContainEqual(
+      expect.objectContaining({
+        code: 'MISSING_INNER_NODE',
+        node: {
+          id: 'page',
+          displayName: 'Login Page',
+          nodeType: 'PageNode',
+          nodeTypeName: 'Page Node',
+        },
+        targetNode: {
+          id: 'inner',
+          displayName: 'Message',
+          nodeType: 'MessageNode',
+        },
+      })
+    );
+    expect(findings).toContainEqual(
+      expect.objectContaining({
+        code: 'UNREACHABLE_NODE',
+        node: {
+          id: 'lockout',
+          displayName: 'Account Lockout',
+          nodeType: 'DecisionNode',
+          nodeTypeName: 'Decision',
+        },
+      })
+    );
+    // the names come from what the validation has read anyway
+    expect(getTreeMock).toHaveBeenCalledTimes(1);
+    expect(readNodeMock).toHaveBeenCalledTimes(4);
+    expect(
+      readNodeMock.mock.calls.map(([call]: any[]) => call.nodeId).sort()
+    ).toEqual(['decision', 'inner', 'lockout', 'page']);
+  });
+
+  test('11: a node of the tree that the tenant does not have is named by the tree, without a type title', async () => {
+    journey({ page: notFound('PageNode node page'), decision }, namedTree);
+
+    const findings = await JourneyOps.validateJourneys({
+      journeyIds: ['BrokenJourney'],
+      state: state(),
+    });
+
+    const missing = findings.find(
+      (finding) => finding.code === 'MISSING_NODE_DEFINITION'
+    );
+    expect(missing.node).toStrictEqual({
+      id: 'page',
+      displayName: 'Login Page',
+      nodeType: 'PageNode',
+    });
+  });
+
+  test('12: offline, the nodes of the references and of a dependency are named, and nothing is read', async () => {
+    const exportOfLogin = {
+      tree: {
+        _id: 'Login',
+        entryNodeId: 'page',
+        nodes: {
+          page: { ...namedTree.nodes.page, connections: { outcome: 'age' } },
+          age: {
+            displayName: 'Check Age',
+            nodeType: 'ScriptedDecisionNode',
+            connections: { true: SUCCESS_NODE },
+          },
+        },
+        staticNodes: {},
+      },
+      nodes: {
+        page: titled(page, 'Page Node'),
+        age: {
+          _id: 'age',
+          _type: {
+            _id: 'ScriptedDecisionNode',
+            name: 'Scripted Decision',
+            version: '1.0',
+          },
+          _outcomes: [{ id: 'true' }],
+          script: 'gone',
+        },
+      },
+      innerNodes: {},
+      scripts: { other: {} },
+    };
+
+    const findings = await JourneyOps.validateJourneys({
+      journeyIds: ['Login'],
+      journeysExport: { trees: { Login: exportOfLogin } } as any,
+      state: state(),
+    });
+
+    expect(findings).toContainEqual(
+      expect.objectContaining({
+        code: 'MISSING_INNER_NODE',
+        node: expect.objectContaining({
+          id: 'page',
+          displayName: 'Login Page',
+        }),
+        targetNode: {
+          id: 'inner',
+          displayName: 'Message',
+          nodeType: 'MessageNode',
+        },
+      })
+    );
+    expect(findings).toContainEqual(
+      expect.objectContaining({
+        code: 'MISSING_SCRIPT_DEPENDENCY',
+        node: {
+          id: 'age',
+          displayName: 'Check Age',
+          nodeType: 'ScriptedDecisionNode',
+          nodeTypeName: 'Scripted Decision',
+        },
+      })
+    );
+    expect(getTreeMock).not.toHaveBeenCalled();
+    expect(readNodeMock).not.toHaveBeenCalled();
+  });
+});
