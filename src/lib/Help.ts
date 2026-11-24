@@ -3681,6 +3681,26 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{boolean} true if the mapping is a legacy mapping, false otherwise",
   },
   {
+    typeName: "Mapping",
+    methodName: "findMappingReferences",
+    signature: "findMappingReferences(mappingName: string): Promise<MappingReference[]>",
+    description: "Find what still names a mapping, in the whole tenant, before it is deleted. The mapping is given by its name, without the `sync/` or `mapping/` prefix. Every source is read once, together, and the answer is joined in memory: the other mappings (a `links` that equals the name, which reuses the links of this mapping, or a `syncAfter` that lists it, in the `sync` configuration and in the `mapping/` configurations; a mapping is never a holder of itself, and a mapping that is stored in both places is one reference per field, not two), the schedules (`invokeContext.mapping` equal to the name) and the applications of every realm (`mappingNames`). Applications exist on Cloud and ForgeOps only: they are read there, in every realm and without switching the active realm, and a classic deployment is sent no request for them. That is about six requests on Cloud with two realms (one more for each further realm; three on a classic deployment) however many names are looked up. The mapping does not have to exist, so the same call after a delete lists what now points at nothing. Each reference has a source (`mapping`, `schedule` or `application`), a dependency flag, the id of the holder (`sync/<name>` or `mapping/<name>` for a mapping, `schedule/<name>`, the id of the application with its `realm`) and `from`, the field that holds the name (`links`, `syncAfter`, `invokeContext.mapping`, `mappingNames`); a mapping and an application also have their name. The flag is `hard` for a schedule, an application and a `links` (the holder needs the mapping to do its work) and `soft` for a `syncAfter` (it only puts the holders in order). It says what the holder needs, not what the platform does when the mapping is deleted, which this lookup does not say. The answer is ordered by source, then by id and field. Not read, and so not seen: scripts and endpoints that name a mapping, the link tables, running or past reconciliations, the order of the entries of the `sync` configuration (it is not read as a `syncAfter`: only an entry that lists the name in a `syncAfter` of its own is a holder), other tenants and environments; also an entry of the `sync` configuration that has no `name` (it cannot be addressed, so it is left out even when it names the mapping). An empty list is never proof that a mapping is unused: it means only that none of those sources names it. Fails closed: if any source cannot be read in full, every source is still attempted and one error is thrown that names each source that failed; there is no partial list. A source that is not there (no `sync` configuration, a realm without applications) is none, not a failure. Read-only. A caller that holds a value that is either one name or a list calls the form that fits it (`Array.isArray` tells which): the two forms answer differently, so the facade has no single signature for the union.",
+    params: [
+      { name: "mappingName", type: "string", description: "name of the mapping, without the type prefix", required: true },
+    ],
+    returns: "{Promise<MappingReference[]>} a promise that resolves to every reference found",
+  },
+  {
+    typeName: "Mapping",
+    methodName: "findMappingReferences",
+    signature: "findMappingReferences( mappingNames: string[] ): Promise< ReferenceLookupResult<MappingReference['source'], MappingReference> >",
+    description: "The same lookup for a list of mappings, with one set of reads whatever the number of names. This form does not fail when a source cannot be read: it answers with what it found and names the sources it could not read in `unreadable`, so that a caller can list the holders it found and say what it could not check (an empty `unreadable` means every source was read). `references` is an object with one entry per distinct name, and a name that nothing names has an empty list; read it by key, because an object does not promise the order of its keys (JavaScript lists keys that look like integers first). It has no prototype, so a name such as `__proto__` is a plain key. An empty list is answered with an empty result and no request. A blank or non-string name in the list throws before anything is read. A mapping that is looked up is not reported as a holder of itself, and a holder that is another mapping of the same list is reported like any other. Everything the single form says about what is read and not seen holds here too, and an empty list for a name is never proof that the mapping is unused.",
+    params: [
+      { name: "mappingNames", type: "string[]", description: "names of the mappings, without the type prefix", required: true },
+    ],
+    returns: "{Promise<object>} a promise that resolves to an object with `references` (the references to each name, as the single form returns them) and `unreadable` (the sources that could not be read)",
+  },
+  {
     typeName: "Node",
     methodName: "readNodeTypes",
     signature: "readNodeTypes(): Promise<any>",

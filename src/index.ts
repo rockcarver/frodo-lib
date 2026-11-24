@@ -269,6 +269,7 @@ export type {
   MappingExportInterface,
   MappingExportOptions,
   MappingImportOptions,
+  MappingReference,
   MappingSkeleton,
   SyncSkeleton,
 } from './ops/MappingOps';

@@ -1,5 +1,6 @@
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import { putConfigEntity } from '../api/IdmConfigApi';
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import {
   createProgressIndicator,
@@ -8,13 +9,27 @@ import {
   updateProgressIndicator,
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
-import { FrodoError } from './FrodoError';
+import { FrodoError, isNotFoundError } from './FrodoError';
 import {
   deleteConfigEntity,
   readConfigEntitiesByType,
   readConfigEntity,
 } from './IdmConfigOps';
-import { ExportMetaData, ResultCallback } from './OpsTypes';
+import {
+  readApplicationsOfAllRealms,
+  type ApplicationRecords,
+} from './internal/ApplicationRecords';
+import {
+  defineReferenceSource,
+  findReferencesForIds,
+  type ReferenceLookupResult,
+  type ReferenceSource,
+} from './internal/ReferenceLookup';
+import {
+  ExportMetaData,
+  ResultCallback,
+  type ObjectReference,
+} from './OpsTypes';
 
 export type Mapping = {
   /**
@@ -148,6 +163,22 @@ export type Mapping = {
    * @throws {FrodoError} if the id is invalid
    */
   isLegacyMapping(mappingId: string): boolean;
+  /**
+   * Find what still names a mapping, in the whole tenant, before it is deleted. The mapping is given by its name, without the `sync/` or `mapping/` prefix. Every source is read once, together, and the answer is joined in memory: the other mappings (a `links` that equals the name, which reuses the links of this mapping, or a `syncAfter` that lists it, in the `sync` configuration and in the `mapping/` configurations; a mapping is never a holder of itself, and a mapping that is stored in both places is one reference per field, not two), the schedules (`invokeContext.mapping` equal to the name) and the applications of every realm (`mappingNames`). Applications exist on Cloud and ForgeOps only: they are read there, in every realm and without switching the active realm, and a classic deployment is sent no request for them. That is about six requests on Cloud with two realms (one more for each further realm; three on a classic deployment) however many names are looked up. The mapping does not have to exist, so the same call after a delete lists what now points at nothing. Each reference has a source (`mapping`, `schedule` or `application`), a dependency flag, the id of the holder (`sync/<name>` or `mapping/<name>` for a mapping, `schedule/<name>`, the id of the application with its `realm`) and `from`, the field that holds the name (`links`, `syncAfter`, `invokeContext.mapping`, `mappingNames`); a mapping and an application also have their name. The flag is `hard` for a schedule, an application and a `links` (the holder needs the mapping to do its work) and `soft` for a `syncAfter` (it only puts the holders in order). It says what the holder needs, not what the platform does when the mapping is deleted, which this lookup does not say. The answer is ordered by source, then by id and field. Not read, and so not seen: scripts and endpoints that name a mapping, the link tables, running or past reconciliations, the order of the entries of the `sync` configuration (it is not read as a `syncAfter`: only an entry that lists the name in a `syncAfter` of its own is a holder), other tenants and environments; also an entry of the `sync` configuration that has no `name` (it cannot be addressed, so it is left out even when it names the mapping). An empty list is never proof that a mapping is unused: it means only that none of those sources names it. Fails closed: if any source cannot be read in full, every source is still attempted and one error is thrown that names each source that failed; there is no partial list. A source that is not there (no `sync` configuration, a realm without applications) is none, not a failure. Read-only. A caller that holds a value that is either one name or a list calls the form that fits it (`Array.isArray` tells which): the two forms answer differently, so the facade has no single signature for the union.
+   * @param {string} mappingName name of the mapping, without the type prefix
+   * @returns {Promise<MappingReference[]>} a promise that resolves to every reference found
+   */
+  findMappingReferences(mappingName: string): Promise<MappingReference[]>;
+  /**
+   * The same lookup for a list of mappings, with one set of reads whatever the number of names. This form does not fail when a source cannot be read: it answers with what it found and names the sources it could not read in `unreadable`, so that a caller can list the holders it found and say what it could not check (an empty `unreadable` means every source was read). `references` is an object with one entry per distinct name, and a name that nothing names has an empty list; read it by key, because an object does not promise the order of its keys (JavaScript lists keys that look like integers first). It has no prototype, so a name such as `__proto__` is a plain key. An empty list is answered with an empty result and no request. A blank or non-string name in the list throws before anything is read. A mapping that is looked up is not reported as a holder of itself, and a holder that is another mapping of the same list is reported like any other. Everything the single form says about what is read and not seen holds here too, and an empty list for a name is never proof that the mapping is unused.
+   * @param {string[]} mappingNames names of the mappings, without the type prefix
+   * @returns {Promise<object>} a promise that resolves to an object with `references` (the references to each name, as the single form returns them) and `unreadable` (the sources that could not be read)
+   */
+  findMappingReferences(
+    mappingNames: string[]
+  ): Promise<
+    ReferenceLookupResult<MappingReference['source'], MappingReference>
+  >;
 };
 
 export default (state: State): Mapping => {
@@ -237,8 +268,28 @@ export default (state: State): Mapping => {
       return importMappings({ importData, options, resultCallback, state });
     },
     isLegacyMapping,
+    // one name answers a list, a list of names answers an object: the
+    // overloads of the type say which, this delegates both to the one function
+    findMappingReferences: (async (mappingNames: string | string[]) =>
+      findMappingReferences({
+        mappingNames,
+        state,
+      })) as Mapping['findMappingReferences'],
   };
 };
+
+/**
+ * One place that names a mapping, found by {@link findMappingReferences}: a
+ * schedule that reconciles it (`hard`), an application that owns it (`hard`),
+ * or another mapping that reuses its links (`links`, `hard`) or runs after it
+ * (`syncAfter`, `soft`). `id` is the id of the holder (`sync/<name>` or
+ * `mapping/<name>` for a mapping, `schedule/<name>`, the id of the application
+ * with its `realm`), `from` is the field that holds the name. An empty answer
+ * is never proof that a mapping is unused, see {@link findMappingReferences}.
+ */
+export type MappingReference = ObjectReference<
+  'mapping' | 'schedule' | 'application'
+>;
 
 export type MappingPolicy = {
   action: 'CREATE' | 'DELETE' | 'EXCEPTION' | 'IGNORE' | 'UPDATE';
@@ -1291,5 +1342,277 @@ export function sortMappings(mappings: MappingSkeleton[]) {
       return -1;
     }
     return 0;
+  });
+}
+
+const MAPPING_PREFIX = 'mapping/';
+const SCHEDULE_PREFIX = 'schedule/';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+const byIdThenFrom = (a: MappingReference, b: MappingReference) =>
+  a.id.localeCompare(b.id) || a.from.localeCompare(b.from);
+
+/**
+ * Reads the `sync` configuration. One that is not there (no legacy
+ * configuration) is none (null), any other failure is thrown.
+ */
+async function readSyncConfigOrNone(state: State): Promise<unknown> {
+  try {
+    return await readConfigEntity({ entityId: 'sync', state });
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+/** What the mapping source reads: the `sync` configuration and the `mapping/` configurations. */
+type MappingStores = { sync: unknown; mappings: unknown };
+
+/** The two fields of a mapping that name another mapping, and how much the holder depends on it. */
+const MAPPING_HOLDER_FIELDS = [
+  { from: 'links', dependency: 'hard' },
+  { from: 'syncAfter', dependency: 'soft' },
+] as const;
+
+/** Whether a mapping entry names `mappingName` in the field: `links` is the name, `syncAfter` lists it. */
+function namesMapping(
+  entry: Record<string, unknown>,
+  from: (typeof MAPPING_HOLDER_FIELDS)[number]['from'],
+  mappingName: string
+): boolean {
+  const value = entry[from];
+  return from === 'links'
+    ? value === mappingName
+    : Array.isArray(value) && value.includes(mappingName);
+}
+
+/**
+ * The mappings that name a mapping, in either store. A mapping is never a
+ * holder of itself (by name, so a mapping that is stored in both places is
+ * neither). A holder that is stored in both places is one reference per field:
+ * the id is `mapping/<name>` when that store holds a match for the field, else
+ * `sync/<name>`. A `sync` entry without a name cannot be addressed and is left
+ * out.
+ */
+function findMappingHolders(
+  stores: MappingStores,
+  mappingName: string
+): MappingReference[] {
+  const folded = new Map<
+    string,
+    {
+      name: string;
+      from: (typeof MAPPING_HOLDER_FIELDS)[number]['from'];
+      dependency: (typeof MAPPING_HOLDER_FIELDS)[number]['dependency'];
+      id: string;
+    }
+  >();
+  const note = (
+    entry: Record<string, unknown>,
+    name: string,
+    id: string | undefined
+  ) => {
+    if (name === mappingName) return;
+    for (const { from, dependency } of MAPPING_HOLDER_FIELDS) {
+      if (namesMapping(entry, from, mappingName)) {
+        // the sync store is noted first, so a note with an id (the mapping
+        // configuration) replaces the legacy id of the same mapping and field
+        folded.set(JSON.stringify([name, from]), {
+          name,
+          from,
+          dependency,
+          id: id ?? `sync/${name}`,
+        });
+      }
+    }
+  };
+  const syncMappings =
+    isRecord(stores.sync) && Array.isArray(stores.sync.mappings)
+      ? stores.sync.mappings
+      : [];
+  for (const entry of syncMappings) {
+    if (!isRecord(entry) || typeof entry.name !== 'string') continue;
+    note(entry, entry.name, undefined);
+  }
+  for (const entry of Array.isArray(stores.mappings) ? stores.mappings : []) {
+    if (
+      !isRecord(entry) ||
+      typeof entry._id !== 'string' ||
+      !entry._id.startsWith(MAPPING_PREFIX)
+    )
+      continue;
+    note(
+      entry,
+      typeof entry.name === 'string'
+        ? entry.name
+        : entry._id.substring(MAPPING_PREFIX.length),
+      entry._id
+    );
+  }
+  return [...folded.values()]
+    .map(({ name, from, dependency, id }) => ({
+      source: 'mapping' as const,
+      dependency,
+      id,
+      name,
+      from,
+    }))
+    .sort(byIdThenFrom);
+}
+
+/** The schedules that name a mapping: an `invokeContext.mapping` equal to the name. */
+function findScheduleHolders(
+  schedules: unknown,
+  mappingName: string
+): MappingReference[] {
+  return (Array.isArray(schedules) ? schedules : [])
+    .flatMap((schedule) => {
+      if (
+        !isRecord(schedule) ||
+        typeof schedule._id !== 'string' ||
+        !schedule._id.startsWith(SCHEDULE_PREFIX) ||
+        !isRecord(schedule.invokeContext) ||
+        schedule.invokeContext.mapping !== mappingName
+      ) {
+        return [];
+      }
+      return [
+        {
+          source: 'schedule' as const,
+          dependency: 'hard' as const,
+          id: schedule._id,
+          from: 'invokeContext.mapping',
+        },
+      ];
+    })
+    .sort(byIdThenFrom);
+}
+
+/** The applications that name a mapping: a `mappingNames` that lists the name. */
+function findApplicationHolders(
+  records: ApplicationRecords,
+  mappingName: string
+): MappingReference[] {
+  return records
+    .flatMap(({ realm, application }) => {
+      if (
+        !isRecord(application) ||
+        typeof application._id !== 'string' ||
+        !Array.isArray(application.mappingNames) ||
+        !application.mappingNames.includes(mappingName)
+      ) {
+        return [];
+      }
+      return [
+        {
+          source: 'application' as const,
+          dependency: 'hard' as const,
+          id: application._id,
+          ...(typeof application.name === 'string' && {
+            name: application.name,
+          }),
+          ...(realm !== undefined && { realm }),
+          from: 'mappingNames',
+        },
+      ];
+    })
+    .sort(byIdThenFrom);
+}
+
+/**
+ * Every source that findMappingReferences reads, in the order of the result.
+ * Adding a holder is a row here.
+ */
+const mappingReferenceSources: readonly ReferenceSource<
+  MappingReference['source'],
+  MappingReference
+>[] = [
+  defineReferenceSource<
+    MappingReference['source'],
+    MappingReference,
+    MappingStores
+  >({
+    source: 'mapping',
+    label: 'mappings',
+    read: async (state) => {
+      const [sync, mappings] = await Promise.all([
+        readSyncConfigOrNone(state),
+        readConfigEntitiesByType({ type: 'mapping', state }),
+      ]);
+      return { sync, mappings };
+    },
+    find: findMappingHolders,
+  }),
+  defineReferenceSource<MappingReference['source'], MappingReference, unknown>({
+    source: 'schedule',
+    label: 'schedules',
+    read: async (state) =>
+      readConfigEntitiesByType({ type: 'schedule', state }),
+    find: findScheduleHolders,
+  }),
+  defineReferenceSource<
+    MappingReference['source'],
+    MappingReference,
+    ApplicationRecords
+  >({
+    source: 'application',
+    label: 'applications',
+    // applications are an object of Cloud and ForgeOps: a classic deployment
+    // is sent no request for them
+    appliesTo: (state) =>
+      state.getDeploymentType() !== Constants.CLASSIC_DEPLOYMENT_TYPE_KEY,
+    read: async (state) =>
+      readApplicationsOfAllRealms({ fields: ['name', 'mappingNames'], state }),
+    find: findApplicationHolders,
+  }),
+];
+
+/**
+ * Find what still names a mapping, in the whole tenant. See the facade method
+ * for the sources, for what is not seen and for what an empty answer does and
+ * does not mean.
+ *
+ * For one name the lookup fails closed: if any source cannot be read, every
+ * source is still attempted, then one error is thrown that nests one error per
+ * source that failed. For a list of names the same reads answer every name, and
+ * a source that cannot be read is named in `unreadable` instead of failing the
+ * call.
+ * @param {string | string[]} mappingNames name of the mapping without the type prefix, or a list of them
+ * @returns {Promise<MappingReference[] | object>} a promise that resolves to every reference found for one name, or to `{ references, unreadable }` for a list
+ */
+export function findMappingReferences(params: {
+  mappingNames: string;
+  state: State;
+}): Promise<MappingReference[]>;
+export function findMappingReferences(params: {
+  mappingNames: string[];
+  state: State;
+}): Promise<
+  ReferenceLookupResult<MappingReference['source'], MappingReference>
+>;
+export function findMappingReferences(params: {
+  mappingNames: string | string[];
+  state: State;
+}): Promise<
+  | MappingReference[]
+  | ReferenceLookupResult<MappingReference['source'], MappingReference>
+>;
+export async function findMappingReferences({
+  mappingNames,
+  state,
+}: {
+  mappingNames: string | string[];
+  state: State;
+}) {
+  return findReferencesForIds({
+    sources: mappingReferenceSources,
+    state,
+    ids: mappingNames,
+    subject: 'mapping',
   });
 }

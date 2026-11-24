@@ -3542,6 +3542,30 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     excluded: true,
   },
   'idm.mapping.isLegacyMapping': { mutating: false, riskClass: 'low' },
+  'idm.mapping.findMappingReferences': {
+    operationType: 'search',
+    objectType: 'MappingReference',
+    argumentMode: 'positional',
+    parameterOverrides: {
+      mappingName: {
+        type: 'string | string[]',
+        description:
+          'Name of the mapping without the type prefix (managedAlpha_user_systemZionDirectory for sync/managedAlpha_user_systemZionDirectory), or a list of such names to look up many mappings with one set of reads. The mapping does not have to exist, so the same call after a delete lists what now points at nothing. One name answers an array of references; a list answers an object with references and unreadable.',
+        examples: [
+          'managedAlpha_user_systemZionDirectory',
+          [
+            'managedAlpha_user_systemZionDirectory',
+            'systemZionDirectory_managedAlpha_user',
+          ],
+        ],
+      },
+    },
+    supportsRealm: false,
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Answers "what still names this mapping?" before a delete: it reads, once and together, the other mappings (the sync configuration and the mapping configurations: a links that equals the name, or a syncAfter that lists it; a mapping is never a holder of itself, and a mapping that is stored in both places is one result per field, with the id mapping/<name> where the mapping configuration holds the match and sync/<name> otherwise), the schedules (invokeContext.mapping) and, on Cloud and ForgeOps, the applications of every realm (mappingNames; the active realm is not switched, the Cloud root realm has none, and a classic deployment is sent no request for them), and joins them in memory: about six requests on Cloud with two realms, one more for each further realm, however many mappings are asked for. Each result has a source (mapping, schedule, application), a dependency flag (hard for a schedule, an application and a links: the holder needs the mapping to do its work; soft for a syncAfter, which only puts the holders in order), the id of the holder, and from, the field that holds the name (links, syncAfter, invokeContext.mapping, mappingNames); a mapping and an application also have their name, and an application its realm. The flag says what the holder needs, not what the platform does when the mapping is deleted, which this tool does not say. A list of names is answered with one set of reads, as an object with references (the results for each name, as for one name) and unreadable (the sources that could not be read, empty when every source was read): that form does not fail for a source it could not read, so read unreadable before relying on an empty list for a name. Not read, and so not seen: scripts and endpoints that name a mapping, link tables, running or past reconciliations, the order of the entries of the sync configuration (it is not read as a syncAfter), other tenants and environments; also an entry of the sync configuration that has no name (it cannot be addressed, so it is left out even when it names the mapping). An empty array is never proof that a mapping is unused: it means only that none of those sources names it. A result that the tool runtime cuts is no proof either. Fails closed: for one name, if any source cannot be read in full, every source is still attempted and the call fails with one error that names each source that failed, and returns no partial list. A source that is not there (no sync configuration, a realm without applications) is none, not a failure. Read-only.',
+  },
 
   'idm.organization.getRealmManagedOrganization': {
     operationType: 'read',
