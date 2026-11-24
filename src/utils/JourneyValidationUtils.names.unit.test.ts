@@ -305,6 +305,29 @@ const CASES: Case[] = [
     },
   },
   {
+    code: 'MISSING_INNER_NODE',
+    name: 'a CustomPageNode is a Page Node too, and its second child is named',
+    mutate: (journey) => {
+      journey.tree.nodes['page-1'].nodeType = 'CustomPageNode';
+      journey.nodes['page-1']._type = {
+        _id: 'CustomPageNode',
+        name: 'Custom Page Node',
+      };
+      delete journey.innerNodes['pass-1'];
+    },
+    node: {
+      id: 'page-1',
+      displayName: 'Login Page',
+      nodeType: 'CustomPageNode',
+      nodeTypeName: 'Custom Page Node',
+    },
+    targetNode: {
+      id: 'pass-1',
+      displayName: 'Password',
+      nodeType: 'ValidatedPasswordNode',
+    },
+  },
+  {
     code: 'INNER_NODE_REFERENCED_BY_MULTIPLE_PAGES',
     name: 'an inner node of two Page Nodes',
     mutate: (journey) => {
@@ -511,7 +534,11 @@ describe('the message still quotes every node ID of the finding', () => {
     const journey = loginJourney();
     testCase.mutate(journey);
 
-    for (const finding of findingsOf(journey, testCase.code)) {
+    const findings = findingsOf(journey, testCase.code);
+
+    // a case that stops producing its finding must not pass without a check
+    expect(findings.length).toBeGreaterThan(0);
+    for (const finding of findings) {
       for (const id of [
         finding.nodeId,
         finding.targetNodeId,
@@ -730,6 +757,32 @@ describe('where a node is looked up', () => {
     expect(finding.pageNode).toStrictEqual(PAGE);
   });
 
+  test('an inner node that two Page Nodes hold is named by the first reference, in the order of the nodes', () => {
+    const journey = loginJourney();
+    addTreeNode(journey, 'page-2', 'Second Page', 'PageNode', 'Page Node');
+    journey.nodes['page-2'].nodes = [
+      {
+        _id: 'user-1',
+        displayName: 'Login Name',
+        nodeType: 'ValidatedUsernameNode',
+      },
+    ];
+
+    const finding = only(journey, 'INNER_NODE_REFERENCED_BY_MULTIPLE_PAGES');
+
+    expect(finding.node).toStrictEqual(USER);
+  });
+
+  test('a node that the export holds only as a bare definition has an object with its ID alone', () => {
+    const journey = loginJourney();
+    journey.nodes['loose-1'] = { _id: 'loose-1' };
+
+    const finding = only(journey, 'UNREPRESENTED_NODE');
+
+    // the object says that the node exists; every other field may be absent
+    expect(finding.node).toStrictEqual({ id: 'loose-1' });
+  });
+
   test('an ID that resolves nowhere has no object, and the validation does not throw', () => {
     // the keys of Object.prototype are no nodes
     for (const missing of ['nowhere', 'constructor', 'toString']) {
@@ -781,6 +834,53 @@ describe('what is left out', () => {
       expect(node).not.toHaveProperty('displayName');
     }
   );
+
+  test.each([
+    ['a number', 5],
+    ['an object', { text: 'Account Lockout' }],
+  ])(
+    'a display name that is %s in a hand-edited export is absent, and nothing throws',
+    (_, displayName) => {
+      const journey = loginJourney();
+      addTreeNode(
+        journey,
+        'lock-1',
+        undefined,
+        'ScriptedDecisionNode',
+        'Scripted Decision'
+      );
+      (journey.tree.nodes['lock-1'] as any).displayName = displayName;
+
+      const node = only(journey, 'UNREACHABLE_NODE').node;
+
+      expect(node).toStrictEqual({
+        id: 'lock-1',
+        nodeType: 'ScriptedDecisionNode',
+        nodeTypeName: 'Scripted Decision',
+      });
+    }
+  );
+
+  test('a node type of the tree entry that is not a string or is blank is left out, and the type of the definition is used', () => {
+    for (const nodeType of [5, '', '  \t ']) {
+      const journey = loginJourney();
+      addTreeNode(
+        journey,
+        'lock-1',
+        'Account Lockout',
+        'ScriptedDecisionNode',
+        'Scripted Decision'
+      );
+      (journey.tree.nodes['lock-1'] as any).nodeType = nodeType;
+
+      expect(only(journey, 'UNREACHABLE_NODE').node).toStrictEqual({
+        id: 'lock-1',
+        displayName: 'Account Lockout',
+        nodeType: 'ScriptedDecisionNode',
+        nodeTypeName: 'Scripted Decision',
+      });
+    }
+  });
 
   test('a blank title of the node type is absent', () => {
     const journey = loginJourney();
@@ -890,6 +990,21 @@ describe('nodes that cannot be told apart by name and type', () => {
     expect(only(journey, 'UNREACHABLE_NODE').node).not.toHaveProperty(
       'ambiguous'
     );
+  });
+
+  test('name and type ID that run together to the same text are no tie', () => {
+    const journey = loginJourney();
+    addTreeNode(journey, 'join-1', 'ab', 'c', 'C');
+    addTreeNode(journey, 'join-2', 'a', 'bc', 'BC');
+
+    const nodes = findingsOf(journey, 'UNREACHABLE_NODE').map(
+      (finding) => finding.node
+    );
+
+    expect(nodes).toStrictEqual([
+      { id: 'join-1', displayName: 'ab', nodeType: 'c', nodeTypeName: 'C' },
+      { id: 'join-2', displayName: 'a', nodeType: 'bc', nodeTypeName: 'BC' },
+    ]);
   });
 
   test('a tree node and a Page Node child with the same name and type are a tie, also when the definition of the child is gone', () => {
