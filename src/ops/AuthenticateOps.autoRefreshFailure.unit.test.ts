@@ -427,6 +427,45 @@ describe('the one retry of a background refresh that failed', () => {
     expect(warnings()).toEqual([{ message: WARNING, type: 'warn' }]);
   });
 
+  test.each([
+    ['the bearer token', 8_000, 30 * 60_000, 0, 1],
+    ['the session', 30 * 60_000, 8_000, 0, 1],
+    ['neither', 30 * 60_000, 30 * 60_000, 1, 0],
+    [
+      'no expiry is known for the bearer token, the session is valid',
+      undefined,
+      30 * 60_000,
+      1,
+      0,
+    ],
+  ])(
+    '4c: two expiries (bearer token and session) and the earliest one that is near: %s: %s ms and %s ms: %i retry, %i warning',
+    async (_earliest, bearer, session, retries, warned) => {
+      const frodo = await login();
+      const now = Date.now();
+      frozenNow = now;
+      frodo.state.setDeploymentType('cloud');
+      if (bearer !== undefined) {
+        frodo.state.setBearerTokenMeta({
+          access_token: 'a-token',
+          expires: now + bearer,
+        } as never);
+      }
+      frodo.state.setUserSessionTokenMeta({
+        ...frodo.state.getUserSessionTokenMeta(),
+        expires: now + session,
+      });
+      frodo.state.setPassword('wrong');
+
+      await expect(fire(refreshTimers()[0])).resolves.toBeUndefined();
+
+      expect(retryTimers()).toHaveLength(retries);
+      expect(warnings()).toEqual(
+        warned ? [{ message: WARNING, type: 'warn' }] : []
+      );
+    }
+  );
+
   test('5: a second failure after a success warns again', async () => {
     const frodo = await login();
     let broken = await failFirstRefresh(frodo);
