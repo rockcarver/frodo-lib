@@ -64,6 +64,7 @@ function answer(value: unknown) {
 }
 
 const { FrodoError } = await import('./FrodoError');
+const { default: Constants } = await import('../shared/Constants');
 
 // the real reader wraps what the request threw in a FrodoError, and the 404
 // is found again in the chain: the fake does the same
@@ -116,7 +117,7 @@ jest.unstable_mockModule('../api/ManagedObjectApi', () => ({
 const { default: MappingOps, findMappingReferences } =
   await import('./MappingOps');
 
-let deploymentType = 'cloud';
+let deploymentType: string = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
 let useRealmPrefix = false;
 const setRealm = jest.fn();
 const state = {
@@ -158,7 +159,7 @@ const mappingOf = (name: string, fields: Record<string, unknown> = {}) => ({
 beforeEach(() => {
   jest.clearAllMocks();
   tenant = emptyTenant();
-  deploymentType = 'cloud';
+  deploymentType = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
   useRealmPrefix = false;
 });
 
@@ -686,7 +687,7 @@ describe('the applications', () => {
   });
 
   test('on ForgeOps with realm prefixes the root realm has its own type', async () => {
-    deploymentType = 'platform';
+    deploymentType = Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
     useRealmPrefix = true;
     tenant.applications = {
       application: [[app('root-1', 'Root one', ['mapA'])]],
@@ -703,7 +704,7 @@ describe('the applications', () => {
   });
 
   test('on ForgeOps without realm prefixes the one type is read once and the record says no realm', async () => {
-    deploymentType = 'platform';
+    deploymentType = Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
     useRealmPrefix = false;
     tenant.applications = {
       application: [[app('shared-1', 'Shared one', ['mapA'])]],
@@ -734,7 +735,7 @@ describe('the applications', () => {
 
   describe('on a classic deployment, which has no applications', () => {
     beforeEach(() => {
-      deploymentType = 'classic';
+      deploymentType = Constants.CLASSIC_DEPLOYMENT_TYPE_KEY;
       // what a tenant would answer if it were asked
       tenant.applications = {
         application: [[app('a-1', 'Would be found', ['mapA'])]],
@@ -891,6 +892,37 @@ describe('the answer', () => {
       await find('mapA')
     );
   });
+
+  test('the facade looks up every name of a list and reports each one, as the function does', async () => {
+    tenant.sync = syncOf(
+      { name: 'byLinks', links: 'mapA' },
+      { name: 'byOrder', syncAfter: ['mapB'] }
+    );
+    tenant.schedules = [schedule('recon', 'mapC')];
+    tenant.applications = {
+      alpha_application: [[app('a-1', 'Owner', ['mapD'])]],
+    };
+    const names = ['mapA', 'mapB', 'mapC', 'mapD', 'mapE'];
+    const answer = await mappings.findMappingReferences(names);
+    expect(answer.unreadable).toEqual([]);
+    expect(Object.keys(answer.references)).toEqual(names);
+    expect(answer.references.mapA).toEqual([
+      expect.objectContaining({ id: 'sync/byLinks', from: 'links' }),
+    ]);
+    expect(answer.references.mapB).toEqual([
+      expect.objectContaining({ id: 'sync/byOrder', from: 'syncAfter' }),
+    ]);
+    expect(answer.references.mapC).toEqual([
+      expect.objectContaining({ id: 'schedule/recon' }),
+    ]);
+    expect(answer.references.mapD).toEqual([
+      expect.objectContaining({ id: 'a-1', realm: 'alpha' }),
+    ]);
+    expect(answer.references.mapE).toEqual([]);
+    expect(answer).toEqual(
+      await findMappingReferences({ mappingNames: names, state })
+    );
+  });
 });
 
 describe('the requests', () => {
@@ -929,7 +961,7 @@ describe('the requests', () => {
   });
 
   test('five requests on ForgeOps without realm prefixes, where one type serves every realm', async () => {
-    deploymentType = 'platform';
+    deploymentType = Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
     await find();
     expect(requestCount()).toBe(5);
   });
@@ -1202,6 +1234,48 @@ describe('the names', () => {
       ]);
     }
   );
+
+  test('a looked up name with blanks at its edges is matched exactly as given: it is not trimmed, in the single and the list form', async () => {
+    tenant.sync = syncOf(
+      { name: 'plain', links: 'mapA' },
+      { name: 'leading', links: ' mapA' },
+      { name: 'trailing', syncAfter: ['mapA '] }
+    );
+    tenant.schedules = [
+      schedule('plainRecon', 'mapA'),
+      schedule('leadingRecon', ' mapA'),
+    ];
+    tenant.applications = {
+      alpha_application: [
+        [
+          app('a-plain', 'Plain', ['mapA']),
+          app('a-trailing', 'Trailing', ['mapA ']),
+        ],
+      ],
+    };
+    const ids = async (name: string) =>
+      (await find(name)).map((reference) => reference.id);
+    expect(await ids('mapA')).toEqual([
+      'sync/plain',
+      'schedule/plainRecon',
+      'a-plain',
+    ]);
+    expect(await ids(' mapA')).toEqual([
+      'sync/leading',
+      'schedule/leadingRecon',
+    ]);
+    expect(await ids('mapA ')).toEqual(['sync/trailing', 'a-trailing']);
+    expect(await ids('  mapA')).toEqual([]);
+    // the list form keeps the three names apart: one key each, never merged into mapA
+    const { references } = await findMappingReferences({
+      mappingNames: ['mapA', ' mapA', 'mapA '],
+      state,
+    });
+    expect(Object.keys(references)).toEqual(['mapA', ' mapA', 'mapA ']);
+    expect(references['mapA']).toHaveLength(3);
+    expect(references[' mapA']).toHaveLength(2);
+    expect(references['mapA ']).toHaveLength(2);
+  });
 
   test('a dot is not a wildcard: a.b is not found by axb', async () => {
     tenant.sync = syncOf({ name: 'one', links: 'axb' });
