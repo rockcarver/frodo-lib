@@ -927,6 +927,29 @@ describe('MCP capability foundation', () => {
         /script text/,
       ],
     },
+    {
+      id: 'idm.mapping.findMappingReferences',
+      objectType: 'MappingReference',
+      parameter: 'mappingName',
+      sources: [
+        /the other mappings/,
+        /a links that equals the name, or a syncAfter that lists it/,
+        /the schedules \(invokeContext\.mapping\)/,
+        /applications of every realm \(mappingNames/,
+        /a classic deployment is sent no request for them/,
+      ],
+      sourceValues: [/\(mapping, schedule, application\)/],
+      requests: /about six requests on Cloud with two realms/,
+      dependency:
+        /hard for a schedule, an application and a links.*soft for a syncAfter/,
+      notSeen: [
+        /scripts and endpoints that name a mapping/,
+        /link tables/,
+        /running or past reconciliations/,
+        /the order of the entries of the sync configuration \(it is not read as a syncAfter\)/,
+        /an entry of the sync configuration that has no name/,
+      ],
+    },
   ])(
     'finding the references to $objectType is one reviewed, low-risk, read-only search',
     ({
@@ -991,7 +1014,7 @@ describe('MCP capability foundation', () => {
       );
       // the flag is not equated with what the platform does, and nothing is claimed about it
       expect(references?.notes).toMatch(
-        /not what the platform does when the (connector|server) is deleted, which this tool does not say/
+        /not what the platform does when the (connector|server|mapping) is deleted, which this tool does not say/
       );
       expect(references?.notes).not.toMatch(/observed/);
       // "an empty array is never proof" is said once
@@ -1005,10 +1028,11 @@ describe('MCP capability foundation', () => {
     }
   );
 
-  test('the reference lookups of the connector family have one Help.ts entry per form, and the first is the one id form', () => {
+  test('the reference lookups of the connector and mapping families have one Help.ts entry per form, and the first is the one id form', () => {
     for (const [method, single, list] of [
       ['findConnectorReferences', 'connectorId', 'connectorIds'],
       ['findConnectorServerReferences', 'serverName', 'serverNames'],
+      ['findMappingReferences', 'mappingName', 'mappingNames'],
     ]) {
       const docs = getHelpMetadataByMethod(method);
       expect(docs.map((doc) => doc.params.map((param) => param.name))).toEqual([
