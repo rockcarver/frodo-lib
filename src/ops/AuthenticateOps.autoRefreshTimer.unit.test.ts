@@ -66,7 +66,10 @@ describe('the timer that refreshes the credentials', () => {
 
   test('2: a credential that lasts longer than Node can wait gets a timer for the longest delay', async () => {
     const frodo = await loginRecordingTimers(40 * DAY);
-    clearTimeout(frodo.state.getAutoRefreshTimer());
+    const lookAgain = frodo.state.getAutoRefreshTimer();
+    clearTimeout(lookAgain);
+    // the timer that looks again does not keep the process alive either
+    expect(lookAgain.hasRef()).toBe(false);
 
     expect(timers).toHaveLength(1);
     expect(timers[0].delay).toBe(MAX_TIMER_DELAY_MS);
