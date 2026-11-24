@@ -261,50 +261,61 @@ describe.each(roots)('importRawConfig on the $root root', (row) => {
 });
 
 describe('a path with a root that is not supported', () => {
-  const paths = [
-    'unknown/x',
-    '',
-    '/',
-    'AM/json/x',
-    'Iga/governance/x',
-    'iga2/x',
-    'https://evil.example/x',
-    '//evil.example/x',
-    'a@evil-host/x',
-    '..',
-    '%2e%2e/openidm/config/x',
-    '\\evil.example\\x',
-    'x\nopenidm/config/x',
+  // the path and the first segment that the refusal names, after one leading slash is removed
+  const cases: [string, string][] = [
+    ['unknown/x', 'unknown'],
+    ['', ''],
+    ['/', ''],
+    ['AM/json/x', 'AM'],
+    ['Iga/governance/x', 'Iga'],
+    ['iga2/x', 'iga2'],
+    ['https://evil.example/x', 'https:'],
+    ['//evil.example/x', ''],
+    ['a@evil-host/x', 'a@evil-host'],
+    ['..', '..'],
+    ['%2e%2e/openidm/config/x', '%2e%2e'],
+    ['\\evil.example\\x', '\\evil.example\\x'],
+    ['x\nopenidm/config/x', 'x\nopenidm'],
+    // only one leading slash is removed: these are not the roots they end in
+    ['//openidm/config/x', ''],
+    ['//iga/x', ''],
+    ['///am/x', ''],
   ];
 
-  test.each(paths)('1: export refuses %j and calls nothing', async (path) => {
-    await expect(
-      RawConfigOps.exportRawConfig({ options: { path }, state: newState() })
-    ).rejects.toThrow(`Error in exportRawIdm with relative url: ${path}`);
-    expect(calls).toHaveLength(0);
-  });
+  test.each(cases)(
+    '1: export refuses %j, names %j and calls nothing',
+    async (path, root) => {
+      const error: any = await RawConfigOps.exportRawConfig({
+        options: { path },
+        state: newState(),
+      }).catch((e) => e);
+      expect(error.message).toBe(
+        `Error in exportRawIdm with relative url: ${path}`
+      );
+      expect(error.getCombinedMessage()).toContain(
+        `URL paths that start with ${root} are not supported`
+      );
+      expect(calls).toHaveLength(0);
+    }
+  );
 
-  test.each(paths)('2: import refuses %j and calls nothing', async (path) => {
-    await expect(
-      RawConfigOps.importRawConfig({
+  test.each(cases)(
+    '2: import refuses %j, names %j and calls nothing',
+    async (path, root) => {
+      const error: any = await RawConfigOps.importRawConfig({
         options: { path },
         data: { _id: 'x' },
         state: newState(),
-      })
-    ).rejects.toThrow(`Error in importRawConfig with relative url: ${path}`);
-    expect(calls).toHaveLength(0);
-  });
-
-  test('3: the error names the root that is not supported', async () => {
-    const error: any = await RawConfigOps.exportRawConfig({
-      options: { path: '/unknown/x' },
-      state: newState(),
-    }).catch((e) => e);
-    expect(error.message).toContain('/unknown/x');
-    expect(error.getCombinedMessage()).toContain(
-      'URL paths that start with unknown are not supported'
-    );
-  });
+      }).catch((e) => e);
+      expect(error.message).toBe(
+        `Error in importRawConfig with relative url: ${path}`
+      );
+      expect(error.getCombinedMessage()).toContain(
+        `URL paths that start with ${root} are not supported`
+      );
+      expect(calls).toHaveLength(0);
+    }
+  );
 });
 
 describe('the am root and the host', () => {
