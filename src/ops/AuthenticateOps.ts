@@ -2176,6 +2176,20 @@ async function dispose({ state }: { state: State }): Promise<LogoutResult> {
 export const MAX_TIMER_DELAY_MS = 2 ** 31 - 1;
 
 /**
+ * How long after a failed background refresh the one retry runs. The refresh
+ * itself runs 25 seconds before the credentials expire, so the retry still
+ * finds them valid.
+ */
+export const AUTO_REFRESH_RETRY_DELAY_MS = 5 * 1000;
+
+/**
+ * What the caller is told when the background refresh and its one retry have
+ * failed. It names no reason: the reason is in the debug output.
+ */
+const AUTO_REFRESH_FAILED_WARNING =
+  'Could not refresh the access token in the background. The next request will try again.';
+
+/**
  * Helper method to set, reset, or cancel timer to auto refresh tokens
  * @param {boolean} forceLoginAsUser true to force login as user even if a service account or Amster account is available (default: false)
  * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
@@ -2290,20 +2304,87 @@ function describeThrown(error: unknown): string {
 }
 
 /**
+ * Whether the credentials that the timer watches are valid for longer than the
+ * given time.
+ * @param {State} state library state
+ * @param {number} ms the time in milliseconds
+ * @returns {boolean} true if the earliest known expiry is more than `ms` away
+ */
+function expiresInMoreThan(state: State, ms: number): boolean {
+  const known = getRelevantExpiries(state).filter((e): e is number =>
+    Number.isFinite(e)
+  );
+  return known.length > 0 && Math.min(...known) - Date.now() > ms;
+}
+
+type AutoRefreshParams = {
+  forceLoginAsUser: boolean;
+  credentialOverride: 'user' | 'svcacct' | 'amster' | 'browser' | undefined;
+  autoRefresh: boolean;
+  state: State;
+};
+
+/**
+ * What follows a background refresh that failed: a line in the debug output
+ * and then, unless a login of someone else or a logout has made the failure
+ * moot, one retry a few seconds later (when the credentials are still valid for
+ * long enough) or, for a retry that failed too and when no retry is possible,
+ * one warning. The next request refreshes on demand in any case. Throws only
+ * when a handler of the host does.
+ * @param {unknown} error what the refresh threw
+ * @param {AutoRefreshParams} params the arguments of the refresh
+ * @param {boolean} isRetry true for the retry, which is not retried again
+ */
+function settleFailedAutoRefresh(
+  error: unknown,
+  params: AutoRefreshParams,
+  isRetry: boolean
+): void {
+  const { state } = params;
+  try {
+    debugMessage({
+      message: `AuthenticateOps.scheduleAutoRefresh: token auto-refresh failed: ${describeThrown(error)}; the next request will retry`,
+      state,
+    });
+  } catch {
+    // a debug handler that throws does not stop the retry or the warning
+  }
+  // Another login has armed a timer of its own: the credentials are fresh,
+  // there is nothing to retry and nothing to warn about.
+  if (state.getAutoRefreshTimer() !== undefined) return;
+  // A logout or a dispose has stopped the refreshing: no request will try again.
+  if (!state.getTokenRefreshHandler()) return;
+  if (!isRetry && expiresInMoreThan(state, 2 * AUTO_REFRESH_RETRY_DELAY_MS)) {
+    const retryTimer = setTimeout(
+      runAutoRefresh,
+      AUTO_REFRESH_RETRY_DELAY_MS,
+      params,
+      () => retryTimer,
+      true
+    ) as unknown as NodeJS.Timeout;
+    state.setAutoRefreshTimer(retryTimer);
+    retryTimer.unref();
+    return;
+  }
+  printMessage({ message: AUTO_REFRESH_FAILED_WARNING, type: 'warn', state });
+}
+
+/**
  * Proactive token refresh callback invoked by `scheduleAutoRefresh`'s timer.
  * Clears the fired timer reference before running `getTokens`, and catches any
  * background refresh failure so a transient token-endpoint error degrades to
  * BaseApi's on-demand refresh path on the next request instead of crashing the
- * process with an unhandled rejection.
+ * process with an unhandled rejection. A failed refresh is tried once more a
+ * few seconds later, while the credentials are still valid; when that fails as
+ * well, one warning says so (see `settleFailedAutoRefresh`).
+ * @param {AutoRefreshParams} params the arguments of the refresh
+ * @param {() => NodeJS.Timeout} [getScheduledTimer] returns the timer that runs this callback
+ * @param {boolean} [isRetry] true for the retry, which is not retried again
  */
 async function runAutoRefresh(
-  params: {
-    forceLoginAsUser: boolean;
-    credentialOverride: 'user' | 'svcacct' | 'amster' | 'browser' | undefined;
-    autoRefresh: boolean;
-    state: State;
-  },
-  getScheduledTimer?: () => NodeJS.Timeout
+  params: AutoRefreshParams,
+  getScheduledTimer?: () => NodeJS.Timeout,
+  isRetry = false
 ): Promise<void> {
   const { state } = params;
   if (
@@ -2324,12 +2405,9 @@ async function runAutoRefresh(
     // Nothing below may throw: this runs in a timer, where a rejected promise
     // ends the process. A handler of the host that throws is no reason for it.
     try {
-      debugMessage({
-        message: `AuthenticateOps.scheduleAutoRefresh: token auto-refresh failed: ${describeThrown(error)}; the next request will retry`,
-        state,
-      });
+      settleFailedAutoRefresh(error, params, isRetry);
     } catch {
-      // the failure is already dealt with: the next request tries again
+      // the next request tries again in any case
     }
   }
 }

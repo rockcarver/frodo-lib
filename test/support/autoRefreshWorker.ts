@@ -6,17 +6,31 @@
  *
  * The process logs in to a fake AM of its own with a session that has 25.5
  * seconds to live, so that the refresh timer runs half a second later, breaks
- * the next login as the kind says, and waits until the refresh has failed. A
- * listener for `unhandledRejection` on the process counts the rejections that
- * nobody handled: the refresh of a timer must never leave one.
+ * the next login as the kind says, and waits until the refresh and its retry
+ * have failed (the retry, which the library arms for a few seconds, runs after
+ * 100 milliseconds here). A listener for `unhandledRejection` on the process
+ * counts the rejections that nobody handled: the refresh of a timer must never
+ * leave one.
  */
 import FrodoLib from '../../src/lib/FrodoLib';
+import { AUTO_REFRESH_RETRY_DELAY_MS } from '../../src/ops/AuthenticateOps';
 import { breakLogin, type FailureKind } from './autoRefreshFailures';
 import { startFakeAm } from './fakeAm';
 
 const sleep = (ms: number) => new Promise((done) => setTimeout(done, ms));
 
 async function main(kind: FailureKind) {
+  const setTimeoutOriginal = global.setTimeout;
+  global.setTimeout = ((
+    callback: () => void,
+    delay?: number,
+    ...args: unknown[]
+  ) =>
+    setTimeoutOriginal(
+      callback,
+      delay === AUTO_REFRESH_RETRY_DELAY_MS ? 100 : delay,
+      ...args
+    )) as unknown as typeof setTimeout;
   const rejections: string[] = [];
   process.on('unhandledRejection', (reason) => {
     let text: string;
@@ -42,7 +56,7 @@ async function main(kind: FailureKind) {
   const broken = await breakLogin(kind, frodo, (line) => debug.push(line));
   const failed = () =>
     debug.filter((line) => line.includes('token auto-refresh failed')).length;
-  for (let waited = 0; failed() < 1 && waited < 10_000; waited += 50) {
+  for (let waited = 0; failed() < 2 && waited < 10_000; waited += 50) {
     await sleep(50);
   }
   // time for a rejection that nobody handled to be reported
