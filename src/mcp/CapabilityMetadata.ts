@@ -4188,6 +4188,19 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Wraps the same full-service-config content as service.getFullServices, for every service. Previously medium.',
   },
+  'service.deleteServiceNextDescendent': {
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Deletes one next descendent of a service (for example one named configuration of the global CorsService) and leaves the service in place. The descendent is matched by its exact listed id, case included, and an id that is not a plain name is refused. Irreversible.',
+  },
+  'service.deleteServiceNextDescendents': {
+    excludeParameters: ['resultCallback'],
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Deletes every next descendent of a service (for example every named configuration of the global CorsService) and leaves the service in place. Every descendent is attempted: the answer names each one that could not be deleted. Irreversible.',
+  },
   'agent.createAIAgent': {
     notes:
       "The returned object can represent a partial success: the core AI agent object is created synchronously and its creation is the only fatal step, but identity creation and privilege/owner linking that follow are best-effort and never roll back or throw on failure. Check the returned object's _provisioningStatus.errors and _provisioningStatus.privileges[].errors to know whether those follow-up steps actually completed -- a response without a thrown error does not by itself mean everything succeeded.",

@@ -78,6 +78,11 @@ const BULK_CALLBACK_CAPABILITIES: [string, string[], string][] = [
   ['service.importServices', ['service'], 'importServices'],
   ['service.exportServices', ['service'], 'exportServices'],
   ['service.getFullServices', ['service'], 'getFullServices'],
+  [
+    'service.deleteServiceNextDescendents',
+    ['service'],
+    'deleteServiceNextDescendents',
+  ],
   ['agent.deleteAgents', ['agent'], 'deleteAgents'],
   [
     'agent.deleteIdentityGatewayAgents',
