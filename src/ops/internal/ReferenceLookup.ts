@@ -146,9 +146,14 @@ export async function findReferencesInSources<
   return joinReferences(sources, reads, id);
 }
 
-/** The answer of a lookup for a list of ids. */
-export type ReferenceLookupBatch<Source extends string, Reference> = {
-  /** One entry per distinct id that was asked for; an id that nothing names has an empty list. */
+/**
+ * The answer of a reference lookup for a list of ids: the references to each
+ * distinct id, and the sources that could not be read. A lookup for a list
+ * does not fail for a source it could not read, so a caller reads `unreadable`
+ * before it relies on an empty list for an id.
+ */
+export type ReferenceLookupResult<Source extends string, Reference> = {
+  /** One entry per distinct id that was asked for; an id that nothing names has an empty list. An object without a prototype whose key order is not promised: read it by key. */
   references: Record<string, Reference[]>;
   /** The sources that could not be read, in the order of the rows; empty when every source was read. */
   unreadable: Source[];
@@ -194,7 +199,7 @@ export async function findReferencesForIds<
   state: State;
   ids: string[];
   subject: string;
-}): Promise<ReferenceLookupBatch<Source, Reference>>;
+}): Promise<ReferenceLookupResult<Source, Reference>>;
 export async function findReferencesForIds<
   Source extends string,
   Reference,
@@ -203,7 +208,7 @@ export async function findReferencesForIds<
   state: State;
   ids: string | string[];
   subject: string;
-}): Promise<Reference[] | ReferenceLookupBatch<Source, Reference>>;
+}): Promise<Reference[] | ReferenceLookupResult<Source, Reference>>;
 export async function findReferencesForIds<Source extends string, Reference>({
   sources,
   state,
@@ -214,7 +219,7 @@ export async function findReferencesForIds<Source extends string, Reference>({
   state: State;
   ids: string | string[];
   subject: string;
-}): Promise<Reference[] | ReferenceLookupBatch<Source, Reference>> {
+}): Promise<Reference[] | ReferenceLookupResult<Source, Reference>> {
   if (!Array.isArray(ids)) {
     assertReferenceId(
       ids,

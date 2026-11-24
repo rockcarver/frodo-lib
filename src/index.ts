@@ -258,6 +258,8 @@ export type {
   TreeImportOptions,
 } from './ops/JourneyOps';
 
+export type { ReferenceLookupResult } from './ops/internal/ReferenceLookup';
+
 export type { ResolvedIdentity } from './ops/ManagedObjectOps';
 
 export type {

@@ -22,7 +22,7 @@ import { getManagedApplicationTypeOfRealm } from './internal/ManagedApplicationT
 import {
   defineReferenceSource,
   findReferencesForIds,
-  type ReferenceLookupBatch,
+  type ReferenceLookupResult,
   type ReferenceSource,
 } from './internal/ReferenceLookup';
 import { readManagedObjects } from './ManagedObjectOps';
@@ -187,7 +187,7 @@ export type Connector = {
   findConnectorReferences(
     connectorIds: string[]
   ): Promise<
-    ReferenceLookupBatch<ConnectorReference['source'], ConnectorReference>
+    ReferenceLookupResult<ConnectorReference['source'], ConnectorReference>
   >;
   /**
    * Find what still names a connector server, that is an entry of `remoteConnectorClients` of the `provisioner.openicf.connectorinfoprovider` configuration, by its name. Both sources are read once, together, and the answer is joined in memory: the server clusters (`remoteConnectorClientsGroups`: a cluster whose `serversList` has an entry with the name) and the connector definitions (`connectorRef.connectorHostRef` equal to the name). That is two requests however many names are looked up. The server does not have to exist, so the same call after a delete lists what now points at nothing. Each reference has a source and a dependency flag: `server-cluster` is `soft` (the cluster works with its other servers) and `connector` is `hard` (the connector cannot reach its system without the server), the id of the holder (the cluster name, or the connector name without the type prefix) and `from`, the field that holds the name (`serversList`, `connectorRef.connectorHostRef`). One reference per cluster, however often it lists the name. The answer is ordered by source, then by id. A connector that names a server cluster is not reported as a holder of the servers in that cluster, and the entries of `remoteConnectorServers` and `remoteConnectorServersGroups` (the platform as the client) are not read. Not read, and so not seen: the connector server process itself, any OAuth2 client that a platform keeps for a connector server, script text, other tenants and environments. An empty list is never proof that a server is unused: it means only that none of those sources names it. Fails closed: if any source cannot be read in full, every source is still attempted and one error is thrown that names each source that failed; there is no partial list. A source that is not there (no cluster list, no `provisioner.openicf.connectorinfoprovider` configuration) is none, not a failure. Read-only; it does not say what the platform does when the server is deleted. A caller that holds a value that is either one name or a list calls the form that fits it (`Array.isArray` tells which): the two forms answer differently, so there is no single signature for the union.
@@ -205,7 +205,7 @@ export type Connector = {
   findConnectorServerReferences(
     serverNames: string[]
   ): Promise<
-    ReferenceLookupBatch<
+    ReferenceLookupResult<
       ConnectorServerReference['source'],
       ConnectorServerReference
     >
@@ -1532,14 +1532,14 @@ export function findConnectorReferences(params: {
   connectorIds: string[];
   state: State;
 }): Promise<
-  ReferenceLookupBatch<ConnectorReference['source'], ConnectorReference>
+  ReferenceLookupResult<ConnectorReference['source'], ConnectorReference>
 >;
 export function findConnectorReferences(params: {
   connectorIds: string | string[];
   state: State;
 }): Promise<
   | ConnectorReference[]
-  | ReferenceLookupBatch<ConnectorReference['source'], ConnectorReference>
+  | ReferenceLookupResult<ConnectorReference['source'], ConnectorReference>
 >;
 export async function findConnectorReferences({
   connectorIds,
@@ -1670,7 +1670,7 @@ export function findConnectorServerReferences(params: {
   serverNames: string[];
   state: State;
 }): Promise<
-  ReferenceLookupBatch<
+  ReferenceLookupResult<
     ConnectorServerReference['source'],
     ConnectorServerReference
   >
@@ -1680,7 +1680,7 @@ export function findConnectorServerReferences(params: {
   state: State;
 }): Promise<
   | ConnectorServerReference[]
-  | ReferenceLookupBatch<
+  | ReferenceLookupResult<
       ConnectorServerReference['source'],
       ConnectorServerReference
     >

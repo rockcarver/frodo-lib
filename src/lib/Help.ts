@@ -1831,7 +1831,7 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Connector",
     methodName: "findConnectorReferences",
-    signature: "findConnectorReferences( connectorIds: string[] ): Promise< ReferenceLookupBatch<ConnectorReference['source'], ConnectorReference> >",
+    signature: "findConnectorReferences( connectorIds: string[] ): Promise< ReferenceLookupResult<ConnectorReference['source'], ConnectorReference> >",
     description: "The same lookup for a list of connectors, with one set of reads whatever the number of ids. This form does not fail when a source cannot be read: it answers with what it found and names the sources it could not read in `unreadable`, so that a caller can list the holders it found and say what it could not check (an empty `unreadable` means every source was read). `references` is an object with one entry per distinct id, and an id that nothing names has an empty list; read it by key, because an object does not promise the order of its keys (JavaScript lists keys that look like integers first). It has no prototype, so an id such as `__proto__` is a plain key. An empty list is answered with an empty result and no request. A blank or non-string id in the list throws before anything is read. Everything the single form says about what is read and not seen holds here too, and an empty list for an id is never proof that the connector is unused.",
     params: [
       { name: "connectorIds", type: "string[]", description: "ids/names of the connectors without the type prefix", required: true },
@@ -1851,7 +1851,7 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Connector",
     methodName: "findConnectorServerReferences",
-    signature: "findConnectorServerReferences( serverNames: string[] ): Promise< ReferenceLookupBatch< ConnectorServerReference['source'], ConnectorServerReference > >",
+    signature: "findConnectorServerReferences( serverNames: string[] ): Promise< ReferenceLookupResult< ConnectorServerReference['source'], ConnectorServerReference > >",
     description: "The same lookup for a list of connector servers, with one set of reads whatever the number of names. This form does not fail when a source cannot be read: it answers with what it found and names the sources it could not read in `unreadable`, so that a caller can list the holders it found and say what it could not check (an empty `unreadable` means every source was read). `references` is an object with one entry per distinct name, and a name that nothing names has an empty list; read it by key, because an object does not promise the order of its keys (JavaScript lists keys that look like integers first). It has no prototype, so a name such as `__proto__` is a plain key. An empty list is answered with an empty result and no request. A blank or non-string name in the list throws before anything is read. Everything the single form says about what is read and not seen holds here too, and an empty list for a name is never proof that the server is unused.",
     params: [
       { name: "serverNames", type: "string[]", description: "names of the connector servers", required: true },
