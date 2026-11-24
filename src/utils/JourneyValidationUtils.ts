@@ -50,9 +50,9 @@ export interface JourneyValidationNode {
   id: string;
   /** Name on the node's card in the editor. Absent when the export holds none or a blank one. */
   displayName?: string;
-  /** Node type ID, for example `ScriptedDecisionNode`. Absent when the export does not say. */
+  /** Node type ID, for example `ScriptedDecisionNode`, as the tree entry or the Page Node reference declares it (the type ID of the node definition when they declare none). Absent when the export does not say. It comes from another source than `nodeTypeName` and can disagree with it on a `NODE_TYPE_MISMATCH` finding. */
   nodeType?: string;
-  /** Title of the node type as the editor shows it, for example `Scripted Decision`. Read from the node definition, so absent when the export holds no definition of the node. */
+  /** Title of the node type as the editor shows it, for example `Scripted Decision`. Read from the node definition, not from the tree entry or the reference that give `nodeType`, so it can disagree with `nodeType` on a `NODE_TYPE_MISMATCH` finding; absent when the export holds no definition of the node. */
   nodeTypeName?: string;
   /** Present and `true` when another node of the same journey (a tree node or a child of a Page Node, counted once per node ID) has the same `displayName` and `nodeType`, so that name and type alone do not tell the two apart. Only a node that has a `displayName` can be ambiguous. */
   ambiguous?: true;

@@ -623,6 +623,22 @@ describe('the fields that a finding had do not change', () => {
     }
   });
 
+  test('two findings of one node hold separate objects, so that a client can change one without changing the other', () => {
+    const journey = loginJourney();
+    journey.tree.nodes['age-1'].connections.maybe = 'end';
+    journey.tree.nodes['age-1'].connections.perhaps = 'end';
+
+    const [first, second] = findingsOf(journey, 'UNKNOWN_CONNECTION_OUTCOME');
+
+    expect(first.node).toStrictEqual(AGE);
+    expect(first.node).not.toBe(second.node);
+    first.node.displayName = 'Changed by a client';
+    expect(second.node).toStrictEqual(AGE);
+    expect(validateJourneyReferences(journey)[0].node).toStrictEqual(
+      expect.objectContaining({ displayName: 'Check Age' })
+    );
+  });
+
   test('the index of a journey is built once, and only when there is a finding', () => {
     // the keys of the tree nodes are listed by every check once and by the
     // index once: a count that grows with the findings is an index per finding
@@ -783,6 +799,37 @@ describe('where a node is looked up', () => {
     expect(finding.node).toStrictEqual({ id: 'loose-1' });
   });
 
+  test('when innerNodes and innernodes both define an inner node, innerNodes names its type', () => {
+    const journey = loginJourney();
+    journey.emailTemplates = { other: {} };
+    journey.innerNodes['mail-1'] = {
+      _id: 'mail-1',
+      _type: { _id: 'EmailTemplateNode', name: 'Email Template' },
+      emailTemplateName: 'gone',
+    };
+    journey.innernodes = {
+      'mail-1': {
+        _id: 'mail-1',
+        _type: { _id: 'EmailTemplateNode', name: 'Legacy Email Template' },
+        emailTemplateName: 'gone',
+      },
+    };
+    journey.nodes['page-1'].nodes.unshift({
+      _id: 'mail-1',
+      displayName: 'Send Welcome',
+      nodeType: 'EmailTemplateNode',
+    });
+
+    const finding = only(journey, 'MISSING_EMAIL_TEMPLATE_DEPENDENCY');
+
+    expect(finding.node).toStrictEqual({
+      id: 'mail-1',
+      displayName: 'Send Welcome',
+      nodeType: 'EmailTemplateNode',
+      nodeTypeName: 'Email Template',
+    });
+  });
+
   test('an ID that resolves nowhere has no object, and the validation does not throw', () => {
     // the keys of Object.prototype are no nodes
     for (const missing of ['nowhere', 'constructor', 'toString']) {
@@ -891,6 +938,21 @@ describe('what is left out', () => {
       displayName: 'Account Lockout',
       nodeType: 'LockNode',
     });
+  });
+
+  test('a name with spaces around it is kept as written: only the test for a blank name looks at the trimmed text', () => {
+    const journey = loginJourney();
+    addTreeNode(
+      journey,
+      'lock-1',
+      '  Account Lockout \t',
+      'ScriptedDecisionNode',
+      'Scripted Decision'
+    );
+
+    expect(only(journey, 'UNREACHABLE_NODE').node.displayName).toBe(
+      '  Account Lockout \t'
+    );
   });
 
   test('a name of the tenant goes through unchanged, with its quotes and control characters', () => {
