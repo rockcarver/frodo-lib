@@ -283,15 +283,21 @@ export default (state: State): Service => {
   };
 };
 
+/**
+ * True if the server refused the request because it does not offer the service in PingOne Advanced Identity Cloud.
+ * The error is looked at through the whole chain of errors ({@link getFailedResponse}): an operation that calls other
+ * operations wraps a failure in a `FrodoError` at every level, and only the error of the request carries the answer of
+ * the server.
+ * @param {unknown} error the error that was caught, wrapped or not
+ * @returns {boolean} true for the refusal of an unavailable service
+ */
 function isUnavailableServiceError(error: unknown): boolean {
-  const httpError = error as {
-    response?: { status?: number; data?: { message?: string } };
-    httpStatus?: number;
-    httpMessage?: string;
-  };
+  const response = getFailedResponse(error) as
+    { status?: number; data?: { message?: string } } | undefined;
+  const httpError = error as { httpStatus?: number; httpMessage?: string };
   return (
-    (httpError?.response?.status ?? httpError?.httpStatus) === 403 &&
-    (httpError?.response?.data?.message ?? httpError?.httpMessage) ===
+    (response?.status ?? httpError?.httpStatus) === 403 &&
+    (response?.data?.message ?? httpError?.httpMessage) ===
       'This operation is not available in PingOne Advanced Identity Cloud.'
   );
 }
