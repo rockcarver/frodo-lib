@@ -491,6 +491,31 @@ describe('the one retry of a background refresh that failed', () => {
     expect(printed).toEqual([]);
   });
 
+  test.each([['the timer of the refresh'], ['the retry']])(
+    '9: %s: after the state was reset it logs in no more',
+    async (which) => {
+      const frodo = await login();
+      let waiting = refreshTimers()[0];
+      if (which === 'the retry') {
+        await failFirstRefresh(frodo);
+        waiting = retryTimers()[0];
+      }
+      passTime(AUTO_REFRESH_RETRY_DELAY_MS);
+      // a reset gives the state an empty slot, and clearTimeout is never called
+      frodo.state.reset();
+      expect(frodo.state.getAutoRefreshTimer()).toBeUndefined();
+      const lines: string[] = [];
+      frodo.state.setDebugHandler((message) => lines.push(String(message)));
+      const requests = am.requests.length;
+
+      await expect(fire(waiting)).resolves.toBeUndefined();
+
+      expect(lines.filter((line) => line.includes('getTokens'))).toEqual([]);
+      expect(am.requests).toHaveLength(requests);
+      expect(printed).toEqual([]);
+    }
+  );
+
   test.each([
     ['works', 'logs in again and prints nothing'],
     ['fails', 'prints one warning and stops'],
