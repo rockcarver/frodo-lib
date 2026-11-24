@@ -3098,7 +3098,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     mutating: false,
     riskClass: 'low',
     notes:
-      'Validates journeys for referential integrity and returns findings (code, severity, journeyId, message, nodeId/targetNodeId/outcome); changes nothing. Errors mean the journey would fail import, warnings are advisory. Live mode (no journeysExport) reads the named journeys, or all of them, from the tenant. Export mode (journeysExport supplied) is offline: export, edit, then validate before importing.',
+      'Validates journeys for referential integrity and returns findings (code, severity, journeyId, message, nodeId/targetNodeId/outcome); changes nothing. Every node ID of a finding that resolves in the journey is also described as the Journey Editor shows the node, in the objects node, targetNode and pageNode (id, displayName, nodeType, nodeTypeName, ambiguous): use those names, not the IDs, when you tell a person which node a finding is about; ambiguous means another node of the journey has the same name and type. Errors mean the journey would fail import, warnings are advisory. Live mode (no journeysExport) reads the named journeys, or all of them, from the tenant. Export mode (journeysExport supplied) is offline: export, edit, then validate before importing.',
   },
   'authn.journey.getTreeDescendents': {
     operationType: 'list',
