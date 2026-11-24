@@ -102,7 +102,7 @@ describe.each(IDS)('%s through the read-only dispatch', (id) => {
     expect(JSON.stringify(result)).toContain('unreadable');
   });
 
-  test('the write dispatch is not needed: the read-only dispatch accepts it, and the write dispatch refuses a search', async () => {
+  test('the write dispatch refuses it, as it refuses every search: the lookup is for the read-only dispatch', async () => {
     const handler: Handler = jest.fn(async () => []);
     await expect(
       readOnlyDispatch(
@@ -111,7 +111,9 @@ describe.each(IDS)('%s through the read-only dispatch', (id) => {
         { positionalArgs: ['a-name'] },
         'frodo_dispatch'
       )
-    ).rejects.toThrow();
+    ).rejects.toThrow(
+      "'frodo_dispatch' is for mutating operations. Use 'frodo_dispatch_read_only' for 'search'."
+    );
     expect(handler).not.toHaveBeenCalled();
   });
 });

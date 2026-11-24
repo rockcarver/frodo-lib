@@ -935,6 +935,9 @@ describe('the answer', () => {
 
   test('types: one id answers a list of references, a list of ids answers an object', async () => {
     everyHolder();
+    // The annotations and the ts-expect-error line are for the reader and the
+    // editor: the test run does not type-check test files (the declared types
+    // are checked where code uses them).
     const single: ConnectorReference[] =
       await connectors.findConnectorReferences('csv');
     const batch: Record<string, ConnectorReference[]> = (
