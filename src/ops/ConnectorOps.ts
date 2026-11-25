@@ -7,7 +7,6 @@ import {
   putConfigEntity,
 } from '../api/IdmConfigApi';
 import { readSystemStatus } from '../api/IdmSystemApi';
-import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import {
   createProgressIndicator,
@@ -18,14 +17,16 @@ import {
 import { getMetadata } from '../utils/ExportImportUtils';
 import { FrodoError, isNotFoundError } from './FrodoError';
 import { readConfigEntitiesByType } from './IdmConfigOps';
-import { getManagedApplicationTypeOfRealm } from './internal/ManagedApplicationType';
+import {
+  readApplicationsOfAllRealms,
+  type ApplicationRecords,
+} from './internal/ApplicationRecords';
 import {
   defineReferenceSource,
   findReferencesForIds,
   type ReferenceLookupResult,
   type ReferenceSource,
 } from './internal/ReferenceLookup';
-import { readManagedObjects } from './ManagedObjectOps';
 import {
   deleteMapping,
   MappingSkeleton,
@@ -37,7 +38,6 @@ import {
   type ObjectReference,
   type ResultCallback,
 } from './OpsTypes';
-import { getRealms } from './RealmOps';
 
 export type Connector = {
   /**
@@ -1236,7 +1236,7 @@ type MappingStores = { sync: unknown; mappings: unknown };
  * `sync/<name>`. A `sync` entry without a name cannot be addressed and is left
  * out.
  */
-function findMappingReferences(
+function findMappingsOfConnector(
   stores: MappingStores,
   connectorId: string
 ): ConnectorReference[] {
@@ -1298,57 +1298,6 @@ function findMappingReferences(
       from,
     }))
     .sort(byIdThenFrom);
-}
-
-/** The application records of every realm, each with the realm it belongs to (when the type says so). */
-type ApplicationRecords = { realm?: string; application: unknown }[];
-
-/**
- * Reads the application records of every realm without switching the active
- * realm. Every distinct application type is read once. On Cloud the root realm
- * has no applications. A type that does not exist has no applications.
- */
-async function readApplicationsOfAllRealms(
-  state: State
-): Promise<ApplicationRecords> {
-  const realms = await getRealms({ state });
-  const realmsByType = new Map<string, string[]>();
-  for (const realm of Array.isArray(realms) ? realms : []) {
-    if (typeof realm?.name !== 'string') continue;
-    if (
-      state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY &&
-      realm.name === '/'
-    ) {
-      continue;
-    }
-    const type = getManagedApplicationTypeOfRealm({
-      realmName: realm.name,
-      state,
-    });
-    realmsByType.set(type, [...(realmsByType.get(type) ?? []), realm.name]);
-  }
-  const perType = await Promise.all(
-    [...realmsByType].map(async ([type, realmNames]) => {
-      try {
-        const applications = await readManagedObjects({
-          type,
-          fields: ['name', 'connectorId'],
-          state,
-        });
-        // a type that several realms share does not say which realm an application is in
-        return applications.map((application) => ({
-          ...(realmNames.length === 1 && { realm: realmNames[0] }),
-          application,
-        }));
-      } catch (error) {
-        if (isNotFoundError(error)) {
-          return [];
-        }
-        throw error;
-      }
-    })
-  );
-  return perType.flat();
 }
 
 function findApplicationReferences(
@@ -1477,7 +1426,7 @@ const connectorReferenceSources: readonly ReferenceSource<
       ]);
       return { sync, mappings };
     },
-    find: findMappingReferences,
+    find: findMappingsOfConnector,
   }),
   defineReferenceSource<
     ConnectorReference['source'],
@@ -1486,7 +1435,8 @@ const connectorReferenceSources: readonly ReferenceSource<
   >({
     source: 'application',
     label: 'applications',
-    read: readApplicationsOfAllRealms,
+    read: async (state) =>
+      readApplicationsOfAllRealms({ fields: ['name', 'connectorId'], state }),
     find: findApplicationReferences,
   }),
   defineReferenceSource<
