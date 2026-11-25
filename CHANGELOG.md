@@ -10,6 +10,19 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-55] - 2026-11-25
+
+### Added
+- Introduced the ability to look up what still names a mapping using `frodo.idm.mapping.findMappingReferences`. This function is part of the family that includes `findConnectorReferences`, `findConnectorServerReferences`, and `findJourneyReferences` (#1151).
+- Added new functions `frodo.service.deleteServiceNextDescendent` and `frodo.service.deleteServiceNextDescendents`. These allow for deleting one or all next descendents of a service while leaving the service itself intact (#1150).
+
+### Fixed
+- Corrected the behavior to skip a service only when every failure is an unavailable-service error, ensuring more accurate error handling (commit 0a7b2aa9f).
+- Improved the error reporting by naming failed descendents in the order they were listed, enhancing clarity in error messages (commit 34b335fd4).
+- Fixed the encoding of the path of a descendent delete and ensured that only valid names are accepted as IDs (commit 50b42a599).
+- Updated the service parameter naming to `serviceId` in both types and help documentation for consistency (commit 2d812b9f5).
+- Ensured that an unavailable service is skipped through the entire chain of errors, improving error management (commit 262a041c9).
+
 ## [v5.0.0-54] - 2026-11-24
 
 ### Added
@@ -3105,6 +3118,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-55]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-54...v5.0.0-55
 [v5.0.0-54]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-53...v5.0.0-54
 [v5.0.0-53]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-52...v5.0.0-53
 [v5.0.0-52]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-51...v5.0.0-52
