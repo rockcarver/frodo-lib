@@ -132,10 +132,10 @@ export function isOneSafeSegment(value: string): boolean {
  * writes the characters of a path as `%XX` (`a/b` is `a%2Fb`). The name is not cut: a name that a file system cannot hold
  * fails where it is written, so that two long names never become one.
  *
- * This function looks at the name only, not at the path that the name ends up in. A name of 251 to 255 bytes passes here
- * and its file, `<name>.json`, has a part of more than 255 bytes; a value that is one long safe name is returned as it is;
- * a lone surrogate passes here. `assertFileSetPath` refuses each of these paths, and so does `buildFileSet`, for the whole
- * set: a caller that wants such an id to fail alone checks its path first.
+ * This function looks at the name only, not at the path that the name ends up in. A value that is one safe name is returned
+ * as it is, whatever its length: an id whose name is 251 bytes or longer passes here, and its file, `<name>.json`, has a part
+ * of more than 255 bytes; a lone surrogate passes here as well. `assertFileSetPath` refuses each of these paths, and
+ * `buildFileSet` throws for the whole set because of one.
  * @param {string} value the id or the name
  * @returns {string} the name without the extension
  * @throws {Error} if the value leaves no name (`.`, `..`, empty), or is longer than a file name can be once encoded
@@ -186,9 +186,10 @@ function nameTooLong(name: string): Error {
  * with `:`, `?` and the other characters of a path written as `%XX`). It is {@link safeFileName} that does not cut and is
  * not empty: where `safeFileName` cuts a name at 255 bytes without a word, and {@link fileNameOf} (the agent types) cuts it
  * at 250, this function refuses a name that leaves nothing (`.`, `..`, a run of dots, a device name of Windows) or that is
- * more than 255 bytes once encoded, naming it, so that two long names never become one. Like {@link nameInFolder} it looks at
- * the name only: a name of 251 to 255 bytes passes, and its file `<name>.json` is refused by `assertFileSetPath` (and by
- * `buildFileSet`, for the whole set).
+ * more than 255 bytes once encoded, naming it, so that two long names never become one. Like {@link nameInFolder} it looks
+ * at the name only, not at the path that the name ends up in: an id whose name is 251 bytes or longer makes a file `<name>.json`
+ * with a part of more than 255 bytes, which `assertFileSetPath` refuses, and `buildFileSet` throws for the whole set because
+ * of it. This function lets the names of 251 to 255 bytes through and refuses a longer one itself.
  * @param {string} value the name
  * @returns {string} the file name without the extension
  * @throws {Error} if the value leaves no name, or is longer than a file name can be

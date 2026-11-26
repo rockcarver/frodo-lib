@@ -87,12 +87,12 @@ function prefixesOf(path: string): string[] {
  * locale), so the same content gives the same set whatever order it was found in. The text of a file is kept byte for byte.
  *
  * One path that the gate refuses fails the whole set: the builder throws at the first such path and does not say which other
- * files were fine. That includes a path that a name function made and let through: `nameInFolder` and `encodedName` count
- * the name without its extension, so an id whose name is 251 to 255 bytes gives a name that passes them, and its file
- * `<name>.json` has a part of more than 255 bytes (and an id with a lone surrogate passes them and fails the gate). The
- * engine's `assignFileNames` lists as refused only what its name function throws, so such an id is not listed as refused
- * there. A caller that wants one such id to fail alone checks the path of each file with `assertFileSetPath` before it builds
- * the set.
+ * files were fine. That includes a path that a name function made and let through. `nameInFolder` and `encodedName` look at
+ * the name without its extension: an id whose name is 251 bytes or longer gives a name that passes them (`nameInFolder`
+ * returns a name that is one safe name as it is, whatever its length; `encodedName` refuses more than 255 bytes itself), and
+ * its file `<name>.json` has a part of more than 255 bytes; an id with a lone surrogate passes them as well and fails the
+ * gate. Either makes `buildFileSet` throw for the whole set. The engine's `assignFileNames` lists as refused only what its
+ * name function throws, so such an id is not listed as refused there.
  * @param {VirtualFileSet} fileSet the files and the owned folders; the owned folders may be left out
  * @param {VirtualFile[]} fileSet.files the files
  * @param {string[]} fileSet.ownedFolders the folders that the set owns

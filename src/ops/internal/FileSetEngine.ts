@@ -116,9 +116,10 @@ export async function inRealm<R>({
  * case or Unicode form (and two long ids that are cut to one name) collide: the first id keeps the name and the later ones
  * are reported. An id for which the name function throws gets no name: it is reported as refused, with the error, and never
  * thrown, so one id that leaves no name does not stop the others. Only what the name function throws is refused here: a
- * name that passes it can still make a path that `assertFileSetPath` refuses (a name of 251 to 255 bytes with its extension,
- * a lone surrogate), and `buildFileSet` then throws for the whole set. The ids are taken in the order they are given: a
- * caller that wants the same names whatever order the tenant answers in sorts them first (`compareOrdinal`).
+ * name that passes it can still make a path that `assertFileSetPath` refuses (an id whose name is 251 bytes or longer, whose
+ * file `<name>.json` then has a part of more than 255 bytes, or an id with a lone surrogate), and `buildFileSet` then throws
+ * for the whole set. The ids are taken in the order they are given: a caller that wants the same names whatever order the
+ * tenant answers in sorts them first (`compareOrdinal`).
  * @param {string[]} ids the ids, in the order they are written
  * @param {(id: string) => string} nameOf gives the file name of an id, without the extension; the name that the agent types use by default
  * @returns {{ names: Map<string, string>; collisions: { id: string; firstId: string }[]; refused: { id: string; error: Error }[] }} the file name of each id that has one, the ids that collide with an earlier one, and the ids that have no name
@@ -334,8 +335,11 @@ export function fileOfObject({
  *   the outcomes alone does not see such a failure of a part: it counts the errors that its callback was told as well.
  * - Without a `resultCallback`, the `errorCallback` throws the error it is given, so the work ends and the failure is the
  *   object's: it is in the outcome.
- * - A `resultCallback` that throws ends the run: that is the caller's code and not the object's, so the objects after it do
- *   not run and the function rejects with that error (the outcomes so far are not returned).
+ * - A throw ends the run only when it comes from a call that the engine makes itself: a `resultCallback` that throws, after a
+ *   success or after a failure, is the caller's code and not the object's, so the objects after it do not run and the function
+ *   rejects with that error (the outcomes so far are not returned). A throw from the call that the `errorCallback` makes inside
+ *   the work is a throw of the work: it is the failure of that object (wrapped, with the callback's error as its cause), the
+ *   callback is told of it as of any other failure, and the run goes on.
  *
  * The work is also given the `leftOutCallback` as it was passed in; the engine counts and prints nothing.
  * @param {T[]} objects the objects, each with its id
