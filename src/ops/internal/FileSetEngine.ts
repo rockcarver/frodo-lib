@@ -39,8 +39,8 @@ export type RealmOverrides = Record<
 >;
 
 /**
- * Whether the realm that was asked for is the root realm of a Cloud deployment, which has no realm configuration of the
- * kind that these types hold: it is answered and not visited.
+ * Whether the realm that was asked for is the root realm of a Cloud deployment, which has no configuration of these types: it
+ * is answered and not visited.
  * @param {string} realm the realm that was asked for, if any
  * @param {State} state the state, which knows the deployment type
  * @returns {boolean} true for `/` on Cloud

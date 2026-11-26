@@ -1,7 +1,7 @@
 import { assertFileSetPath, sameOnAnyFileSystem } from './FileSetPathUtils';
 
 /**
- * File sets: a tree of files as data. A pull gives one, a push takes one from a reader. Nothing here knows a file system,
+ * File sets: a list of files, with their folders, as data. A pull gives one, a push takes one from a reader. Nothing here knows a file system,
  * a tenant or the state: the shapes, the builder that checks and orders a set, and a reader that reads a set from memory.
  * The paths are the paths that {@link assertFileSetPath} lets through.
  */
