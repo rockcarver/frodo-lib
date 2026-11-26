@@ -2226,6 +2226,63 @@ describe('a name that does not fit gets a checksum', () => {
       '.json',
       rep('x', 239) + '~9df4543b',
     ],
+    ['fileNameOf', rep('%', 300), '.json', rep('%', 240) + '~2291a471'],
+    ['encodedName', rep('%', 300), '.json', rep('%', 240) + '~2291a471'],
+    ['nameInFolder', rep('%', 300), '.json', rep('%', 240) + '~2291a471'],
+    [
+      'fileNameOf',
+      rep('x', 239) + '%%2' + rep('b', 20),
+      '.json',
+      rep('x', 239) + '%~49300bdb',
+    ],
+    [
+      'encodedName',
+      rep('x', 239) + '%%2' + rep('b', 20),
+      '.json',
+      rep('x', 239) + '%~49300bdb',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 239) + '%%2' + rep('b', 20),
+      '.json',
+      rep('x', 239) + '%~49300bdb',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%C2' + rep('b', 20),
+      '.json',
+      rep('x', 238) + '~91dec88c',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%C2' + rep('b', 20),
+      '.json',
+      rep('x', 238) + '~91dec88c',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%C2' + rep('b', 20),
+      '.json',
+      rep('x', 238) + '~91dec88c',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%c2' + rep('b', 20),
+      '.json',
+      rep('x', 238) + '~c7e3b8d2',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%c2' + rep('b', 20),
+      '.json',
+      rep('x', 238) + '~c7e3b8d2',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%c2' + rep('b', 20),
+      '.json',
+      rep('x', 238) + '~c7e3b8d2',
+    ],
     ['fileNameOf', rep('.', 300), '.json', undefined],
     ['encodedName', rep('.', 300), '.json', undefined],
     ['nameInFolder', rep('.', 300), '.json', rep('.', 241) + '~f7071ffd'],
@@ -2607,6 +2664,34 @@ describe('the names that every function makes, over a battery of ids', () => {
     expect(bad.slice(0, 5)).toEqual([]);
     // 11 characters, 20 lengths, 3 shapes, 5 suffixes, 4 functions: 13,200 names, a few of which leave no name
     expect(named).toBeGreaterThan(12000);
+  });
+
+  it('a cut never ends inside an escape: every % of a shortened name starts a whole escape, and `%C2` is never the end of the cut', () => {
+    const bad: string[] = [];
+    let checked = 0;
+    for (const [fn, make] of Object.entries(FUNCTIONS)) {
+      for (const suffix of SUFFIXES) {
+        for (const id of IDS) {
+          // a `%` that the id holds itself is its own character: only the escapes that the name function wrote are looked at
+          if (id.includes('%')) continue;
+          const name = nameOf(make, id, suffix);
+          if (name === undefined || !/~[0-9a-f]{8}$/.test(name)) continue;
+          checked++;
+          const cut = name.slice(0, -9);
+          if (
+            /%(?![0-9A-F]{2})/.test(cut) ||
+            /%C2(?!%[89][0-9A-F])/.test(cut)
+          ) {
+            bad.push(
+              `${fn} ${JSON.stringify(suffix)} ${JSON.stringify(id.slice(0, 12))}(${id.length}): ${cut.slice(-12)}`
+            );
+          }
+        }
+      }
+    }
+
+    expect(bad.slice(0, 5)).toEqual([]);
+    expect(checked).toBeGreaterThan(3000);
   });
 
   it('two ids that do not fit never share a name', () => {

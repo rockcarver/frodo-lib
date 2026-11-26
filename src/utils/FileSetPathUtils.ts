@@ -31,11 +31,14 @@ const CHECKSUM_SEPARATOR = '~';
 /** How many hexadecimal characters of the checksum a shortened name holds. */
 const CHECKSUM_LENGTH = 8;
 
+/** The start of an escape that a cut left at its end: a `%` with one hexadecimal digit, or with none. A cut never ends there. */
+const PARTIAL_ESCAPE = /%[0-9A-Fa-f]?$/;
+
 /**
- * What is left of an escape at the end of a cut: a `%`, a `%` and one digit, or `%C2`, the first half of a control character
- * of the C1 block (`%C2%85`). A cut never ends there.
+ * The first half of the escape of a control character of the C1 block (`%C2%85`). It reads as a whole escape of its own, but
+ * a cut that ends there has cut the character in two, so it is taken off too.
  */
-const PARTIAL_ESCAPE = /%(?:[0-9A-Fa-f]|C2)?$/;
+const FIRST_HALF_OF_C1_ESCAPE = /%C2$/i;
 
 /**
  * An id or a name made safe for a file system: a character that a file name cannot hold is percent-encoded (`/` becomes
@@ -114,15 +117,10 @@ function cutName(name: string, room: number): string {
     bytes += size;
     end += character.length;
   }
-  let cut = name.slice(0, end);
-  for (
-    let partial = PARTIAL_ESCAPE.exec(cut);
-    partial;
-    partial = PARTIAL_ESCAPE.exec(cut)
-  ) {
-    cut = cut.slice(0, partial.index);
-  }
-  return cut;
+  return name
+    .slice(0, end)
+    .replace(PARTIAL_ESCAPE, '')
+    .replace(FIRST_HALF_OF_C1_ESCAPE, '');
 }
 
 /**
