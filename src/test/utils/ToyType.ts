@@ -1,7 +1,6 @@
 import {
   assignFileNames,
   fileOfObject,
-  idOfFile,
   inRealm,
   overridesOf,
   readFileSetJson,
@@ -206,11 +205,13 @@ async function toyFilesOf({
 }
 
 /**
- * Read one toy of a file set: the id is the `_id` of the file, or the id that the name of the file stands for.
+ * Read one toy of a file set. The id is the `_id` that the file holds and nothing else: a push never reads a file name, so a
+ * file can be renamed, or shortened because its id is long, and the toy is the same toy.
  * @param {FileSetReader} reader the reader of the file set
  * @param {string} path the path of the file
  * @param {State} state the state, which holds the values of the placeholders
  * @returns {Promise<ToyObject>} the toy
+ * @throws {Error} if the file holds no `_id`, or cannot be read
  */
 async function readToy({
   reader,
@@ -221,20 +222,23 @@ async function readToy({
   path: string;
   state: State;
 }): Promise<ToyObject> {
-  const object = (await readFileSetJson({ reader, path, state })) as Record<
-    string,
-    unknown
-  >;
-  return {
-    ...object,
-    _id: String(object._id ?? idOfFile(path.slice(path.lastIndexOf('/') + 1))),
-  };
+  const object = (await readFileSetJson({ reader, path, state })) as
+    Record<string, unknown> | null | undefined;
+  if (
+    typeof object !== 'object' ||
+    object === null ||
+    object._id === undefined ||
+    object._id === null
+  ) {
+    throw new Error(`The file ${path} holds no _id.`);
+  }
+  return { ...object, _id: String(object._id) };
 }
 
 /**
  * The merge of a file set into the toys of each realm that it holds: the realms are the folders below `realms`, a toy is
- * the id of its file (`_id`) and the rest of the file, placeholders filled from the state. A file that cannot be read
- * fails the merge.
+ * the id of its file (`_id`) and the rest of the file, placeholders filled from the state. The toys of a realm are in the
+ * order of their ids, whatever the files are called. A file that cannot be read, or holds no `_id`, fails the merge.
  * @param {FileSetReader} reader the reader of the file set
  * @param {string} realm the realm to read, if one was asked for
  * @param {State} state the state
@@ -257,22 +261,27 @@ export async function mergeToys({
         await readToy({ reader, path: `${found.folder}/${name}`, state })
       );
     }
+    read.sort((a, b) => compareOrdinal(a._id, b._id));
     entries.push([found.realm, read]);
   }
   return Object.fromEntries(entries);
 }
 
+/** A file of the toys of a realm, read for a push: the toy, or why it could not be read, under the id it is sent by. */
+type ToyRead = { id: string; toy?: ToyObject; error?: Error };
+
 /**
  * Push the toys: send each toy of the file set through `importToy`, in its realm. Every file is one object of the run, so a
- * file that cannot be read (a placeholder that has no value, text that is not JSON) and a toy that the server refuses fail
- * only themselves, and the others go on.
+ * file that cannot be read (a placeholder that has no value, text that is not JSON, no `_id`) and a toy that the server
+ * refuses fail only themselves, and the others go on. The id of a toy is the `_id` of its file, never its name: the toys
+ * are sent in the order of their ids, whatever the files are called, and a file that cannot be read has its path for an id.
  * @param {FileSetReader} reader the reader of the file set
  * @param {(realm: string, toy: ToyObject, leftOutCallback?: LeftOutAttributesCallback) => Promise<ToyObject>} importToy sends one toy to the tenant, in the realm that the state is set to
  * @param {string} realm the realm to push, if one was asked for
  * @param {ResultCallback<ToyObject>} resultCallback Optional. Called once for every toy
  * @param {LeftOutAttributesCallback} leftOutCallback Optional. Passed on to `importToy`
  * @param {State} state the state
- * @returns {Promise<PushOutcome[]>} one outcome for every file, realm by realm; the id is the one that the name of the file stands for
+ * @returns {Promise<PushOutcome[]>} one outcome for every file, realm by realm, in the order of the ids; the id is the `_id` of the file, or its path when it could not be read
  */
 export async function pushToys({
   reader,
@@ -299,21 +308,32 @@ export async function pushToys({
       ...(await inRealm({
         realm: found.realm,
         state,
-        work: () =>
-          runPerObject({
-            objects: found.names.map((name) => ({
-              id: idOfFile(name),
-              path: `${found.folder}/${name}`,
-            })),
-            work: async ({ object, leftOutCallback: leftOut }) =>
-              importToy(
-                found.realm,
-                await readToy({ reader, path: object.path, state }),
-                leftOut
-              ),
+        work: async () => {
+          const read: ToyRead[] = [];
+          for (const name of found.names) {
+            const path = `${found.folder}/${name}`;
+            try {
+              const toy = await readToy({ reader, path, state });
+              read.push({ id: toy._id, toy });
+            } catch (error) {
+              read.push({
+                id: path,
+                error:
+                  error instanceof Error ? error : new Error(String(error)),
+              });
+            }
+          }
+          read.sort((a, b) => compareOrdinal(a.id, b.id));
+          return runPerObject({
+            objects: read,
+            work: async ({ object, leftOutCallback: leftOut }) => {
+              if (object.error) throw object.error;
+              return importToy(found.realm, object.toy as ToyObject, leftOut);
+            },
             resultCallback,
             leftOutCallback,
-          }),
+          });
+        },
       }))
     );
   }

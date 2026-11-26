@@ -233,21 +233,6 @@ export function applyOverrides(
 }
 
 /**
- * The id of an object whose file has no id of its own: the name of the file without `.json`, decoded, because the names of
- * the files of a pull write what a file system cannot hold as `%XX`. A name that does not decode is the id as it is.
- * @param {string} fileName the name of the file
- * @returns {string} the id
- */
-export function idOfFile(fileName: string): string {
-  const name = fileName.replace(/\.json$/, '');
-  try {
-    return decodeURIComponent(name);
-  } catch {
-    return name;
-  }
-}
-
-/**
  * The realm that the folder of a realm in a file set stands for.
  * @param {string} dir the name of the folder
  * @returns {string} the realm, as the state names it: `/` for `root`

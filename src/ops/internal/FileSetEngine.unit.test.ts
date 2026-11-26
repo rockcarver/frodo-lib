@@ -31,7 +31,6 @@ import {
   applyOverrides,
   assignFileNames,
   fileOfObject,
-  idOfFile,
   inRealm,
   isCloudRootRealm,
   overridesOf,
@@ -454,7 +453,6 @@ describe.each(PROTOTYPE_NAMES)('the name %s', (name) => {
         new Set()
       )
     ).toEqual({ a: 1 });
-    expect(idOfFile(`${name}.json`)).toBe(name);
   });
 
   it('is the one realm to visit when it is named', async () => {
@@ -637,24 +635,7 @@ describe('applyOverrides', () => {
   });
 });
 
-describe('idOfFile and realmOfDir', () => {
-  it.each([
-    ['Login.json', 'Login'],
-    ['a%2Fb.json', 'a/b'],
-    ['a%20b.json', 'a b'],
-    ['%C3%A9.json', 'é'],
-    ['no-extension', 'no-extension'],
-    ['x.json.json', 'x.json'],
-    // `.json` is taken off the end only, not where it first occurs
-    ['my.json.config.json', 'my.json.config'],
-    ['a.jsonx', 'a.jsonx'],
-    ['a.JSON', 'a.JSON'],
-    ['100%.json', '100%'],
-    ['%E0%A4%A.json', '%E0%A4%A'],
-  ])('the file %j is the object %j', (fileName, expected) => {
-    expect(idOfFile(fileName)).toBe(expected);
-  });
-
+describe('realmOfDir', () => {
   it.each([
     ['root', '/'],
     ['alpha', 'alpha'],
