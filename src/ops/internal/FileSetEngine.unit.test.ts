@@ -1129,6 +1129,49 @@ describe('runPerObject', () => {
     expect(outcomes[1]).toEqual({ id: 'two' });
   });
 
+  it('makes a throw of the callback, when the work reported a part through the errorCallback, the failure of that object: wrapped, the callback told, the run goes on', async () => {
+    const broken = new Error('the callback broke');
+    const ran: string[] = [];
+    const told: string[] = [];
+    let calls = 0;
+
+    const outcomes = await runPerObject({
+      objects: [{ id: 'one' }, { id: 'two' }, { id: 'three' }],
+      work: async ({ object, errorCallback }) => {
+        ran.push(object.id);
+        if (object.id === 'one') errorCallback(new FrodoError('a part failed'));
+        return `result of ${object.id}`;
+      },
+      resultCallback: (error, result) => {
+        calls++;
+        told.push(error ? error.message : `ok ${result}`);
+        // the first call is the one that the errorCallback makes for the part: it throws
+        if (calls === 1) throw broken;
+      },
+    });
+
+    // the run goes on: every object ran and every object has its outcome
+    expect(ran).toEqual(['one', 'two', 'three']);
+    expect(outcomes.map((outcome) => outcome.id)).toEqual([
+      'one',
+      'two',
+      'three',
+    ]);
+    // the throw is a throw of the work: it fails that object, wrapped once, with the callback's error as its cause
+    expect(outcomes[0].error).toBeInstanceOf(FrodoError);
+    expect(outcomes[0].error.message).toBe('Error processing one');
+    expect(outcomes[0].error.originalErrors).toEqual([broken]);
+    expect(outcomes[1]).toEqual({ id: 'two' });
+    expect(outcomes[2]).toEqual({ id: 'three' });
+    // the callback was told of the part, then of the failure of the object, then of the others
+    expect(told).toEqual([
+      'a part failed',
+      'Error processing one',
+      'ok result of two',
+      'ok result of three',
+    ]);
+  });
+
   it('passes the leftOutCallback on as it is, and counts nothing itself', async () => {
     const leftOutCallback: LeftOutAttributesCallback = jest.fn();
     const seen: unknown[] = [];
