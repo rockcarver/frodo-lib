@@ -2756,8 +2756,21 @@ describe('the names that every function makes, over a battery of ids', () => {
  * the same name, or the same refusal, in both. An id that does not fit gives a name that fits, with a checksum.
  */
 describe('an id that fits keeps the name that it had', () => {
-  /** The bytes that the sanitizer sees: every character of a path written as %XX, a `*` still counted. */
+  /**
+   * The complete encoded length of an id, as the rule measures it: every character of a path written as %XX, a `*` still
+   * counted, nothing cut, and a trailing run of dots and spaces written out (a space is `%20`).
+   */
   const bytesBefore = (text: string): number =>
+    Buffer.byteLength(
+      text
+        // eslint-disable-next-line no-control-regex
+        .replace(/[\u0000-\u001f\u0080-\u009f/?<>\\:|"]/g, (character) =>
+          encodeURIComponent(character)
+        )
+        .replace(/[. ]+$/, (run) => encodeURIComponent(run))
+    );
+  /** The measure of the functions before the checksum: the same, without the trailing run. Used by the frozen copy only. */
+  const bytesOfTheOldFunctions = (text: string): number =>
     Buffer.byteLength(
       text
         // eslint-disable-next-line no-control-regex
@@ -2783,13 +2796,13 @@ describe('an id that fits keeps the name that it had', () => {
     nameInFolder: (value) => {
       const text = String(value);
       if (isOneSafeSegment(text)) return text;
-      if (bytesBefore(text) > 255) throw new Error('too long');
+      if (bytesOfTheOldFunctions(text) > 255) throw new Error('too long');
       const name = safeFileName(text);
       return name === '' ? refuse(text) : name;
     },
     encodedName: (value) => {
       const text = String(value);
-      if (bytesBefore(text) > 255) throw new Error('too long');
+      if (bytesOfTheOldFunctions(text) > 255) throw new Error('too long');
       const name = safeFileName(text);
       return name === '' ? refuse(text) : name;
     },
@@ -2858,8 +2871,16 @@ describe('an id that fits keeps the name that it had', () => {
           }
         } else {
           cut++;
-          // an id that does not fit gets a name that does, with a checksum; or no name, as an id that leaves none did before
-          const noName = now.startsWith('refused') || now === 'name ';
+          // an id that does not fit gets a name that does, with a checksum; or no name, but only an id that leaves none: a
+          // value that the sanitizer empties (dots, `*`, a device name of Windows), refused by the functions that refuse it
+          const leavesNone =
+            safeFileName(id.toWellFormed()) === '' &&
+            !(
+              (fn === 'nameInFolder' || fn === 'nameInStem') &&
+              isOneSafeSegment(id)
+            );
+          const noName =
+            leavesNone && (now.startsWith('refused') || now === 'name ');
           let fine = noName;
           if (!noName) {
             const name = now.slice('name '.length);
@@ -2935,6 +2956,7 @@ describe('an id that fits keeps the name that it had', () => {
       '\n',
       'C:',
       '..',
+      ' ',
     ];
     const SUFFIXES = ['.json', '.onCreate.js', ''];
     const problems: string[] = [];
@@ -2947,10 +2969,10 @@ describe('an id that fits keeps the name that it had', () => {
       for (const piece of PIECES) walk(prefix + piece, depth + 1);
     };
     walk('', 0);
-    // ids of up to three pieces, with a run of letters in front that brings them to 241..257 bytes in either measure
+    // ids of up to three pieces, with a run of letters in front that brings them to 242..256 bytes in either measure
     for (const id of short) {
       for (const measure of [bytesBefore(id), Buffer.byteLength(id)]) {
-        for (let target = 241; target <= 257; target++) {
+        for (let target = 242; target <= 256; target++) {
           if (target >= measure) ids.add(rep('a', target - measure) + id);
         }
       }
