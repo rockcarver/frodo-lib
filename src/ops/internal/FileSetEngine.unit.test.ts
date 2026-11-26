@@ -8,7 +8,9 @@
  * (`createMemoryFileSetReader`) and a state is made up, so nothing here touches a tenant, a file or the real home.
  *
  * The functions were written for the command line first; the rows that come from there are the cases that command had:
- * the root realm of a Cloud deployment, ids that differ only in case, a name of 300 characters, one object that fails.
+ * the root realm of a Cloud deployment, ids that differ only in case, a name of 300 characters, one object that fails. A name
+ * that does not fit in a file name is shortened with a checksum by the name functions (`FileSetPathUtils`), so the rows for a
+ * long id say what the engine does with those names.
  */
 import { jest } from '@jest/globals';
 import ts from 'typescript';
@@ -280,15 +282,54 @@ describe('assignFileNames', () => {
     expect(collisions).toEqual([{ id: 'é', firstId: 'é' }]);
   });
 
-  it('cuts an id of 300 characters at 250 bytes, so two such ids that differ later collide', () => {
+  it('gives two ids of 300 characters that differ late two names, each with the checksum of its own id', () => {
     const first = `${'n'.repeat(250)}one`;
     const second = `${'n'.repeat(250)}two`;
+    const { names, collisions, refused } = assignFileNames([
+      first,
+      second,
+      'short',
+    ]);
+
+    // the checksums come from an independent implementation (Python 3, hashlib), see FileSetPathUtils.unit.test.ts
+    expect(names.get(first)).toBe(`${'n'.repeat(241)}~05702624`);
+    expect(names.get(second)).toBe(`${'n'.repeat(241)}~d2337d37`);
+    expect(names.get('short')).toBe('short');
+    expect(collisions).toEqual([]);
+    expect(refused).toEqual([]);
+  });
+
+  it('reports the second of two ids that share a cut and a checksum as a collision, and the first keeps the name', () => {
+    // a pair that was found by trying: both have the cut of 241 letters and the checksum 5b2c45dc
+    const first = `${'a'.repeat(300)}7449`;
+    const second = `${'a'.repeat(300)}22501`;
     const { names, collisions } = assignFileNames([first, second, 'short']);
 
-    expect(names.get(first)).toBe('n'.repeat(250));
-    expect(names.get('short')).toBe('short');
+    expect(names.get(first)).toBe(`${'a'.repeat(241)}~5b2c45dc`);
     expect(names.has(second)).toBe(false);
+    expect(names.get('short')).toBe('short');
     expect(collisions).toEqual([{ id: second, firstId: first }]);
+    // the name of an id never depends on the other ids: the order that the pair comes in is the only thing that decides
+    expect(assignFileNames([second, first]).collisions).toEqual([
+      { id: first, firstId: second },
+    ]);
+  });
+
+  it('gives an id that is not text a name of its own and does not refuse it', () => {
+    for (const nameOf of [undefined, encodedName]) {
+      const { names, collisions, refused } = assignFileNames(
+        ['x\ud800', 'x\ufffd', 'x\ud801'],
+        nameOf
+      );
+
+      expect([...names]).toEqual([
+        ['x\ud800', 'x\ufffd~a7490da1'],
+        ['x\ufffd', 'x\ufffd'],
+        ['x\ud801', 'x\ufffd~c3e32b2f'],
+      ]);
+      expect(collisions).toEqual([]);
+      expect(refused).toEqual([]);
+    }
   });
 
   it('keeps the names of the ids that do not collide, in the order given', () => {

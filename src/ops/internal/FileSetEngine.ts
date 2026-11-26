@@ -113,13 +113,15 @@ export async function inRealm<R>({
 
 /**
  * The file names of objects that are written to one folder. Two ids whose names are the same on a file system that ignores
- * case or Unicode form (and two long ids that are cut to one name) collide: the first id keeps the name and the later ones
- * are reported. An id for which the name function throws gets no name: it is reported as refused, with the error, and never
- * thrown, so one id that leaves no name does not stop the others. Only what the name function throws is refused here: a
- * name that passes it can still make a path that `assertFileSetPath` refuses (an id whose name is 251 bytes or longer, whose
- * file `<name>.json` then has a part of more than 255 bytes, or an id with a lone surrogate), and `buildFileSet` then throws
- * for the whole set. The ids are taken in the order they are given: a caller that wants the same names whatever order the
- * tenant answers in sorts them first (`compareOrdinal`).
+ * case or Unicode form collide: the first id keeps the name and the later ones are reported. The name functions of
+ * `FileSetPathUtils` give a name that fits in a file name to every id that has a name: an id that is too long, or that is not
+ * text (a lone surrogate), gets a shortened name, the start of its name and a checksum of the complete id, so two long ids
+ * that start alike have two names. They can still collide, but only when the cut and the 8 hexadecimal characters of the
+ * checksum are both the same (about one pair in four billion that shares a cut): the first id keeps the name and the other
+ * is reported, and nothing is renamed or overwritten, so a name never depends on the other ids. An id for which the name
+ * function throws gets no name: it is reported as refused, with the error, and never thrown, so one id that leaves no name
+ * does not stop the others. The ids are taken in the order they are given: a caller that wants the same names whatever order
+ * the tenant answers in sorts them first (`compareOrdinal`).
  * @param {string[]} ids the ids, in the order they are written
  * @param {(id: string) => string} nameOf gives the file name of an id, without the extension; the name that the agent types use by default
  * @returns {{ names: Map<string, string>; collisions: { id: string; firstId: string }[]; refused: { id: string; error: Error }[] }} the file name of each id that has one, the ids that collide with an earlier one, and the ids that have no name

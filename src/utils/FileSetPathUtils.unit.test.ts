@@ -16,8 +16,14 @@
  * and control characters become `%XX`, `*` is removed, a name that is only dots or a device name of Windows becomes empty,
  * trailing dots go, and the name is cut at 255 bytes.
  *
+ * An id whose name does not fit in a file name (255 bytes with the longest suffix that the type uses) gets a shortened name:
+ * the cut, `~` and a checksum of the complete id. The format is on disk and permanent, so the golden table below comes from
+ * an independent implementation (Python 3, hashlib), and a differential test against a frozen copy of the previous
+ * functions shows that every id that fits keeps the name it had.
+ *
  * Hermetic: no file is read or written, no network, no recording.
  */
+import { createHash } from 'crypto';
 import { posix } from 'path';
 import { frodo } from '../index';
 import { CAPABILITY_META } from '../mcp/CapabilityMetadata';
@@ -54,6 +60,9 @@ const FOLDER = '/work/set/sync/connectors';
 
 /** The value of a row is a string, or `[character, count]` for a long one. */
 const value = (v) => (Array.isArray(v) ? v[0].repeat(v[1]) : v);
+
+/** A character, or a short text, repeated: the long ids and names of the tables are written with it. */
+const rep = (text: string, count: number): string => text.repeat(count);
 
 /** [selector, the file name of that id, without the extension] */
 const FILE_NAMES = [
@@ -101,14 +110,16 @@ const FILE_NAMES = [
   ['\uff0f', '\uff0f'], // a full width slash is not a separator
   ['\uff0e\uff0e', '\uff0e\uff0e'],
   ['a\u202eb', 'a\u202eb'], // the right-to-left override stays as typed
-  // cut at 250 bytes, which leaves room for `.json` in the 255 that a file name can hold
-  [['a', 300], 'a'.repeat(250)],
-  [['é', 200], 'é'.repeat(125)],
-  [['😀', 70], '😀'.repeat(62)],
-  // what the cut leaves at the end of a name is cut again: a file name does not end with dots or spaces
-  ['a'.repeat(249) + '.b', 'a'.repeat(249)],
-  ['a'.repeat(249) + ' b', 'a'.repeat(249)],
-  ['a'.repeat(248) + '. b', 'a'.repeat(248)],
+  // an id that does not fit in the 255 bytes of a file name with `.json` is cut at 241 bytes, at a whole character, and
+  // gets `~` and the checksum of the complete id: 250 bytes, which leaves room for `.json`
+  [['a', 300], 'a'.repeat(241) + '~e8722168'],
+  [['é', 200], 'é'.repeat(120) + '~bf52c47b'],
+  [['😀', 70], '😀'.repeat(60) + '~4a62e2af'],
+  // a name of 250 bytes fits, and one of 251 does not: what the cut leaves at the end does not matter, the checksum ends the name
+  ['a'.repeat(250), 'a'.repeat(250)],
+  ['a'.repeat(249) + '.b', 'a'.repeat(241) + '~d5d42e11'],
+  ['a'.repeat(249) + ' b', 'a'.repeat(241) + '~5c1f4232'],
+  ['a'.repeat(248) + '. b', 'a'.repeat(241) + '~5d9f484c'],
 ];
 
 describe('safeFileName', () => {
@@ -187,7 +198,8 @@ describe('objectFilePath', () => {
     ['a%2Fb', `${FOLDER}/a%2Fb.json`],
     ['..foo', `${FOLDER}/..foo.json`],
     ['...', `${FOLDER}/....json`],
-    [['a', 300], `${FOLDER}/${'a'.repeat(300)}.json`],
+    // an id that is one name but does not fit in a file name gets a shortened name
+    [['a', 300], `${FOLDER}/${'a'.repeat(241)}~e8722168.json`],
     ['a/b', `${FOLDER}/a%2Fb.json`],
     ['../x', `${FOLDER}/..%2Fx.json`],
     ['../../x', `${FOLDER}/..%2F..%2Fx.json`],
@@ -237,6 +249,19 @@ describe('objectFilePath', () => {
     expect(objectFilePath(FOLDER, fileNameOf('con'))).toBe(`${FOLDER}/.json`);
   });
 
+  it('leaves room for the longest suffix of the type: a name that fits with `.json` and not with `.onCreate.js` is shortened for both files of the object', () => {
+    const id = 'a'.repeat(245);
+
+    expect(objectFilePath(FOLDER, id)).toBe(`${FOLDER}/${id}.json`);
+    expect(objectFilePath(FOLDER, id, '.onCreate.js')).toBe(
+      `${FOLDER}/${'a'.repeat(234)}~35dceed4.json`
+    );
+    // the name that was made with the longest suffix is the name of the other files too
+    expect(
+      objectFilePath(FOLDER, fileNameOf(id, '.onCreate.js'), '.onCreate.js')
+    ).toBe(`${FOLDER}/${'a'.repeat(234)}~35dceed4.json`);
+  });
+
   it('keeps a relative folder relative', () => {
     expect(objectFilePath('org-privileges', 'alphaOrgPrivileges')).toBe(
       'org-privileges/alphaOrgPrivileges.json'
@@ -275,6 +300,18 @@ describe('objectFolderPath', () => {
       );
     }
   );
+
+  it('leaves room for the longest suffix of the type in the name of a folder too', () => {
+    const id = 'a'.repeat(245);
+
+    expect(objectFolderPath(MAPPINGS, id)).toBe(`${MAPPINGS}/${id}`);
+    expect(objectFolderPath(MAPPINGS, id, '.onCreate.js')).toBe(
+      `${MAPPINGS}/${'a'.repeat(234)}~35dceed4`
+    );
+    expect(objectFolderPath(MAPPINGS, 'a'.repeat(300))).toBe(
+      `${MAPPINGS}/${'a'.repeat(241)}~e8722168`
+    );
+  });
 
   it('a file in the folder of an object is found with the same name', () => {
     for (const selector of ['x', 'a/b', '../x', 'con', 'a*b']) {
@@ -1313,34 +1350,45 @@ describe('nameInFolder and nameInStem', () => {
     }
   );
 
-  it('does not cut a long name: it fails, naming it, so that two long names never become one', () => {
-    expect(nameInFolder('n'.repeat(300))).toBe('n'.repeat(300));
-    expect(() => nameInFolder(`a/${'n'.repeat(300)}`)).toThrow(
-      'is longer than 255 bytes once encoded, so it cannot be the name of a file.'
-    );
+  it('does not cut a long name silently: it keeps the start and adds the checksum, so that two long names never become one', () => {
+    // one safe name, as typed, of 255 bytes: it fits with no suffix and not with `.json`
+    expect(nameInFolder('n'.repeat(250))).toBe('n'.repeat(250));
+    expect(nameInFolder('n'.repeat(300))).toBe(`${'n'.repeat(241)}~cd5124b3`);
     // a name of 255 bytes that holds a slash is 257 bytes once the slash is written as %2F
-    expect(() => nameInFolder(`a/${'n'.repeat(253)}`)).toThrow(
-      'is longer than 255 bytes once encoded'
+    expect(nameInFolder(`a/${'n'.repeat(253)}`)).toBe(
+      `a%2F${'n'.repeat(237)}~0c8bfa62`
     );
-    expect(nameInFolder(`a/${'n'.repeat(251)}`)).toBe(`a%2F${'n'.repeat(251)}`);
+    // 250 bytes fit, 251 do not
+    expect(nameInFolder(`a/${'n'.repeat(246)}`)).toBe(`a%2F${'n'.repeat(246)}`);
+    expect(nameInFolder(`a/${'n'.repeat(247)}`)).toBe(
+      `a%2F${'n'.repeat(237)}~6878efc3`
+    );
+    // the two ids that the old cut made one name are two names now
+    expect(nameInFolder(`a/${'n'.repeat(251)}`)).not.toBe(
+      nameInFolder(`a/${'n'.repeat(252)}`)
+    );
   });
 
   it('counts the bytes of the encoded name, and the `*` that the cut sees', () => {
     // 126 characters of two bytes and a slash written as %2F: 256 bytes
-    expect(() => nameInFolder(`a/${'é'.repeat(126)}`)).toThrow(
-      'is longer than 255 bytes once encoded'
+    expect(nameInFolder(`a/${'é'.repeat(126)}`)).toBe(
+      `a%2F${'é'.repeat(118)}~86870cac`
     );
-    expect(nameInFolder(`a/${'é'.repeat(125)}`)).toBe(`a%2F${'é'.repeat(125)}`);
+    // 4 + 123 * 2 = 250 bytes fit
+    expect(nameInFolder(`a/${'é'.repeat(123)}`)).toBe(`a%2F${'é'.repeat(123)}`);
     // the function that makes the name cuts before it removes a `*`, so a `*` counts as a byte
-    expect(() => nameInFolder(`a/${'n'.repeat(251)}*`)).toThrow(
-      'is longer than 255 bytes once encoded'
+    expect(nameInFolder(`a/${'n'.repeat(251)}*`)).toBe(
+      `a%2F${'n'.repeat(237)}~691e0621`
     );
-    expect(nameInFolder(`a/${'n'.repeat(250)}*`)).toBe(
-      `a%2F${'n'.repeat(250)}`
+    expect(nameInFolder(`a/${'n'.repeat(246)}*`)).toBe(
+      `a%2F${'n'.repeat(237)}~1e3a9044`
+    );
+    expect(nameInFolder(`a/${'n'.repeat(245)}*`)).toBe(
+      `a%2F${'n'.repeat(245)}`
     );
   });
 
-  it('shows a control character of a refused name as an escape and cuts a long one', () => {
+  it('shows a control character of a refused name as an escape', () => {
     let message = '';
     try {
       nameInFolder('\u001b[31m');
@@ -1351,9 +1399,14 @@ describe('nameInFolder and nameInStem', () => {
     expect(message).toBe(
       "'.' does not name an object: an id or a name is not a path"
     );
-    expect(() => nameInFolder(`/${'n\u0001'.repeat(200)}`)).toThrow(
-      /^The name '\/n\\u0001n\\u0001.*\.\.\.' is longer than 255 bytes once encoded/
-    );
+  });
+
+  it('a long name made of control characters is shortened at a whole escape', () => {
+    const name = nameInFolder(`/${'n\u0001'.repeat(200)}`);
+
+    expect(name).toMatch(/^%2Fn%01n%01.*~[0-9a-f]{8}$/);
+    expect(name).not.toMatch(/%[0-9A-F]?~/);
+    expect(Buffer.byteLength(name)).toBeLessThanOrEqual(250);
   });
 
   it('turns a number into its text, as a template does', () => {
@@ -1445,19 +1498,16 @@ describe('encodedName', () => {
     }
   );
 
-  it('does not cut a name: more than 255 bytes once encoded is refused and 255 is not', () => {
-    expect(encodedName('n'.repeat(255))).toBe('n'.repeat(255));
-    expect(() => encodedName('n'.repeat(256))).toThrow(
-      `The name '${'n'.repeat(100)}...' is longer than 255 bytes once encoded, so it cannot be the name of a file.`
-    );
+  it('does not cut a name silently: 250 bytes fit with `.json`, more get a checksum', () => {
+    expect(encodedName('n'.repeat(250))).toBe('n'.repeat(250));
+    expect(encodedName('n'.repeat(251))).toBe(`${'n'.repeat(241)}~3720803a`);
+    expect(encodedName('n'.repeat(256))).toBe(`${'n'.repeat(241)}~fda476ec`);
     // bytes, not characters
-    expect(encodedName('é'.repeat(127))).toBe('é'.repeat(127));
-    expect(() => encodedName('é'.repeat(128))).toThrow(
-      'is longer than 255 bytes once encoded'
-    );
+    expect(encodedName('é'.repeat(125))).toBe('é'.repeat(125));
+    expect(encodedName('é'.repeat(128))).toBe(`${'é'.repeat(120)}~79c2c47d`);
     // a slash is three bytes once encoded
-    expect(() => encodedName(`a/${'n'.repeat(253)}`)).toThrow(
-      'is longer than 255 bytes once encoded'
+    expect(encodedName(`a/${'n'.repeat(253)}`)).toBe(
+      `a%2F${'n'.repeat(237)}~0c8bfa62`
     );
   });
 
@@ -1805,6 +1855,1034 @@ describe('what the gate lets through is what the library reads (a corpus of 402,
   });
 });
 
+/**
+ * The names of ids that do not fit. A name has to fit in 255 bytes together with the longest suffix that the type uses
+ * (`.json` by default). An id that does not fit gets a shortened name: its encoded name cut at a whole character, `~`, and
+ * the first 8 hexadecimal characters of the SHA-256 of the complete id as UTF-16 code units. The format is on disk and
+ * permanent, so the table below was made by an independent implementation, not by these functions.
+ */
+describe('a name that does not fit gets a checksum', () => {
+  const FUNCTIONS: Record<string, (id: string, suffix?: string) => string> = {
+    fileNameOf,
+    encodedName,
+    nameInFolder,
+    nameInStem,
+  };
+
+  // Generated by an independent implementation (Python 3, hashlib and urllib); the checksum of a row is
+  // sha256(id.encode('utf-16-le', 'surrogatepass')).hexdigest()[:8], the cut is written again from the rule.
+  // [function, id, longest suffix, name]; `undefined` is a value that leaves no name (fileNameOf gives '').
+  const GOLDEN: [string, string, string, string | undefined][] = [
+    ['fileNameOf', rep('a', 300), '.json', rep('a', 241) + '~e8722168'],
+    ['encodedName', rep('a', 300), '.json', rep('a', 241) + '~e8722168'],
+    ['nameInFolder', rep('a', 300), '.json', rep('a', 241) + '~e8722168'],
+    ['nameInStem', rep('a', 300), '.json', rep('a', 241) + '~e8722168'],
+    ['fileNameOf', rep('a', 251), '.json', rep('a', 241) + '~d260b91f'],
+    ['encodedName', rep('a', 251), '.json', rep('a', 241) + '~d260b91f'],
+    ['nameInFolder', rep('a', 251), '.json', rep('a', 241) + '~d260b91f'],
+    ['fileNameOf', rep('a', 250), '.json', rep('a', 250)],
+    ['encodedName', rep('a', 250), '.json', rep('a', 250)],
+    ['nameInFolder', rep('a', 250), '.json', rep('a', 250)],
+    ['fileNameOf', rep('a', 255), '', rep('a', 255)],
+    ['encodedName', rep('a', 255), '', rep('a', 255)],
+    ['nameInFolder', rep('a', 255), '', rep('a', 255)],
+    ['fileNameOf', rep('a', 256), '', rep('a', 246) + '~0fe06eea'],
+    ['encodedName', rep('a', 256), '', rep('a', 246) + '~0fe06eea'],
+    ['nameInFolder', rep('a', 256), '', rep('a', 246) + '~0fe06eea'],
+    ['fileNameOf', rep('x', 300) + '-1', '.json', rep('x', 241) + '~bed1c36e'],
+    ['encodedName', rep('x', 300) + '-1', '.json', rep('x', 241) + '~bed1c36e'],
+    [
+      'nameInFolder',
+      rep('x', 300) + '-1',
+      '.json',
+      rep('x', 241) + '~bed1c36e',
+    ],
+    ['fileNameOf', rep('x', 300) + '-2', '.json', rep('x', 241) + '~001fbd52'],
+    ['encodedName', rep('x', 300) + '-2', '.json', rep('x', 241) + '~001fbd52'],
+    [
+      'nameInFolder',
+      rep('x', 300) + '-2',
+      '.json',
+      rep('x', 241) + '~001fbd52',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 300) + '7449',
+      '.json',
+      rep('a', 241) + '~5b2c45dc',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 300) + '7449',
+      '.json',
+      rep('a', 241) + '~5b2c45dc',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 300) + '22501',
+      '.json',
+      rep('a', 241) + '~5b2c45dc',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 300) + '22501',
+      '.json',
+      rep('a', 241) + '~5b2c45dc',
+    ],
+    ['fileNameOf', rep('/', 100), '.json', rep('%2F', 80) + '~660c00d4'],
+    ['encodedName', rep('/', 100), '.json', rep('%2F', 80) + '~660c00d4'],
+    ['nameInFolder', rep('/', 100), '.json', rep('%2F', 80) + '~660c00d4'],
+    ['fileNameOf', rep('/', 86), '', rep('%2F', 82) + '~c4d15c2e'],
+    ['encodedName', rep('/', 86), '', rep('%2F', 82) + '~c4d15c2e'],
+    ['nameInFolder', rep('/', 86), '', rep('%2F', 82) + '~c4d15c2e'],
+    ['fileNameOf', rep('/', 85), '', rep('%2F', 85)],
+    ['encodedName', rep('/', 85), '', rep('%2F', 85)],
+    ['nameInFolder', rep('/', 85), '', rep('%2F', 85)],
+    ['fileNameOf', rep('é', 200), '.json', rep('é', 120) + '~bf52c47b'],
+    ['encodedName', rep('é', 200), '.json', rep('é', 120) + '~bf52c47b'],
+    ['nameInFolder', rep('é', 200), '.json', rep('é', 120) + '~bf52c47b'],
+    ['fileNameOf', rep('é', 125), '.json', rep('é', 125)],
+    ['nameInFolder', rep('é', 125), '.json', rep('é', 125)],
+    ['fileNameOf', rep('€', 100), '.json', rep('€', 80) + '~32776e23'],
+    ['nameInFolder', rep('€', 100), '.json', rep('€', 80) + '~32776e23'],
+    ['fileNameOf', rep('😀', 70), '.json', rep('😀', 60) + '~4a62e2af'],
+    ['encodedName', rep('😀', 70), '.json', rep('😀', 60) + '~4a62e2af'],
+    ['nameInFolder', rep('😀', 70), '.json', rep('😀', 60) + '~4a62e2af'],
+    [
+      'fileNameOf',
+      rep('a', 4) + rep('\u0085', 100),
+      '.json',
+      rep('a', 4) + rep('%C2%85', 39) + '~ddb52c11',
+    ],
+    [
+      'encodedName',
+      rep('a', 4) + rep('\u0085', 100),
+      '.json',
+      rep('a', 4) + rep('%C2%85', 39) + '~ddb52c11',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 4) + rep('\u0085', 100),
+      '.json',
+      rep('a', 4) + rep('%C2%85', 39) + '~ddb52c11',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 235) + rep('\u0085', 10),
+      '.json',
+      rep('a', 235) + '%C2%85~84855dd1',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 235) + rep('\u0085', 10),
+      '.json',
+      rep('a', 235) + '%C2%85~84855dd1',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 236) + rep('\u0085', 10),
+      '.json',
+      rep('a', 236) + '~ac175dcd',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 236) + rep('\u0085', 10),
+      '.json',
+      rep('a', 236) + '~ac175dcd',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 237) + rep('\u0085', 10),
+      '.json',
+      rep('a', 237) + '~c9ca88da',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 237) + rep('\u0085', 10),
+      '.json',
+      rep('a', 237) + '~c9ca88da',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 238) + rep('\u0085', 10),
+      '.json',
+      rep('a', 238) + '~a056027f',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 238) + rep('\u0085', 10),
+      '.json',
+      rep('a', 238) + '~a056027f',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 239) + rep('\u0085', 10),
+      '.json',
+      rep('a', 239) + '~60324612',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 239) + rep('\u0085', 10),
+      '.json',
+      rep('a', 239) + '~60324612',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 240) + rep('\u0085', 10),
+      '.json',
+      rep('a', 240) + '~182db068',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 240) + rep('\u0085', 10),
+      '.json',
+      rep('a', 240) + '~182db068',
+    ],
+    ['fileNameOf', 'x\ud800', '.json', 'x\ufffd~a7490da1'],
+    ['encodedName', 'x\ud800', '.json', 'x\ufffd~a7490da1'],
+    ['nameInFolder', 'x\ud800', '.json', 'x\ufffd~a7490da1'],
+    ['fileNameOf', 'x\ufffd', '.json', 'x\ufffd'],
+    ['encodedName', 'x\ufffd', '.json', 'x\ufffd'],
+    ['nameInFolder', 'x\ufffd', '.json', 'x\ufffd'],
+    ['fileNameOf', 'x\ud800y', '.json', 'x\ufffdy~2055a8e2'],
+    ['nameInFolder', 'x\ud800y', '.json', 'x\ufffdy~2055a8e2'],
+    ['fileNameOf', 'x\ud801y', '.json', 'x\ufffdy~9ef5b225'],
+    ['nameInFolder', 'x\ud801y', '.json', 'x\ufffdy~9ef5b225'],
+    ['fileNameOf', '\ud800', '.json', '\ufffd~205022e3'],
+    ['nameInFolder', '\ud800', '.json', '\ufffd~205022e3'],
+    ['fileNameOf', '\udc00', '.json', '\ufffd~d63ddb2b'],
+    ['nameInFolder', '\udc00', '.json', '\ufffd~d63ddb2b'],
+    [
+      'fileNameOf',
+      rep('x', 254) + '\ud800',
+      '.json',
+      rep('x', 241) + '~426b50d5',
+    ],
+    [
+      'encodedName',
+      rep('x', 254) + '\ud800',
+      '.json',
+      rep('x', 241) + '~426b50d5',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 254) + '\ud800',
+      '.json',
+      rep('x', 241) + '~426b50d5',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 245) + '\ud800',
+      '.json',
+      rep('x', 241) + '~f5d9cade',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 245) + '\ud800',
+      '.json',
+      rep('x', 241) + '~f5d9cade',
+    ],
+    ['fileNameOf', rep('x', 254) + '\ud800', '', rep('x', 246) + '~426b50d5'],
+    ['nameInFolder', rep('x', 254) + '\ud800', '', rep('x', 246) + '~426b50d5'],
+    ['fileNameOf', rep('x', 250) + '\ud800', '', rep('x', 246) + '~ab8d4c46'],
+    ['nameInFolder', rep('x', 250) + '\ud800', '', rep('x', 246) + '~ab8d4c46'],
+    ['fileNameOf', rep('x', 243), '.onCreate.js', rep('x', 243)],
+    ['encodedName', rep('x', 243), '.onCreate.js', rep('x', 243)],
+    ['nameInFolder', rep('x', 243), '.onCreate.js', rep('x', 243)],
+    ['fileNameOf', rep('a', 244), '.onCreate.js', rep('a', 234) + '~abcb1ecd'],
+    ['encodedName', rep('a', 244), '.onCreate.js', rep('a', 234) + '~abcb1ecd'],
+    [
+      'nameInFolder',
+      rep('a', 244),
+      '.onCreate.js',
+      rep('a', 234) + '~abcb1ecd',
+    ],
+    ['fileNameOf', rep('a', 245), '.onCreate.js', rep('a', 234) + '~35dceed4'],
+    [
+      'nameInFolder',
+      rep('a', 245),
+      '.onCreate.js',
+      rep('a', 234) + '~35dceed4',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 215),
+      '.lllllllllllllllllllllllllllllllllllllll',
+      rep('a', 215),
+    ],
+    [
+      'nameInFolder',
+      rep('a', 215),
+      '.lllllllllllllllllllllllllllllllllllllll',
+      rep('a', 215),
+    ],
+    [
+      'fileNameOf',
+      rep('a', 216),
+      '.lllllllllllllllllllllllllllllllllllllll',
+      rep('a', 206) + '~f0ed1300',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 216),
+      '.lllllllllllllllllllllllllllllllllllllll',
+      rep('a', 206) + '~f0ed1300',
+    ],
+    ['nameInStem', 'a:' + rep('n', 246), '.json', 'a%3A' + rep('n', 246)],
+    ['nameInFolder', 'a:' + rep('n', 246), '.json', 'a:' + rep('n', 246)],
+    [
+      'nameInStem',
+      'a:' + rep('n', 247),
+      '.json',
+      'a%3A' + rep('n', 237) + '~a43dbedc',
+    ],
+    ['nameInFolder', 'a:' + rep('n', 247), '.json', 'a:' + rep('n', 247)],
+    [
+      'nameInStem',
+      'a:' + rep('n', 247),
+      '.onCreate.js',
+      'a%3A' + rep('n', 230) + '~a43dbedc',
+    ],
+    [
+      'nameInStem',
+      'Z:' + rep('n', 300),
+      '.json',
+      'Z%3A' + rep('n', 237) + '~c124484a',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 200) + rep('*', 100),
+      '.json',
+      rep('x', 200) + '~d61daa2d',
+    ],
+    [
+      'encodedName',
+      rep('x', 200) + rep('*', 100),
+      '.json',
+      rep('x', 200) + '~d61daa2d',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 200) + rep('*', 100),
+      '.json',
+      rep('x', 200) + rep('*', 41) + '~d61daa2d',
+    ],
+    ['fileNameOf', rep('*', 300) + 'abc', '.json', undefined],
+    [
+      'nameInFolder',
+      rep('*', 300) + 'abc',
+      '.json',
+      rep('*', 241) + '~96467f3f',
+    ],
+    ['fileNameOf', rep('x', 249) + ' ', '.json', rep('x', 241) + '~f7444881'],
+    ['encodedName', rep('x', 249) + ' ', '.json', rep('x', 241) + '~f7444881'],
+    ['nameInFolder', rep('x', 249) + ' ', '.json', rep('x', 249) + ' '],
+    ['fileNameOf', rep('x', 248) + '...', '.json', rep('x', 241) + '~8003d65d'],
+    [
+      'encodedName',
+      rep('x', 248) + '...',
+      '.json',
+      rep('x', 241) + '~8003d65d',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 248) + '...',
+      '.json',
+      rep('x', 241) + '~8003d65d',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 240) + '%2F' + rep('b', 20),
+      '.json',
+      rep('x', 240) + '~34119c09',
+    ],
+    [
+      'encodedName',
+      rep('x', 240) + '%2F' + rep('b', 20),
+      '.json',
+      rep('x', 240) + '~34119c09',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 240) + '%2F' + rep('b', 20),
+      '.json',
+      rep('x', 240) + '~34119c09',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 239) + '%2F' + rep('b', 20),
+      '.json',
+      rep('x', 239) + '~9df4543b',
+    ],
+    [
+      'encodedName',
+      rep('x', 239) + '%2F' + rep('b', 20),
+      '.json',
+      rep('x', 239) + '~9df4543b',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 239) + '%2F' + rep('b', 20),
+      '.json',
+      rep('x', 239) + '~9df4543b',
+    ],
+    ['fileNameOf', rep('.', 300), '.json', undefined],
+    ['encodedName', rep('.', 300), '.json', undefined],
+    ['nameInFolder', rep('.', 300), '.json', rep('.', 241) + '~f7071ffd'],
+    ['fileNameOf', 'nul.' + rep('x', 300), '.json', undefined],
+    ['encodedName', 'nul.' + rep('x', 300), '.json', undefined],
+    [
+      'nameInFolder',
+      'nul.' + rep('x', 300),
+      '.json',
+      'nul.' + rep('x', 237) + '~bd4e9aff',
+    ],
+    [
+      'fileNameOf',
+      'a/' + rep('n', 251),
+      '.json',
+      'a%2F' + rep('n', 237) + '~a1933937',
+    ],
+    [
+      'encodedName',
+      'a/' + rep('n', 251),
+      '.json',
+      'a%2F' + rep('n', 237) + '~a1933937',
+    ],
+    [
+      'nameInFolder',
+      'a/' + rep('n', 251),
+      '.json',
+      'a%2F' + rep('n', 237) + '~a1933937',
+    ],
+    [
+      'fileNameOf',
+      'a/' + rep('n', 250),
+      '.json',
+      'a%2F' + rep('n', 237) + '~411ed8e6',
+    ],
+    [
+      'encodedName',
+      'a/' + rep('n', 250),
+      '.json',
+      'a%2F' + rep('n', 237) + '~411ed8e6',
+    ],
+    [
+      'nameInFolder',
+      'a/' + rep('n', 250),
+      '.json',
+      'a%2F' + rep('n', 237) + '~411ed8e6',
+    ],
+    [
+      'fileNameOf',
+      'a/' + rep('n', 249),
+      '.json',
+      'a%2F' + rep('n', 237) + '~2643f1c8',
+    ],
+    [
+      'encodedName',
+      'a/' + rep('n', 249),
+      '.json',
+      'a%2F' + rep('n', 237) + '~2643f1c8',
+    ],
+    [
+      'nameInFolder',
+      'a/' + rep('n', 249),
+      '.json',
+      'a%2F' + rep('n', 237) + '~2643f1c8',
+    ],
+    [
+      'fileNameOf',
+      'a/' + rep('é', 125),
+      '.json',
+      'a%2F' + rep('é', 118) + '~c02f1e61',
+    ],
+    [
+      'nameInFolder',
+      'a/' + rep('é', 125),
+      '.json',
+      'a%2F' + rep('é', 118) + '~c02f1e61',
+    ],
+  ];
+
+  /** An id, short enough to read in the name of a test. */
+  const shown = (id: string): string =>
+    id.length > 24
+      ? `${JSON.stringify(id.slice(0, 12))}...(${id.length} characters)`
+      : JSON.stringify(id);
+
+  it.each(
+    GOLDEN.map(([fn, id, suffix, name]) => [
+      `${fn}(${shown(id)}, ${JSON.stringify(suffix)})`,
+      fn,
+      id,
+      suffix,
+      name,
+    ])
+  )(
+    '%s is as the independent implementation says',
+    (_label, fn, id, suffix, expected) => {
+      const make = FUNCTIONS[fn as string];
+
+      if (expected === undefined) {
+        // a value that leaves no name: the agent types get an empty file name, every other function refuses it
+        if (fn === 'fileNameOf')
+          expect(make(id as string, suffix as string)).toBe('');
+        else {
+          expect(() => make(id as string, suffix as string)).toThrow(
+            'does not name an object'
+          );
+        }
+        return;
+      }
+      expect(make(id as string, suffix as string)).toBe(expected);
+    }
+  );
+
+  it('every row of the table is a name that fits with its suffix, is well-formed and passes the gate', () => {
+    let named = 0;
+    for (const [, id, suffix, name] of GOLDEN) {
+      if (name === undefined) continue;
+      named++;
+      expect(
+        Buffer.byteLength(name) + Buffer.byteLength(suffix)
+      ).toBeLessThanOrEqual(255);
+      expect(name.isWellFormed()).toBe(true);
+      expect(() => assertFileSetPath(`d/${name}${suffix}`)).not.toThrow();
+      expect(id.length).toBeGreaterThan(0);
+    }
+    expect(named).toBeGreaterThan(110);
+  });
+
+  it('the table has the traps in it: a lone surrogate, a colon, a cut inside an escape, `*` and a name of 250 bytes', () => {
+    const ids = GOLDEN.map(([, id]) => id);
+
+    expect(ids).toContain('x\ud800');
+    expect(ids).toContain(`${rep('x', 254)}\ud800`);
+    expect(ids).toContain(`a:${rep('n', 247)}`);
+    expect(ids).toContain(`aaaa${rep('\u0085', 100)}`);
+    expect(ids).toContain(rep('/', 86));
+    expect(ids).toContain(`${rep('x', 200)}${rep('*', 100)}`);
+    expect(ids).toContain(rep('a', 250));
+  });
+
+  it('the pair of ids that share a cut and a checksum (about one in four billion) get one name: the engine reports the second', () => {
+    const first = `${rep('a', 300)}7449`;
+    const second = `${rep('a', 300)}22501`;
+
+    expect(first).not.toBe(second);
+    expect(fileNameOf(first)).toBe(fileNameOf(second));
+    expect(fileNameOf(first)).toBe(`${rep('a', 241)}~5b2c45dc`);
+  });
+
+  describe('the three traps', () => {
+    it('the whole encoded name is measured: a long run of slashes is not one name (a sanitizer cut at 255 bytes made them one)', () => {
+      const names = new Set<string>();
+      for (let count = 80; count <= 120; count++) {
+        for (const suffix of ['', '.json']) {
+          const id = rep('/', count);
+          const name = nameInFolder(id, suffix);
+
+          expect(
+            Buffer.byteLength(name) + Buffer.byteLength(suffix)
+          ).toBeLessThanOrEqual(255);
+          if (suffix === '') names.add(name);
+        }
+      }
+      // 41 different ids, 41 different names with no suffix
+      expect(names.size).toBe(41);
+      expect(fileNameOf(rep('/', 86), '')).toBe(`${rep('%2F', 82)}~c4d15c2e`);
+      expect(fileNameOf(rep('/', 85), '')).toBe(rep('%2F', 85));
+    });
+
+    it('a lone surrogate is found in the id, not in the sanitized name (the sanitizer drops it at its own cut)', () => {
+      const id = `${rep('x', 254)}\ud800`;
+
+      expect(id.isWellFormed()).toBe(false);
+      // the sanitizer drops the surrogate: the name that it makes looks like text
+      expect(safeFileName(id).isWellFormed()).toBe(true);
+      expect(safeFileName(id)).toBe(rep('x', 254));
+      // and the id still gets a checksum of its own, which is not the checksum of the id without it
+      expect(fileNameOf(id)).toBe(`${rep('x', 241)}~426b50d5`);
+      expect(fileNameOf(id)).not.toBe(fileNameOf(rep('x', 254)));
+      expect(fileNameOf(`${rep('x', 254)}\ud801`)).not.toBe(fileNameOf(id));
+    });
+
+    it('the colon that nameInStem writes as %3A counts before the name fits, not after', () => {
+      const fits = `a:${rep('n', 246)}`;
+      const longer = `a:${rep('n', 247)}`;
+
+      expect(nameInStem(fits)).toBe(`a%3A${rep('n', 246)}`);
+      expect(Buffer.byteLength(nameInStem(fits)) + 5).toBe(255);
+      expect(nameInStem(longer)).toBe(`a%3A${rep('n', 237)}~a43dbedc`);
+      // the file that a type makes of the stem is a path that the gate lets through
+      expect(() =>
+        assertFileSetPath(`d/${nameInStem(longer)}.json`)
+      ).not.toThrow();
+      expect(() =>
+        assertFileSetPath(`d/${nameInStem(fits)}.json`)
+      ).not.toThrow();
+    });
+
+    it('one name for one object: the name is made once with the longest suffix, and is the same name for every shorter one', () => {
+      const id = rep('a', 300);
+      const longest = '.onCreate.js';
+      const name = fileNameOf(id, longest);
+
+      expect(name).toBe(`${rep('a', 234)}~e8722168`);
+      for (const suffix of ['', '.js', '.json', longest]) {
+        expect(fileNameOf(name, suffix)).toBe(name);
+        expect(encodedName(name, suffix)).toBe(name);
+        expect(nameInFolder(name, suffix)).toBe(name);
+        expect(nameInStem(name, suffix)).toBe(name);
+        expect(objectFilePath('d', name, suffix)).toBe(`d/${name}.json`);
+      }
+      // a name that is made with the short suffix and then asked for with the long one is shortened again: its checksum
+      // is the checksum of the shortened name, not of the id (which is why a type makes the name once)
+      expect(fileNameOf(fileNameOf(id), longest)).not.toBe(name);
+    });
+  });
+
+  describe('a name of N bytes and a suffix of S bytes', () => {
+    const SUFFIXES = ['', '.json', '.onCreate.js', `.${rep('l', 39)}`];
+    const CHARACTERS: [string, number][] = [
+      ['a', 1],
+      ['é', 2],
+      ['€', 3],
+      ['😀', 4],
+      ['%41', 3],
+    ];
+
+    it.each(
+      SUFFIXES.flatMap((suffix) =>
+        CHARACTERS.map(([character, bytes]) => [
+          JSON.stringify(suffix),
+          character,
+          bytes,
+          suffix,
+        ])
+      )
+    )(
+      'with the suffix %s a name made of %s (%d bytes each) is kept up to 255 bytes in all and is shortened one character beyond',
+      (_label, character, bytes, suffix) => {
+        const room = 255 - Buffer.byteLength(suffix as string);
+        const most = Math.floor(room / (bytes as number));
+        const kept = rep(character as string, most);
+        const beyond = rep(character as string, most + 1);
+
+        for (const make of [nameInFolder, fileNameOf, encodedName]) {
+          expect(make(kept, suffix as string)).toBe(kept);
+          const shortened = make(beyond, suffix as string);
+
+          expect(shortened).toMatch(/~[0-9a-f]{8}$/);
+          expect(
+            Buffer.byteLength(shortened) + Buffer.byteLength(suffix as string)
+          ).toBeLessThanOrEqual(255);
+          // the cut is at a whole character: what is left is a whole number of them
+          expect(shortened.slice(0, -9)).toBe(
+            rep(
+              character as string,
+              shortened.slice(0, -9).length / (character as string).length
+            )
+          );
+        }
+      }
+    );
+
+    it('a slash is three bytes once it is written as %2F, and a `*` counts as the cut sees it', () => {
+      for (const suffix of SUFFIXES) {
+        const room = 255 - Buffer.byteLength(suffix);
+        const slashes = Math.floor(room / 3);
+
+        expect(fileNameOf(rep('/', slashes), suffix)).toBe(rep('%2F', slashes));
+        expect(fileNameOf(rep('/', slashes + 1), suffix)).toMatch(
+          /~[0-9a-f]{8}$/
+        );
+        // `*` is removed after the cut: 'x' and `room - 1` stars is room bytes in the sanitizer, and an id that is
+        // more than that is shortened, though the name that is left of it is short
+        expect(fileNameOf(`x${rep('*', room - 1)}`, suffix)).toBe('x');
+        expect(fileNameOf(`x${rep('*', room)}`, suffix)).toBe(
+          `x~${checksumOf(`x${rep('*', room)}`)}`
+        );
+      }
+    });
+
+    it('a suffix that leaves no room for a shortened name is refused, whatever the id', () => {
+      const tooLong = `.${rep('s', 246)}`;
+
+      for (const make of [fileNameOf, encodedName, nameInFolder, nameInStem]) {
+        expect(() => make('a', tooLong)).toThrow('leaves no room for a name');
+      }
+      expect(() => objectFilePath('d', 'a', tooLong)).toThrow(
+        'leaves no room for a name'
+      );
+      expect(() => objectFolderPath('d', 'a', tooLong)).toThrow(
+        'leaves no room for a name'
+      );
+      // 246 bytes of suffix leave room for the checksum and nothing else
+      const edge = `.${rep('s', 245)}`;
+
+      expect(fileNameOf(rep('a', 300), edge)).toBe(`~e8722168`);
+    });
+  });
+});
+
+/** The first 8 hexadecimal characters of the SHA-256 of an id as UTF-16 code units: the checksum of a shortened name. */
+const checksumOf = (id: string): string =>
+  createHash('sha256').update(id, 'utf16le').digest('hex').slice(0, 8);
+
+describe('the names that every function makes, over a battery of ids', () => {
+  const CHARACTERS = [
+    'a',
+    'é',
+    '€',
+    '😀',
+    '/',
+    '?',
+    '*',
+    '%',
+    '\u0085',
+    '\n',
+    ' ',
+  ];
+  const LENGTHS = [
+    1, 2, 5, 40, 62, 63, 83, 84, 85, 86, 120, 125, 126, 127, 128, 250, 251, 256,
+    300, 600,
+  ];
+  const SUFFIXES = ['', '.json', '.js', '.onCreate.js', `.${rep('l', 39)}`];
+  const FUNCTIONS = { fileNameOf, encodedName, nameInFolder, nameInStem };
+  const IDS = CHARACTERS.flatMap((character) =>
+    LENGTHS.flatMap((length) => [
+      rep(character, length),
+      `a:${rep(character, length)}`,
+      `x${rep(character, length)}`,
+    ])
+  );
+
+  /** What a function makes of an id, or `undefined` for an id that leaves no name. */
+  const nameOf = (
+    make: (id: string, suffix?: string) => string,
+    id: string,
+    suffix: string
+  ): string | undefined => {
+    try {
+      const name = make(id, suffix);
+      return name === '' ? undefined : name;
+    } catch (error) {
+      expect(error.message).toContain('does not name an object');
+      return undefined;
+    }
+  };
+
+  it('every name fits with its suffix, is text, passes the gate, and is the same name when it is asked for again with the same or a shorter suffix', () => {
+    const bad: string[] = [];
+    let named = 0;
+    for (const [fn, make] of Object.entries(FUNCTIONS)) {
+      for (const suffix of SUFFIXES) {
+        for (const id of IDS) {
+          const name = nameOf(make, id, suffix);
+          if (name === undefined) continue;
+          named++;
+          try {
+            if (!name.isWellFormed()) throw new Error('not text');
+            if (Buffer.byteLength(name) + Buffer.byteLength(suffix) > 255) {
+              throw new Error('too long');
+            }
+            assertFileSetPath(`d/${name}${suffix}`);
+            for (const shorter of SUFFIXES) {
+              if (Buffer.byteLength(shorter) > Buffer.byteLength(suffix)) {
+                continue;
+              }
+              if (make(name, shorter) !== name) throw new Error('not stable');
+            }
+          } catch (error) {
+            bad.push(
+              `${fn} ${JSON.stringify(suffix)} ${JSON.stringify(id.slice(0, 20))}(${id.length}): ${error.message}`
+            );
+          }
+        }
+      }
+    }
+
+    expect(bad.slice(0, 5)).toEqual([]);
+    // 11 characters, 20 lengths, 3 shapes, 5 suffixes, 4 functions: 13,200 names, a few of which leave no name
+    expect(named).toBeGreaterThan(12000);
+  });
+
+  it('two ids that do not fit never share a name', () => {
+    const shared: string[] = [];
+    let shortened = 0;
+    for (const [fn, make] of Object.entries(FUNCTIONS)) {
+      for (const suffix of SUFFIXES) {
+        const seen = new Map<string, string>();
+        for (const id of IDS) {
+          const name = nameOf(make, id, suffix);
+          // no id of the battery holds a `~`, so a name with a checksum is the name of an id that did not fit
+          if (name === undefined || !/~[0-9a-f]{8}$/.test(name)) continue;
+          shortened++;
+          const first = seen.get(name);
+          if (first !== undefined && first !== id) {
+            shared.push(
+              `${fn} ${JSON.stringify(suffix)}: ${JSON.stringify(first.slice(0, 20))} and ${JSON.stringify(id.slice(0, 20))}`
+            );
+          }
+          seen.set(name, id);
+        }
+      }
+    }
+
+    expect(shared.slice(0, 5)).toEqual([]);
+    expect(shortened).toBeGreaterThan(5000);
+  });
+
+  it('ids that share a cut get their own checksums', () => {
+    const names = new Set<string>();
+    for (let index = 0; index < 3000; index++) {
+      names.add(fileNameOf(`${rep('a', 300)}${index}`));
+    }
+    const cuts = new Set([...names].map((name) => name.slice(0, -9)));
+
+    expect(names.size).toBe(3000);
+    expect([...cuts]).toEqual([rep('a', 241)]);
+  });
+
+  it('the checksum is of the complete id, and the same id has the same name whatever the suffix', () => {
+    for (const id of [rep('a', 300), `${rep('é', 150)}`, rep('/', 100)]) {
+      for (const make of [fileNameOf, encodedName, nameInFolder]) {
+        for (const suffix of SUFFIXES) {
+          expect(make(id, suffix).slice(-8)).toBe(checksumOf(id));
+        }
+      }
+    }
+    // a lone surrogate keeps its own code unit: two ids that differ only there differ
+    expect(checksumOf('\ud800')).not.toBe(checksumOf('\ud801'));
+    expect(checksumOf('x\ud800')).not.toBe(checksumOf('x�'));
+    expect(fileNameOf('x\ud800')).not.toBe(fileNameOf('x\ud801'));
+    expect(fileNameOf('x\ud800')).not.toBe(fileNameOf('x�'));
+  });
+});
+
+/**
+ * An id that fits keeps the name it had, as a differential test: a frozen copy of the functions as they were before the
+ * checksum (5.0.0-56) is run over a large generated corpus next to the functions as they are, and every id that fits gives
+ * the same name, or the same refusal, in both. An id that does not fit gives a name that fits, with a checksum.
+ */
+describe('an id that fits keeps the name that it had', () => {
+  /** The bytes that the sanitizer sees: every character of a path written as %XX, a `*` still counted. */
+  const bytesBefore = (text: string): number =>
+    Buffer.byteLength(
+      text
+        // eslint-disable-next-line no-control-regex
+        .replace(/[\u0000-\u001f\u0080-\u009f/?<>\\:|"]/g, (character) =>
+          encodeURIComponent(character)
+        )
+    );
+  const refuse = (text: string): never => {
+    throw new Error(
+      `'${text}' does not name an object: an id or a name is not a path`
+    );
+  };
+  const before: Record<string, (value: string) => string> = {
+    fileNameOf: (value) => {
+      const name = safeFileName(value);
+      if (Buffer.byteLength(name) <= 250) return name;
+      return Buffer.from(name)
+        .subarray(0, 250)
+        .toString('utf8')
+        .replace(/�+$/, '')
+        .replace(/[. ]+$/, '');
+    },
+    nameInFolder: (value) => {
+      const text = String(value);
+      if (isOneSafeSegment(text)) return text;
+      if (bytesBefore(text) > 255) throw new Error('too long');
+      const name = safeFileName(text);
+      return name === '' ? refuse(text) : name;
+    },
+    encodedName: (value) => {
+      const text = String(value);
+      if (bytesBefore(text) > 255) throw new Error('too long');
+      const name = safeFileName(text);
+      return name === '' ? refuse(text) : name;
+    },
+    nameInStem: (value) => {
+      const name = before.nameInFolder(value);
+      return /^[A-Za-z]:/.test(name) ? `${name[0]}%3A${name.slice(2)}` : name;
+    },
+  };
+  const after: Record<string, (id: string, suffix?: string) => string> = {
+    fileNameOf,
+    nameInFolder,
+    encodedName,
+    nameInStem,
+  };
+
+  /** The name or the refusal of a function, as one comparable value. */
+  const outcome = (
+    make: (id: string, suffix?: string) => string,
+    id: string,
+    suffix?: string
+  ): string => {
+    try {
+      return `name ${make(id, suffix)}`;
+    } catch (error) {
+      // the text of a refusal shows the id, which a long id cuts: the reason is what is compared
+      return error.message.includes('does not name an object')
+        ? 'refused'
+        : `refused ${error.message}`;
+    }
+  };
+
+  /** Whether the id fits as the functions measured it before: its complete encoded name and the suffix are 255 bytes or less. */
+  const fitted = (fn: string, id: string, suffix: string): boolean => {
+    if (!id.isWellFormed()) return false;
+    let length = bytesBefore(id);
+    if (fn === 'nameInFolder' || fn === 'nameInStem') {
+      if (isOneSafeSegment(id)) {
+        length = Buffer.byteLength(id);
+        // the colon that the stem writes as %3A is two bytes more
+        if (fn === 'nameInStem' && /^[A-Za-z]:/.test(id)) length += 2;
+      }
+    }
+    return length + Buffer.byteLength(suffix) <= 255;
+  };
+
+  /** Runs one id through the four functions and every suffix; says how many fitted. */
+  const compare = (
+    id: string,
+    suffixes: string[],
+    problems: string[]
+  ): { fitted: number; shortened: number } => {
+    let kept = 0;
+    let cut = 0;
+    for (const fn of Object.keys(before)) {
+      for (const suffix of suffixes) {
+        // the old file name was cut at 250 bytes for `.json`: it is no measure for a shorter suffix
+        if (fn === 'fileNameOf' && Buffer.byteLength(suffix) < 5) continue;
+        const now = outcome(after[fn], id, suffix);
+        if (fitted(fn, id, suffix)) {
+          kept++;
+          const was = outcome(before[fn], id);
+          if (now !== was) {
+            problems.push(
+              `${fn} ${JSON.stringify(suffix)} ${JSON.stringify(id.slice(0, 30))}(${id.length}): was ${was.slice(0, 40)} is ${now.slice(0, 40)}`
+            );
+          }
+        } else {
+          cut++;
+          // an id that does not fit gets a name that does, with a checksum; or no name, as an id that leaves none did before
+          const noName = now.startsWith('refused') || now === 'name ';
+          let fine = noName;
+          if (!noName) {
+            const name = now.slice('name '.length);
+            fine =
+              /~[0-9a-f]{8}$/.test(name) &&
+              Buffer.byteLength(name) + Buffer.byteLength(suffix) <= 255 &&
+              name.isWellFormed();
+            if (fine) {
+              try {
+                assertFileSetPath(`d/${name}${suffix}`);
+              } catch {
+                fine = false;
+              }
+            }
+          }
+          if (!fine) {
+            problems.push(
+              `${fn} ${JSON.stringify(suffix)} ${JSON.stringify(id.slice(0, 30))}(${id.length}) does not fit and gave ${now.slice(0, 60)}`
+            );
+          }
+        }
+      }
+    }
+    return { fitted: kept, shortened: cut };
+  };
+
+  it('over the 402,234 strings of the gate corpus every name is the name that it was', () => {
+    const PIECES = [
+      '..',
+      '.',
+      'C:',
+      'c:',
+      ':',
+      '\\',
+      '/',
+      '%3A',
+      '：',
+      'a',
+      'x.js',
+      'CC::',
+      'C',
+    ];
+    const problems: string[] = [];
+    let total = 0;
+    let kept = 0;
+    const walk = (prefix: string, depth: number): void => {
+      total++;
+      kept += compare(prefix, ['.json'], problems).fitted;
+      if (depth === 5) return;
+      for (const piece of PIECES) walk(prefix + piece, depth + 1);
+    };
+    walk('', 0);
+
+    expect(problems.slice(0, 5)).toEqual([]);
+    expect(total).toBe(402234);
+    // every one of them fits, and `.` and `..` are refused by the two that refuse them
+    expect(kept).toBe(402234 * 4);
+  }, 120000);
+
+  it('over a corpus of long ids around the 255 bytes every id that fits keeps its name, and every other one gets a name that does', () => {
+    const PIECES = [
+      'a',
+      'é',
+      '€',
+      '😀',
+      '/',
+      '\\',
+      ':',
+      '?',
+      '*',
+      '%',
+      '\u0085',
+      '\n',
+      'C:',
+      '..',
+    ];
+    const SUFFIXES = ['.json', '.onCreate.js', ''];
+    const problems: string[] = [];
+    const ids = new Set<string>();
+    const short: string[] = [];
+    const walk = (prefix: string, depth: number): void => {
+      ids.add(prefix);
+      short.push(prefix);
+      if (depth === 3) return;
+      for (const piece of PIECES) walk(prefix + piece, depth + 1);
+    };
+    walk('', 0);
+    // ids of up to three pieces, with a run of letters in front that brings them to 241..257 bytes in either measure
+    for (const id of short) {
+      for (const measure of [bytesBefore(id), Buffer.byteLength(id)]) {
+        for (let target = 241; target <= 257; target++) {
+          if (target >= measure) ids.add(rep('a', target - measure) + id);
+        }
+      }
+    }
+    let kept = 0;
+    let shortened = 0;
+    for (const id of ids) {
+      const result = compare(id, SUFFIXES, problems);
+      kept += result.fitted;
+      shortened += result.shortened;
+    }
+
+    expect(problems.slice(0, 5)).toEqual([]);
+    expect(ids.size).toBeGreaterThan(55000);
+    // both sorts are well represented: the ids that fit and the ids that do not, over four functions and three suffixes
+    expect(kept).toBeGreaterThan(300000);
+    expect(shortened).toBeGreaterThan(340000);
+  }, 240000);
+});
+
 describe('the module stays pure', () => {
   const imports = importSpecifiersOf('src/utils/FileSetPathUtils.ts');
 
@@ -1816,7 +2894,11 @@ describe('the module stays pure', () => {
     expect(imports.filter((s) => NODE_IO_MODULES.includes(s))).toEqual([]);
   });
 
-  it('imports only path and sanitize-filename', () => {
-    expect([...imports].sort()).toEqual(['path', 'sanitize-filename']);
+  it('imports only crypto, path and sanitize-filename (crypto is a built-in module that touches neither the file system nor the machine)', () => {
+    expect([...imports].sort()).toEqual([
+      'crypto',
+      'path',
+      'sanitize-filename',
+    ]);
   });
 });
