@@ -10,6 +10,15 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-56] - 2026-11-26
+
+### Added
+- Introduced file set shapes, a builder, an in-memory reader, and the engine for pulling to and pushing from a file set. This is part of the ongoing integration of config-manager file logic into the library (#1155).
+- Added `assertFileSetPath` to the frodo facade, enhancing file path validation capabilities (#1155).
+
+### Fixed
+- Resolved an issue where a realm named like a member of `Object.prototype` was incorrectly treated, ensuring it is now recognized as an ordinary realm (commit 635d1f546).
+
 ## [v5.0.0-55] - 2026-11-25
 
 ### Added
@@ -3118,6 +3127,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-56]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-55...v5.0.0-56
 [v5.0.0-55]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-54...v5.0.0-55
 [v5.0.0-54]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-53...v5.0.0-54
 [v5.0.0-53]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-52...v5.0.0-53
