@@ -1366,6 +1366,11 @@ describe('nameInFolder and nameInStem', () => {
     ['Login:SSO', 'Login:SSO'],
     ['a:b', 'a%3Ab'],
     ['C:', 'C%3A'],
+    // a drive letter is a letter of either case: `C:` is `C%3A` already by nameInFolder, the others only by the stem
+    ['D:x', 'D%3Ax'],
+    ['Z:', 'Z%3A'],
+    ['z:x', 'z%3Ax'],
+    ['X:', 'X%3A'],
     ['x:y:z', 'x%3Ay:z'],
     ['a/b', 'a%2Fb'],
     ['1:2', '1:2'],
@@ -1383,6 +1388,8 @@ describe('nameInFolder and nameInStem', () => {
       'Login:SSO',
       'C:',
       'z:',
+      'D:x',
+      'Z:',
       'a/b',
       '..C:',
       '../x',
@@ -1395,6 +1402,20 @@ describe('nameInFolder and nameInStem', () => {
       expect(() => referencedFilePath('/w/folder', reference)).not.toThrow();
     }
   });
+});
+
+describe('a drive letter of a reference, in either case', () => {
+  it.each([['D:x'], ['Z:'], ['d:x'], ['z:'], ['a:b']])(
+    'refuses a reference that starts with %j, and accepts the file that nameInStem makes of the name',
+    (name) => {
+      expect(() =>
+        referencedFilePath('/w/folder', `${name}.onCreate.js`)
+      ).toThrow('must stay inside the config folder');
+      expect(() =>
+        referencedFilePath('/w/folder', `${nameInStem(name)}.onCreate.js`)
+      ).not.toThrow();
+    }
+  );
 });
 
 describe('encodedName', () => {
@@ -1459,11 +1480,23 @@ describe('sameOnAnyFileSystem', () => {
       '\ud801',
     ],
     ['a lone surrogate and U+FFFD', '\ud800', '\ufffd'],
+    // the capital sharp s has the sharp s for its lower case form
+    ['a capital sharp s and a sharp s', '\u1e9e', '\u00df'],
+    // lower casing a T with a diaeresis (two code points) leaves a form that only a second normalisation turns into U+1E97
+    [
+      'a T with a combining diaeresis and the t with a diaeresis',
+      'T\u0308',
+      '\u1e97',
+    ],
   ])('takes %s for one name', (_what, one, other) => {
     expect(sameOnAnyFileSystem(one)).toBe(sameOnAnyFileSystem(other));
   });
 
   it.each([
+    // the key is the lower case form, as on the command line: the upper case form would take these for one name
+    ['a sharp s and two s', '\u00df', 'ss'],
+    ['a long s and an s', '\u017f', 's'],
+    ['a final sigma and a sigma', '\u03c2', '\u03c3'],
     ['a different letter', 'a', 'b'],
     ['a name that only looks alike', 'a%2Fb', 'a/b'],
     ['an underscore', 'a_', 'a'],
