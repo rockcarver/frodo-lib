@@ -11,6 +11,31 @@ export interface ExportMetaData {
 
 export type ResultCallback<R> = (error?: FrodoError, result?: R) => void;
 
+/**
+ * Callback that tells the caller which attributes of an object were left out. The server refuses an attribute that it
+ * does not know; the library then leaves the unknown top-level attributes out of a copy of the body and sends it once
+ * more. When an object was stored without such attributes, the callback is called once for that object, after the
+ * second request has succeeded. It is not called when nothing was left out, and not when the object could not be stored.
+ * The callback should not throw: an error it throws ends that call with that error.
+ * @param {string} id the id of the object that was stored without the attributes
+ * @param {string[]} attributes the names of the top-level attributes that were left out; a new array that the callback may keep
+ */
+export type LeftOutAttributesCallback = (
+  id: string,
+  attributes: string[]
+) => void;
+
+/**
+ * What became of one object of a push: its id, and the error when the work for it threw. A push gives one outcome for
+ * every object it was asked to push, in the order it was given them, so that one failure never hides the others. The
+ * error is the failure of the whole object: a failure of a part that the work reported through its `errorCallback` and
+ * then went on was told to the result callback and is not in the outcome.
+ */
+export type PushOutcome = {
+  id: string;
+  error?: FrodoError;
+};
+
 export type ErrorFilter = (error: FrodoError) => boolean;
 
 /**

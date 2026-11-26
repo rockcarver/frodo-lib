@@ -1,2 +1,3 @@
 .github/workflows/*.lock.yml linguist-generated=true
 .claude/rules/** linguist-generated=true
+src/test/golden/** -text

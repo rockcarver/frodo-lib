@@ -382,3 +382,10 @@ export type {
   ProgressIndicatorStatusType,
   ProgressIndicatorType,
 } from './utils/Console';
+
+export type {
+  FileSetEntry,
+  FileSetReader,
+  VirtualFile,
+  VirtualFileSet,
+} from './utils/FileSetUtils';
