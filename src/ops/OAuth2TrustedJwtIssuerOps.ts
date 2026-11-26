@@ -14,7 +14,11 @@ import { cloneDeep } from '../utils/JsonUtils';
 import { type AgentExportInterface } from './AgentOps';
 import { FrodoError, isNotFoundError } from './FrodoError';
 import { routeAgentSection } from './internal/AgentSectionRouting';
-import { type ExportMetaData, type ResultCallback } from './OpsTypes';
+import {
+  type ExportMetaData,
+  type LeftOutAttributesCallback,
+  type ResultCallback,
+} from './OpsTypes';
 
 /**
  * Callback that tells the caller which attributes of a trusted jwt issuer were left out. The server refuses an attribute
@@ -26,10 +30,8 @@ import { type ExportMetaData, type ResultCallback } from './OpsTypes';
  * @param {string} issuerId the id of the trusted jwt issuer that was stored without the attributes
  * @param {string[]} attributes the names of the top-level attributes that were left out (the names the warning prints); a new array that the callback may keep
  */
-export type OAuth2TrustedJwtIssuerLeftOutAttributesCallback = (
-  issuerId: string,
-  attributes: string[]
-) => void;
+export type OAuth2TrustedJwtIssuerLeftOutAttributesCallback =
+  LeftOutAttributesCallback;
 
 export type OAuth2TrustedJwtIssuer = {
   /**
