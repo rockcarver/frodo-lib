@@ -9281,6 +9281,16 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{boolean} true if a valid URL, false otherwise",
   },
   {
+    typeName: "FileSetPaths",
+    methodName: "assertFileSetPath",
+    signature: "assertFileSetPath(path: string): void",
+    description: "Check that a path can be the path of a file or of a folder of a file set: it is relative to the root of the file set, its parts are separated by `/`, and every part is one name. A consumer that writes a file set to a file system, or reads one from it, calls this for every path, so that a path that would leave the folder, or that the library would read as another path, is refused before anything is written or read.",
+    params: [
+      { name: "path", type: "string", description: "the path of a file or of a folder, relative to the root of the file set", required: true },
+    ],
+    returns: "",
+  },
+  {
     typeName: "FRUtils",
     methodName: "applyNameCollisionPolicy",
     signature: "applyNameCollisionPolicy(name: string): string",

@@ -137,6 +137,7 @@ import StateImpl, { deriveState, State, StateInterface } from '../shared/State';
 import Base64Utils, { Base64 } from '../utils/Base64Utils';
 import CryptoUtils, { FrodoCrypto } from '../utils/CryptoUtils';
 import ExportImportUtils, { ExportImport } from '../utils/ExportImportUtils';
+import FileSetPathUtils, { FileSetPaths } from '../utils/FileSetPathUtils';
 import ForgeRockUtils, { FRUtils } from '../utils/ForgeRockUtils';
 import FrodoUtilsImpl, { FrodoUtils } from '../utils/FrodoUtils';
 import HelpUtilsImpl, { HelpUtils } from '../utils/HelpUtils';
@@ -281,6 +282,7 @@ export type Frodo = {
     HelpUtils &
     ScriptValidation &
     ExportImport &
+    FileSetPaths &
     Base64 & {
       constants: Constants;
       crypto: FrodoCrypto;
@@ -628,6 +630,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
       ...HelpUtilsImpl(),
       ...ScriptValidationUtils(state),
       ...ExportImportUtils(state),
+      ...FileSetPathUtils(),
       ...Base64Utils(),
       constants: ConstantsImpl,
       crypto: CryptoUtils(),

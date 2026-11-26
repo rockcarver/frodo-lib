@@ -3958,6 +3958,15 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     excluded: true,
   },
 
+  'utils.assertFileSetPath': {
+    // A check of the text of a path (relative, no `..`, no backslash, no
+    // control character) that a consumer runs before it writes a file set to
+    // a file system or reads one from it: it makes no request, reads and
+    // changes nothing, and an MCP client has no file system of its own to
+    // protect with it.
+    excluded: true,
+  },
+
   'utils.getRealmString': {
     // Converts the current realm path into a TitleCase-concatenated token
     // (e.g. /alpha/beta -> AlphaBeta) purely for Frodo's own

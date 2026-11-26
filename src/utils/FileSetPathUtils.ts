@@ -400,3 +400,20 @@ export function assertFileSetPath(path: string): void {
     }
   }
 }
+
+export type FileSetPaths = {
+  /**
+   * Check that a path can be the path of a file or of a folder of a file set: it is relative to the root of the file set, its parts are separated by `/`, and every part is one name. A consumer that writes a file set to a file system, or reads one from it, calls this for every path, so that a path that would leave the folder, or that the library would read as another path, is refused before anything is written or read.
+   * @param {string} path the path of a file or of a folder, relative to the root of the file set
+   * @throws {Error} if the path is empty, absolute, starts with a drive letter, has an empty part, `.` or `..` as a part, holds a backslash, a control character, `C:` or a character that is not text, or has a part of more than 255 bytes
+   */
+  assertFileSetPath(path: string): void;
+};
+
+export default (): FileSetPaths => {
+  return {
+    assertFileSetPath(path: string): void {
+      assertFileSetPath(path);
+    },
+  };
+};

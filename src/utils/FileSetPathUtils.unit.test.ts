@@ -19,6 +19,7 @@
  * Hermetic: no file is read or written, no network, no recording.
  */
 import { posix } from 'path';
+import { frodo } from '../index';
 import State from '../shared/State';
 import {
   importSpecifiersOf,
@@ -30,7 +31,7 @@ import {
   normalizeFilePath,
 } from './ExportFileFormatUtils';
 import { getFilePath } from './ExportImportUtils';
-import {
+import FileSetPathUtils, {
   assertFileSetPath,
   assertInside,
   encodedName,
@@ -1635,6 +1636,19 @@ describe('assertFileSetPath', () => {
         assertFileSetPath(`${character.repeat(most)}/${character.repeat(most)}`)
       ).not.toThrow();
     }
+  });
+
+  it('is the gate on the facade: frodo.utils.assertFileSetPath says the same', () => {
+    expect(() =>
+      frodo.utils.assertFileSetPath('realms/root/x.json')
+    ).not.toThrow();
+    expect(() => frodo.utils.assertFileSetPath('../x')).toThrow(
+      "The path '../x' is not a path inside a file set: it has '..' as a part."
+    );
+    expect(FileSetPathUtils().assertFileSetPath).toEqual(expect.any(Function));
+    expect(() => FileSetPathUtils().assertFileSetPath('a//b')).toThrow(
+      'has an empty part'
+    );
   });
 });
 
