@@ -314,10 +314,28 @@ describe('assignFileNames', () => {
     ]);
   });
 
-  it('gives an id that is not text a name of its own and does not refuse it', () => {
+  it('reports the later of an id and an id of the shape of its shortened name as a collision, and writes nothing for it', () => {
+    // an id of 250 bytes that is written like the shortened name of an id of 300 letters keeps its name (it fits), so the two
+    // ids have one name: the checksum has 8 characters, and a name of that shape is an id of its own
+    const long = 'a'.repeat(300);
+    const shaped = `${'a'.repeat(241)}~e8722168`;
+
+    const longFirst = assignFileNames([long, shaped]);
+    expect(longFirst.names.get(long)).toBe(shaped);
+    expect(longFirst.names.has(shaped)).toBe(false);
+    expect(longFirst.collisions).toEqual([{ id: shaped, firstId: long }]);
+    expect(longFirst.refused).toEqual([]);
+
+    const shapedFirst = assignFileNames([shaped, long]);
+    expect(shapedFirst.names.get(shaped)).toBe(shaped);
+    expect(shapedFirst.names.has(long)).toBe(false);
+    expect(shapedFirst.collisions).toEqual([{ id: long, firstId: shaped }]);
+  });
+
+  it('gives an id that is not text (a lone surrogate, U+007F) a name of its own and does not refuse it', () => {
     for (const nameOf of [undefined, encodedName]) {
       const { names, collisions, refused } = assignFileNames(
-        ['x\ud800', 'x\ufffd', 'x\ud801'],
+        ['x\ud800', 'x\ufffd', 'x\ud801', 'x\u007f'],
         nameOf
       );
 
@@ -325,6 +343,7 @@ describe('assignFileNames', () => {
         ['x\ud800', 'x\ufffd~a7490da1'],
         ['x\ufffd', 'x\ufffd'],
         ['x\ud801', 'x\ufffd~c3e32b2f'],
+        ['x\u007f', 'x\ufffd~9775ebe3'],
       ]);
       expect(collisions).toEqual([]);
       expect(refused).toEqual([]);

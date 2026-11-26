@@ -114,11 +114,13 @@ export async function inRealm<R>({
 /**
  * The file names of objects that are written to one folder. Two ids whose names are the same on a file system that ignores
  * case or Unicode form collide: the first id keeps the name and the later ones are reported. The name functions of
- * `FileSetPathUtils` give a name that fits in a file name to every id that has a name: an id that is too long, or that is not
- * text (a lone surrogate), gets a shortened name, the start of its name and a checksum of the complete id, so two long ids
- * that start alike have two names. They can still collide, but only when the cut and the 8 hexadecimal characters of the
- * checksum are both the same (about one pair in four billion that shares a cut): the first id keeps the name and the other
- * is reported, and nothing is renamed or overwritten, so a name never depends on the other ids. An id for which the name
+ * `FileSetPathUtils` give a name that fits in a file name to every id that has a name: an id that was not a valid file name
+ * with its suffix, or that is not text (a lone surrogate, U+007F), gets a shortened name, the start of its name and a checksum
+ * of the complete id, so long ids that start alike have their own names. Two ids can still collide, when the cut and the 8
+ * hexadecimal characters of the checksum are both the same (about one pair in four billion that shares a cut), and when an id
+ * is written like the shortened name of another (`a` repeated 241 times and `~e8722168` is the name of `a` repeated 300
+ * times, and it is also an id of 250 bytes that keeps its name): the first id keeps the name, the other is reported as a
+ * collision, and nothing is renamed or written for it, so a name never depends on the other ids. An id for which the name
  * function throws gets no name: it is reported as refused, with the error, and never thrown, so one id that leaves no name
  * does not stop the others. The ids are taken in the order they are given: a caller that wants the same names whatever order
  * the tenant answers in sorts them first (`compareOrdinal`).

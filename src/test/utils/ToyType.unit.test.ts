@@ -472,6 +472,8 @@ describe('a push never reads a file name', () => {
       { _id: '😀'.repeat(70), name: 'emoji' },
       { _id: '/'.repeat(100), name: 'slashes' },
       { _id: `a:${'n'.repeat(247)}`, name: 'a colon' },
+      // U+007F is not text for a file name: the file has a clean name and a checksum, the toy keeps its id
+      { _id: 'a\u007fb', name: 'a control character' },
     ],
     bravo: TOY_TENANT.bravo,
   });
@@ -520,8 +522,8 @@ describe('a push never reads a file name', () => {
     const renamed = renamedEvery(fileSet);
 
     // the files are all called something else, in the same folders, and the pull is made of hard ids
-    expect(fileSet.files).toHaveLength(10);
-    expect(renamed.files).toHaveLength(10);
+    expect(fileSet.files).toHaveLength(11);
+    expect(renamed.files).toHaveLength(11);
     expect(renamed.files.map((file) => file.path)).not.toEqual(
       expect.arrayContaining(fileSet.files.map((file) => file.path))
     );
@@ -551,7 +553,7 @@ describe('a push never reads a file name', () => {
 
     expect(second).toEqual(first);
     // the toys went in the order of their ids, and the failed one is the one that the server refused, by its id
-    expect(first.sent).toHaveLength(10);
+    expect(first.sent).toHaveLength(11);
     expect(
       first.outcomes.filter((outcome) => outcome[1] !== undefined)
     ).toEqual([
@@ -563,7 +565,7 @@ describe('a push never reads a file name', () => {
       ...alphaIds.sort((a, b) => (a < b ? -1 : 1)),
       'Login',
     ]);
-    expect(first.told).toHaveLength(10);
+    expect(first.told).toHaveLength(11);
   });
 
   it('sends the toys in the order of their ids, and not in the order of the files', async () => {
@@ -623,6 +625,7 @@ describe('a push never reads a file name', () => {
         ...fileSet.files,
         { path: 'realms/alpha/toys/noid.json', content: '{"name":"no id"}\n' },
         { path: 'realms/alpha/toys/null.json', content: 'null\n' },
+        { path: 'realms/alpha/toys/nullid.json', content: '{"_id":null}\n' },
       ],
     };
     const sent: string[] = [];
@@ -644,6 +647,7 @@ describe('a push never reads a file name', () => {
     expect(failed.map((outcome) => outcome.id)).toEqual([
       'realms/alpha/toys/noid.json',
       'realms/alpha/toys/null.json',
+      'realms/alpha/toys/nullid.json',
     ]);
     expect(failed[0].error?.message).toBe(
       'Error processing realms/alpha/toys/noid.json'
@@ -654,11 +658,14 @@ describe('a push never reads a file name', () => {
     expect(failed[1].error?.originalErrors[0].message).toBe(
       'The file realms/alpha/toys/null.json holds no _id.'
     );
-    // the others were pushed, all ten of them, and the callback was told of every file
-    expect(sent).toHaveLength(10);
-    expect(outcomes).toHaveLength(12);
-    expect(told.filter((message) => message !== undefined)).toHaveLength(2);
-    expect(told).toHaveLength(12);
+    expect(failed[2].error?.originalErrors[0].message).toBe(
+      'The file realms/alpha/toys/nullid.json holds no _id.'
+    );
+    // the others were pushed, all eleven of them, and the callback was told of every file
+    expect(sent).toHaveLength(11);
+    expect(outcomes).toHaveLength(14);
+    expect(told.filter((message) => message !== undefined)).toHaveLength(3);
+    expect(told).toHaveLength(14);
     await expect(
       mergeToys({
         reader: readerOf(buildFileSet(withoutId)),
@@ -680,7 +687,7 @@ describe('a push never reads a file name', () => {
     expect(first.refused).toEqual([]);
   });
 
-  it('is the identity for ids of every kind: pull, read back, split again gives the same files, and the toys come back whole', async () => {
+  it('is the identity for ids of every shape: pull, read back, split again gives the same files, and the toys come back whole', async () => {
     const first = await pull('cloud', { toys: hardToys() });
     const merged = await mergeToys({
       reader: readerOf(first.fileSet),
@@ -707,6 +714,9 @@ describe('a push never reads a file name', () => {
       '%',
       '\u0085',
       ' ',
+      '\u007f',
+      '<',
+      '|',
     ]) {
       for (const length of [
         1, 60, 62, 63, 84, 85, 86, 120, 125, 126, 250, 251, 255, 256, 300, 1000,
@@ -718,7 +728,9 @@ describe('a push never reads a file name', () => {
       '\ud800',
       'x\ud800',
       `${'x'.repeat(254)}\ud800`,
-      `${'x'.repeat(245)}\ud800`
+      `${'x'.repeat(245)}\ud800`,
+      `com\u00b9.${'é'.repeat(130)}`,
+      `${'x'.repeat(250)}*`
     );
     const toys = ids.map((_id) => ({ _id }));
 
