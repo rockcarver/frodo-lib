@@ -10,8 +10,6 @@
  * The functions were written for the command line first; the rows that come from there are the cases that command had:
  * the root realm of a Cloud deployment, ids that differ only in case, a name of 300 characters, one object that fails.
  */
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { jest } from '@jest/globals';
 import ts from 'typescript';
 import StateImpl, { type State } from '../../shared/State';
@@ -19,6 +17,7 @@ import {
   importSpecifiersOf,
   NODE_IO_MODULES,
 } from '../../test/exportFileFormat/importsOf';
+import { typeAlias } from '../../test/utils/SourceText';
 import { encodedName } from '../../utils/FileSetPathUtils';
 import {
   createMemoryFileSetReader,
@@ -1045,25 +1044,8 @@ describe('runPerObject', () => {
 });
 
 describe('the callback types of OpsTypes', () => {
-  /** The type declaration with this name in a source file of `src/ops`. */
-  const typeAlias = (file: string, name: string): ts.TypeAliasDeclaration => {
-    const path = fileURLToPath(new URL(`../${file}`, import.meta.url));
-    const parsed = ts.createSourceFile(
-      path,
-      readFileSync(path, 'utf8'),
-      ts.ScriptTarget.Latest,
-      true
-    );
-    const found = parsed.statements.find(
-      (statement): statement is ts.TypeAliasDeclaration =>
-        ts.isTypeAliasDeclaration(statement) && statement.name.text === name
-    );
-    if (!found) throw new Error(`no type ${name} in ${file}`);
-    return found;
-  };
-
   it('LeftOutAttributesCallback takes the id and the names of the attributes and gives nothing', () => {
-    const type = typeAlias('OpsTypes.ts', 'LeftOutAttributesCallback').type;
+    const type = typeAlias('ops/OpsTypes.ts', 'LeftOutAttributesCallback').type;
 
     expect(ts.isFunctionTypeNode(type)).toBe(true);
     const signature = type as ts.FunctionTypeNode;
@@ -1080,7 +1062,7 @@ describe('the callback types of OpsTypes', () => {
 
   it('the callback of the trusted jwt issuer is an alias of it, so its name and shape stay', () => {
     const type = typeAlias(
-      'OAuth2TrustedJwtIssuerOps.ts',
+      'ops/OAuth2TrustedJwtIssuerOps.ts',
       'OAuth2TrustedJwtIssuerLeftOutAttributesCallback'
     ).type;
 
@@ -1091,7 +1073,7 @@ describe('the callback types of OpsTypes', () => {
   });
 
   it('PushOutcome is an id and an optional error', () => {
-    const type = typeAlias('OpsTypes.ts', 'PushOutcome').type;
+    const type = typeAlias('ops/OpsTypes.ts', 'PushOutcome').type;
 
     expect(ts.isTypeLiteralNode(type)).toBe(true);
     expect(

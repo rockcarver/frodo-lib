@@ -9,10 +9,6 @@
  * The paths that the builder and the reader accept are the paths of `assertFileSetPath` (`FileSetPathUtils.unit.test.ts`
  * holds its table); the rows here show that both call it, for a file, for an owned folder and for a path that is asked for.
  */
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import ts from 'typescript';
 import type {
   FileSetEntry,
   FileSetReader,
@@ -24,6 +20,7 @@ import {
   NODE_IO_MODULES,
   UPWARD_PATTERN,
 } from '../test/exportFileFormat/importsOf';
+import { exportsFrom, sourceText } from '../test/utils/SourceText';
 import { buildFileSet, createMemoryFileSetReader } from './FileSetUtils';
 
 /** A file set of every sort of path, in an order that is not the sorted one. */
@@ -69,51 +66,15 @@ describe('the types of a file set are on the package root', () => {
     expect(typeof reader.readFile).toBe('function');
   });
 
-  /** What `src/index.ts` exports from a module, by the name of the module: the types and the values. */
-  const exportsOf = (module: string) => {
-    const repositoryRoot = fileURLToPath(new URL('../..', import.meta.url));
-    const entry = resolve(repositoryRoot, 'src/index.ts');
-    const parsed = ts.createSourceFile(
-      entry,
-      readFileSync(entry, 'utf8'),
-      ts.ScriptTarget.Latest
-    );
-    const types: string[] = [];
-    const values: string[] = [];
-    for (const statement of parsed.statements) {
-      if (
-        ts.isExportDeclaration(statement) &&
-        statement.moduleSpecifier &&
-        ts.isStringLiteral(statement.moduleSpecifier) &&
-        statement.moduleSpecifier.text === module
-      ) {
-        const names =
-          statement.exportClause && ts.isNamedExports(statement.exportClause)
-            ? statement.exportClause.elements.map((e) => ({
-                name: e.name.text,
-                isType: statement.isTypeOnly || e.isTypeOnly,
-              }))
-            : [{ name: '*', isType: false }];
-        for (const { name, isType } of names) {
-          (isType ? types : values).push(name);
-        }
-      }
-    }
-    return { types: types.sort(), values };
-  };
-
   it('exports the four types from the module of the file sets, as types, and no value', () => {
-    expect(exportsOf('./utils/FileSetUtils')).toEqual({
+    expect(exportsFrom('index.ts', './utils/FileSetUtils')).toEqual({
       types: ['FileSetEntry', 'FileSetReader', 'VirtualFile', 'VirtualFileSet'],
       values: [],
     });
   });
 
   it('declares each of the four where the index says', () => {
-    const source = readFileSync(
-      fileURLToPath(new URL('./FileSetUtils.ts', import.meta.url)),
-      'utf8'
-    );
+    const source = sourceText('utils/FileSetUtils.ts');
 
     for (const name of ['FileSetEntry', 'VirtualFile', 'VirtualFileSet']) {
       expect(source).toMatch(new RegExp(`export type ${name} = \\{`));
