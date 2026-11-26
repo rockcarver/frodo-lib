@@ -3909,6 +3909,9 @@ describe('an id keeps the name that it had exactly when that was a valid file na
           if (now === 'refused' || now === 'name ') {
             if (!leavesNone)
               problems.push(`${label}: no name for an id that has one`);
+          } else if (!now.startsWith('name ')) {
+            // an error that is not the refusal of a value that leaves no name
+            problems.push(`${label}: ${now.slice(0, 60)}`);
           } else {
             const name = now.slice('name '.length);
             try {
