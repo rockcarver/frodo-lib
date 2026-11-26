@@ -20,6 +20,7 @@ import { type State } from '../../shared/State';
 import { encodedName, realmFolderOf } from '../../utils/FileSetPathUtils';
 import {
   buildFileSet,
+  compareOrdinal,
   type FileSetReader,
   type VirtualFile,
   type VirtualFileSet,
@@ -70,9 +71,6 @@ export const TOY_TENANT: Record<string, ToyObject[]> = {
   ],
   bravo: [{ _id: 'Login', _rev: '4', name: 'Bravo login' }],
 };
-
-const compareOrdinal = (a: string, b: string): number =>
-  a < b ? -1 : a > b ? 1 : 0;
 
 /**
  * The pure split of the toys of the realms into a file set. Ids are taken in ordinal order, so the same toys give the same
@@ -154,15 +152,15 @@ export async function pullToys({
   overrides?: RealmOverrides;
   state: State;
 }): Promise<ToySplit> {
-  const toys: Record<string, ToyObject[]> = {};
+  // `Object.fromEntries` makes an own property for every name, `__proto__` and `constructor` included: `toys[name] = ...` would not
+  const entries: [string, ToyObject[]][] = [];
   for (const visit of await realmsToVisit({ realm, realmNames, state })) {
-    toys[visit] = await inRealm({
-      realm: visit,
-      state,
-      work: () => readToys(visit),
-    });
+    entries.push([
+      visit,
+      await inRealm({ realm: visit, state, work: () => readToys(visit) }),
+    ]);
   }
-  return splitToys({ toys, overrides });
+  return splitToys({ toys: Object.fromEntries(entries), overrides });
 }
 
 /** The files of the toys of each realm that a reader holds, in the order of the listing. */
@@ -251,16 +249,17 @@ export async function mergeToys({
   realm?: string;
   state: State;
 }): Promise<Record<string, ToyObject[]>> {
-  const toys: Record<string, ToyObject[]> = {};
+  const entries: [string, ToyObject[]][] = [];
   for (const found of await toyFilesOf({ reader, realm, state })) {
-    toys[found.realm] = [];
+    const read: ToyObject[] = [];
     for (const name of found.names) {
-      toys[found.realm].push(
+      read.push(
         await readToy({ reader, path: `${found.folder}/${name}`, state })
       );
     }
+    entries.push([found.realm, read]);
   }
-  return toys;
+  return Object.fromEntries(entries);
 }
 
 /**

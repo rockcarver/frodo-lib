@@ -346,6 +346,87 @@ describe('assignFileNames', () => {
   });
 });
 
+/** The names that an object inherits: a realm, an id or a path with one of these names is an ordinary name. */
+const PROTOTYPE_NAMES = [
+  'constructor',
+  'toString',
+  'valueOf',
+  'hasOwnProperty',
+  'isPrototypeOf',
+  'propertyIsEnumerable',
+  'toLocaleString',
+  '__proto__',
+  '__defineGetter__',
+  '__defineSetter__',
+  '__lookupGetter__',
+  '__lookupSetter__',
+];
+
+describe.each(PROTOTYPE_NAMES)('the name %s', (name) => {
+  it('is a realm with no overrides when the entries have none for it', () => {
+    const matched = new Set<string>();
+
+    expect(
+      overridesOf(
+        { alpha: [{ id: 'Login', overrides: { a: 1 } }] },
+        name,
+        'Login',
+        matched
+      )
+    ).toBeUndefined();
+    expect(overridesOf({}, name, 'Login', matched)).toBeUndefined();
+    expect(overridesOf(undefined, name, 'Login', matched)).toBeUndefined();
+    expect(matched.size).toBe(0);
+    expect(
+      unmatchedOverrides({ alpha: [{ id: 'Login' }] }, matched, new Set([name]))
+    ).toEqual([]);
+  });
+
+  it('is a realm whose own entry is found, used and reported like any other', () => {
+    // JSON.parse makes an own property, also for `__proto__`: this is how an overrides file arrives
+    const entries = JSON.parse(
+      `{ ${JSON.stringify(name)}: [ { "id": "Login", "overrides": { "a": 1 } }, { "id": "Other" } ] }`
+    ) as RealmOverrides;
+    const matched = new Set<string>();
+
+    expect(overridesOf(entries, name, 'LOGIN', matched)).toEqual({ a: 1 });
+    expect(unmatchedOverrides(entries, matched, new Set([name]))).toEqual([
+      { realm: name, id: 'Other' },
+    ]);
+    expect(unmatchedOverrides(entries, matched, new Set())).toEqual([]);
+  });
+
+  it('is an id that gets a file name, and an id that overrides are found for', () => {
+    const { names, collisions, refused } = assignFileNames([name, 'plain']);
+
+    expect([...names]).toEqual([
+      [name, name],
+      ['plain', 'plain'],
+    ]);
+    expect(collisions).toEqual([]);
+    expect(refused).toEqual([]);
+    expect(
+      overridesOf(
+        { alpha: [{ id: name, overrides: { a: 1 } }] },
+        'alpha',
+        name,
+        new Set()
+      )
+    ).toEqual({ a: 1 });
+    expect(idOfFile(`${name}.json`)).toBe(name);
+  });
+
+  it('is the one realm to visit when it is named', async () => {
+    await expect(
+      realmsToVisit({
+        realm: name,
+        realmNames: async () => ['alpha'],
+        state: stateOf('forgeops'),
+      })
+    ).resolves.toEqual([name]);
+  });
+});
+
 describe('overridesOf and unmatchedOverrides', () => {
   const entries: RealmOverrides = {
     alpha: [
@@ -523,6 +604,9 @@ describe('idOfFile and realmOfDir', () => {
     ['%C3%A9.json', 'é'],
     ['no-extension', 'no-extension'],
     ['x.json.json', 'x.json'],
+    // `.json` is taken off the end only, not where it first occurs
+    ['my.json.config.json', 'my.json.config'],
+    ['a.jsonx', 'a.jsonx'],
     ['a.JSON', 'a.JSON'],
     ['100%.json', '100%'],
     ['%E0%A4%A.json', '%E0%A4%A'],
@@ -646,6 +730,17 @@ describe('readFileSetJson', () => {
     } finally {
       delete process.env.FILE_SET_ENGINE_TEST_SECRET;
     }
+  });
+
+  it('reads an empty file as a file that is not JSON, never as a missing one', async () => {
+    const error = await readFileSetJson({
+      reader: readerOf({ 'a/empty.json': '' }),
+      path: 'a/empty.json',
+      state: stateOf('cloud'),
+    }).catch((e) => e);
+
+    expect(error).toBeInstanceOf(FrodoError);
+    expect(error.message).toBe('Error parsing JSON from a/empty.json');
   });
 
   it('says what it was reading when the reader fails, and keeps the cause', async () => {
@@ -932,6 +1027,69 @@ describe('runPerObject', () => {
     expect(errors).toEqual(['a part failed']);
     // the work finished: the object is a success, and the callback was told of the part
     expect(outcomes).toEqual([{ id: 'one' }]);
+  });
+
+  it('tells the callback twice for an object whose work reports a part and goes on, and the outcome of that object has no error', async () => {
+    const calls: [string | undefined, unknown][] = [];
+
+    const outcomes = await runPerObject({
+      objects: [{ id: 'one' }, { id: 'two' }],
+      work: async ({ object, errorCallback }) => {
+        if (object.id === 'one') errorCallback(new FrodoError('a part failed'));
+        return `result of ${object.id}`;
+      },
+      resultCallback: (error, result) => {
+        calls.push([error?.message, result]);
+      },
+    });
+
+    // one: the part (told when it happened), then how the work ended; two: how the work ended
+    expect(calls).toEqual([
+      ['a part failed', undefined],
+      [undefined, 'result of one'],
+      [undefined, 'result of two'],
+    ]);
+    // the outcome holds the failure of the whole object only
+    expect(outcomes).toEqual([{ id: 'one' }, { id: 'two' }]);
+  });
+
+  it('ends the run when the callback throws: the objects after it do not run and the outcomes are not returned', async () => {
+    const ran: string[] = [];
+    const broken = new Error('the callback broke');
+
+    await expect(
+      runPerObject({
+        objects,
+        work: async ({ object }) => {
+          ran.push(object.id);
+        },
+        resultCallback: (error, result) => {
+          void error;
+          void result;
+          throw broken;
+        },
+      })
+    ).rejects.toBe(broken);
+    expect(ran).toEqual(['one']);
+  });
+
+  it('ends the run when the callback throws for a failure too', async () => {
+    const ran: string[] = [];
+    const broken = new Error('the callback broke');
+
+    await expect(
+      runPerObject({
+        objects,
+        work: async ({ object }) => {
+          ran.push(object.id);
+          throw new Error('failed');
+        },
+        resultCallback: () => {
+          throw broken;
+        },
+      })
+    ).rejects.toBe(broken);
+    expect(ran).toEqual(['one']);
   });
 
   it('makes the errorCallback throw when there is no callback, so the object fails', async () => {

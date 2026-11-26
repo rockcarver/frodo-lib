@@ -21,7 +21,11 @@ import {
   UPWARD_PATTERN,
 } from '../test/exportFileFormat/importsOf';
 import { exportsFrom, sourceText } from '../test/utils/SourceText';
-import { buildFileSet, createMemoryFileSetReader } from './FileSetUtils';
+import {
+  buildFileSet,
+  compareOrdinal,
+  createMemoryFileSetReader,
+} from './FileSetUtils';
 
 /** A file set of every sort of path, in an order that is not the sorted one. */
 const SCRAMBLED: VirtualFileSet = {
@@ -55,7 +59,7 @@ const BAD_PATHS = [
 ];
 
 describe('the types of a file set are on the package root', () => {
-  it('compiles with the four types imported from the index, as a consumer imports them', () => {
+  it('builds a file set and a reader that are typed with the four types imported from the index', () => {
     const file: VirtualFile = { path: 'a.json', content: '{}' };
     const entry: FileSetEntry = { name: 'a.json', isDirectory: false };
     const set: VirtualFileSet = { files: [file], ownedFolders: [] };
@@ -80,6 +84,43 @@ describe('the types of a file set are on the package root', () => {
       expect(source).toMatch(new RegExp(`export type ${name} = \\{`));
     }
     expect(source).toMatch(/export interface FileSetReader \{/);
+  });
+});
+
+describe('compareOrdinal', () => {
+  it.each([
+    ['a', 'b', -1],
+    ['b', 'a', 1],
+    ['a', 'a', 0],
+    ['', 'a', -1],
+    // a capital letter comes before a small one, as it does in a code unit order and not in the order of a locale
+    ['B', 'a', -1],
+    ['a', 'B', 1],
+    ['a', 'ab', -1],
+    // by UTF-16 code unit and not by code point: a surrogate (U+D83D) comes before U+FF5E though the code point U+1F600 is above it
+    ['\ud83d\ude00', '\uff5e', -1],
+    ['\u00e4', 'z', 1],
+    ['a.json', 'a/x', -1],
+  ])('puts %j and %j in the order %i', (a, b, expected) => {
+    expect(Math.sign(compareOrdinal(a, b))).toBe(expected);
+  });
+
+  it('sorts a list the way `<` does, whatever the order it starts in', () => {
+    const list = ['b', 'B', '\u00e4', 'a', 'A', 'z', '_', '-'];
+
+    expect([...list].sort(compareOrdinal)).toEqual([
+      '-',
+      'A',
+      'B',
+      '_',
+      'a',
+      'b',
+      'z',
+      '\u00e4',
+    ]);
+    expect([...list].reverse().sort(compareOrdinal)).toEqual(
+      [...list].sort(compareOrdinal)
+    );
   });
 });
 
@@ -349,6 +390,83 @@ describe('buildFileSet', () => {
     });
 
     expect(set.ownedFolders).toEqual(['realms', 'realms/alpha/journeys']);
+  });
+});
+
+describe('the names of Object.prototype are ordinary names of files and folders', () => {
+  const NAMES = [
+    'constructor',
+    'toString',
+    'valueOf',
+    'hasOwnProperty',
+    '__proto__',
+    '__defineGetter__',
+  ];
+  const set: VirtualFileSet = {
+    files: NAMES.flatMap((name) => [
+      { path: `top/${name}`, content: `file ${name}` },
+      { path: `${name}/${name}.json`, content: `in ${name}` },
+    ]),
+    ownedFolders: NAMES.map((name) => `owned/${name}`),
+  };
+
+  it('are built, sorted and kept as written', () => {
+    const built = buildFileSet(set);
+
+    expect(built.files).toHaveLength(NAMES.length * 2);
+    expect(built.files.map((file) => file.path)).toEqual(
+      [...set.files.map((file) => file.path)].sort((a, b) =>
+        a < b ? -1 : a > b ? 1 : 0
+      )
+    );
+    expect(built.ownedFolders).toEqual(
+      [...set.ownedFolders].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+    );
+  });
+
+  it.each(NAMES)(
+    '%s is listed, read, and missing where it is not there',
+    async (name) => {
+      const reader = createMemoryFileSetReader(set);
+
+      await expect(reader.readFile(`top/${name}`)).resolves.toBe(
+        `file ${name}`
+      );
+      await expect(reader.listDirectory(name)).resolves.toEqual([
+        { name: `${name}.json`, isDirectory: false },
+      ]);
+      await expect(reader.readFile(`owned/${name}`)).rejects.toThrow(
+        'is a directory, not a file'
+      );
+      await expect(reader.listDirectory(`owned/${name}`)).resolves.toEqual([]);
+      // none of them is there where nothing was put
+      const bare = createMemoryFileSetReader({
+        files: [{ path: 'other/x', content: '' }],
+        ownedFolders: [],
+      });
+      await expect(bare.readFile(name)).resolves.toBeUndefined();
+      await expect(bare.listDirectory(name)).resolves.toBeUndefined();
+      await expect(bare.readFile(`other/${name}`)).resolves.toBeUndefined();
+    }
+  );
+
+  it('are twins of each other only when a file system takes them for one', () => {
+    expect(() =>
+      buildFileSet({
+        files: [
+          { path: 'constructor', content: '' },
+          { path: 'Constructor', content: '' },
+        ],
+      })
+    ).toThrow('are the same path on a file system that ignores case');
+    expect(() =>
+      buildFileSet({
+        files: [
+          { path: '__proto__', content: '' },
+          { path: '__proto__/x', content: '' },
+        ],
+      })
+    ).toThrow('is a file and also a folder of the file set');
   });
 });
 

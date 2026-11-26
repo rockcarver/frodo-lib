@@ -115,8 +115,10 @@ export async function inRealm<R>({
  * The file names of objects that are written to one folder. Two ids whose names are the same on a file system that ignores
  * case or Unicode form (and two long ids that are cut to one name) collide: the first id keeps the name and the later ones
  * are reported. An id for which the name function throws gets no name: it is reported as refused, with the error, and never
- * thrown, so one id that leaves no name does not stop the others. The ids are taken in the order they are given: a caller
- * that wants the same names whatever order the tenant answers in sorts them first.
+ * thrown, so one id that leaves no name does not stop the others. Only what the name function throws is refused here: a
+ * name that passes it can still make a path that `assertFileSetPath` refuses (a name of 251 to 255 bytes with its extension,
+ * a lone surrogate), and `buildFileSet` then throws for the whole set. The ids are taken in the order they are given: a
+ * caller that wants the same names whatever order the tenant answers in sorts them first (`compareOrdinal`).
  * @param {string[]} ids the ids, in the order they are written
  * @param {(id: string) => string} nameOf gives the file name of an id, without the extension; the name that the agent types use by default
  * @returns {{ names: Map<string, string>; collisions: { id: string; firstId: string }[]; refused: { id: string; error: Error }[] }} the file name of each id that has one, the ids that collide with an earlier one, and the ids that have no name
@@ -175,7 +177,10 @@ export function overridesOf(
   id: string,
   matched: Set<string>
 ): Record<string, unknown> | undefined {
-  const entry = entries?.[realm]?.find(
+  // an own entry only: `constructor`, `toString` and `__proto__` are names of realms like any other, not members that every object has
+  const own =
+    entries && Object.hasOwn(entries, realm) ? entries[realm] : undefined;
+  const entry = own?.find(
     (candidate) => candidate.id.toLowerCase() === id.toLowerCase()
   );
   if (!entry) return undefined;
@@ -319,13 +324,23 @@ export function fileOfObject({
 
 /**
  * Run work for every object, one after the other, and say what became of each. Every object runs: a throw is the failure of
- * that object, wrapped in a `FrodoError` that keeps the cause, and the others still run. A failure goes to
- * `resultCallback(error)` when there is one, a success to `resultCallback(undefined, result)`, once for every object. The
- * work is given an `errorCallback` for the failures that it handles itself (it reports the error to `resultCallback`, or
- * throws it when there is none) and the `leftOutCallback` as it was passed in; the engine counts and prints nothing.
+ * that object, wrapped in a `FrodoError` that keeps the cause, and the others still run. What the caller can rely on:
+ * - The result holds one outcome for every object, in the order the objects were given. An outcome has an `error` when the
+ *   work threw, and only then.
+ * - `resultCallback` is told once for every object how its work ended: `(error)` after a throw, `(undefined, result)` after
+ *   a return. It is told more than once for an object whose work reports through the `errorCallback` that it was given: the
+ *   error goes to `resultCallback(error)` at that moment and the work goes on, and when it returns, `resultCallback` is told
+ *   `(undefined, result)` as for any success, and the outcome of that object has no error. A caller that makes an exit code from
+ *   the outcomes alone does not see such a failure of a part: it counts the errors that its callback was told as well.
+ * - Without a `resultCallback`, the `errorCallback` throws the error it is given, so the work ends and the failure is the
+ *   object's: it is in the outcome.
+ * - A `resultCallback` that throws ends the run: that is the caller's code and not the object's, so the objects after it do
+ *   not run and the function rejects with that error (the outcomes so far are not returned).
+ *
+ * The work is also given the `leftOutCallback` as it was passed in; the engine counts and prints nothing.
  * @param {T[]} objects the objects, each with its id
  * @param {(arguments: { object: T; errorCallback: ResultCallback<unknown>; leftOutCallback?: LeftOutAttributesCallback }) => Promise<R>} work what to do with one object; its result goes to the callback
- * @param {ResultCallback<R>} resultCallback Optional. Called once for every object
+ * @param {ResultCallback<R>} resultCallback Optional. Told how the work of every object ended, and of every error that the work gave to its `errorCallback`
  * @param {LeftOutAttributesCallback} leftOutCallback Optional. Passed on to the work
  * @returns {Promise<PushOutcome[]>} one outcome for every object, in the order the objects were given
  */

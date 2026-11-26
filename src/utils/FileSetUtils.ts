@@ -3,7 +3,7 @@ import { assertFileSetPath, sameOnAnyFileSystem } from './FileSetPathUtils';
 /**
  * File sets: a list of files, with their folders, as data. A pull gives one, a push takes one from a reader. Nothing here knows a file system,
  * a tenant or the state: the shapes, the builder that checks and orders a set, and a reader that reads a set from memory.
- * The paths are the paths that {@link assertFileSetPath} lets through.
+ * The paths are the paths that `assertFileSetPath` (`frodo.utils.assertFileSetPath`) lets through.
  */
 
 /** One file of a file set: its path, relative to the root of the set with `/` between the parts, and its text (UTF-8). */
@@ -15,7 +15,8 @@ export type VirtualFile = {
 /**
  * A file set: the files, sorted by path, and the folders that the set owns. An owned folder is a folder whose whole
  * content the set describes, so a consumer that writes the set may remove what it holds that the set does not
- * (a folder that is not owned is never cleaned). A set that {@link buildFileSet} made holds every path once.
+ * (a folder that is not owned is never cleaned). Owned folders may be nested (`realms` and `realms/alpha`), and a file need
+ * not lie below one: a consumer cleans each owned folder on its own. A set that `buildFileSet` made holds every path once.
  */
 export type VirtualFileSet = {
   files: VirtualFile[];
@@ -32,7 +33,7 @@ export type FileSetEntry = {
  * What a push asks for the files of a file set. A consumer supplies it (a file system, a version control system, memory),
  * and the library imports no file system module for it. Both methods are asynchronous.
  *
- * A path is relative to the root of the set, with `/` between the parts, and passes {@link assertFileSetPath}.
+ * A path is relative to the root of the set, with `/` between the parts, and passes `assertFileSetPath`.
  *
  * - `listDirectory(path)` gives the direct children of the directory, as {@link FileSetEntry} (the order is the reader's),
  *   or `undefined` when the directory does not exist. A directory that exists and is empty gives `[]`.
@@ -47,12 +48,14 @@ export interface FileSetReader {
 }
 
 /**
- * Two strings in ordinal order (by UTF-16 code unit, as `<` compares them), never by a locale.
+ * Two strings in ordinal order (by UTF-16 code unit, as `<` compares them), never by a locale: the one order that a file set
+ * is sorted in, and that the ids of a type are sorted in before their file names are made, so that the same content gives the
+ * same files whatever order a tenant answered in.
  * @param {string} a the first string
  * @param {string} b the second string
  * @returns {number} negative if a is first, positive if b is first, 0 if they are equal
  */
-function compareOrdinal(a: string, b: string): number {
+export function compareOrdinal(a: string, b: string): number {
   if (a < b) return -1;
   return a > b ? 1 : 0;
 }
@@ -71,16 +74,25 @@ function prefixesOf(path: string): string[] {
  * Build a file set: check every path, refuse what a file system could not hold apart, and sort. The input is not changed
  * and the set it returns shares nothing with it.
  *
- * Every path of a file and every owned folder passes {@link assertFileSetPath}, so an owned folder is never empty, the
- * root, or written with a trailing slash. The builder refuses
+ * Every path of a file and every owned folder passes `assertFileSetPath`, so an owned folder is never empty, the
+ * root, or written with a trailing slash. Owned folders may be nested (`realms` and `realms/alpha`), and a file need not lie
+ * below an owned folder. The builder refuses
  * - a path that two files have (`The file set holds the path ... twice.`),
  * - two paths, or two folders on the way to them, that are the same on a file system that ignores case or Unicode form
- *   (`A.json` and `a.json`; {@link sameOnAnyFileSystem} says what is the same),
+ *   (`A.json` and `a.json`; `sameOnAnyFileSystem` says what is the same),
  * - a file that is also a folder, because another path lies below it or it is an owned folder (`a` and `a/b.json`),
  * - an owned folder that is listed twice.
  *
  * `files` come back sorted by path and `ownedFolders` sorted, both in ordinal order (by UTF-16 code unit, never by a
  * locale), so the same content gives the same set whatever order it was found in. The text of a file is kept byte for byte.
+ *
+ * One path that the gate refuses fails the whole set: the builder throws at the first such path and does not say which other
+ * files were fine. That includes a path that a name function made and let through: `nameInFolder` and `encodedName` count
+ * the name without its extension, so an id whose name is 251 to 255 bytes gives a name that passes them, and its file
+ * `<name>.json` has a part of more than 255 bytes (and an id with a lone surrogate passes them and fails the gate). The
+ * engine's `assignFileNames` lists as refused only what its name function throws, so such an id is not listed as refused
+ * there. A caller that wants one such id to fail alone checks the path of each file with `assertFileSetPath` before it builds
+ * the set.
  * @param {VirtualFileSet} fileSet the files and the owned folders; the owned folders may be left out
  * @param {VirtualFile[]} fileSet.files the files
  * @param {string[]} fileSet.ownedFolders the folders that the set owns

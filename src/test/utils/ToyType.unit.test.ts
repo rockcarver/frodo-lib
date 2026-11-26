@@ -451,6 +451,61 @@ describe('reading the file set and pushing it', () => {
   });
 });
 
+describe('realms and toys with the names of Object.prototype', () => {
+  const NAMES = ['constructor', 'toString', '__proto__', 'hasOwnProperty'];
+  /** The toys of the tenant as a parse makes them: an own property for every name, `__proto__` too. */
+  const toys = (): Record<string, ToyObject[]> =>
+    JSON.parse(
+      `{ ${NAMES.map(
+        (name) =>
+          `${JSON.stringify(name)}: [ { "_id": ${JSON.stringify(name)}, "name": "toy of ${name}" } ]`
+      ).join(', ')} }`
+    );
+
+  it('are pulled to files and pushed back, each in its own realm', async () => {
+    const state = stateOf('forgeops');
+    const fake = tenant(toys());
+    const split = await pullToys({
+      readToys: fake.readToys(state),
+      realmNames: async () => NAMES,
+      state,
+    });
+
+    expect(split.fileSet.files.map((file) => file.path)).toEqual(
+      NAMES.map((name) => `realms/${name}/toys/${name}.json`).sort()
+    );
+    const sent: string[] = [];
+    const outcomes = await pushToys({
+      reader: createMemoryFileSetReader(split.fileSet),
+      state,
+      importToy: async (realm, toy) => {
+        sent.push(`${realm}:${toy._id}`);
+        return toy;
+      },
+    });
+
+    expect(sent.sort()).toEqual(NAMES.map((name) => `${name}:${name}`).sort());
+    expect(outcomes.every((outcome) => outcome.error === undefined)).toBe(true);
+    expect(outcomes).toHaveLength(NAMES.length);
+  });
+
+  it('are merged as realms of their own, not as members of the object that holds them', async () => {
+    const { fileSet } = splitToys({ toys: toys() });
+    const merged = await mergeToys({
+      reader: createMemoryFileSetReader(fileSet),
+      state: stateOf('forgeops'),
+    });
+
+    expect(Object.keys(merged).sort()).toEqual([...NAMES].sort());
+    for (const name of NAMES) {
+      expect(Object.getOwnPropertyDescriptor(merged, name)?.value).toEqual([
+        { _id: name, name: `toy of ${name}` },
+      ]);
+    }
+    expect(Object.getPrototypeOf(merged)).toBe(Object.prototype);
+  });
+});
+
 describe('the golden helper', () => {
   let copy: string;
   beforeEach(() => {
