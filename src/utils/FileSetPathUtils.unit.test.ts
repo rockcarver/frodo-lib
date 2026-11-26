@@ -2601,6 +2601,9 @@ describe('the names that every function makes, over a battery of ids', () => {
     '\u0085',
     '\n',
     ' ',
+    // not text: a lone high and a lone low surrogate
+    '\ud800',
+    '\udc00',
   ];
   const LENGTHS = [
     1, 2, 5, 40, 62, 63, 83, 84, 85, 86, 120, 125, 126, 127, 128, 250, 251, 256,
@@ -2662,7 +2665,7 @@ describe('the names that every function makes, over a battery of ids', () => {
     }
 
     expect(bad.slice(0, 5)).toEqual([]);
-    // 11 characters, 20 lengths, 3 shapes, 5 suffixes, 4 functions: 13,200 names, a few of which leave no name
+    // 13 characters, 20 lengths, 3 shapes, 5 suffixes, 4 functions: 15,600 names, a few of which leave no name
     expect(named).toBeGreaterThan(12000);
   });
 
