@@ -6,8 +6,12 @@ import sanitize from 'sanitize-filename';
  * never a path: whatever it says, these functions give one name inside the folder they are asked for, or throw. They are
  * pure (no file system, no state, no clock) and follow POSIX rules on every platform: a path is made of `/`, and a
  * backslash is an ordinary character that {@link referencedFilePath} and {@link realmFolderOf} refuse and that
- * {@link safeFileName} writes as `%5C`. Every command, every pull and push and every test can share them.
+ * {@link safeFileName} writes as `%5C`. {@link assertFileSetPath} is the one gate that every path of a file set passes.
+ * Every command, every pull and push and every test can share them.
  */
+
+/** The longest name of one file or folder, in bytes, on the file systems that a file set is written to. */
+const MAX_PATH_SEGMENT_BYTES = 255;
 
 /** The longest file name, 255 bytes on the usual file systems, less the extension `.json`. */
 const MAX_FILE_NAME_BYTES = 250;
@@ -124,13 +128,103 @@ export function isOneSafeSegment(value: string): boolean {
 
 /**
  * The name that an id or a name has in a folder of a file set. A value that is one name (no separator, no `C:`, not `.`
- * or `..`, no control character) is that name, as typed; any other value is turned into the file name of an id,
- * {@link fileNameOf}.
+ * or `..`, no control character) is that name, as typed; any other value is turned into the file name of an id, which
+ * writes the characters of a path as `%XX` (`a/b` is `a%2Fb`). The name is not cut: a name that a file system cannot hold
+ * fails where it is written, so that two long names never become one.
  * @param {string} value the id or the name
  * @returns {string} the name without the extension
+ * @throws {Error} if the value leaves no name (`.`, `..`, empty), or is longer than a file name can be once encoded
  */
-function nameInFolder(value: string): string {
-  return isOneSafeSegment(value) ? value : fileNameOf(value);
+export function nameInFolder(value: string): string {
+  const text = String(value);
+  if (isOneSafeSegment(text)) return text;
+  // the function that writes the characters of a path as `%XX` cuts a name at 255 bytes, silently
+  if (encodedBytes(text) > MAX_PATH_SEGMENT_BYTES) throw nameTooLong(text);
+  const name = safeFileName(text);
+  if (name === '') {
+    throw new Error(
+      `'${shownInMessage(text)}' does not name an object: an id or a name is not a path`
+    );
+  }
+  return name;
+}
+
+/**
+ * How many bytes the file name of an id has when the function that makes it cuts it (at 255 bytes, silently): the
+ * characters of a path written as `%XX`, and a `*` still in it, because the cut is made before the `*` is removed.
+ * @param {string} text the id or the name
+ * @returns {number} the length in bytes
+ */
+function encodedBytes(text: string): number {
+  return Buffer.byteLength(
+    text
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\u0000-\u001f\u0080-\u009f/?<>\\:|"]/g, (character) =>
+        encodeURIComponent(character)
+      )
+  );
+}
+
+/**
+ * The error for a name that is longer than a file name can be.
+ * @param {string} name the name
+ * @returns {Error} the error, which names the name
+ */
+function nameTooLong(name: string): Error {
+  return new Error(
+    `The name '${shownInMessage(name)}' is longer than ${MAX_PATH_SEGMENT_BYTES} bytes once encoded, so it cannot be the name of a file.`
+  );
+}
+
+/**
+ * The file name of a name that a file is always named after in its encoded form (the script of a pull is `<name>.js`,
+ * with `:`, `?` and the other characters of a path written as `%XX`). It is {@link safeFileName} that does not cut and is
+ * not empty: where `safeFileName` cuts a name at 255 bytes without a word, and {@link fileNameOf} (the agent types) cuts it
+ * at 250, this function refuses a name that leaves nothing (`.`, `..`, a run of dots, a device name of Windows) or that is
+ * more than 255 bytes once encoded, naming it, so that two long names never become one.
+ * @param {string} value the name
+ * @returns {string} the file name without the extension
+ * @throws {Error} if the value leaves no name, or is longer than a file name can be
+ */
+export function encodedName(value: string): string {
+  const text = String(value);
+  if (encodedBytes(text) > MAX_PATH_SEGMENT_BYTES) throw nameTooLong(text);
+  const name = safeFileName(text);
+  if (name === '') {
+    throw new Error(
+      `'${shownInMessage(text)}' does not name an object: an id or a name is not a path`
+    );
+  }
+  return name;
+}
+
+/**
+ * The name that an id or a name has as the start of a file name that a file of the set refers to (`<name>.<key>.js`,
+ * `<name>.<language>.html`): {@link nameInFolder}, and a name that starts with a letter and a colon (`a:b`) writes that
+ * colon as `%3A`, because a reference that starts so is a drive letter, which {@link referencedFilePath} refuses. Any
+ * other colon (`Login:SSO`) stays.
+ * @param {string} value the id or the name
+ * @returns {string} the start of the file name
+ * @throws {Error} if the value leaves no name (`.`, `..`, empty)
+ */
+export function nameInStem(value: string): string {
+  const name = nameInFolder(value);
+  return /^[A-Za-z]:/.test(name) ? `${name[0]}%3A${name.slice(2)}` : name;
+}
+
+/**
+ * A value as a message shows it: a control character is written as `\u0001`, so that it cannot change what a terminal
+ * shows, and a long value is cut.
+ * @param {string} text the value
+ * @returns {string} the value for a message
+ */
+function shownInMessage(text: string): string {
+  const escaped = String(text).replace(
+    /\p{Cc}/gu,
+    (character) =>
+      `\\u${(character.codePointAt(0) as number).toString(16).padStart(4, '0')}`
+  );
+  return escaped.length > 100 ? `${escaped.slice(0, 100)}...` : escaped;
 }
 
 /**
@@ -153,14 +247,17 @@ function inside(folder: string, value: string, candidate: string): string {
 
 /**
  * The file of an object: `<folder>/<name>.json`, directly in the folder. The name is the id or the name as typed when that
- * is one name, else the file name of an id. A caller that wants only the file name of an id passes `fileNameOf(id)`.
+ * is one name, else the file name of an id. A caller that wants only the file name of an id (the three agent types)
+ * passes `fileNameOf(id)`, which is empty for a name that a file system cannot have (`con`): an empty value is that name,
+ * made already, and its file is `.json`. An id or a name that is `.` or `..` is not a name.
  * @param {string} folder the folder of the type
  * @param {string} value the id or the name of the object
  * @returns {string} the path of the file
- * @throws {Error} if the file would not be inside the folder
+ * @throws {Error} if the value is `.` or `..`, or the file would not be inside the folder
  */
 export function objectFilePath(folder: string, value: string): string {
-  return inside(folder, value, `${folder}/${nameInFolder(value)}.json`);
+  const name = value === '' ? '' : nameInFolder(value);
+  return inside(folder, value, `${folder}/${name}.json`);
 }
 
 /**
@@ -240,4 +337,66 @@ export function referencedFilePath(folder: string, reference: string): string {
     throw refused();
   }
   return candidate;
+}
+
+/**
+ * What two names share when a file system takes them for one: case and Unicode form do not count (`A.json` and `a.json`,
+ * or a name in two Unicode forms, are one file on a file system that ignores the difference, and a character that is not
+ * text, a lone surrogate, is written as U+FFFD, so two of them are one name). A file set that holds two paths with the
+ * same value here would lose one of them on such a file system.
+ * @param {string} name the name or the path
+ * @returns {string} the name in one form
+ */
+export function sameOnAnyFileSystem(name: string): string {
+  return name.toWellFormed().normalize('NFC').toLowerCase().normalize('NFC');
+}
+
+/**
+ * Why a value is not one name of a file or a folder (see {@link isOneSafeSegment}), in the words of a message.
+ * @param {string} segment the part of a path that {@link isOneSafeSegment} refused
+ * @returns {string} the reason, to follow "it"
+ */
+function whyNotOneName(segment: string): string {
+  if (segment === '') return 'has an empty part';
+  if (segment === '.' || segment === '..') {
+    return `has '${segment}' as a part`;
+  }
+  if (/\p{Cc}/u.test(segment)) return 'holds a control character';
+  if (segment.includes('\\')) return 'holds a backslash';
+  if (segment.includes('C:')) return "holds 'C:'";
+  return 'has a part that is not a name';
+}
+
+/**
+ * The one gate that every path of a file set passes, for a file and for a folder: the path is relative to the root of the
+ * file set, its parts are separated by `/`, and every part is one name. It throws for a path that is empty, starts with
+ * `/` (absolute) or with a drive letter (`c:/x`, `c:`), has an empty part (`a//b`, `a/`), has `.` or `..` as a part,
+ * holds a backslash, a control character or `C:` (the library rewrites a path after it is built: it reads `\` as `/` and
+ * removes every `C:`, so what it writes is not what was checked), holds a character that is not text (a lone surrogate),
+ * or has a part of more than 255 bytes. Any other colon (`a:b.json`) and a name that holds dots (`..foo.json`) are
+ * ordinary. It looks at the text only: it knows no file system, so it cannot see a link, and it cannot see that two paths
+ * are one file on a file system that ignores case; {@link sameOnAnyFileSystem} is the key for that.
+ * @param {string} path the path of a file or of a folder, relative to the root of the file set
+ * @throws {Error} if the path is not a path inside a file set; the message holds the path (a control character is written as an escape) and the reason
+ */
+export function assertFileSetPath(path: string): void {
+  if (typeof path !== 'string' || path === '') {
+    throw new Error('A file of a file set needs a path.');
+  }
+  const refused = (why: string): Error =>
+    new Error(
+      `The path '${shownInMessage(path)}' is not a path inside a file set: it ${why}.`
+    );
+  if (!path.isWellFormed()) throw refused('holds a character that is not text');
+  if (path.startsWith('/')) throw refused('is an absolute path');
+  const segments = path.split('/');
+  if (/^[A-Za-z]:$/.test(segments[0])) {
+    throw refused('starts with a drive letter');
+  }
+  for (const segment of segments) {
+    if (!isOneSafeSegment(segment)) throw refused(whyNotOneName(segment));
+    if (Buffer.byteLength(segment) > MAX_PATH_SEGMENT_BYTES) {
+      throw refused(`has a part of more than ${MAX_PATH_SEGMENT_BYTES} bytes`);
+    }
+  }
 }

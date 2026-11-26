@@ -31,15 +31,20 @@ import {
 } from './ExportFileFormatUtils';
 import { getFilePath } from './ExportImportUtils';
 import {
+  assertFileSetPath,
   assertInside,
+  encodedName,
   fileNameOf,
   isOneSafeSegment,
+  nameInFolder,
+  nameInStem,
   objectFilePath,
   objectFolderPath,
   realmFolderOf,
   referencedFilePath,
   safeFileName,
   safeFileNameUnderscore,
+  sameOnAnyFileSystem,
 } from './FileSetPathUtils';
 
 const FOLDER = '/work/set/sync/connectors';
@@ -192,14 +197,22 @@ describe('objectFilePath', () => {
     // a control character of the C1 block is not part of a plain name either
     ['a\u0085b', `${FOLDER}/a%C2%85b.json`],
     ['a\u009fb', `${FOLDER}/a%C2%9Fb.json`],
-    ['..', `${FOLDER}/.json`],
-    ['.', `${FOLDER}/.json`],
   ])('%j is the file %s', (selector, expected) => {
     expect(objectFilePath(FOLDER, value(selector))).toBe(expected);
   });
 
+  it.each([['..'], ['.']])(
+    '%j is not the name of an object, as it is not for a folder',
+    (selector) => {
+      expect(() => objectFilePath(FOLDER, selector)).toThrow(
+        `'${selector}' does not name an object: an id or a name is not a path`
+      );
+    }
+  );
+
   it('puts every file directly into its folder, whatever the selector says', () => {
     for (const [selector] of FILE_NAMES) {
+      if (selector === '..' || selector === '.') continue;
       const file = objectFilePath(FOLDER, value(selector));
 
       expect(posix.dirname(file)).toBe(FOLDER);
@@ -754,6 +767,12 @@ describe('the paths after the library has rewritten them', () => {
           // `.` and `..` do not name an object
           expect(error.message).toContain('does not name an object');
         }
+        if (name === '..' || name === '.') {
+          expect(() => objectFilePath(folder, name)).toThrow(
+            'does not name an object'
+          );
+          return;
+        }
         const file = objectFilePath(folder, name);
         expect(staysInside(folder, file)).toBe(true);
         expect(posix.dirname(real(file))).toBe(real(folder).replace(/\/$/, ''));
@@ -1247,6 +1266,486 @@ describe('the pure rewrite and the wrapper give the same path', () => {
     expect(different.slice(0, 5)).toEqual([]);
     // 1 + 13 + 13^2 + 13^3 + 13^4 + 13^5 strings, for three working directories
     expect(count).toBe(402234 * 3);
+  });
+});
+
+describe('nameInFolder and nameInStem', () => {
+  // the rows of the functions as the command line had them (the tenant-name record
+  // https://github.com/rockcarver/frodo-cli/blob/main/docs/decisions/0063-a-name-that-a-tenant-gives-is-one-name-in-the-config-folder.md, status proposed)
+  it.each([
+    ['Login', 'Login'],
+    ['My Theme', 'My Theme'],
+    ['alpha_user', 'alpha_user'],
+    ['ünï', 'ünï'],
+    ['a:b', 'a:b'],
+    ['Login:SSO', 'Login:SSO'],
+    ['..foo', '..foo'],
+    ['.hidden', '.hidden'],
+    ['a.b', 'a.b'],
+    ['-x', '-x'],
+    ['con', 'con'],
+    ['a.', 'a.'],
+    ['a/b', 'a%2Fb'],
+    ['a\\b', 'a%5Cb'],
+    ['../x', '..%2Fx'],
+    ['..\\..\\x', '..%5C..%5Cx'],
+    ['/etc/x', '%2Fetc%2Fx'],
+    ['C:\\x', 'C%3A%5Cx'],
+    ['ABC:x', 'ABC%3Ax'],
+    ['a\nb', 'a%0Ab'],
+    ['a\tb', 'a%09b'],
+    ['a\u0000b', 'a%00b'],
+    ['a*b/c', 'ab%2Fc'],
+  ])('the name %j is the name %j in a folder', (selector, expected) => {
+    expect(nameInFolder(selector)).toBe(expected);
+  });
+
+  it.each([[''], ['.'], ['..']])(
+    '%j leaves no name: it is refused, naming it',
+    (selector) => {
+      expect(() => nameInFolder(selector)).toThrow(
+        `'${selector}' does not name an object: an id or a name is not a path`
+      );
+      expect(() => nameInStem(selector)).toThrow('does not name an object');
+    }
+  );
+
+  it('does not cut a long name: it fails, naming it, so that two long names never become one', () => {
+    expect(nameInFolder('n'.repeat(300))).toBe('n'.repeat(300));
+    expect(() => nameInFolder(`a/${'n'.repeat(300)}`)).toThrow(
+      'is longer than 255 bytes once encoded, so it cannot be the name of a file.'
+    );
+    // a name of 255 bytes that holds a slash is 257 bytes once the slash is written as %2F
+    expect(() => nameInFolder(`a/${'n'.repeat(253)}`)).toThrow(
+      'is longer than 255 bytes once encoded'
+    );
+    expect(nameInFolder(`a/${'n'.repeat(251)}`)).toBe(`a%2F${'n'.repeat(251)}`);
+  });
+
+  it('counts the bytes of the encoded name, and the `*` that the cut sees', () => {
+    // 126 characters of two bytes and a slash written as %2F: 256 bytes
+    expect(() => nameInFolder(`a/${'é'.repeat(126)}`)).toThrow(
+      'is longer than 255 bytes once encoded'
+    );
+    expect(nameInFolder(`a/${'é'.repeat(125)}`)).toBe(`a%2F${'é'.repeat(125)}`);
+    // the function that makes the name cuts before it removes a `*`, so a `*` counts as a byte
+    expect(() => nameInFolder(`a/${'n'.repeat(251)}*`)).toThrow(
+      'is longer than 255 bytes once encoded'
+    );
+    expect(nameInFolder(`a/${'n'.repeat(250)}*`)).toBe(
+      `a%2F${'n'.repeat(250)}`
+    );
+  });
+
+  it('shows a control character of a refused name as an escape and cuts a long one', () => {
+    let message = '';
+    try {
+      nameInFolder('\u001b[31m');
+      nameInFolder('.');
+    } catch (error) {
+      message = error.message;
+    }
+    expect(message).toBe(
+      "'.' does not name an object: an id or a name is not a path"
+    );
+    expect(() => nameInFolder(`/${'n\u0001'.repeat(200)}`)).toThrow(
+      /^The name '\/n\\u0001n\\u0001.*\.\.\.' is longer than 255 bytes once encoded/
+    );
+  });
+
+  it('turns a number into its text, as a template does', () => {
+    expect(nameInFolder(1.5 as unknown as string)).toBe('1.5');
+    expect(nameInFolder(7 as unknown as string)).toBe('7');
+  });
+
+  it.each([
+    ['Login', 'Login'],
+    ['Login:SSO', 'Login:SSO'],
+    ['a:b', 'a%3Ab'],
+    ['C:', 'C%3A'],
+    ['x:y:z', 'x%3Ay:z'],
+    ['a/b', 'a%2Fb'],
+    ['1:2', '1:2'],
+  ])(
+    'the stem of a file that a file refers to: %j is %j',
+    (selector, expected) => {
+      expect(nameInStem(selector)).toBe(expected);
+    }
+  );
+
+  it('a file that is named by a stem is a reference that referencedFilePath accepts, for every name', () => {
+    for (const selector of [
+      'Login',
+      'a:b',
+      'Login:SSO',
+      'C:',
+      'z:',
+      'a/b',
+      '..C:',
+      '../x',
+      'x\\y',
+      'é',
+      '.hidden',
+    ]) {
+      const reference = `${nameInStem(selector)}.onCreate.js`;
+
+      expect(() => referencedFilePath('/w/folder', reference)).not.toThrow();
+    }
+  });
+});
+
+describe('encodedName', () => {
+  it.each([
+    ['Login', 'Login'],
+    ['My Script', 'My Script'],
+    ['a/b', 'a%2Fb'],
+    ['a:b', 'a%3Ab'],
+    ['a?b', 'a%3Fb'],
+    ['a*b', 'ab'],
+    ['a\u0000b', 'a%00b'],
+    ['é', 'é'],
+    ['..foo', '..foo'],
+  ])(
+    'the file name of %j is %j: every character of a path is written as %%XX',
+    (selector, expected) => {
+      expect(encodedName(selector)).toBe(expected);
+    }
+  );
+
+  it.each([[''], ['.'], ['..'], ['...'], ['con'], ['CON'], ['nul.txt']])(
+    '%j leaves no name: it is refused, naming it',
+    (selector) => {
+      expect(() => encodedName(selector)).toThrow(
+        `'${selector}' does not name an object: an id or a name is not a path`
+      );
+    }
+  );
+
+  it('does not cut a name: more than 255 bytes once encoded is refused and 255 is not', () => {
+    expect(encodedName('n'.repeat(255))).toBe('n'.repeat(255));
+    expect(() => encodedName('n'.repeat(256))).toThrow(
+      `The name '${'n'.repeat(100)}...' is longer than 255 bytes once encoded, so it cannot be the name of a file.`
+    );
+    // bytes, not characters
+    expect(encodedName('é'.repeat(127))).toBe('é'.repeat(127));
+    expect(() => encodedName('é'.repeat(128))).toThrow(
+      'is longer than 255 bytes once encoded'
+    );
+    // a slash is three bytes once encoded
+    expect(() => encodedName(`a/${'n'.repeat(253)}`)).toThrow(
+      'is longer than 255 bytes once encoded'
+    );
+  });
+
+  it('is nameInFolder for a name that is not one safe name, and differs for one that is (it always encodes)', () => {
+    expect(encodedName('a/b')).toBe(nameInFolder('a/b'));
+    expect(encodedName('Login:SSO')).toBe('Login%3ASSO');
+    expect(nameInFolder('Login:SSO')).toBe('Login:SSO');
+  });
+});
+
+describe('sameOnAnyFileSystem', () => {
+  it.each([
+    ['a case', 'A.json', 'a.json'],
+    ['a folder case', 'Themes/Login', 'themes/login'],
+    ['two Unicode forms', '\u00e9', 'e\u0301'],
+    ['an upper case letter with an accent', '\u00c9', '\u00e9'],
+    [
+      'two lone surrogates, which a file system writes as U+FFFD',
+      '\ud800',
+      '\ud801',
+    ],
+    ['a lone surrogate and U+FFFD', '\ud800', '\ufffd'],
+  ])('takes %s for one name', (_what, one, other) => {
+    expect(sameOnAnyFileSystem(one)).toBe(sameOnAnyFileSystem(other));
+  });
+
+  it.each([
+    ['a different letter', 'a', 'b'],
+    ['a name that only looks alike', 'a%2Fb', 'a/b'],
+    ['an underscore', 'a_', 'a'],
+    ['a folder and a file', 'a/b', 'a_b'],
+    ['a character and its full width form', 'a', '\uff41'],
+  ])('keeps %s apart', (_what, one, other) => {
+    expect(sameOnAnyFileSystem(one)).not.toBe(sameOnAnyFileSystem(other));
+  });
+
+  it('gives the same name when applied again', () => {
+    for (const name of ['A', '\u00c9', 'e\u0301', '\ud800x', 'a/B', '']) {
+      const once = sameOnAnyFileSystem(name);
+
+      expect(sameOnAnyFileSystem(once)).toBe(once);
+    }
+  });
+});
+
+describe('assertFileSetPath', () => {
+  it.each([
+    ['a'],
+    ['a/b'],
+    ['realms/alpha/journeys/Login/Login.json'],
+    ['custom-nodes/nodes/My Node/My Node.js'],
+    ['a:b.json'],
+    ['x:y'],
+    ['..foo.json'],
+    ['foo..'],
+    ['.hidden/x.json'],
+    ['a%2Fb.json'],
+    ['C'],
+    ['Cx.json'],
+    ['c/x'],
+    ['a'.repeat(255)],
+    [`d/${'n'.repeat(250)}.json`],
+    ['é'.repeat(127)],
+    ['€'.repeat(85)],
+    ['😀'.repeat(63)],
+    ['a b/c d.json'],
+    ['Login:SSO.onCreate.js'],
+  ])('accepts %j', (path) => {
+    expect(() => assertFileSetPath(path)).not.toThrow();
+  });
+
+  /** [the path, the reason in the message] */
+  const REFUSED: [string, string][] = [
+    // empty and absolute
+    ['/', 'is an absolute path'],
+    ['/a', 'is an absolute path'],
+    ['/etc/passwd', 'is an absolute path'],
+    ['//a', 'is an absolute path'],
+    // an empty part
+    ['a/', 'has an empty part'],
+    ['a//b', 'has an empty part'],
+    ['a/b/', 'has an empty part'],
+    ['a///b', 'has an empty part'],
+    ['realms/', 'has an empty part'],
+    ['a/b/c/', 'has an empty part'],
+    ['a/ /', 'has an empty part'],
+    // `.` and `..` as a part
+    ['.', "has '.' as a part"],
+    ['./', "has '.' as a part"],
+    ['./a', "has '.' as a part"],
+    ['a/./b', "has '.' as a part"],
+    ['a/.', "has '.' as a part"],
+    ['..', "has '..' as a part"],
+    ['../x', "has '..' as a part"],
+    ['a/..', "has '..' as a part"],
+    ['a/../b', "has '..' as a part"],
+    ['a/b/../../../x', "has '..' as a part"],
+    // a backslash
+    ['a\\b', 'holds a backslash'],
+    ['..\\x', 'holds a backslash'],
+    ['\\a', 'holds a backslash'],
+    ['a/b\\', 'holds a backslash'],
+    ['\\\\server\\share\\x', 'holds a backslash'],
+    // `C:` anywhere
+    ['C:\\x', 'holds a backslash'],
+    ['..C:/x', "holds 'C:'"],
+    ['.C:./x', "holds 'C:'"],
+    ['ABC:x.json', "holds 'C:'"],
+    ['a/C:', "holds 'C:'"],
+    ['a/x.C:', "holds 'C:'"],
+    ['CC::x', "holds 'C:'"],
+    // a drive letter
+    ['C:', 'starts with a drive letter'],
+    ['C:/x', 'starts with a drive letter'],
+    ['c:/x', 'starts with a drive letter'],
+    ['c:', 'starts with a drive letter'],
+    ['a:/x', 'starts with a drive letter'],
+    ['z:', 'starts with a drive letter'],
+    ['C:/', 'starts with a drive letter'],
+    ['d:/x/y.json', 'starts with a drive letter'],
+    ['Z:/a/b', 'starts with a drive letter'],
+    // a control character
+    ['a\u0000b', 'holds a control character'],
+    ['\u0000', 'holds a control character'],
+    ['a\nb', 'holds a control character'],
+    ['a\tb', 'holds a control character'],
+    ['a/\rb', 'holds a control character'],
+    ['a\u007fb', 'holds a control character'],
+    ['a\u0085b', 'holds a control character'],
+    ['a\u009fb', 'holds a control character'],
+    ['a\u001b[31mb', 'holds a control character'],
+    // a part of more than 255 bytes
+    ['a'.repeat(256), 'has a part of more than 255 bytes'],
+    [`d/${'a'.repeat(256)}`, 'has a part of more than 255 bytes'],
+    [`${'a'.repeat(256)}/d`, 'has a part of more than 255 bytes'],
+    ['é'.repeat(128), 'has a part of more than 255 bytes'],
+    ['€'.repeat(86), 'has a part of more than 255 bytes'],
+    [`${'€'.repeat(85)}x`, 'has a part of more than 255 bytes'],
+    ['😀'.repeat(64), 'has a part of more than 255 bytes'],
+    // a character that is not text
+    ['\ud800', 'holds a character that is not text'],
+    ['a\udc00b', 'holds a character that is not text'],
+    ['\ud83d', 'holds a character that is not text'],
+    ['x/\udbff', 'holds a character that is not text'],
+  ];
+
+  it.each(REFUSED)('refuses %j: it %s', (path, why) => {
+    expect(() => assertFileSetPath(path)).toThrow(
+      new RegExp(`is not a path inside a file set: it ${why}\\.$`)
+    );
+  });
+
+  it('has at least sixty refused shapes', () => {
+    expect(REFUSED.length).toBeGreaterThanOrEqual(60);
+  });
+
+  it.each([[''], [undefined], [null], [42], [{}], [['a']], [true]])(
+    'refuses %j: a file needs a path',
+    (path) => {
+      expect(() => assertFileSetPath(path as unknown as string)).toThrow(
+        'A file of a file set needs a path.'
+      );
+    }
+  );
+
+  it('names the path in the message, and writes a control character as an escape so that the message cannot change what a terminal shows', () => {
+    expect(() => assertFileSetPath('a\u001b[31mb/..')).toThrow(
+      "The path 'a\\u001b[31mb/..' is not a path inside a file set: it holds a control character."
+    );
+    expect(() => assertFileSetPath('../x')).toThrow(
+      "The path '../x' is not a path inside a file set: it has '..' as a part."
+    );
+  });
+
+  it('cuts a long path in the message', () => {
+    expect(() => assertFileSetPath(`${'a'.repeat(300)}`)).toThrow(
+      `The path '${'a'.repeat(100)}...' is not a path inside a file set`
+    );
+  });
+
+  it('accepts exactly 255 bytes and refuses 256, in characters of one, two, three and four bytes', () => {
+    for (const [character, bytes] of [
+      ['a', 1],
+      ['é', 2],
+      ['€', 3],
+      ['😀', 4],
+    ] as [string, number][]) {
+      const most = Math.floor(255 / bytes);
+
+      expect(Buffer.byteLength(character.repeat(most))).toBeLessThanOrEqual(
+        255
+      );
+      expect(() => assertFileSetPath(character.repeat(most))).not.toThrow();
+      expect(() => assertFileSetPath(character.repeat(most + 1))).toThrow(
+        'has a part of more than 255 bytes'
+      );
+      // the same for a part below a folder: every part has its own 255
+      expect(() =>
+        assertFileSetPath(`${character.repeat(most)}/${character.repeat(most)}`)
+      ).not.toThrow();
+    }
+  });
+});
+
+/**
+ * The safety argument for the gate as a test: the library rewrites a path after it was judged (`\` is `/`, every `C:`
+ * goes, the working directory comes first), so whatever the gate lets through must be read as it was judged, and must be
+ * inside the working directory. 13 pieces, every concatenation of up to five.
+ */
+describe('what the gate lets through is what the library reads (a corpus of 402,234 strings)', () => {
+  const PIECES = [
+    '..',
+    '.',
+    'C:',
+    'c:',
+    ':',
+    '\\',
+    '/',
+    '%3A',
+    '\uff1a',
+    'a',
+    'x.js',
+    'CC::',
+    'C',
+  ];
+  const WORKING_DIRECTORY = '/work/corpus';
+
+  const corpus = function* (max = 5) {
+    const walk = function* (prefix: string, depth: number): Generator<string> {
+      yield prefix;
+      if (depth === max) return;
+      for (const piece of PIECES) yield* walk(prefix + piece, depth + 1);
+    };
+    yield* walk('', 0);
+  };
+
+  /** The strings that the gate lets through and the library reads differently or outside the directory. */
+  const violationsOf = (gate: (path: string) => void, max = 5) => {
+    const violations: string[] = [];
+    let accepted = 0;
+    let refused = 0;
+    let total = 0;
+    for (const path of corpus(max)) {
+      total++;
+      try {
+        gate(path);
+      } catch {
+        refused++;
+        continue;
+      }
+      accepted++;
+      if (normalizeFilePath(path) !== path) {
+        violations.push(`rewritten: ${path}`);
+        continue;
+      }
+      try {
+        assertInside(
+          WORKING_DIRECTORY,
+          joinWorkingDirectory(WORKING_DIRECTORY, path)
+        );
+      } catch {
+        violations.push(`outside: ${path}`);
+      }
+    }
+    return { violations, accepted, refused, total };
+  };
+
+  it('is unchanged by the rewrite and stays inside the working directory, for every string', () => {
+    const { violations, accepted, refused, total } =
+      violationsOf(assertFileSetPath);
+
+    expect(violations.slice(0, 5)).toEqual([]);
+    // 1 + 13 + 13^2 + 13^3 + 13^4 + 13^5 strings
+    expect(total).toBe(402234);
+    // the corpus has both sorts in it
+    expect(accepted).toBeGreaterThan(10000);
+    expect(refused).toBeGreaterThan(300000);
+  });
+
+  it('the corpus can fail: a gate that only looks for `..`, one that forgets `C:` and one that forgets the backslash are found', () => {
+    /** The gate as it is, without one of its tests. */
+    const gateWithout =
+      ({
+        backslash,
+        c,
+        dots,
+      }: {
+        backslash: boolean;
+        c: boolean;
+        dots: boolean;
+      }) =>
+      (path: string) => {
+        if (path === '' || path.startsWith('/')) throw new Error('refused');
+        if (backslash && path.includes('\\')) throw new Error('refused');
+        if (c && path.includes('C:')) throw new Error('refused');
+        const segments = path.split('/');
+        if (segments.includes('.')) throw new Error('refused');
+        if (dots && segments.includes('..')) throw new Error('refused');
+        if (segments.includes('')) throw new Error('refused');
+      };
+    const complete = { backslash: true, c: true, dots: true };
+
+    expect(violationsOf(gateWithout(complete), 3).violations).toEqual([]);
+    expect(
+      violationsOf(gateWithout({ ...complete, c: false }), 3).violations
+    ).toContain('rewritten: ..C:');
+    expect(
+      violationsOf(gateWithout({ ...complete, backslash: false }), 3).violations
+    ).toContain('rewritten: ..\\');
+    expect(
+      violationsOf(gateWithout({ ...complete, dots: false }), 3).violations
+    ).toContain('outside: ../a');
   });
 });
 
