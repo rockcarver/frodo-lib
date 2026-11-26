@@ -21,8 +21,9 @@
  * an independent implementation (Python 3, hashlib), and a differential test against a frozen copy of the previous
  * functions shows that every id that fits keeps the name it had.
  *
- * The differential test at the end runs a deterministic sample of its corpus (a few seconds). `FILE_NAME_FULL_CORPUS=1 npm run
- * test:only -- src/utils/FileSetPathUtils` runs all of it (about 2,300,000 comparisons, about 3 minutes).
+ * The differential test at the end runs a deterministic sample of its corpus: 114,318 comparisons, about 7 seconds, and the whole
+ * file about 21 seconds. `FILE_NAME_FULL_CORPUS=1 npm run test:only -- src/utils/FileSetPathUtils` runs all of it: 523,914 ids,
+ * 3,312,456 comparisons, about 98 seconds.
  *
  * Hermetic: no file is read or written, no network, no recording.
  */
@@ -3136,6 +3137,584 @@ describe('a name that does not fit gets a checksum', () => {
       '.json',
       rep('a', 241) + '~e8722168',
     ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%C0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~62fe3e65',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%C0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~62fe3e65',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%C0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~62fe3e65',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%C1' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~ac6adba0',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%C1' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~ac6adba0',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%C1' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~ac6adba0',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%C2' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~577539e3',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%C2' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~577539e3',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%C2' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~577539e3',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%CF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~1d2879a0',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%CF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~1d2879a0',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%CF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~1d2879a0',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%D0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~898821dc',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%D0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~898821dc',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%D0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~898821dc',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%DF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~48fb79ef',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%DF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~48fb79ef',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%DF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~48fb79ef',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%E0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~e8156d20',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%E0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~e8156d20',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%E0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~e8156d20',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%EF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~558ce557',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%EF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~558ce557',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%EF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~558ce557',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%F0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~928c2116',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%F0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~928c2116',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%F0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~928c2116',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%F7' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~7558480f',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%F7' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~7558480f',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%F7' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~7558480f',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%F8' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%F8~ec065dff',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%F8' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%F8~ec065dff',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%F8' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%F8~ec065dff',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%FF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%FF~5fd4b656',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%FF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%FF~5fd4b656',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%FF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%FF~5fd4b656',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%BF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%BF~b9cf230b',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%BF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%BF~b9cf230b',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%BF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%BF~b9cf230b',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%80' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%80~0347e94f',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%80' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%80~0347e94f',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%80' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%80~0347e94f',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%7F' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%7F~c580f112',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%7F' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%7F~c580f112',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%7F' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%7F~c580f112',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%c0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~cd8c17ff',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%c0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~cd8c17ff',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%c0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~cd8c17ff',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%df' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~370500ef',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%df' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~370500ef',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%df' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~370500ef',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%f7' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~d3781d52',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%f7' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~d3781d52',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%f7' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~d3781d52',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 235) + '%C2%80' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%C2%80~35844397',
+    ],
+    [
+      'encodedName',
+      rep('x', 235) + '%C2%80' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%C2%80~35844397',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 235) + '%C2%80' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%C2%80~35844397',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 235) + '%E0%80' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '~2ba3237f',
+    ],
+    [
+      'encodedName',
+      rep('x', 235) + '%E0%80' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '~2ba3237f',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 235) + '%E0%80' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '~2ba3237f',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 232) + '%E0%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%E0%80%80~42afd5d0',
+    ],
+    [
+      'encodedName',
+      rep('x', 232) + '%E0%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%E0%80%80~42afd5d0',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 232) + '%E0%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%E0%80%80~42afd5d0',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 232) + '%F0%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '~83aa8fb2',
+    ],
+    [
+      'encodedName',
+      rep('x', 232) + '%F0%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '~83aa8fb2',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 232) + '%F0%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '~83aa8fb2',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 229) + '%F0%80%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 229) + '%F0%80%80%80~aefc75f8',
+    ],
+    [
+      'encodedName',
+      rep('x', 229) + '%F0%80%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 229) + '%F0%80%80%80~aefc75f8',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 229) + '%F0%80%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 229) + '%F0%80%80%80~aefc75f8',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 232) + '%F0%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%F0%80yyy~5b514145',
+    ],
+    [
+      'encodedName',
+      rep('x', 232) + '%F0%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%F0%80yyy~5b514145',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 232) + '%F0%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%F0%80yyy~5b514145',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 235) + '%C3%A9' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%C3%A9~bc17e0ab',
+    ],
+    [
+      'encodedName',
+      rep('x', 235) + '%C3%A9' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%C3%A9~bc17e0ab',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 235) + '%C3%A9' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%C3%A9~bc17e0ab',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 232) + '%E2%82%AC' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%E2%82%AC~aacc2390',
+    ],
+    [
+      'encodedName',
+      rep('x', 232) + '%E2%82%AC' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%E2%82%AC~aacc2390',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 232) + '%E2%82%AC' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%E2%82%AC~aacc2390',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 228) + rep('ж', 40),
+      '.json',
+      'com%C2%B9.' + rep('a', 228) + '~615d384c',
+    ],
+    [
+      'encodedName',
+      'com¹.' + rep('a', 228) + rep('ж', 40),
+      '.json',
+      'com%C2%B9.' + rep('a', 228) + '~615d384c',
+    ],
+    [
+      'fileNameOf',
+      'a?<b' + rep('x', 300),
+      '.json',
+      'a%3F%3Cb' + rep('x', 233) + '~9d5025bf',
+    ],
+    [
+      'encodedName',
+      'a?<b' + rep('x', 300),
+      '.json',
+      'a%3F%3Cb' + rep('x', 233) + '~9d5025bf',
+    ],
+    [
+      'nameInFolder',
+      'a?<b' + rep('x', 300),
+      '.json',
+      'a?<b' + rep('x', 237) + '~9d5025bf',
+    ],
+    [
+      'nameInStem',
+      'a?<b' + rep('x', 300),
+      '.json',
+      'a?<b' + rep('x', 237) + '~9d5025bf',
+    ],
+    ['encodedName', rep('*', 300) + 'abc', '.json', undefined],
+    ['nameInStem', rep('*', 300) + 'abc', '.json', rep('*', 241) + '~96467f3f'],
+    [
+      'fileNameOf',
+      rep('x', 235) + '%E0%BF' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '~afaaf9e0',
+    ],
+    [
+      'encodedName',
+      rep('x', 235) + '%E0%BF' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '~afaaf9e0',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 235) + '%E0%BF' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '~afaaf9e0',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 235) + '%E0%7F' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%E0%7F~1c245a08',
+    ],
+    [
+      'encodedName',
+      rep('x', 235) + '%E0%7F' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%E0%7F~1c245a08',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 235) + '%E0%7F' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%E0%7F~1c245a08',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 235) + '%E0%C0' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%E0~6018170a',
+    ],
+    [
+      'encodedName',
+      rep('x', 235) + '%E0%C0' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%E0~6018170a',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 235) + '%E0%C0' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%E0~6018170a',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 229) + '%F0%80%80%BF' + rep('y', 300),
+      '.json',
+      rep('x', 229) + '%F0%80%80%BF~5c9b581a',
+    ],
+    [
+      'encodedName',
+      rep('x', 229) + '%F0%80%80%BF' + rep('y', 300),
+      '.json',
+      rep('x', 229) + '%F0%80%80%BF~5c9b581a',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 229) + '%F0%80%80%BF' + rep('y', 300),
+      '.json',
+      rep('x', 229) + '%F0%80%80%BF~5c9b581a',
+    ],
   ];
 
   /** An id, short enough to read in the name of a test. */
@@ -3405,6 +3984,16 @@ describe('a name that does not fit gets a checksum', () => {
       );
       expect(fileNameOf(`${rep('x', 249)} `)).toBe(`${rep('x', 241)}~f7444881`);
       expect(fileNameOf(`${rep('x', 251)}.`)).toMatch(/~[0-9a-f]{8}$/);
+    });
+
+    it('a value that is not a string is refused as the sanitizer refuses it, and a number is its text for the functions that take a name', () => {
+      for (const value of [undefined, null, 5, {}, ['a']]) {
+        expect(() => fileNameOf(value as unknown as string)).toThrow(
+          'Input must be string'
+        );
+      }
+      expect(nameInFolder(5 as unknown as string)).toBe('5');
+      expect(encodedName(1.5 as unknown as string)).toBe('1.5');
     });
 
     it('a suffix that holds a character of more than one byte is counted in bytes', () => {
@@ -3724,9 +4313,9 @@ describe('the names that every function makes, over a battery of ids', () => {
  * sanitize-filename that is written in this file, not by the functions under test, and the port is shown to give the name
  * that the package gives.
  *
- * The corpus is a deterministic sample (about 150,000 comparisons, a few seconds). `FILE_NAME_FULL_CORPUS=1 npm run
- * test:only -- src/utils/FileSetPathUtils` runs all of it (about 400,000 strings of the gate corpus and 110,000 long ids,
- * 2,300,000 comparisons, about 3 minutes).
+ * The corpus is a deterministic sample (114,318 comparisons, about 7 seconds). `FILE_NAME_FULL_CORPUS=1 npm run test:only --
+ * src/utils/FileSetPathUtils` runs all of it: the 402,234 strings of the gate corpus and 121,680 long ids, 3,312,456
+ * comparisons, about 98 seconds.
  */
 describe('an id keeps the name that it had exactly when that was a valid file name', () => {
   const FULL = process.env.FILE_NAME_FULL_CORPUS === '1';
