@@ -3565,7 +3565,14 @@ describe('the names that every function makes, over a battery of ids', () => {
   const LENGTHS = [
     1, 5, 62, 84, 85, 86, 125, 126, 127, 128, 250, 251, 256, 300,
   ];
-  const SUFFIXES = ['', '.json', '.js', '.onCreate.js', `.${rep('l', 39)}`];
+  const SUFFIXES = [
+    '',
+    '.json',
+    '.js',
+    '.onCreate.js',
+    `.${rep('l', 39)}`,
+    '.é.html',
+  ];
   const FUNCTIONS = { fileNameOf, encodedName, nameInFolder, nameInStem };
   const IDS = CHARACTERS.flatMap((character) =>
     LENGTHS.flatMap((length) => [
@@ -4072,6 +4079,7 @@ describe('an id keeps the name that it had exactly when that was a valid file na
       '..',
       ' ',
       '.',
+      '\ud800',
     ];
     // a device name with a dot or a superscript digit, which the sanitizer writes out whole, comes first in an id
     const PREFIXES = [
@@ -4084,7 +4092,7 @@ describe('an id keeps the name that it had exactly when that was a valid file na
       'aux.',
       'com³',
     ];
-    const SUFFIXES = ['.json', '.onCreate.js', ''];
+    const SUFFIXES = ['.json', '.onCreate.js', '', '.é'];
     const problems: string[] = [];
     const counts: Counts = { same: 0, changed: 0, none: 0 };
     const bodies: [string, number][] = [];
@@ -4100,7 +4108,7 @@ describe('an id keeps the name that it had exactly when that was a valid file na
       const superscript = /[¹²³]/.test(prefix);
       for (const [body, depth] of bodies) {
         for (const measure of [
-          portName(prefix + body).firstBytes,
+          portName((prefix + body).toWellFormed()).firstBytes,
           Buffer.byteLength(prefix + body),
         ]) {
           for (let target = 242; target <= 256; target++) {
