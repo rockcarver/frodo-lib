@@ -11,11 +11,13 @@ import sanitize from 'sanitize-filename';
  * Every command, every pull and push and every test can share them.
  *
  * A name has to fit in a file name: at most 255 bytes together with the longest suffix that the type puts after it (the
- * extension `.json` when no suffix is named). An id that fits keeps the name that it has always had. An id that does not
- * fit gets a shortened name: the start of its name, cut at a whole character, then `~` and a checksum (the first 8
- * hexadecimal characters of the SHA-256 of the complete id, read as UTF-16 code units), so that two long ids never become
- * one name and no pull loses an object because its name was cut. The format is written to disk and is permanent: a name
- * that was made once is the name of that id for ever. A type makes the name of an object once, with the longest suffix
+ * extension `.json` when no suffix is named). An id keeps exactly the name that it had when that name was a valid file name
+ * with its suffix: the id is text, the sanitizer cut nothing of it, and the name and the suffix are 255 bytes or less. Any
+ * other id gets a shortened name: the start of its name, cut at a whole character, then `~` and a checksum (the first 8
+ * hexadecimal characters of the SHA-256 of the complete id, as UTF-16 little-endian code units). The checksum tells ids that
+ * start alike apart, and two ids can still share a name, on a clash of the 8 characters (about one pair in four billion that
+ * shares a start) and when an id is itself written like a shortened name: a consumer reports the later one and writes nothing
+ * for it. The format is written to disk and is permanent. A type makes the name of an object once, with the longest suffix
  * that it uses, and gives that name to every file of the object.
  */
 
@@ -31,14 +33,17 @@ const CHECKSUM_SEPARATOR = '~';
 /** How many hexadecimal characters of the checksum a shortened name holds. */
 const CHECKSUM_LENGTH = 8;
 
-/** The start of an escape that a cut left at its end: a `%` with one hexadecimal digit, or with none. A cut never ends there. */
+/** The start of an escape that a cut left at its end: a `%` with one hexadecimal digit, or with none. */
 const PARTIAL_ESCAPE = /%[0-9A-Fa-f]?$/;
 
 /**
- * The first half of the escape of a control character of the C1 block (`%C2%85`). It reads as a whole escape of its own, but
- * a cut that ends there has cut the character in two, so it is taken off too.
+ * The last escaped character of a cut when it is not whole: a lead escape from `%C2` to `%F7` followed by fewer of the
+ * continuation escapes (`%80` to `%BF`) than its character has bytes (an `é` is `%C3%A9`, a `€` is `%E2%82%AC`). The
+ * sanitizer writes a whole name out like this for a device name with a superscript digit (`com\u00b9.`), and the control
+ * characters of the C1 block are `%C2%80` to `%C2%9F`.
  */
-const FIRST_HALF_OF_C1_ESCAPE = /%C2$/i;
+const PARTIAL_ESCAPED_CHARACTER =
+  /%(?:[CD][0-9A-F]|E[0-9A-F](?:%[89AB][0-9A-F])?|F[0-7](?:%[89AB][0-9A-F]){0,2})$/i;
 
 /**
  * An id or a name made safe for a file system: a character that a file name cannot hold is percent-encoded (`/` becomes
@@ -102,8 +107,10 @@ function roomForCut(suffix: string): number {
 }
 
 /**
- * The start of a name, cut to a number of bytes: at a whole character, and never inside an escape (`%2F`, or the first half
- * of `%C2%85`, the escape of a control character of the C1 block).
+ * The start of a name, cut to a number of bytes: at a whole character, then, if it ends in the middle of an escape, without
+ * that escape. Two steps, each once, in this order, whether or not the text is an escape that a name function wrote (a `%` that
+ * an id holds itself is read the same): a trailing `%` with one hexadecimal digit or none goes (`...%2` becomes `...`, and of
+ * `...%%` one `%` goes), then a trailing escaped character that is not whole goes (`...%C3` and `...%E2%82` become `...`).
  * @param {string} name the name, which is text
  * @param {number} room how many bytes the cut may have
  * @returns {string} the cut
@@ -120,48 +127,90 @@ function cutName(name: string, room: number): string {
   return name
     .slice(0, end)
     .replace(PARTIAL_ESCAPE, '')
-    .replace(FIRST_HALF_OF_C1_ESCAPE, '');
+    .replace(PARTIAL_ESCAPED_CHARACTER, '');
 }
 
 /**
- * The shortened name of an id: the start of its name, `~`, and the checksum of the complete id. A lone surrogate in the
- * name is written as U+FFFD, so the name is text, and the checksum still tells two such ids apart.
+ * Whether an id is text for a file name: no lone surrogate, and no U+007F (DEL), which a file system takes for a control
+ * character and the gate refuses, but the sanitizer leaves in a name. The other control characters are written as `%XX`.
+ * @param {string} id the id
+ * @returns {boolean} true if the id is text
+ */
+function isTextForName(id: string): boolean {
+  return id.isWellFormed() && !id.includes('\u007f');
+}
+
+/**
+ * The text of an id that is not text, made text: a lone surrogate and a U+007F are written as U+FFFD.
+ * @param {string} id the id
+ * @returns {string} the id as text
+ */
+function cleanText(id: string): string {
+  return id.toWellFormed().replaceAll('\u007f', '\ufffd');
+}
+
+/**
+ * The shortened name of an id: the start of its name, `~`, and the checksum of the complete id. What is not text in the name
+ * is written as U+FFFD, so the name is text, and the checksum still tells two such ids apart.
  * @param {string} id the complete id, which the checksum is made of
  * @param {string} name the name that did not fit
  * @param {number} room how many bytes the cut may have
  * @returns {string} the shortened name
  */
 function shortenedName(id: string, name: string, room: number): string {
-  return `${cutName(name.toWellFormed(), room)}${CHECKSUM_SEPARATOR}${checksumOf(id)}`;
+  return `${cutName(cleanText(name), room)}${CHECKSUM_SEPARATOR}${checksumOf(id)}`;
+}
+
+/**
+ * What the sanitizer makes of a text, and how many bytes the encoded name had before the sanitizer took out its `*` and its
+ * trailing dots and spaces and cut it at 255 bytes. The length is measured on the real call: every piece of text that the
+ * sanitizer replaces (a character of a path, a control character, a device name or a name of only dots, a trailing run) goes
+ * through this function once, and what it makes of the piece is how much longer or shorter the name becomes. A device name with
+ * a superscript digit and a dot (`com\u00b9.x`) is written out whole, and its length is what the sanitizer made of it.
+ * @param {string} text the text, which has no lone surrogate
+ * @returns {{ name: string; bytes: number }} the name, and the length of the encoded name before the sanitizer shortened it
+ */
+function measuredName(text: string): { name: string; bytes: number } {
+  let added = 0;
+  const name = sanitize(text, {
+    replacement: (piece) => {
+      const encoded = encodeURIComponent(piece);
+      added += Buffer.byteLength(encoded) - Buffer.byteLength(piece);
+      return encoded;
+    },
+  });
+  return { name, bytes: Buffer.byteLength(text) + added };
 }
 
 /**
  * The name of an id that a file system can hold as it is, or its shortened name: the file name of an id that
- * {@link safeFileName} makes, which is empty for a value that leaves no name. The name is the name as it was whenever the
- * id fits: it is text, and its complete encoded name (every escape written out, every `*` counted, nothing cut) and the
- * suffix are 255 bytes or less.
+ * {@link safeFileName} makes, which is empty for a value that leaves no name. The name is the name as it was when that was a
+ * valid file name with the suffix: the id is text, the sanitizer cut nothing of it (its encoded name is 255 bytes or less
+ * before the sanitizer takes out a `*` and the trailing dots and spaces), and the name and the suffix are 255 bytes or less.
  * @param {string} value the id or the name
  * @param {string} suffix the longest suffix that the name is used with
  * @returns {string} the name without the suffix, which is empty for a value that leaves no name
  */
 function encodedNameWithin(value: string, suffix: string): string {
+  if (typeof value !== 'string') throw new Error('Input must be string');
   const room = roomForCut(suffix);
-  const name = safeFileName(value);
-  const wellFormed = value.isWellFormed();
-  const clean = wellFormed ? name : safeFileName(value.toWellFormed());
-  if (clean === '') return '';
+  const text = isTextForName(value);
+  const { name, bytes } = measuredName(text ? value : cleanText(value));
+  if (name === '') return '';
   if (
-    wellFormed &&
-    encodedBytes(value) + Buffer.byteLength(suffix) <= MAX_PATH_SEGMENT_BYTES
+    text &&
+    bytes <= MAX_PATH_SEGMENT_BYTES &&
+    Buffer.byteLength(name) + Buffer.byteLength(suffix) <=
+      MAX_PATH_SEGMENT_BYTES
   ) {
     return name;
   }
-  return shortenedName(value, clean, room);
+  return shortenedName(value, name, room);
 }
 
 /**
  * The name of an id that is one safe name, as it was typed (with the stem's colon written, if it was asked for): the name
- * as it is when it is text and fits with the suffix, else its shortened name.
+ * as it is when the id is text and the name fits with the suffix, else its shortened name.
  * @param {string} id the complete id
  * @param {string} name the name as it would be written
  * @param {string} suffix the longest suffix that the name is used with
@@ -170,7 +219,7 @@ function encodedNameWithin(value: string, suffix: string): string {
 function typedNameWithin(id: string, name: string, suffix: string): string {
   const room = roomForCut(suffix);
   if (
-    id.isWellFormed() &&
+    isTextForName(id) &&
     Buffer.byteLength(name) + Buffer.byteLength(suffix) <=
       MAX_PATH_SEGMENT_BYTES
   ) {
@@ -181,10 +230,12 @@ function typedNameWithin(id: string, name: string, suffix: string): string {
 
 /**
  * The file name (without the extension) of an object: its id made safe for a file system by {@link safeFileName}. The
- * servers accept ids of thousands of characters, and a file name holds 255 bytes with its extension: an id whose complete
- * encoded name and suffix are more than that, or that is not text (a lone surrogate), gets a shortened name, the start of
- * the name, `~` and the checksum of the id (`a` repeated 300 times is `a` repeated 241 times, `~e8722168`). An id that fits
- * keeps the name it has always had. The checksum is of the complete id, so two long ids that start alike have two names.
+ * servers accept ids of thousands of characters, and a file name holds 255 bytes with its extension. An id keeps exactly the
+ * name that it had when that was a valid file name with the suffix. Any other id gets a shortened name, the start of the name,
+ * `~` and the checksum of the id (`a` repeated 300 times is `a` repeated 241 times and `~e8722168`): an id whose name the
+ * sanitizer cut, or was cut at 250 bytes, or is more than 255 bytes with the suffix, and an id that is not text (a lone
+ * surrogate, U+007F), which is written with U+FFFD. The checksum is of the complete id, so ids that start alike have their own
+ * names.
  * @param {string} value the id or the name of the object
  * @param {string} suffix Optional. The longest suffix that the type puts after the name (`.onCreate.js`); the default is `.json`. Make the name once, with the longest suffix, and use it for every file of the object
  * @returns {string} the file name without the extension, which may be empty (a name of only dots, a device name of Windows)
@@ -264,9 +315,9 @@ export function isOneSafeSegment(value: string): boolean {
 /**
  * The name that an id or a name has in a folder of a file set. A value that is one name (no separator, no `C:`, not `.`
  * or `..`, no control character) is that name, as typed; any other value is turned into the file name of an id, which
- * writes the characters of a path as `%XX` (`a/b` is `a%2Fb`). A name that does not fit in a file name with the suffix, or
- * an id that is not text (a lone surrogate), gets a shortened name, the start of the name, `~` and the checksum of the
- * complete id, so that two long names never become one. A name that fits is returned as it was.
+ * writes the characters of a path as `%XX` (`a/b` is `a%2Fb`). A name that was a valid file name with the suffix is returned
+ * as it was. Any other name, and an id that is not text (a lone surrogate, U+007F), gets a shortened name, the start of the
+ * name, `~` and the checksum of the complete id: two long names that start alike have their own names.
  *
  * Make the name once, with the longest suffix that the type uses, and give that name to every file of the object: a name
  * that is shortened with a short suffix and asked for again with a longer one is shortened again, from its own text.
@@ -283,24 +334,6 @@ export function nameInFolder(
   return isOneSafeSegment(text)
     ? typedNameWithin(text, text, suffix)
     : namedOrRefused(text, suffix);
-}
-
-/**
- * How many bytes the sanitizer sees of an id, which is how many bytes its complete encoded name has: the characters of a
- * path written as `%XX`, a trailing run of dots and spaces written out (a space is `%20`), and a `*` still in it, because
- * the sanitizer cuts at 255 bytes before it removes a `*`.
- * @param {string} text the id or the name
- * @returns {number} the length in bytes
- */
-function encodedBytes(text: string): number {
-  return Buffer.byteLength(
-    text
-      // eslint-disable-next-line no-control-regex
-      .replace(/[\u0000-\u001f\u0080-\u009f/?<>\\:|"]/g, (character) =>
-        encodeURIComponent(character)
-      )
-      .replace(/[. ]+$/, (run) => encodeURIComponent(run))
-  );
 }
 
 /**
@@ -324,8 +357,9 @@ function namedOrRefused(text: string, suffix: string): string {
  * The file name of a name that a file is always named after in its encoded form (the script of a pull is `<name>.js`,
  * with `:`, `?` and the other characters of a path written as `%XX`). It is {@link fileNameOf} that is not empty: it refuses
  * a name that leaves nothing (`.`, `..`, a run of dots, a device name of Windows) and gives a shortened name to a name that
- * does not fit in a file name with the suffix (more than 255 bytes with it, once encoded), so that two long names never
- * become one. Like {@link nameInFolder} it looks at the name only, not at the path that the name ends up in.
+ * was not a valid file name with the suffix (cut by the sanitizer, or more than 255 bytes with the suffix), and to a value that
+ * is not text, so that long names that start alike have their own names. Like {@link nameInFolder} it looks at the name
+ * only, not at the path that the name ends up in.
  * @param {string} value the name
  * @param {string} suffix Optional. The longest suffix that the type puts after the name (`.onCreate.js`); the default is `.json`
  * @returns {string} the file name without the extension
