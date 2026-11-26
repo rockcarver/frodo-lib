@@ -37,10 +37,13 @@ const CHECKSUM_LENGTH = 8;
 const PARTIAL_ESCAPE = /%[0-9A-Fa-f]?$/;
 
 /**
- * The last escaped character of a cut when it is not whole: a lead escape from `%C2` to `%F7` followed by fewer of the
- * continuation escapes (`%80` to `%BF`) than its character has bytes (an `é` is `%C3%A9`, a `€` is `%E2%82%AC`). The
- * sanitizer writes a whole name out like this for a device name with a superscript digit (`com\u00b9.`), and the control
- * characters of the C1 block are `%C2%80` to `%C2%9F`.
+ * The last escaped character of a cut when it is not whole. A lead escape from `%C0` to `%DF` needs one continuation escape
+ * after it, one from `%E0` to `%EF` needs two, and one from `%F0` to `%F7` needs three (a continuation escape is `%80` to
+ * `%BF`). A trailing lead with fewer continuation escapes than it needs comes off with the ones it has: `...%C3`, `...%E2%82`
+ * and `...%F0%9F%98` become `...`. A lead with all of them stays (`...%C3%A9`, an `é`; `...%E2%82%AC`, a `€`), and so do
+ * `%F8` and above and a continuation escape without its lead (`...%A9`). Upper and lower case are the same. The sanitizer
+ * writes a whole name out like this for a device name with a superscript digit (`com\u00b9.`), and the control characters of
+ * the C1 block are `%C2%80` to `%C2%9F`.
  */
 const PARTIAL_ESCAPED_CHARACTER =
   /%(?:[CD][0-9A-F]|E[0-9A-F](?:%[89AB][0-9A-F])?|F[0-7](?:%[89AB][0-9A-F]){0,2})$/i;
@@ -110,7 +113,8 @@ function roomForCut(suffix: string): number {
  * The start of a name, cut to a number of bytes: at a whole character, then, if it ends in the middle of an escape, without
  * that escape. Two steps, each once, in this order, whether or not the text is an escape that a name function wrote (a `%` that
  * an id holds itself is read the same): a trailing `%` with one hexadecimal digit or none goes (`...%2` becomes `...`, and of
- * `...%%` one `%` goes), then a trailing escaped character that is not whole goes (`...%C3` and `...%E2%82` become `...`).
+ * `...%%` one `%` goes), then a trailing escaped character that is not whole goes, as described for the pattern of the second
+ * step (`...%C3` and `...%E2%82` become `...`, `...%C3%A9` stays).
  * @param {string} name the name, which is text
  * @param {number} room how many bytes the cut may have
  * @returns {string} the cut
