@@ -20,6 +20,8 @@
  */
 import { posix } from 'path';
 import { frodo } from '../index';
+import { CAPABILITY_META } from '../mcp/CapabilityMetadata';
+import { buildCapabilityInventory } from '../mcp/CapabilityRegistry';
 import State from '../shared/State';
 import {
   importSpecifiersOf,
@@ -1636,6 +1638,13 @@ describe('assertFileSetPath', () => {
         assertFileSetPath(`${character.repeat(most)}/${character.repeat(most)}`)
       ).not.toThrow();
     }
+  });
+
+  it('is left out of the capability inventory of the MCP server by a reviewed entry', () => {
+    expect(CAPABILITY_META['utils.assertFileSetPath']?.excluded).toBe(true);
+    expect(
+      buildCapabilityInventory(frodo).map((capability) => capability.id)
+    ).not.toContain('utils.assertFileSetPath');
   });
 
   it('is the gate on the facade: frodo.utils.assertFileSetPath says the same', () => {

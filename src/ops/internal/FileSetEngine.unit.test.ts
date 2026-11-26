@@ -10,7 +10,10 @@
  * The functions were written for the command line first; the rows that come from there are the cases that command had:
  * the root realm of a Cloud deployment, ids that differ only in case, a name of 300 characters, one object that fails.
  */
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { jest } from '@jest/globals';
+import ts from 'typescript';
 import StateImpl, { type State } from '../../shared/State';
 import {
   importSpecifiersOf,
@@ -22,7 +25,6 @@ import {
   type FileSetReader,
 } from '../../utils/FileSetUtils';
 import { FrodoError } from '../FrodoError';
-import { type OAuth2TrustedJwtIssuerLeftOutAttributesCallback } from '../OAuth2TrustedJwtIssuerOps';
 import { type LeftOutAttributesCallback } from '../OpsTypes';
 import {
   applyOverrides,
@@ -421,6 +423,24 @@ describe('overridesOf and unmatchedOverrides', () => {
     expect(
       unmatchedOverrides(undefined, new Set(), new Set(['alpha']))
     ).toEqual([]);
+  });
+
+  it('takes two entries of one realm that differ only in case for one entry, as the command line does: the first is applied and both count as used', () => {
+    const twins: RealmOverrides = {
+      alpha: [
+        { id: 'Login', overrides: { a: 1 } },
+        { id: 'login', overrides: { b: 2 } },
+      ],
+    };
+    const matched = new Set<string>();
+
+    expect(overridesOf(twins, 'alpha', 'LOGIN', matched)).toEqual({ a: 1 });
+    expect(unmatchedOverrides(twins, matched, new Set(['alpha']))).toEqual([]);
+    // a realm that has only the second spelling is reported when nothing matched
+    expect(unmatchedOverrides(twins, new Set(), new Set(['alpha']))).toEqual([
+      { realm: 'alpha', id: 'Login' },
+      { realm: 'alpha', id: 'login' },
+    ]);
   });
 
   it('remembers an entry by realm and id, so the same id in another realm is another entry', () => {
@@ -944,10 +964,6 @@ describe('runPerObject', () => {
 
     expect(seen).toEqual([leftOutCallback, leftOutCallback, leftOutCallback]);
     expect(leftOutCallback).not.toHaveBeenCalled();
-    // the callback of the trusted jwt issuer is this type
-    const issuerCallback: OAuth2TrustedJwtIssuerLeftOutAttributesCallback =
-      leftOutCallback;
-    expect(issuerCallback).toBe(leftOutCallback);
   });
 
   it('gives the work no leftOutCallback when it was given none', async () => {
@@ -1025,6 +1041,62 @@ describe('runPerObject', () => {
     }
 
     expect(written).toEqual([]);
+  });
+});
+
+describe('the callback types of OpsTypes', () => {
+  /** The type declaration with this name in a source file of `src/ops`. */
+  const typeAlias = (file: string, name: string): ts.TypeAliasDeclaration => {
+    const path = fileURLToPath(new URL(`../${file}`, import.meta.url));
+    const parsed = ts.createSourceFile(
+      path,
+      readFileSync(path, 'utf8'),
+      ts.ScriptTarget.Latest,
+      true
+    );
+    const found = parsed.statements.find(
+      (statement): statement is ts.TypeAliasDeclaration =>
+        ts.isTypeAliasDeclaration(statement) && statement.name.text === name
+    );
+    if (!found) throw new Error(`no type ${name} in ${file}`);
+    return found;
+  };
+
+  it('LeftOutAttributesCallback takes the id and the names of the attributes and gives nothing', () => {
+    const type = typeAlias('OpsTypes.ts', 'LeftOutAttributesCallback').type;
+
+    expect(ts.isFunctionTypeNode(type)).toBe(true);
+    const signature = type as ts.FunctionTypeNode;
+    expect(signature.parameters.map((p) => p.name.getText())).toEqual([
+      'id',
+      'attributes',
+    ]);
+    expect(signature.parameters.map((p) => p.type?.getText())).toEqual([
+      'string',
+      'string[]',
+    ]);
+    expect(signature.type.kind).toBe(ts.SyntaxKind.VoidKeyword);
+  });
+
+  it('the callback of the trusted jwt issuer is an alias of it, so its name and shape stay', () => {
+    const type = typeAlias(
+      'OAuth2TrustedJwtIssuerOps.ts',
+      'OAuth2TrustedJwtIssuerLeftOutAttributesCallback'
+    ).type;
+
+    expect(ts.isTypeReferenceNode(type)).toBe(true);
+    expect((type as ts.TypeReferenceNode).typeName.getText()).toBe(
+      'LeftOutAttributesCallback'
+    );
+  });
+
+  it('PushOutcome is an id and an optional error', () => {
+    const type = typeAlias('OpsTypes.ts', 'PushOutcome').type;
+
+    expect(ts.isTypeLiteralNode(type)).toBe(true);
+    expect(
+      (type as ts.TypeLiteralNode).members.map((m) => m.getText())
+    ).toEqual(['id: string;', 'error?: FrodoError;']);
   });
 });
 
