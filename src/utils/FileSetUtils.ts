@@ -87,9 +87,9 @@ function prefixesOf(path: string): string[] {
  * locale), so the same content gives the same set whatever order it was found in. The text of a file is kept byte for byte.
  *
  * One path that the gate refuses fails the whole set: the builder throws at the first such path and does not say which other
- * files were fine. The name functions of `FileSetPathUtils` do not make such a path for an id: a name that does not fit in a
- * file name, or an id that is not text (a lone surrogate), gets a shortened name with a checksum, so a caller that makes its
- * file names with them does not meet this. A path that a caller builds another way can.
+ * files were fine. The name functions of `FileSetPathUtils` do not make such a path for an id: a name that was not a valid
+ * file name with its suffix, or an id that is not text (a lone surrogate, U+007F), gets a shortened name with a checksum, so a
+ * caller that makes its file names with them does not meet this. A path that a caller builds another way can.
  * @param {VirtualFileSet} fileSet the files and the owned folders; the owned folders may be left out
  * @param {VirtualFile[]} fileSet.files the files
  * @param {string[]} fileSet.ownedFolders the folders that the set owns
