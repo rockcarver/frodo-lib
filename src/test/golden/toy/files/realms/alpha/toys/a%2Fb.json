@@ -1,0 +1,5 @@
+{
+  "_id": "a/b",
+  "name": "Slash",
+  "script": "return \"\\${notAPlaceholder}\";"
+}
