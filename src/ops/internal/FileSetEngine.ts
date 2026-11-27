@@ -256,7 +256,7 @@ export function realmOfDir(dir: string): string {
  * @param {string} path the path of the file
  * @param {State} state the state, which holds the values of the placeholders
  * @returns {Promise<object | undefined>} the data of the file, or undefined when the file does not exist
- * @throws {FrodoError} if the file cannot be read ("Error reading file"), a placeholder has no value, or the text is not JSON ("Error parsing JSON from")
+ * @throws {FrodoError} if the file cannot be read ("Error reading file"), the reader gives something that is not text ("The reader did not return text for"), a placeholder has no value, or the text is not JSON ("Error parsing JSON from")
  */
 export async function readFileSetJson({
   reader,
@@ -274,6 +274,10 @@ export async function readFileSetJson({
     throw new FrodoError(`Error reading file ${path}`, error);
   }
   if (content === undefined) return undefined;
+  // a reader gives text or nothing: anything else breaks its contract, and what it gave is not shown
+  if (typeof content !== 'string') {
+    throw new FrodoError(`The reader did not return text for ${path}.`);
+  }
   const resolved = replaceEnvSpecificValues({ content, state });
   try {
     return parseExportJson(resolved);

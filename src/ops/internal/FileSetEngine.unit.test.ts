@@ -20,7 +20,10 @@ import {
   importSpecifiersOf,
   NODE_IO_MODULES,
 } from '../../test/exportFileFormat/importsOf';
-import { everythingOf } from '../../test/utils/FileSetTestKit';
+import {
+  everythingOf,
+  ROUND_TRIP_TEXTS,
+} from '../../test/utils/FileSetTestKit';
 import { typeAlias } from '../../test/utils/SourceText';
 import { encodedName } from '../../utils/FileSetPathUtils';
 import {
@@ -1739,6 +1742,97 @@ describe('mergeSingleton', () => {
         merge({ 'dir/x.json': '{"_id":"the-id"}' }, { idKey: 'name' })
       ).rejects.toThrow('holds no name that is a text.');
     });
+  });
+});
+
+describe('a pull then a push of a text that holds `${`', () => {
+  // the split escapes every `${` and the merge reads it back as text: the text that goes in is the text that comes out,
+  // whether or not a complete `${NAME}` is in the text, in the line or anywhere in the file
+  it.each(ROUND_TRIP_TEXTS)(
+    'gives back the text with $name',
+    async ({ text, state: values }) => {
+      const given = stateOf('cloud');
+      for (const [name, value] of Object.entries(values ?? {})) {
+        given.setEnv(name, value);
+      }
+      const object = { _id: 'the-id', text, list: [text], [`k ${text}`]: 1 };
+
+      const set = splitSingleton({ object, path: 'dir/x.json' });
+      const merged = await mergeSingleton({
+        reader: createMemoryFileSetReader(set),
+        path: 'dir/x.json',
+        id: 'the-id',
+        state: given,
+      });
+
+      expect(merged).toEqual(object);
+    }
+  );
+
+  it('gives back the text of a file that holds no complete placeholder anywhere, which a resolver that stops at once would give with the backslashes', async () => {
+    const set = splitSingleton({
+      object: { _id: 'the-id', text: 'open ${ never closed' },
+      path: 'dir/x.json',
+    });
+
+    // every line of the file is `"key": "value"`, and none of them holds a `}` after the `${`
+    expect(set.files[0].content).toContain('open \\\\${ never closed');
+    await expect(
+      mergeSingleton({
+        reader: createMemoryFileSetReader(set),
+        path: 'dir/x.json',
+        id: 'the-id',
+        state: stateOf('cloud'),
+      })
+    ).resolves.toEqual({ _id: 'the-id', text: 'open ${ never closed' });
+  });
+});
+
+describe('a reader that does not give text', () => {
+  const CANARY = 'canary-content-that-must-never-be-shown-2468';
+  const readerGiving = (answer: unknown): FileSetReader => ({
+    listDirectory: async () => undefined,
+    readFile: async () => answer as string,
+  });
+
+  it.each([
+    ['a Buffer', Buffer.from(CANARY)],
+    ['null', null],
+    ['a number', 42],
+    ['an object', { text: CANARY }],
+    ['a function', () => CANARY],
+  ])(
+    'names the file and the fault for %s, and does not show what it gave',
+    async (_what, answer) => {
+      const failure = await readFileSetJson({
+        reader: readerGiving(answer),
+        path: 'dir/x.json',
+        state: stateOf('cloud'),
+      }).catch((error) => error);
+
+      expect(failure).toBeInstanceOf(FrodoError);
+      expect((failure as Error).message).toBe(
+        'The reader did not return text for dir/x.json.'
+      );
+      expect(everythingOf(failure)).not.toContain(CANARY);
+    }
+  );
+
+  it('is still no file when the reader gives undefined, and a file that is empty when it gives an empty text', async () => {
+    await expect(
+      readFileSetJson({
+        reader: readerGiving(undefined),
+        path: 'dir/x.json',
+        state: stateOf('cloud'),
+      })
+    ).resolves.toBeUndefined();
+    await expect(
+      readFileSetJson({
+        reader: readerGiving(''),
+        path: 'dir/x.json',
+        state: stateOf('cloud'),
+      })
+    ).rejects.toThrow('Error parsing JSON from dir/x.json');
   });
 });
 

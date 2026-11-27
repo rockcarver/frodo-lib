@@ -666,6 +666,40 @@ describe.each(ROWS)('the single-object type $key', (row) => {
       }
     );
 
+    it.each([
+      ['a Buffer', () => Buffer.from(CANARY)],
+      ['null', () => null],
+      ['a number', () => 42],
+    ])(
+      'is an outcome that names the file, sends nothing and shows nothing of what the reader gave, for a reader that gives %s',
+      async (_what, give) => {
+        const { fns, tenant } = make();
+        tenant.answer({ data: {} });
+        const resultCallback = jest.fn();
+        const reader = {
+          listDirectory: async () => undefined,
+          readFile: async () => give() as unknown as string,
+        };
+
+        const outcomes = await fns.push({
+          reader,
+          resultCallback,
+          state: tenant.state,
+        });
+
+        expect(tenant.seen()).toEqual([]);
+        expect(outcomes).toHaveLength(1);
+        expect(outcomes[0].id).toBe(row.path);
+        expect(
+          chainOf(outcomes[0].error)
+            .map((error) => (error as Error).message)
+            .join(' | ')
+        ).toContain(`The reader did not return text for ${row.path}.`);
+        expect(everythingOf(outcomes[0].error)).not.toContain(CANARY);
+        expect(resultCallback).toHaveBeenCalledTimes(1);
+      }
+    );
+
     if (row.hasId) {
       it.each([...FOREIGN_IDS, ...lookAlikesOf(row.id)])(
         'sends nothing for a file that holds the id %j: the outcome is the path of the file, and the error names the type and not the id of the file',
