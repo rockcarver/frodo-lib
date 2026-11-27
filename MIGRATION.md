@@ -106,6 +106,25 @@ releases missed):
   alone it selected nothing. If you relied on the old behavior of deleting
   everything, call `deleteMappings` without a filter. That a mapping which
   cannot be deleted no longer stops the others is described in the entry below.
+- `frodo.idm.mapping.deleteMapping` (`src/ops/MappingOps.ts`) of a legacy
+  mapping (`sync/<name>`) now writes the `sync` configuration as it was stored,
+  without the one entry. Before, it wrote only the `mappings` of the
+  configuration, and wrote every remaining mapping as the library presents it:
+  with an `_id` (`sync/<name>`) and a `syncAfter` that was derived from the
+  order of the mappings, so a stored `syncAfter` was replaced; a null entry was
+  dropped and an entry without a name got the `_id` `sync/undefined`. Now every
+  other entry, and every other property of the configuration (its own `_id`
+  included), is written as it was read: no `_id` is added to an entry, a stored
+  `syncAfter` stays as it is (one that names the deleted mapping keeps naming
+  it), and null entries and entries without a name stay where they are while
+  another mapping is deleted. The function returns the deleted mapping as
+  before, with the `_id` and the `syncAfter` that `readSyncMappings` gives it.
+  A `sync` configuration that was already written with derived values stays as
+  it is: nothing repairs it. The configuration is still read and written in two
+  requests without a revision check, so a change made in between is lost.
+  `frodo.idm.mapping.deleteMappings` with a connector or a managed object type,
+  and `frodo.idm.mapping.updateMapping` of a legacy mapping, are not changed and
+  still write derived values.
 - `agent list`, `agent export` and `agent delete -a` (`readAgents` and every
   library function that calls it) now skip an unavailable agent type only when
   its request returns HTTP 501. Other per-type request failures are collected
