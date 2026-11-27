@@ -14,7 +14,7 @@
  *
  * The expected names are the file names of ids (`/` becomes `%2F`), checked against sanitize-filename 1.6.5: `/ \ ? < > : | "`
  * and control characters become `%XX`, `*` is removed, a name that is only dots or a device name of Windows becomes empty,
- * trailing dots go, and the name is cut at 255 bytes.
+ * trailing dots go, a trailing space is written `%20`, and the name is cut at 255 bytes.
  *
  * An id whose name does not fit in a file name (255 bytes with the longest suffix that the type uses) gets a shortened name:
  * the cut, `~` and a checksum of the complete id. The format is on disk and permanent, so the golden table below comes from
@@ -3973,7 +3973,8 @@ describe('a name that does not fit gets a checksum', () => {
     });
 
     it('an id keeps the name that main gave it when that was a valid file name with its suffix: a `*`, a trailing dot or a trailing space at the boundary', () => {
-      // these were 251 to 255 bytes only before the sanitizer took a `*` or a trailing run out: main's name is a valid file
+      // these were 251 to 255 bytes only before the sanitizer took a `*` or the dots at the end out (a space at the end is
+      // written `%20` and stays): main's name is a valid file
       expect(fileNameOf(`${rep('x', 250)}*`)).toBe(rep('x', 250));
       expect(fileNameOf(`${rep('x', 250)}.`)).toBe(rep('x', 250));
       expect(fileNameOf(`aaa${rep('*', 248)}Z`)).toBe('aaaZ');

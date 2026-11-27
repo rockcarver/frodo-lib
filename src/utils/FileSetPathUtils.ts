@@ -166,8 +166,8 @@ function shortenedName(id: string, name: string, room: number): string {
 }
 
 /**
- * What the sanitizer makes of a text, and how many bytes the encoded name had before the sanitizer took out its `*` and its
- * trailing dots and spaces and cut it at 255 bytes. The length is measured on the real call: every piece of text that the
+ * What the sanitizer makes of a text, and how many bytes the encoded name had before the sanitizer took out its `*` and the
+ * dots at its end and cut it at 255 bytes (a space at the end is written `%20` and stays). The length is measured on the real call: every piece of text that the
  * sanitizer replaces (a character of a path, a control character, a device name or a name of only dots, a trailing run) goes
  * through this function once, and what it makes of the piece is how much longer or shorter the name becomes. A device name with
  * a superscript digit and a dot (`com\u00b9.x`) is written out whole, and its length is what the sanitizer made of it.
@@ -190,7 +190,8 @@ function measuredName(text: string): { name: string; bytes: number } {
  * The name of an id that a file system can hold as it is, or its shortened name: the file name of an id that
  * {@link safeFileName} makes, which is empty for a value that leaves no name. The name is the name as it was when that was a
  * valid file name with the suffix: the id is text, the sanitizer cut nothing of it (its encoded name is 255 bytes or less
- * before the sanitizer takes out a `*` and the trailing dots and spaces), and the name and the suffix are 255 bytes or less.
+ * before the sanitizer takes out a `*` and the dots at the end; a space at the end is written `%20` and stays), and the name
+ * and the suffix are 255 bytes or less.
  * @param {string} value the id or the name
  * @param {string} suffix the longest suffix that the name is used with
  * @returns {string} the name without the suffix, which is empty for a value that leaves no name
