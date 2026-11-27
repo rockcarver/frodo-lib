@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 import * as root from './index';
 import type { McpCapabilityDescriptor, TerminalContrastFilter } from './index';
+import { exportsFrom } from './test/utils/SourceText';
 
 const POLICY_FILE = 'CONTRIBUTE.md';
 
@@ -70,6 +71,20 @@ describe('package root exports', () => {
         new RegExp(`export type ${name}\\b`)
       );
     }
+  });
+
+  test('exports from the shared types of the ops only the types that are meant to be public', () => {
+    // the descriptor of a configuration type and the types of its pull and push are for the library, not for its callers: a new
+    // type at the package root is a decision, and this list is where it is taken
+    expect(exportsFrom('index.ts', './ops/OpsTypes')).toEqual({
+      types: [
+        'ExportMetaData',
+        'ObjectReference',
+        'PushOutcome',
+        'ReferenceDependency',
+      ],
+      values: [],
+    });
   });
 
   test('preserves type-only exports', () => {

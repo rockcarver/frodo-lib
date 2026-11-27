@@ -97,6 +97,26 @@ describe('what the registry infers for a pull and a push', () => {
     expect(inferRiskClass('import', 'pushSecrets')).toBe('critical');
   });
 
+  it.each([
+    'secret',
+    'password',
+    'token',
+    'credential',
+    'serviceAccount',
+    'apiKey',
+    'privateKey',
+  ])(
+    'classes a pull and a push with the word %s in the name as critical',
+    (word) => {
+      const name = `${word[0].toUpperCase()}${word.slice(1)}Config`;
+
+      expect(inferRiskClass('export', `pull${name}`)).toBe('critical');
+      expect(inferRiskClass('import', `push${name}`)).toBe('critical');
+      // and the same words are what make them so: without the word the verbs have the risk of an export and of an import
+      expect(inferRiskClass('export', 'pullKbaConfig')).toBe('medium');
+    }
+  );
+
   it('leaves a pull to the presets that allow an export, and a push to the one that allows everything', () => {
     const pull = descriptorOf(PULL);
     const push = descriptorOf(PUSH);
