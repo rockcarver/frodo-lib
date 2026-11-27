@@ -116,12 +116,12 @@ releases missed):
   other entry, and every other property of the configuration (its own `_id`
   included), is written as it was read: no `_id` is added to an entry, a stored
   `syncAfter` stays as it is (one that names the deleted mapping keeps naming
-  it), and null entries and entries without a name stay where they are. The
-  function returns the deleted mapping as before, with the `_id` and the
-  `syncAfter` that `readSyncMappings` gives it. A `sync` configuration that was
-  already written with derived values stays as it is: nothing repairs it. The
-  configuration is still read and written in two requests without a revision
-  check, so a change made in between is lost.
+  it), and null entries and entries without a name stay where they are while
+  another mapping is deleted. The function returns the deleted mapping as
+  before, with the `_id` and the `syncAfter` that `readSyncMappings` gives it.
+  A `sync` configuration that was already written with derived values stays as
+  it is: nothing repairs it. The configuration is still read and written in two
+  requests without a revision check, so a change made in between is lost.
   `frodo.idm.mapping.deleteMappings` with a connector or a managed object type,
   and `frodo.idm.mapping.updateMapping` of a legacy mapping, are not changed and
   still write derived values.
