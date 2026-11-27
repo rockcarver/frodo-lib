@@ -4,8 +4,9 @@
  *        npm run test:only -- src/mcp/CapabilityRegistry.pullPush
  *
  * What the capability registry does with the two verbs of a file set, `pull` and `push`
- * (https://github.com/rockcarver/frodo-lib/blob/main/decisions/0019-crudq-naming-for-facade-methods-with-pull-and-push.md,
- * pull and push as the CRUDQ names for file sets):
+ * (https://github.com/rockcarver/frodo-lib/blob/main/decisions/0021-crudq-naming-for-facade-methods-and-pull-and-push-as-file-set-verbs.md,
+ * pull and push as the CRUDQ names for file sets, and what they do:
+ * https://github.com/rockcarver/frodo-lib/blob/main/decisions/core/0028-the-library-turns-configuration-into-file-sets-through-the-types-own-read-and-write.md):
  * - A pull is classed as an `export` and a push as an `import`, so every policy that allows or denies an export or an import
  *   treats them alike: a pull is not mutating and is medium risk, a push writes and is high risk. A name that holds a word of
  *   the sensitive-keyword rule is critical, whatever the verb.
