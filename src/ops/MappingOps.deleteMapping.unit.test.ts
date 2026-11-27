@@ -1,0 +1,412 @@
+import { jest } from '@jest/globals';
+
+/**
+ * `deleteMapping` of a legacy mapping (`sync/<name>`) takes that one entry out
+ * of the `sync` configuration and writes the rest as it was stored: every other
+ * entry and every other property is written exactly as it was read. Nothing is
+ * derived or added (no `_id`, no `syncAfter`), a reference to the deleted
+ * mapping is not removed, and an entry that cannot be recognised (null, or
+ * without a name) keeps its place. The after-write check looks for the entry by
+ * name, because entries that were written without an `_id` come back without
+ * one. A new-style mapping (`mapping/<name>`) is one configuration object of its
+ * own and does not touch `sync`.
+ * Mocked unit test: no recordings. The fake keeps the stored document, so what
+ * the code writes can be compared with what it read, byte for byte.
+ */
+
+const putConfigEntity = jest.fn(async (_args?: any): Promise<any> => ({}));
+const deleteConfigEntity = jest.fn(async (_args?: any): Promise<any> => ({}));
+const readConfigEntitiesByType = jest.fn(
+  async (_args?: any): Promise<any> => []
+);
+const readConfigEntity = jest.fn(async (_args?: any): Promise<any> => ({}));
+
+jest.unstable_mockModule('../api/IdmConfigApi', () => ({
+  putConfigEntity,
+}));
+
+jest.unstable_mockModule('./IdmConfigOps', () => ({
+  deleteConfigEntity,
+  readConfigEntitiesByType,
+  readConfigEntity,
+}));
+
+// the Console module is mocked in part: the rest of it is the real module,
+// because the managed object and realm readers that MappingOps imports load
+// the api layer, which imports more of it
+const actualConsole = await import('../utils/Console');
+jest.unstable_mockModule('../utils/Console', () => ({
+  ...actualConsole,
+  createProgressIndicator: jest.fn(() => 'progress-id'),
+  debugMessage: jest.fn(),
+  stopProgressIndicator: jest.fn(),
+  updateProgressIndicator: jest.fn(),
+}));
+
+jest.unstable_mockModule('../utils/ExportImportUtils', () => ({
+  getMetadata: jest.fn(() => ({ exportedBy: 'jest' })),
+}));
+
+const {
+  default: MappingOps,
+  deleteMapping,
+  readSyncMappings,
+} = await import('./MappingOps');
+const { FrodoError } = await import('./FrodoError');
+
+const state = {
+  getRealm: () => 'alpha',
+  getDeploymentType: () => 'cloud',
+} as any;
+
+/** The error at the bottom of a chain of FrodoErrors. */
+function rootCause(error: any): any {
+  let current = error;
+  while (current?.originalErrors?.length) {
+    current = current.originalErrors[0];
+  }
+  return current;
+}
+
+// The three mappings of the stored document, as a tenant stores them. The key
+// order is part of the fixture. A has neither `syncAfter` nor `_id`, B has both,
+// C has a `syncAfter` that names A and B and no `_id`.
+const mappingA = () => ({
+  name: 'ldapUser',
+  source: 'system/ldap/account',
+  target: 'managed/user',
+  properties: [{ source: 'uid', target: 'userName' }],
+  policies: [{ situation: 'ABSENT', action: 'CREATE' }],
+});
+const mappingB = () => ({
+  _id: 'sync/ldapRole',
+  name: 'ldapRole',
+  source: 'system/ldap/group',
+  target: 'managed/role',
+  syncAfter: ['ldapUser'],
+});
+const mappingC = () => ({
+  name: 'ldapGroup',
+  source: 'system/ldap/organization',
+  target: 'managed/organization',
+  consentRequired: false,
+  syncAfter: ['ldapUser', 'ldapRole'],
+});
+
+/** A mapping without a name. */
+const nameless = () => ({
+  source: 'system/ldap/other',
+  target: 'managed/other',
+});
+
+const syncOf = (mappings: any[], more: object = {}) => ({
+  _id: 'sync',
+  ...more,
+  mappings,
+});
+
+/** The error that a read of `config/sync` answers where the deployment has none. */
+function noSyncConfiguration() {
+  const response: any = new Error('Request failed with status code 404');
+  response.response = { status: 404 };
+  response.config = {
+    url: 'https://openam-matrix.example.com/openidm/config/sync',
+  };
+  return new FrodoError('Error reading config entity sync', response);
+}
+
+/** the document the tenant holds; `undefined` where there is no `sync` configuration */
+let stored: any;
+/** every object that the fake handed out for a read of `sync`, and its text at that moment */
+let handedOut: { object: any; text: string }[];
+/** every update of the fake: the entity id and the text of the body */
+let puts: { entityId: string; body: string }[];
+/** what the tenant answers to an update; by default what it was given, which it keeps */
+let answer: ((written: any) => any) | undefined;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  stored = syncOf([mappingA(), mappingB(), mappingC()]);
+  handedOut = [];
+  puts = [];
+  answer = undefined;
+  readConfigEntity.mockReset();
+  readConfigEntity.mockImplementation(async ({ entityId }: any) => {
+    if (entityId !== 'sync') throw new Error(`unexpected read of ${entityId}`);
+    if (stored === undefined) throw noSyncConfiguration();
+    // a fresh object on every call, as a request gives it
+    const object = JSON.parse(JSON.stringify(stored));
+    handedOut.push({ object, text: JSON.stringify(object) });
+    return object;
+  });
+  readConfigEntitiesByType.mockReset();
+  readConfigEntitiesByType.mockImplementation(async () => []);
+  deleteConfigEntity.mockReset();
+  putConfigEntity.mockReset();
+  putConfigEntity.mockImplementation(async ({ entityId, entityData }: any) => {
+    const body = JSON.stringify(entityData);
+    puts.push({ entityId, body });
+    if (answer) return answer(JSON.parse(body));
+    stored = JSON.parse(body);
+    return JSON.parse(body);
+  });
+});
+
+describe('deleteMapping, a legacy mapping', () => {
+  test.each([
+    ['first', 'sync/ldapUser', () => [mappingB(), mappingC()]],
+    ['middle', 'sync/ldapRole', () => [mappingA(), mappingC()]],
+    ['last', 'sync/ldapGroup', () => [mappingA(), mappingB()]],
+  ])(
+    'writes the stored document without the %s entry, byte for byte, in one read and one write',
+    async (_position, mappingId, remaining) => {
+      await deleteMapping({ mappingId, state });
+
+      expect(puts).toHaveLength(1);
+      expect(puts[0].entityId).toBe('sync');
+      expect(puts[0].body).toBe(JSON.stringify(syncOf(remaining())));
+      expect(readConfigEntity).toHaveBeenCalledTimes(1);
+      expect(readConfigEntity.mock.calls[0][0].entityId).toBe('sync');
+      expect(putConfigEntity).toHaveBeenCalledTimes(1);
+      expect(putConfigEntity.mock.calls[0][0].entityId).toBe('sync');
+      expect(deleteConfigEntity).not.toHaveBeenCalled();
+    }
+  );
+
+  test('keeps the syncAfter of the others as stored, also where it names the deleted mapping', async () => {
+    await deleteMapping({ mappingId: 'sync/ldapUser', state });
+
+    const written = JSON.parse(puts[0].body).mappings;
+    // B and C both still name the deleted mapping: nothing was added or removed
+    expect(written.map((it: any) => it.name)).toEqual([
+      'ldapRole',
+      'ldapGroup',
+    ]);
+    expect(written[0].syncAfter).toEqual(['ldapUser']);
+    expect(written[1].syncAfter).toEqual(['ldapUser', 'ldapRole']);
+  });
+
+  test('writes back the _id of the document and every other property of it', async () => {
+    stored = syncOf([mappingA(), mappingB(), mappingC()], {
+      unknownSetting: { kept: ['as', 'stored'] },
+    });
+
+    await deleteMapping({ mappingId: 'sync/ldapRole', state });
+
+    expect(puts[0].body).toBe(
+      JSON.stringify({
+        _id: 'sync',
+        unknownSetting: { kept: ['as', 'stored'] },
+        mappings: [mappingA(), mappingC()],
+      })
+    );
+  });
+
+  test('does not change the object that was read', async () => {
+    await deleteMapping({ mappingId: 'sync/ldapUser', state });
+
+    expect(handedOut).toHaveLength(1);
+    // no _id and no syncAfter was added to what the read handed out
+    expect(JSON.stringify(handedOut[0].object)).toBe(handedOut[0].text);
+  });
+
+  test('keeps a null entry and an entry without a name where they are', async () => {
+    stored = syncOf([mappingA(), null, mappingB(), nameless(), mappingC()]);
+
+    await deleteMapping({ mappingId: 'sync/ldapRole', state });
+
+    expect(puts[0].body).toBe(
+      JSON.stringify(syncOf([mappingA(), null, nameless(), mappingC()]))
+    );
+  });
+
+  test('deletes first, middle and last in turn: each write is the stored document minus that entry', async () => {
+    const entry = (name: string, syncAfter?: string[]) => ({
+      name,
+      source: `system/ldap/${name}`,
+      target: 'managed/user',
+      ...(syncAfter ? { syncAfter } : {}),
+    });
+    const all = [
+      entry('first'),
+      entry('second', ['first']),
+      entry('middle', ['first', 'second']),
+      entry('fourth', ['first', 'second', 'middle']),
+      entry('last', ['first', 'second', 'middle', 'fourth']),
+    ];
+    stored = syncOf(all);
+    let expected = all;
+    const steps = ['first', 'middle', 'last', 'second', 'fourth'];
+    for (const name of steps) {
+      const before = JSON.stringify(stored);
+      expect(before).toBe(JSON.stringify(syncOf(expected)));
+
+      await deleteMapping({ mappingId: `sync/${name}`, state });
+
+      expected = expected.filter((it) => it.name !== name);
+      expect(JSON.stringify(stored)).toBe(JSON.stringify(syncOf(expected)));
+    }
+    expect(stored).toEqual({ _id: 'sync', mappings: [] });
+    expect(puts).toHaveLength(steps.length);
+  });
+
+  describe.each([
+    [
+      'the mapping is not in the document',
+      () => {
+        stored = syncOf([mappingA(), mappingB()]);
+      },
+      'sync/ldapGroup',
+      'Mapping sync/ldapGroup not found in sync.json or multiple mappings found!',
+    ],
+    [
+      'two entries have the name',
+      () => {
+        stored = syncOf([mappingA(), mappingB(), mappingA()]);
+      },
+      'sync/ldapUser',
+      'Mapping sync/ldapUser not found in sync.json or multiple mappings found!',
+    ],
+    [
+      'the deployment has no sync configuration (HTTP 404)',
+      () => {
+        stored = undefined;
+      },
+      'sync/ldapUser',
+      'Mapping sync/ldapUser not found in sync.json or multiple mappings found!',
+    ],
+    [
+      'the mappings of the document are not a list',
+      () => {
+        stored = { _id: 'sync', mappings: { ldapUser: mappingA() } };
+      },
+      'sync/ldapUser',
+      'The sync configuration does not hold a list of mappings.',
+    ],
+  ])('when %s', (_situation, setUp, mappingId, message) => {
+    test('throws and writes nothing', async () => {
+      setUp();
+
+      const error: any = await deleteMapping({ mappingId, state }).catch(
+        (e) => e
+      );
+
+      expect(error).toBeInstanceOf(FrodoError);
+      expect(error.message).toBe(`Error deleting mapping ${mappingId}`);
+      expect(rootCause(error).message).toBe(message);
+      expect(putConfigEntity).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('the check after the write looks for the entry by name', () => {
+    test('throws where the answer still holds the entry, although that entry has no _id', async () => {
+      // the tenant keeps what it holds and answers it: A has no _id there
+      answer = () => syncOf([mappingA(), mappingB(), mappingC()]);
+
+      const error: any = await deleteMapping({
+        mappingId: 'sync/ldapUser',
+        state,
+      }).catch((e) => e);
+
+      expect(error).toBeInstanceOf(FrodoError);
+      expect(rootCause(error).message).toBe(
+        'Mapping sync/ldapUser was not deleted from sync.json after successful update.'
+      );
+    });
+
+    test('resolves where the answer does not hold the entry', async () => {
+      answer = () => syncOf([mappingB(), mappingC()]);
+
+      const deleted = await deleteMapping({
+        mappingId: 'sync/ldapUser',
+        state,
+      });
+
+      expect(deleted.name).toBe('ldapUser');
+    });
+  });
+
+  test('returns the mapping as readSyncMappings gives it: _id and syncAfter derived from its place', async () => {
+    const listed = await readSyncMappings({ state });
+    const expected = listed.find((it) => it._id === 'sync/ldapRole');
+
+    const deleted = await deleteMapping({ mappingId: 'sync/ldapRole', state });
+
+    expect(deleted).toEqual(expected);
+    expect(deleted).toEqual({
+      _id: 'sync/ldapRole',
+      name: 'ldapRole',
+      source: 'system/ldap/group',
+      target: 'managed/role',
+      syncAfter: ['ldapUser'],
+    });
+  });
+});
+
+describe('deleteMapping, a new-style mapping', () => {
+  test('deletes the configuration object of its own and does not touch sync', async () => {
+    const object = {
+      _id: 'mapping/ldapUser',
+      name: 'ldapUser',
+      source: 'system/ldap/account',
+      target: 'managed/user',
+    };
+    deleteConfigEntity.mockImplementation(async () => object);
+
+    const deleted = await deleteMapping({
+      mappingId: 'mapping/ldapUser',
+      state,
+    });
+
+    expect(deleted).toBe(object);
+    expect(deleteConfigEntity).toHaveBeenCalledTimes(1);
+    expect(deleteConfigEntity.mock.calls[0][0].entityId).toBe(
+      'mapping/ldapUser'
+    );
+    expect(readConfigEntity).not.toHaveBeenCalled();
+    expect(putConfigEntity).not.toHaveBeenCalled();
+  });
+});
+
+describe('readSyncMappings, the legacy mappings as the library presents them', () => {
+  test('gives every mapping an _id and a syncAfter from its place, and skips a null entry', async () => {
+    stored = syncOf([
+      mappingA(),
+      null,
+      { ...mappingB(), _id: 'sync/stale' },
+      mappingC(),
+    ]);
+
+    const result = await readSyncMappings({ state });
+
+    expect(result).toEqual([
+      { ...mappingA(), _id: 'sync/ldapUser', syncAfter: [] },
+      { ...mappingB(), _id: 'sync/ldapRole', syncAfter: ['ldapUser'] },
+      {
+        ...mappingC(),
+        _id: 'sync/ldapGroup',
+        syncAfter: ['ldapUser', 'ldapRole'],
+      },
+    ]);
+    // the entries keep their keys in the order they were stored: _id and syncAfter come last
+    // (where the entry had none), a stored key keeps its place
+    expect(Object.keys(result[0])).toEqual([
+      'name',
+      'source',
+      'target',
+      'properties',
+      'policies',
+      '_id',
+      'syncAfter',
+    ]);
+    expect(Object.keys(result[1])).toEqual([
+      '_id',
+      'name',
+      'source',
+      'target',
+      'syncAfter',
+    ]);
+    // and the facade function gives the same
+    expect(await MappingOps(state).readSyncMappings()).toEqual(result);
+  });
+});
