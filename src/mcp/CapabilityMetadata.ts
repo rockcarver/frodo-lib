@@ -767,6 +767,15 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Create a config entity with namedArgs { entityId, entityData, wait }. wait defaults to false.',
   },
+  // The pull and the push of the KBA configuration are not offered on MCP for now.
+  // A pull gives a file set (the registry infers `export`: medium risk, not
+  // mutating, never in the read-only dispatch): it may be offered later, in the
+  // standard and admin presets only. A push takes a reader of files, which an MCP
+  // payload cannot carry: it needs an MCP-specific design that takes the file set
+  // as data. Each later pull and push of a configuration type needs the same
+  // entry until that is decided.
+  'idm.config.pullKbaConfig': { excluded: true },
+  'idm.config.pushKbaConfig': { excluded: true },
   'idm.config.readConfigEntitiesByType': {
     argumentMode: 'named',
     scope: 'bulk',

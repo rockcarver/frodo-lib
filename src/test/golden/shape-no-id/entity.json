@@ -1,0 +1,11 @@
+{
+  "_rev": "5c2e8a10-7b43-4d6f-a9e1-3f4b6c8d0e21-9",
+  "lastChanged": {
+    "date": "2026-11-20T09:30:00.000Z"
+  },
+  "domains": [
+    "mü.example.com",
+    "account.example.com",
+    "${tenant}.example.com"
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "_id": "single",
+  "nested": {
+    "kept": 1
+  },
+  "text": "Grüße, \\${name}"
+}

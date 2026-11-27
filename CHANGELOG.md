@@ -10,6 +10,21 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-57] - 2026-11-27
+
+### Added
+- Implemented the capability to pull and push the KBA configuration as a file set, marking the initial use of the file-set engine for configuration types. This includes the `frodo.idm.config.pullKbaConfig()` function for reading configurations (#1162).
+- Introduced a mechanism to assign a shortened name with a checksum to IDs that do not fit in a file name, ensuring consistent naming across all relevant functions in `FileSetPathUtils.ts` (#1158).
+- Added support for exporting the outcome of a push operation at the package root, enhancing visibility of push results (commit 2053408ac).
+- Enabled the inference of a pull as an export and a push as an import within the capability registry, streamlining configuration management processes (commit 4a3c6eed8).
+
+### Fixed
+- Corrected the behavior of file readers to ensure that non-text outputs are treated as named failures, improving error handling (commit 2b51ed2c1).
+- Fixed an issue where an escaped `${` was incorrectly written without backslashes when the file contained no complete placeholder, ensuring proper escape handling (commit 0509831e0).
+- Addressed a bug where the push of the KBA configuration incorrectly accepted files with mismatched IDs, reinforcing ID validation (commit 381d8cda5).
+- Resolved an issue where the sanitizer incorrectly measured names, ensuring that valid names are preserved and U+007F is treated as non-text (commit 5728f0ddd).
+- Improved handling of partial escapes at the end of a cut, ensuring they are removed correctly (commit be04ff720).
+
 ## [v5.0.0-56] - 2026-11-26
 
 ### Added
@@ -3127,6 +3142,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-57]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-56...v5.0.0-57
 [v5.0.0-56]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-55...v5.0.0-56
 [v5.0.0-55]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-54...v5.0.0-55
 [v5.0.0-54]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-53...v5.0.0-54

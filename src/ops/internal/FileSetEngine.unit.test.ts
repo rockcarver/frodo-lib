@@ -12,6 +12,7 @@
  * that does not fit in a file name is shortened with a checksum by the name functions (`FileSetPathUtils`), so the rows for a
  * long id say what the engine does with those names.
  */
+import { inspect } from 'node:util';
 import { jest } from '@jest/globals';
 import ts from 'typescript';
 import StateImpl, { type State } from '../../shared/State';
@@ -19,6 +20,10 @@ import {
   importSpecifiersOf,
   NODE_IO_MODULES,
 } from '../../test/exportFileFormat/importsOf';
+import {
+  everythingOf,
+  ROUND_TRIP_TEXTS,
+} from '../../test/utils/FileSetTestKit';
 import { typeAlias } from '../../test/utils/SourceText';
 import { encodedName } from '../../utils/FileSetPathUtils';
 import {
@@ -33,11 +38,15 @@ import {
   fileOfObject,
   inRealm,
   isCloudRootRealm,
+  mergeAndWriteSingleton,
+  mergeSingleton,
   overridesOf,
+  ownedFoldersOf,
   readFileSetJson,
   realmOfDir,
   realmsToVisit,
   runPerObject,
+  splitSingleton,
   unmatchedOverrides,
   type RealmOverrides,
 } from './FileSetEngine';
@@ -954,6 +963,87 @@ describe('fileOfObject', () => {
       fileOfObject({ path: 'x.json', object: { b: { d: 2, c: 1 }, a: 1 } })
     );
   });
+
+  describe('the two options of the serializer', () => {
+    // a type whose files are not agent files chooses: its entity has a revision, and the tenant keeps the dates
+    const object = {
+      _id: 'x',
+      _rev: '7',
+      lastChanged: { date: 'yesterday', _rev: '8' },
+      createdBy: 'someone',
+      modifiedDate: 'today',
+      createDate: 'before',
+      text: 'a ${b}',
+    };
+
+    it('keeps `_rev` at every depth with `keepRev`, and leaves it out by default', () => {
+      const keep = JSON.parse(
+        fileOfObject({ path: 'x.json', object, keepRev: true }).content
+      );
+      const leave = JSON.parse(
+        fileOfObject({ path: 'x.json', object }).content
+      );
+
+      expect(keep._rev).toBe('7');
+      expect(keep.lastChanged._rev).toBe('8');
+      expect(leave._rev).toBeUndefined();
+      expect(leave.lastChanged._rev).toBeUndefined();
+    });
+
+    it('leaves the ten modified properties out with `keepModifiedProperties: false`, and keeps them by default', () => {
+      const leave = JSON.parse(
+        fileOfObject({ path: 'x.json', object, keepModifiedProperties: false })
+          .content
+      );
+      const keep = JSON.parse(fileOfObject({ path: 'x.json', object }).content);
+
+      // `lastChanged` (with what is nested in it), `createdBy` and `modifiedDate` are modified properties; `createDate` is not
+      expect(Object.keys(leave).sort()).toEqual(['_id', 'createDate', 'text']);
+      expect(Object.keys(keep).sort()).toEqual([
+        '_id',
+        'createDate',
+        'createdBy',
+        'lastChanged',
+        'modifiedDate',
+        'text',
+      ]);
+    });
+
+    it('gives the same file with the defaults written out as with no options', () => {
+      expect(
+        fileOfObject({
+          path: 'x.json',
+          object,
+          keepRev: false,
+          keepModifiedProperties: true,
+        })
+      ).toEqual(fileOfObject({ path: 'x.json', object }));
+    });
+
+    it('does not take away what the file always has: the escaping, the order of the keys and the newline', () => {
+      const { content } = fileOfObject({
+        path: 'x.json',
+        object,
+        keepRev: true,
+        keepModifiedProperties: false,
+      });
+
+      expect(content).toBe(
+        '{\n  "_id": "x",\n  "_rev": "7",\n  "createDate": "before",\n  "text": "a \\\\${b}"\n}\n'
+      );
+    });
+
+    it('applies to the overrides that are merged in as well', () => {
+      const { content } = fileOfObject({
+        path: 'x.json',
+        object: { _id: 'x' },
+        overrides: { modifiedDate: 'today', _rev: '9', kept: 1 },
+        keepModifiedProperties: false,
+      });
+
+      expect(JSON.parse(content)).toEqual({ _id: 'x', kept: 1 });
+    });
+  });
 });
 
 describe('runPerObject', () => {
@@ -1282,6 +1372,557 @@ describe('runPerObject', () => {
     }
 
     expect(written).toEqual([]);
+  });
+});
+
+describe('the owned folders of a single file', () => {
+  it.each([
+    ['kba/selfservice.kba.json', ['kba']],
+    ['ui/ui-configuration.json', ['ui']],
+    ['a/b/c.json', ['a/b']],
+    ['sync/connectors/c.json', ['sync/connectors']],
+  ])('is the folder that %s lies in', (path, folders) => {
+    expect(ownedFoldersOf(path)).toEqual(folders);
+  });
+
+  it.each([['raw.json'], ['x'], ['.hidden.json']])(
+    'is none for a file at the root of the set: %s (the file is the whole of what the type owns)',
+    (path) => {
+      expect(ownedFoldersOf(path)).toEqual([]);
+    }
+  );
+});
+
+describe('splitSingleton', () => {
+  const object = {
+    _id: 'x',
+    _rev: '7',
+    lastChanged: { date: 'yesterday' },
+    createDate: 'before',
+    text: 'a ${b}',
+  };
+
+  it('gives one file at the path, with the keys in order, the modified properties and `_rev` left out, and `${` escaped', () => {
+    expect(splitSingleton({ object, path: 'dir/x.json' })).toEqual({
+      files: [
+        {
+          path: 'dir/x.json',
+          content:
+            '{\n  "_id": "x",\n  "createDate": "before",\n  "text": "a \\\\${b}"\n}\n',
+        },
+      ],
+      ownedFolders: ['dir'],
+    });
+  });
+
+  it('keeps `_rev` when the type keeps it, and the modified properties when it keeps them', () => {
+    const file = splitSingleton({
+      object,
+      path: 'dir/x.json',
+      keepRev: true,
+      keepModifiedProperties: true,
+    }).files[0];
+
+    expect(JSON.parse(file.content)).toMatchObject({
+      _rev: '7',
+      lastChanged: { date: 'yesterday' },
+    });
+  });
+
+  it('owns no folder for a file at the root of the set, and gives the file its whole name', () => {
+    expect(splitSingleton({ object, path: 'x.json' })).toMatchObject({
+      files: [{ path: 'x.json' }],
+      ownedFolders: [],
+    });
+  });
+
+  it('refuses a path that is not a path of a file set, and does not change the object', () => {
+    const before = JSON.stringify(object);
+
+    expect(() => splitSingleton({ object, path: '../x.json' })).toThrow();
+    expect(JSON.stringify(object)).toBe(before);
+  });
+});
+
+describe('mergeSingleton', () => {
+  const state = stateOf('cloud');
+  const merge = (
+    files: Record<string, string>,
+    more: { id?: string; idKey?: string | null } = {}
+  ) =>
+    mergeSingleton({
+      reader: readerOf(files),
+      path: 'dir/x.json',
+      id: 'the-id',
+      ...more,
+      state,
+    });
+
+  it('gives the object that the file holds, with the placeholders filled', async () => {
+    const given = stateOf('cloud');
+    given.setEnv('NAME', 'filled');
+
+    await expect(
+      mergeSingleton({
+        reader: readerOf({
+          'dir/x.json': '{"_id":"the-id","a":"${NAME}","b":"\\\\${LITERAL}"}',
+        }),
+        path: 'dir/x.json',
+        id: 'the-id',
+        state: given,
+      })
+    ).resolves.toEqual({ _id: 'the-id', a: 'filled', b: '${LITERAL}' });
+  });
+
+  it('refuses a file whose id is not the id of the type, names the path and the id of the type, and never shows the id that the file holds', async () => {
+    const failure = merge({ 'dir/x.json': '{"_id":"another-id"}' });
+
+    await expect(failure).rejects.toBeInstanceOf(FrodoError);
+    await expect(failure).rejects.toThrow(
+      'The file dir/x.json does not hold the id of this type, "the-id".'
+    );
+    expect(((await failure.catch((e) => e)) as Error).message).not.toContain(
+      'another-id'
+    );
+  });
+
+  it('does not repeat an id of any length that the file holds', async () => {
+    const failure = await merge({
+      'dir/x.json': JSON.stringify({ _id: 'z'.repeat(5000) }),
+    }).catch((error) => error);
+
+    expect((failure as Error).message.length).toBeLessThan(120);
+    expect((failure as Error).message).not.toContain('zzz');
+  });
+
+  it('compares the id in the content and never the name of the file', async () => {
+    // the name of the file says `x`, the id of the type is `the-id`: the content decides, in both directions
+    await expect(merge({ 'dir/x.json': '{"_id":"x"}' })).rejects.toThrow(
+      'does not hold the id of this type, "the-id"'
+    );
+    await expect(
+      mergeSingleton({
+        reader: readerOf({ 'dir/x.json': '{"_id":"x"}' }),
+        path: 'dir/x.json',
+        id: 'x',
+        state,
+      })
+    ).resolves.toEqual({ _id: 'x' });
+  });
+
+  it.each([
+    ['..'],
+    ['../managed/alpha_user'],
+    ['../../am/json/realms/root/users/x'],
+    ['the-id/../the-id'],
+    ['The-Id'],
+    ['the-id '],
+    ['the-id\n'],
+    ['​the-id'],
+  ])('refuses the id %j, which is not the id of the type', async (foreign) => {
+    await expect(
+      merge({ 'dir/x.json': JSON.stringify({ _id: foreign }) })
+    ).rejects.toThrow('does not hold the id of this type, "the-id"');
+  });
+
+  it.each([
+    // the same letters to the eye, and to a comparison that normalises, but not the same id
+    ['the full-width letters', 'ｔｈｅ-ｉｄ', 'the-id'],
+    ['the Cyrillic letters', 'thе-іd', 'the-id'],
+    ['a decomposed accent', 'café', 'café'],
+    ['a composed accent', 'café', 'café'],
+    ['a ligature', 'ﬁle', 'file'],
+  ])(
+    'compares the id as it is, with no normalisation: %s is not the id of the type',
+    async (_what, held, id) => {
+      await expect(
+        mergeSingleton({
+          reader: readerOf({ 'dir/x.json': JSON.stringify({ _id: held }) }),
+          path: 'dir/x.json',
+          id,
+          state,
+        })
+      ).rejects.toThrow('does not hold the id of this type');
+      // the id of the type itself is accepted, in the same form
+      await expect(
+        mergeSingleton({
+          reader: readerOf({ 'dir/x.json': JSON.stringify({ _id: id }) }),
+          path: 'dir/x.json',
+          id,
+          state,
+        })
+      ).resolves.toEqual({ _id: id });
+    }
+  );
+
+  describe('a value of the state or of the process environment never reaches a message', () => {
+    // the placeholders of a file are filled before the id is compared, so `${NAME}` can resolve to anything: a hostile file
+    // set must not be able to print the value of a name that it picked
+    const CANARY = 'canary-value-that-must-never-be-shown-4711';
+
+    it('does not print the value that a placeholder in the id resolves to', async () => {
+      const given = stateOf('cloud');
+      given.setEnv('CANARY_NAME', CANARY);
+
+      const error = await mergeSingleton({
+        reader: readerOf({ 'dir/x.json': '{"_id":"${CANARY_NAME}"}' }),
+        path: 'dir/x.json',
+        id: 'the-id',
+        state: given,
+      }).catch((e) => e);
+
+      expect(error).toBeInstanceOf(FrodoError);
+      expect((error as Error).message).toBe(
+        'The file dir/x.json does not hold the id of this type, "the-id".'
+      );
+      expect(everythingOf(error)).not.toContain(CANARY);
+    });
+
+    it('does not print the value of a variable of the process, when the state is told to read the environment', async () => {
+      process.env.M1A_CANARY_NAME = CANARY;
+      const given = stateOf('cloud');
+      given.setUseProcessEnvironmentForPlaceholders(true);
+      try {
+        const error = await mergeSingleton({
+          reader: readerOf({ 'dir/x.json': '{"_id":"${M1A_CANARY_NAME}"}' }),
+          path: 'dir/x.json',
+          id: 'the-id',
+          state: given,
+        }).catch((e) => e);
+
+        expect(error).toBeInstanceOf(FrodoError);
+        expect(everythingOf(error)).not.toContain(CANARY);
+      } finally {
+        delete process.env.M1A_CANARY_NAME;
+      }
+    });
+
+    it('does not print it from a push either: not in the outcome, not in what the callback is told, not in the output', async () => {
+      const given = stateOf('cloud');
+      given.setEnv('CANARY_NAME', CANARY);
+      const resultCallback = jest.fn();
+      const written: string[] = [];
+      const spies = (['log', 'info', 'warn', 'error', 'debug'] as const).map(
+        (name) =>
+          jest.spyOn(console, name).mockImplementation((...a: unknown[]) => {
+            written.push(a.map(String).join(' '));
+          })
+      );
+      const out = jest
+        .spyOn(process.stdout, 'write')
+        .mockImplementation((chunk: unknown) => {
+          written.push(String(chunk));
+          return true;
+        });
+      const err = jest
+        .spyOn(process.stderr, 'write')
+        .mockImplementation((chunk: unknown) => {
+          written.push(String(chunk));
+          return true;
+        });
+      let outcomes;
+      try {
+        outcomes = await mergeAndWriteSingleton({
+          id: 'the-id',
+          path: 'dir/x.json',
+          merge: () =>
+            mergeSingleton({
+              reader: readerOf({ 'dir/x.json': '{"_id":"${CANARY_NAME}"}' }),
+              path: 'dir/x.json',
+              id: 'the-id',
+              state: given,
+            }),
+          write: async () => ({}),
+          resultCallback,
+        });
+      } finally {
+        [...spies, out, err].forEach((spy) => spy.mockRestore());
+      }
+
+      expect(outcomes).toHaveLength(1);
+      expect(outcomes[0].error).toBeInstanceOf(FrodoError);
+      expect(everythingOf(outcomes[0].error)).not.toContain(CANARY);
+      expect(inspect(outcomes, { depth: null })).not.toContain(CANARY);
+      expect(inspect(resultCallback.mock.calls, { depth: null })).not.toContain(
+        CANARY
+      );
+      expect(written.join('\n')).not.toContain(CANARY);
+    });
+  });
+
+  it.each([
+    ['holds no `_id`', '{"a":1}'],
+    ['holds an empty `_id`', '{"_id":""}'],
+    ['holds an `_id` that is not text', '{"_id":3}'],
+    ['holds an array', '["the-id"]'],
+    ['holds `null`', 'null'],
+    ['holds a number', '5'],
+  ])('refuses a file that %s, and names the file', async (_what, text) => {
+    await expect(merge({ 'dir/x.json': text })).rejects.toThrow(
+      'The file dir/x.json holds no _id that is a text.'
+    );
+  });
+
+  it('refuses a file that is not there, and text that is not JSON, and names the file', async () => {
+    await expect(merge({})).rejects.toThrow(
+      'The file dir/x.json does not exist.'
+    );
+    await expect(merge({ 'dir/x.json': '{ no' })).rejects.toThrow(
+      'Error parsing JSON from dir/x.json'
+    );
+  });
+
+  it('reads one file and lists nothing', async () => {
+    const asked: string[] = [];
+    const inner = readerOf({
+      'dir/x.json': '{"_id":"the-id"}',
+      'dir/y.json': '{"_id":"y"}',
+    });
+
+    await mergeSingleton({
+      reader: {
+        listDirectory: async (path) => {
+          asked.push(`list ${path}`);
+          return inner.listDirectory(path);
+        },
+        readFile: async (path) => {
+          asked.push(`read ${path}`);
+          return inner.readFile(path);
+        },
+      },
+      path: 'dir/x.json',
+      id: 'the-id',
+      state,
+    });
+
+    expect(asked).toEqual(['read dir/x.json']);
+  });
+
+  describe('for a type whose object holds no id (`idKey: null`)', () => {
+    const noId = (files: Record<string, string>) =>
+      merge(files, { idKey: null, id: 'domains' });
+
+    it('takes the object as it is, and does not compare an `_id` that it happens to hold', async () => {
+      await expect(
+        noId({ 'dir/x.json': '{"domains":["a.example.com"]}' })
+      ).resolves.toEqual({ domains: ['a.example.com'] });
+      await expect(
+        noId({ 'dir/x.json': '{"_id":"anything","domains":[]}' })
+      ).resolves.toEqual({ _id: 'anything', domains: [] });
+    });
+
+    it.each([
+      ['an array', '[1]'],
+      ['`null`', 'null'],
+      ['a number', '5'],
+      ['a text', '"x"'],
+    ])('refuses %s: an object is what the type has', async (_what, text) => {
+      await expect(noId({ 'dir/x.json': text })).rejects.toThrow(
+        'The file dir/x.json does not hold a JSON object.'
+      );
+    });
+
+    it('refuses a file that is not there', async () => {
+      await expect(noId({})).rejects.toThrow('does not exist');
+    });
+  });
+
+  describe('for a type whose object keeps its id under another key', () => {
+    it('compares that key', async () => {
+      await expect(
+        merge(
+          { 'dir/x.json': '{"name":"the-id","_id":"ignored"}' },
+          { idKey: 'name' }
+        )
+      ).resolves.toEqual({ name: 'the-id', _id: 'ignored' });
+      await expect(
+        merge({ 'dir/x.json': '{"name":"other"}' }, { idKey: 'name' })
+      ).rejects.toThrow('does not hold the id of this type, "the-id"');
+      await expect(
+        merge({ 'dir/x.json': '{"_id":"the-id"}' }, { idKey: 'name' })
+      ).rejects.toThrow('holds no name that is a text.');
+    });
+  });
+});
+
+describe('a pull then a push of a text that holds `${`', () => {
+  // the split escapes every `${` and the merge reads it back as text: the text that goes in is the text that comes out,
+  // whether or not a complete `${NAME}` is in the text, in the line or anywhere in the file
+  it.each(ROUND_TRIP_TEXTS)(
+    'gives back the text with $name',
+    async ({ text, state: values }) => {
+      const given = stateOf('cloud');
+      for (const [name, value] of Object.entries(values ?? {})) {
+        given.setEnv(name, value);
+      }
+      const object = { _id: 'the-id', text, list: [text], [`k ${text}`]: 1 };
+
+      const set = splitSingleton({ object, path: 'dir/x.json' });
+      const merged = await mergeSingleton({
+        reader: createMemoryFileSetReader(set),
+        path: 'dir/x.json',
+        id: 'the-id',
+        state: given,
+      });
+
+      expect(merged).toEqual(object);
+    }
+  );
+
+  it('gives back the text of a file that holds no complete placeholder anywhere, which a resolver that stops at once would give with the backslashes', async () => {
+    const set = splitSingleton({
+      object: { _id: 'the-id', text: 'open ${ never closed' },
+      path: 'dir/x.json',
+    });
+
+    // every line of the file is `"key": "value"`, and none of them holds a `}` after the `${`
+    expect(set.files[0].content).toContain('open \\\\${ never closed');
+    await expect(
+      mergeSingleton({
+        reader: createMemoryFileSetReader(set),
+        path: 'dir/x.json',
+        id: 'the-id',
+        state: stateOf('cloud'),
+      })
+    ).resolves.toEqual({ _id: 'the-id', text: 'open ${ never closed' });
+  });
+});
+
+describe('a reader that does not give text', () => {
+  const CANARY = 'canary-content-that-must-never-be-shown-2468';
+  const readerGiving = (answer: unknown): FileSetReader => ({
+    listDirectory: async () => undefined,
+    readFile: async () => answer as string,
+  });
+
+  it.each([
+    ['a Buffer', Buffer.from(CANARY)],
+    ['null', null],
+    ['a number', 42],
+    ['an object', { text: CANARY }],
+    ['a function', () => CANARY],
+  ])(
+    'names the file and the fault for %s, and does not show what it gave',
+    async (_what, answer) => {
+      const failure = await readFileSetJson({
+        reader: readerGiving(answer),
+        path: 'dir/x.json',
+        state: stateOf('cloud'),
+      }).catch((error) => error);
+
+      expect(failure).toBeInstanceOf(FrodoError);
+      expect((failure as Error).message).toBe(
+        'The reader did not return text for dir/x.json.'
+      );
+      expect(everythingOf(failure)).not.toContain(CANARY);
+    }
+  );
+
+  it('is still no file when the reader gives undefined, and a file that is empty when it gives an empty text', async () => {
+    await expect(
+      readFileSetJson({
+        reader: readerGiving(undefined),
+        path: 'dir/x.json',
+        state: stateOf('cloud'),
+      })
+    ).resolves.toBeUndefined();
+    await expect(
+      readFileSetJson({
+        reader: readerGiving(''),
+        path: 'dir/x.json',
+        state: stateOf('cloud'),
+      })
+    ).rejects.toThrow('Error parsing JSON from dir/x.json');
+  });
+});
+
+describe('mergeAndWriteSingleton', () => {
+  const run = async (
+    own: {
+      merge?: () => Promise<unknown>;
+      write?: (merged: unknown) => Promise<unknown>;
+    } = {}
+  ) => {
+    const resultCallback = jest.fn();
+    const write = jest.fn(own.write ?? (async () => ({ answered: true })));
+    const merge = jest.fn(own.merge ?? (async () => ({ merged: true })));
+    const outcomes = await mergeAndWriteSingleton({
+      id: 'the-id',
+      path: 'dir/x.json',
+      merge,
+      write,
+      resultCallback,
+    });
+    return { outcomes, resultCallback, write, merge };
+  };
+
+  it('merges once, writes what the merge gave, and gives one outcome with the id of the type; the callback is told once, with the answer', async () => {
+    const { outcomes, resultCallback, write, merge } = await run();
+
+    expect(outcomes).toEqual([{ id: 'the-id' }]);
+    expect(merge).toHaveBeenCalledTimes(1);
+    expect(write).toHaveBeenCalledTimes(1);
+    expect(write).toHaveBeenCalledWith({ merged: true });
+    expect(resultCallback).toHaveBeenCalledTimes(1);
+    expect(resultCallback).toHaveBeenCalledWith(undefined, { answered: true });
+  });
+
+  it('is an outcome with the error and the path of the file when the merge fails; nothing is written and the callback is told once', async () => {
+    const { outcomes, resultCallback, write } = await run({
+      merge: async () => {
+        throw new FrodoError('The file dir/x.json does not exist.');
+      },
+    });
+
+    expect(write).not.toHaveBeenCalled();
+    expect(outcomes).toHaveLength(1);
+    expect(outcomes[0].id).toBe('dir/x.json');
+    expect(outcomes[0].error).toBeInstanceOf(FrodoError);
+    expect(outcomes[0].error?.originalErrors[0].message).toBe(
+      'The file dir/x.json does not exist.'
+    );
+    expect(resultCallback).toHaveBeenCalledTimes(1);
+    expect(resultCallback.mock.calls[0][0]).toBe(outcomes[0].error);
+  });
+
+  it('is an outcome with the error and the id of the type when the write fails', async () => {
+    const { outcomes, resultCallback } = await run({
+      write: async () => {
+        throw new FrodoError('The tenant refuses.');
+      },
+    });
+
+    expect(outcomes).toHaveLength(1);
+    expect(outcomes[0].id).toBe('the-id');
+    expect(outcomes[0].error).toBeInstanceOf(FrodoError);
+    expect(outcomes[0].error?.originalErrors[0].message).toBe(
+      'The tenant refuses.'
+    );
+    expect(resultCallback).toHaveBeenCalledTimes(1);
+  });
+
+  it('takes a merge that throws something that is not an error for an error', async () => {
+    const { outcomes } = await run({
+      merge: async () => {
+        throw 'not an error object';
+      },
+    });
+
+    expect(outcomes[0].error).toBeInstanceOf(FrodoError);
+    expect(outcomes[0].error?.originalErrors[0].message).toBe(
+      'not an error object'
+    );
+  });
+
+  it('works without a result callback', async () => {
+    await expect(
+      mergeAndWriteSingleton({
+        id: 'the-id',
+        path: 'dir/x.json',
+        merge: async () => 1,
+        write: async () => 2,
+      })
+    ).resolves.toEqual([{ id: 'the-id' }]);
   });
 });
 

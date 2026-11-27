@@ -304,6 +304,7 @@ export type { AccessTokenMetaType } from './ops/OAuth2OidcOps';
 export type {
   ExportMetaData,
   ObjectReference,
+  PushOutcome,
   ReferenceDependency,
 } from './ops/OpsTypes';
 
