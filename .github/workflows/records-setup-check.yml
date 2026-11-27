@@ -1,0 +1,60 @@
+name: Records setup check
+
+# Tells this repository when its installation of Record Keeper is incomplete or wrong (https://github.com/gearsnlevers/record-keeper/blob/main/docs/setup-check.md). It reads the files of the checkout and, with the read-only
+# token of this workflow and nothing else, GitHub: the rules of the default branch, the accounts of the owners, the pinned release and the last run of the audit. It
+# writes nothing anywhere but the job summary: no issue, no comment, no branch. It prints annotations, and it fails only when the audit is dead or the check of
+# the pull requests is not required by a rule of the default branch.
+#
+# It runs every day, by hand, and on a pull request that changes a file of the kit (pull_request, never pull_request_target: it runs what the pull request holds, with
+# a token that can only read, and the secrets of the repository are not given to the program). It is not a required check and must not be made one: the filter on the
+# paths would leave a pull request that it does not run for waiting for ever. The job has no `if:`, so nothing can skip it unseen.
+on:
+  schedule:
+    - cron: '37 7 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/record-keeper.yml'
+      - '.github/record-keeper/**'
+      - '.github/workflows/records-*.yml'
+      - '.github/CODEOWNERS'
+      - 'CODEOWNERS'
+      - 'docs/CODEOWNERS'
+      - 'install.json'
+      - 'record-keeper.mjs'
+      - 'check-pull-request.mjs'
+      - 'run-audit.mjs'
+      - 'setup-check.mjs'
+      - 'updater.mjs'
+
+permissions:
+  contents: read
+
+# The check writes nothing, so a run that is replaced by a newer one for the same ref loses nothing.
+concurrency:
+  group: records-setup-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    # The name of the job is the name of the workflow: nothing requires it.
+    name: Records setup check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # The commit that the event is about, and no credentials left in the clone: the program reads GitHub through the API with the token in its environment, and
+      # needs no history (the log branch and the history of the audit workflow are read through the API).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+
+      # Nothing from the event reaches the shell. The program is told whether the secret of the updater is set, and never receives it.
+      - name: Check the setup
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HAS_RECORD_KEEPER_TOKEN: ${{ secrets.RECORD_KEEPER_TOKEN != '' }}
+        run: node .github/record-keeper/setup-check.mjs --repo "$GITHUB_REPOSITORY"

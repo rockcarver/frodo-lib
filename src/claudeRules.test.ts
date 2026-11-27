@@ -35,8 +35,21 @@ const ROOT = process.cwd();
 const GENERATOR = path.join(ROOT, 'scripts/generate-claude-rules.mjs');
 const SOURCE_DIR = '.github/instructions';
 const TARGET_DIR = '.claude/rules';
-/** The bytes that every session of Claude Code loads: AGENTS.md and the CLAUDE.md that imports it. */
+/**
+ * The bytes of the repository's own text that every session of Claude Code
+ * loads: AGENTS.md and the CLAUDE.md that imports it, without the block that
+ * Record Keeper writes into AGENTS.md.
+ */
 const ALWAYS_LOADED_CEILING = 8000;
+/**
+ * The block that Record Keeper writes between two markers of AGENTS.md and
+ * rewrites at every update. It is the kit's text, which the maintainers cannot
+ * shorten, so the ceiling above does not count it; a ceiling of its own keeps
+ * it from growing without a person seeing it.
+ */
+const KIT_BLOCK =
+  /<!-- record-keeper:begin -->[\s\S]*?<!-- record-keeper:end -->\n?/g;
+const KIT_BLOCK_CEILING = 4000;
 const LAW_CEILING = 450;
 
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -507,9 +520,18 @@ describe('AGENTS.md', () => {
     expect(agents).not.toMatch(/Claude[^.\n]*\.github\/instructions/);
   });
 
-  test(`stays within ${ALWAYS_LOADED_CEILING} bytes together with CLAUDE.md, which every session loads`, () => {
+  test(`stays within ${ALWAYS_LOADED_CEILING} bytes together with CLAUDE.md, which every session loads, not counting the block of Record Keeper`, () => {
     expect(
-      Buffer.byteLength(agents) + Buffer.byteLength(read('CLAUDE.md'))
+      Buffer.byteLength(agents.replace(KIT_BLOCK, '')) +
+        Buffer.byteLength(read('CLAUDE.md'))
     ).toBeLessThanOrEqual(ALWAYS_LOADED_CEILING);
+  });
+
+  test(`has one block of Record Keeper of at most ${KIT_BLOCK_CEILING} bytes, the only text that the ceiling above leaves out`, () => {
+    const blocks = agents.match(KIT_BLOCK) ?? [];
+    expect(blocks).toHaveLength(1);
+    expect(agents.match(/<!-- record-keeper:begin -->/g)).toHaveLength(1);
+    expect(agents.match(/<!-- record-keeper:end -->/g)).toHaveLength(1);
+    expect(Buffer.byteLength(blocks[0])).toBeLessThanOrEqual(KIT_BLOCK_CEILING);
   });
 });
