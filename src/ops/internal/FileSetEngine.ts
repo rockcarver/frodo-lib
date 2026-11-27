@@ -10,7 +10,12 @@ import {
   replaceEnvSpecificValues,
 } from '../../utils/ExportImportUtils';
 import { fileNameOf, sameOnAnyFileSystem } from '../../utils/FileSetPathUtils';
-import { type FileSetReader, type VirtualFile } from '../../utils/FileSetUtils';
+import {
+  buildFileSet,
+  type FileSetReader,
+  type VirtualFile,
+  type VirtualFileSet,
+} from '../../utils/FileSetUtils';
 import { cloneDeep, mergeDeep } from '../../utils/JsonUtils';
 import { FrodoError } from '../FrodoError';
 import {
@@ -382,4 +387,155 @@ export async function runPerObject<T extends { id: string }, R>({
     }
   }
   return outcomes;
+}
+
+/**
+ * The folders that a type owns when it keeps its one object in a single file: the folder that the file lies in. A file at
+ * the root of the set has no folder, so the type owns none: the file is the whole of what the type owns, and a consumer that
+ * cleans owned folders has nothing to remove for it.
+ * @param {string} path the path of the file in the file set
+ * @returns {string[]} the owned folders: the folder of the file, or none for a file at the root
+ */
+export function ownedFoldersOf(path: string): string[] {
+  const end = path.lastIndexOf('/');
+  return end === -1 ? [] : [path.slice(0, end)];
+}
+
+/**
+ * What a type that has exactly one object, kept in one file, passes to the functions below: where the file is, and what the
+ * object is called. The object is the type: it has one id, which is a constant of the type and is never read from a file
+ * name, and a push refuses a file that names another.
+ * @property {string} path the path of the file in the file set
+ * @property {string} id the id of the one object of the type
+ * @property {string | null} idKey the key of the object that holds its id: `_id` unless said otherwise, and `null` for a type whose object holds no id (the file is then taken as it is)
+ */
+export type SingletonSpec = {
+  path: string;
+  id: string;
+  idKey?: string | null;
+};
+
+/**
+ * Split the one object of a type into a file set of one file. The file is written by the rules of the files of a
+ * single-object type: `_rev` and the modified properties are left out unless the type keeps them, the keys are in order,
+ * every `${` is escaped and the text ends with a newline. The object is not changed.
+ * @param {object} object the object, as the tenant has it
+ * @param {string} path the path of the file in the file set; the folder it lies in is owned by the set (none for a file at the root)
+ * @param {boolean} keepRev true if the file keeps the `_rev` keys. Default: false
+ * @param {boolean} keepModifiedProperties true if the file keeps the modified properties. Default: false
+ * @returns {VirtualFileSet} the file set
+ * @throws {Error} if the path is not a path of a file set
+ */
+export function splitSingleton({
+  object,
+  path,
+  keepRev = false,
+  keepModifiedProperties = false,
+}: {
+  object: object;
+  path: string;
+  keepRev?: boolean;
+  keepModifiedProperties?: boolean;
+}): VirtualFileSet {
+  return buildFileSet({
+    files: [fileOfObject({ path, object, keepRev, keepModifiedProperties })],
+    ownedFolders: ownedFoldersOf(path),
+  });
+}
+
+/**
+ * The start of an id for a message: a file can hold an id of any length.
+ * @param {string} id the id
+ * @returns {string} the id in quotes, cut after 80 characters
+ */
+const quotedId = (id: string): string =>
+  JSON.stringify(id.length > 80 ? `${id.slice(0, 80)}...` : id);
+
+/**
+ * Merge the file of a single-object type back into its object. Only the one file is asked for, and the id of the object
+ * is the one that the file holds, compared with the id of the type: a file that names another id is refused, so that a file
+ * set cannot point a push at another object (an id such as `../managed/x` would be a request to another path). The name of
+ * the file is never read.
+ * @param {FileSetReader} reader the reader of the file set
+ * @param {string} path the path of the file in the file set
+ * @param {string} id the id of the one object of the type
+ * @param {string | null} idKey the key of the object that holds its id: `_id` unless said otherwise; `null` for a type whose object holds none. Default: `_id`
+ * @param {State} state the state, which holds the values of the placeholders
+ * @returns {Promise<object>} the object, with the placeholders filled
+ * @throws {FrodoError} if the file is not there or cannot be read, a placeholder has no value, the text is not JSON, the file holds no object, holds no id that is a text, or holds the id of another object
+ */
+export async function mergeSingleton({
+  reader,
+  path,
+  id,
+  idKey = '_id',
+  state,
+}: SingletonSpec & { reader: FileSetReader; state: State }): Promise<object> {
+  const object = (await readFileSetJson({ reader, path, state })) as
+    Record<string, unknown> | null | undefined;
+  if (object === undefined) {
+    throw new FrodoError(`The file ${path} does not exist.`);
+  }
+  const isObject =
+    typeof object === 'object' && object !== null && !Array.isArray(object);
+  if (idKey === null) {
+    if (!isObject) {
+      throw new FrodoError(`The file ${path} does not hold a JSON object.`);
+    }
+    return object;
+  }
+  const held = isObject ? object[idKey] : undefined;
+  if (typeof held !== 'string' || held === '') {
+    throw new FrodoError(`The file ${path} holds no ${idKey} that is a text.`);
+  }
+  if (held !== id) {
+    throw new FrodoError(
+      `The file ${path} holds the id ${quotedId(held)}, but the id of this type is ${quotedId(id)}.`
+    );
+  }
+  return object;
+}
+
+/**
+ * Push the one object of a type: merge its file, then write what the merge gave. The object is the one object of the run
+ * of {@link runPerObject}, so whatever fails for it is the error of its outcome and nothing is thrown, and the result
+ * callback is told once. The id of the outcome is the id of the type; when the merge fails, so that the file could not be
+ * used, it is the path of the file.
+ * @param {string} id the id of the one object of the type
+ * @param {string} path the path of its file, for the outcome of a file that could not be used
+ * @param {() => Promise<M>} merge merges the file into what the write needs; it throws for a file that cannot be used (see {@link mergeSingleton})
+ * @param {(merged: M) => Promise<R>} write writes what the merge gave to the tenant, and gives what the tenant answered
+ * @param {ResultCallback<R>} resultCallback Optional. Told once how the push of the object ended
+ * @returns {Promise<PushOutcome[]>} one outcome
+ */
+export async function mergeAndWriteSingleton<M, R>({
+  id,
+  path,
+  merge,
+  write,
+  resultCallback,
+}: {
+  id: string;
+  path: string;
+  merge: () => Promise<M>;
+  write: (merged: M) => Promise<R>;
+  resultCallback?: ResultCallback<R>;
+}): Promise<PushOutcome[]> {
+  let read: { id: string; merged?: M; error?: Error };
+  try {
+    read = { id, merged: await merge() };
+  } catch (error) {
+    read = {
+      id: path,
+      error: error instanceof Error ? error : new Error(String(error)),
+    };
+  }
+  return runPerObject({
+    objects: [read],
+    work: async ({ object }) => {
+      if (object.error) throw object.error;
+      return write(object.merged as M);
+    },
+    resultCallback,
+  });
 }

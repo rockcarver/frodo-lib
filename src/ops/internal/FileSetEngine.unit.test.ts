@@ -33,11 +33,15 @@ import {
   fileOfObject,
   inRealm,
   isCloudRootRealm,
+  mergeAndWriteSingleton,
+  mergeSingleton,
   overridesOf,
+  ownedFoldersOf,
   readFileSetJson,
   realmOfDir,
   realmsToVisit,
   runPerObject,
+  splitSingleton,
   unmatchedOverrides,
   type RealmOverrides,
 } from './FileSetEngine';
@@ -1363,6 +1367,338 @@ describe('runPerObject', () => {
     }
 
     expect(written).toEqual([]);
+  });
+});
+
+describe('the owned folders of a single file', () => {
+  it.each([
+    ['kba/selfservice.kba.json', ['kba']],
+    ['ui/ui-configuration.json', ['ui']],
+    ['a/b/c.json', ['a/b']],
+    ['sync/connectors/c.json', ['sync/connectors']],
+  ])('is the folder that %s lies in', (path, folders) => {
+    expect(ownedFoldersOf(path)).toEqual(folders);
+  });
+
+  it.each([['raw.json'], ['x'], ['.hidden.json']])(
+    'is none for a file at the root of the set: %s (the file is the whole of what the type owns)',
+    (path) => {
+      expect(ownedFoldersOf(path)).toEqual([]);
+    }
+  );
+});
+
+describe('splitSingleton', () => {
+  const object = {
+    _id: 'x',
+    _rev: '7',
+    lastChanged: { date: 'yesterday' },
+    createDate: 'before',
+    text: 'a ${b}',
+  };
+
+  it('gives one file at the path, with the keys in order, the modified properties and `_rev` left out, and `${` escaped', () => {
+    expect(splitSingleton({ object, path: 'dir/x.json' })).toEqual({
+      files: [
+        {
+          path: 'dir/x.json',
+          content:
+            '{\n  "_id": "x",\n  "createDate": "before",\n  "text": "a \\\\${b}"\n}\n',
+        },
+      ],
+      ownedFolders: ['dir'],
+    });
+  });
+
+  it('keeps `_rev` when the type keeps it, and the modified properties when it keeps them', () => {
+    const file = splitSingleton({
+      object,
+      path: 'dir/x.json',
+      keepRev: true,
+      keepModifiedProperties: true,
+    }).files[0];
+
+    expect(JSON.parse(file.content)).toMatchObject({
+      _rev: '7',
+      lastChanged: { date: 'yesterday' },
+    });
+  });
+
+  it('owns no folder for a file at the root of the set, and gives the file its whole name', () => {
+    expect(splitSingleton({ object, path: 'x.json' })).toMatchObject({
+      files: [{ path: 'x.json' }],
+      ownedFolders: [],
+    });
+  });
+
+  it('refuses a path that is not a path of a file set, and does not change the object', () => {
+    const before = JSON.stringify(object);
+
+    expect(() => splitSingleton({ object, path: '../x.json' })).toThrow();
+    expect(JSON.stringify(object)).toBe(before);
+  });
+});
+
+describe('mergeSingleton', () => {
+  const state = stateOf('cloud');
+  const merge = (
+    files: Record<string, string>,
+    more: { id?: string; idKey?: string | null } = {}
+  ) =>
+    mergeSingleton({
+      reader: readerOf(files),
+      path: 'dir/x.json',
+      id: 'the-id',
+      ...more,
+      state,
+    });
+
+  it('gives the object that the file holds, with the placeholders filled', async () => {
+    const given = stateOf('cloud');
+    given.setEnv('NAME', 'filled');
+
+    await expect(
+      mergeSingleton({
+        reader: readerOf({
+          'dir/x.json': '{"_id":"the-id","a":"${NAME}","b":"\\\\${LITERAL}"}',
+        }),
+        path: 'dir/x.json',
+        id: 'the-id',
+        state: given,
+      })
+    ).resolves.toEqual({ _id: 'the-id', a: 'filled', b: '${LITERAL}' });
+  });
+
+  it('refuses a file whose id is not the id of the type, names the path and both ids, and reads the id from the content', async () => {
+    const failure = merge({ 'dir/x.json': '{"_id":"another-id"}' });
+
+    await expect(failure).rejects.toBeInstanceOf(FrodoError);
+    await expect(failure).rejects.toThrow(
+      'The file dir/x.json holds the id "another-id", but the id of this type is "the-id".'
+    );
+  });
+
+  it('compares the id in the content and never the name of the file', async () => {
+    // the name of the file says `x`, the id of the type is `the-id`: the content decides, in both directions
+    await expect(merge({ 'dir/x.json': '{"_id":"x"}' })).rejects.toThrow(
+      'holds the id "x"'
+    );
+    await expect(
+      mergeSingleton({
+        reader: readerOf({ 'dir/x.json': '{"_id":"x"}' }),
+        path: 'dir/x.json',
+        id: 'x',
+        state,
+      })
+    ).resolves.toEqual({ _id: 'x' });
+  });
+
+  it.each([
+    ['..'],
+    ['../managed/alpha_user'],
+    ['../../am/json/realms/root/users/x'],
+    ['the-id/../the-id'],
+    ['The-Id'],
+    ['the-id '],
+  ])('refuses the id %j, which is not the id of the type', async (foreign) => {
+    await expect(
+      merge({ 'dir/x.json': JSON.stringify({ _id: foreign }) })
+    ).rejects.toThrow('but the id of this type is "the-id"');
+  });
+
+  it('cuts a very long id out of the message', async () => {
+    const failure = merge({
+      'dir/x.json': JSON.stringify({ _id: 'z'.repeat(5000) }),
+    }).catch((error) => error);
+
+    const message = (await failure).message as string;
+    expect(message.length).toBeLessThan(400);
+    expect(message).toContain('zzzz');
+    expect(message).toContain('...');
+  });
+
+  it.each([
+    ['holds no `_id`', '{"a":1}'],
+    ['holds an empty `_id`', '{"_id":""}'],
+    ['holds an `_id` that is not text', '{"_id":3}'],
+    ['holds an array', '["the-id"]'],
+    ['holds `null`', 'null'],
+    ['holds a number', '5'],
+  ])('refuses a file that %s, and names the file', async (_what, text) => {
+    await expect(merge({ 'dir/x.json': text })).rejects.toThrow(
+      'The file dir/x.json holds no _id that is a text.'
+    );
+  });
+
+  it('refuses a file that is not there, and text that is not JSON, and names the file', async () => {
+    await expect(merge({})).rejects.toThrow(
+      'The file dir/x.json does not exist.'
+    );
+    await expect(merge({ 'dir/x.json': '{ no' })).rejects.toThrow(
+      'Error parsing JSON from dir/x.json'
+    );
+  });
+
+  it('reads one file and lists nothing', async () => {
+    const asked: string[] = [];
+    const inner = readerOf({
+      'dir/x.json': '{"_id":"the-id"}',
+      'dir/y.json': '{"_id":"y"}',
+    });
+
+    await mergeSingleton({
+      reader: {
+        listDirectory: async (path) => {
+          asked.push(`list ${path}`);
+          return inner.listDirectory(path);
+        },
+        readFile: async (path) => {
+          asked.push(`read ${path}`);
+          return inner.readFile(path);
+        },
+      },
+      path: 'dir/x.json',
+      id: 'the-id',
+      state,
+    });
+
+    expect(asked).toEqual(['read dir/x.json']);
+  });
+
+  describe('for a type whose object holds no id (`idKey: null`)', () => {
+    const noId = (files: Record<string, string>) =>
+      merge(files, { idKey: null, id: 'domains' });
+
+    it('takes the object as it is, and does not compare an `_id` that it happens to hold', async () => {
+      await expect(
+        noId({ 'dir/x.json': '{"domains":["a.example.com"]}' })
+      ).resolves.toEqual({ domains: ['a.example.com'] });
+      await expect(
+        noId({ 'dir/x.json': '{"_id":"anything","domains":[]}' })
+      ).resolves.toEqual({ _id: 'anything', domains: [] });
+    });
+
+    it.each([
+      ['an array', '[1]'],
+      ['`null`', 'null'],
+      ['a number', '5'],
+      ['a text', '"x"'],
+    ])('refuses %s: an object is what the type has', async (_what, text) => {
+      await expect(noId({ 'dir/x.json': text })).rejects.toThrow(
+        'The file dir/x.json does not hold a JSON object.'
+      );
+    });
+
+    it('refuses a file that is not there', async () => {
+      await expect(noId({})).rejects.toThrow('does not exist');
+    });
+  });
+
+  describe('for a type whose object keeps its id under another key', () => {
+    it('compares that key', async () => {
+      await expect(
+        merge(
+          { 'dir/x.json': '{"name":"the-id","_id":"ignored"}' },
+          { idKey: 'name' }
+        )
+      ).resolves.toEqual({ name: 'the-id', _id: 'ignored' });
+      await expect(
+        merge({ 'dir/x.json': '{"name":"other"}' }, { idKey: 'name' })
+      ).rejects.toThrow('holds the id "other"');
+      await expect(
+        merge({ 'dir/x.json': '{"_id":"the-id"}' }, { idKey: 'name' })
+      ).rejects.toThrow('holds no name that is a text.');
+    });
+  });
+});
+
+describe('mergeAndWriteSingleton', () => {
+  const run = async (
+    own: {
+      merge?: () => Promise<unknown>;
+      write?: (merged: unknown) => Promise<unknown>;
+    } = {}
+  ) => {
+    const resultCallback = jest.fn();
+    const write = jest.fn(own.write ?? (async () => ({ answered: true })));
+    const merge = jest.fn(own.merge ?? (async () => ({ merged: true })));
+    const outcomes = await mergeAndWriteSingleton({
+      id: 'the-id',
+      path: 'dir/x.json',
+      merge,
+      write,
+      resultCallback,
+    });
+    return { outcomes, resultCallback, write, merge };
+  };
+
+  it('merges once, writes what the merge gave, and gives one outcome with the id of the type; the callback is told once, with the answer', async () => {
+    const { outcomes, resultCallback, write, merge } = await run();
+
+    expect(outcomes).toEqual([{ id: 'the-id' }]);
+    expect(merge).toHaveBeenCalledTimes(1);
+    expect(write).toHaveBeenCalledTimes(1);
+    expect(write).toHaveBeenCalledWith({ merged: true });
+    expect(resultCallback).toHaveBeenCalledTimes(1);
+    expect(resultCallback).toHaveBeenCalledWith(undefined, { answered: true });
+  });
+
+  it('is an outcome with the error and the path of the file when the merge fails; nothing is written and the callback is told once', async () => {
+    const { outcomes, resultCallback, write } = await run({
+      merge: async () => {
+        throw new FrodoError('The file dir/x.json does not exist.');
+      },
+    });
+
+    expect(write).not.toHaveBeenCalled();
+    expect(outcomes).toHaveLength(1);
+    expect(outcomes[0].id).toBe('dir/x.json');
+    expect(outcomes[0].error).toBeInstanceOf(FrodoError);
+    expect(outcomes[0].error?.originalErrors[0].message).toBe(
+      'The file dir/x.json does not exist.'
+    );
+    expect(resultCallback).toHaveBeenCalledTimes(1);
+    expect(resultCallback.mock.calls[0][0]).toBe(outcomes[0].error);
+  });
+
+  it('is an outcome with the error and the id of the type when the write fails', async () => {
+    const { outcomes, resultCallback } = await run({
+      write: async () => {
+        throw new FrodoError('The tenant refuses.');
+      },
+    });
+
+    expect(outcomes).toHaveLength(1);
+    expect(outcomes[0].id).toBe('the-id');
+    expect(outcomes[0].error).toBeInstanceOf(FrodoError);
+    expect(outcomes[0].error?.originalErrors[0].message).toBe(
+      'The tenant refuses.'
+    );
+    expect(resultCallback).toHaveBeenCalledTimes(1);
+  });
+
+  it('takes a merge that throws something that is not an error for an error', async () => {
+    const { outcomes } = await run({
+      merge: async () => {
+        throw 'not an error object';
+      },
+    });
+
+    expect(outcomes[0].error).toBeInstanceOf(FrodoError);
+    expect(outcomes[0].error?.originalErrors[0].message).toBe(
+      'not an error object'
+    );
+  });
+
+  it('works without a result callback', async () => {
+    await expect(
+      mergeAndWriteSingleton({
+        id: 'the-id',
+        path: 'dir/x.json',
+        merge: async () => 1,
+        write: async () => 2,
+      })
+    ).resolves.toEqual([{ id: 'the-id' }]);
   });
 });
 
