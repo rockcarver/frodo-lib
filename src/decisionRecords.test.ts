@@ -661,13 +661,17 @@ describe('a Known deviations section is a status note (core 0018)', () => {
       readme.split('\n').find((l) => /^\|\s*\[core 0018\]\(/.test(l)) ?? '';
     expect(row).toMatch(/Known deviations section is a status note/);
   });
-  test('the record-a-decision skill states the exception, with a link to core 0018', () => {
-    const skill = read('.claude/skills/record-a-decision/SKILL.md');
-    expect(skill).toMatch(/besides typos and a `Known deviations` section/);
+  test('the record-a-core-decision skill states the exception, with a link to core 0018', () => {
+    const skill = read('.claude/skills/record-a-core-decision/SKILL.md');
     expect(skill).toMatch(
-      /saying so in the description: \[core 0018\]\(\.\.\/\.\.\/\.\.\/decisions\/core\/0018-core-decision-records-are-kept-in-each-repository\.md\)\)/
+      /Never edit an accepted core record, except its `## Known deviations` section/
     );
-    expect(skill).toMatch(/except its `## Known deviations` section/);
+    expect(skill).toMatch(
+      /may be added, edited or removed, without a new record, in the pull request that fixes the deviation or opens its tracking issue/
+    );
+    expect(skill).toMatch(
+      /saying so in the description \(\[core 0018\]\(\.\.\/\.\.\/\.\.\/decisions\/core\/0018-core-decision-records-are-kept-in-each-repository\.md\)\)/
+    );
   });
   test('the review skill does not call every edit of a record wrong', () => {
     const review = read('.claude/skills/review-a-copilot-pr/SKILL.md');
