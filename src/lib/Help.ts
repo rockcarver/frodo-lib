@@ -3627,7 +3627,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "Mapping",
     methodName: "deleteMapping",
     signature: "deleteMapping(mappingId: string): Promise<MappingSkeleton>",
-    description: "Delete mapping",
+    description: "Delete mapping. A legacy mapping is taken out of the `sync` configuration: the configuration is read, the one entry is left out and the rest is written back with an update (PUT) request, as it was read. Stored entries and other properties are kept as read: nothing is derived or added (no `_id`, no `syncAfter`). A null entry and an entry without a name are kept as stored, in their places, when another mapping is deleted (an entry without a name has the id `sync/undefined`, as `readSyncMappings` lists it). References to the deleted mapping (for example in the `syncAfter` of another mapping) are not removed. The configuration is read and written in two requests without a revision check, so a change made in between is lost. The returned mapping has the `_id` and the `syncAfter` that `readSyncMappings` gives it.",
     params: [
       { name: "mappingId", type: "string", description: "id of the mapping (new: 'mapping/\\<name>', legacy: 'sync/\\<name>')", required: true },
     ],

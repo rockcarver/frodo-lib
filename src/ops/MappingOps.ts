@@ -98,9 +98,10 @@ export type Mapping = {
     resultCallback?: ResultCallback<MappingSkeleton>
   ): Promise<MappingSkeleton[]>;
   /**
-   * Delete mapping
+   * Delete mapping. A legacy mapping is taken out of the `sync` configuration: the configuration is read, the one entry is left out and the rest is written back with an update (PUT) request, as it was read. Stored entries and other properties are kept as read: nothing is derived or added (no `_id`, no `syncAfter`). A null entry and an entry without a name are kept as stored, in their places, when another mapping is deleted (an entry without a name has the id `sync/undefined`, as `readSyncMappings` lists it). References to the deleted mapping (for example in the `syncAfter` of another mapping) are not removed. The configuration is read and written in two requests without a revision check, so a change made in between is lost. The returned mapping has the `_id` and the `syncAfter` that `readSyncMappings` gives it.
    * @param {string} mappingId id of the mapping (new: 'mapping/\<name>', legacy: 'sync/\<name>')
    * @returns {Promise<MappingSkeleton>} a promise that resolves an mapping object
+   * @throws {FrodoError} If the mapping is not found (or found more than once) in the `sync` configuration, if the configuration cannot be read or written, or if the entry is still in the configuration after the update.
    */
   deleteMapping(mappingId: string): Promise<MappingSkeleton>;
   /**
@@ -421,6 +422,41 @@ function noLegacySyncMappings(error: unknown): boolean {
 }
 
 /**
+ * The mappings of the `sync` configuration as the library presents them: the entries that are not null, each as a copy with the `_id` (`sync/<name>`) and the `syncAfter` (the names of the entries before it) that its place gives it.
+ * The entries that are passed in are not changed: a copy is what is derived on, so what was read can be written back as it was.
+ * @param {MappingSkeleton[]} rawMappings the entries of `mappings` as stored
+ * @returns {MappingSkeleton[]} the derived copies of the entries that are not null, in their order
+ */
+function deriveSyncMappings({
+  rawMappings,
+  state,
+}: {
+  rawMappings: MappingSkeleton[];
+  state: State;
+}): MappingSkeleton[] {
+  const mappings = rawMappings
+    .filter((it) => {
+      if (!it) {
+        debugMessage({
+          message:
+            'MappingOps.readLegacyMappings: skipping null/malformed entry in sync.json mappings array',
+          state,
+        });
+        return false;
+      }
+      return true;
+    })
+    .map((it) => ({ ...it, _id: `sync/${it.name}` }));
+  //Add syncAfter property to mappings, according to the ordering
+  const syncAfter = [];
+  for (const mapping of mappings) {
+    mapping.syncAfter = syncAfter.slice();
+    syncAfter.push(mapping.name);
+  }
+  return mappings;
+}
+
+/**
  * Read mappings from sync.json (legacy)
  * @returns {Promise<MappingSkeleton[]>} a promise that resolves to an array of mapping objects
  */
@@ -438,29 +474,10 @@ export async function readSyncMappings({
       entityId: 'sync',
       state,
     });
-    const rawMappings = sync.mappings as MappingSkeleton[];
-    const mappings = rawMappings
-      .filter((it) => {
-        if (!it) {
-          debugMessage({
-            message:
-              'MappingOps.readLegacyMappings: skipping null/malformed entry in sync.json mappings array',
-            state,
-          });
-          return false;
-        }
-        return true;
-      })
-      .map((it) => {
-        it._id = `sync/${it.name}`;
-        return it;
-      });
-    //Add syncAfter property to mappings, according to the ordering
-    const syncAfter = [];
-    for (const mapping of mappings) {
-      mapping.syncAfter = syncAfter.slice();
-      syncAfter.push(mapping.name);
-    }
+    const mappings = deriveSyncMappings({
+      rawMappings: sync.mappings as MappingSkeleton[],
+      state,
+    });
     debugMessage({
       message: `MappingOps.readLegacyMappings: end`,
       state,
@@ -925,9 +942,10 @@ export async function deleteMappings({
 }
 
 /**
- * Delete mapping
+ * Delete mapping. A legacy mapping is taken out of the `sync` configuration: the configuration is read, the one entry is left out and the rest is written back with an update (PUT) request, as it was read. Stored entries and other properties are kept as read: nothing is derived or added (no `_id`, no `syncAfter`). A null entry and an entry without a name are kept as stored, in their places, when another mapping is deleted (an entry without a name has the id `sync/undefined`, as `readSyncMappings` lists it). References to the deleted mapping (for example in the `syncAfter` of another mapping) are not removed. The configuration is read and written in two requests without a revision check, so a change made in between is lost. The returned mapping has the `_id` and the `syncAfter` that `readSyncMappings` gives it.
  * @param {string} mappingId id of the mapping (new: 'mapping/\<name>', legacy: 'sync/\<name>')
  * @returns {Promise<MappingSkeleton>} a promise that resolves an mapping object
+ * @throws {FrodoError} If the mapping is not found (or found more than once) in the `sync` configuration, if the configuration cannot be read or written, or if the entry is still in the configuration after the update.
  */
 export async function deleteMapping({
   mappingId,
@@ -939,10 +957,30 @@ export async function deleteMapping({
   try {
     debugMessage({ message: `MappingOps.deleteMapping: start`, state });
     if (isLegacyMapping(mappingId)) {
-      const mappings = await readSyncMappings({ state });
-      const mappingsToDelete = mappings.filter(
-        (mapping) => mapping._id === mappingId
-      );
+      // read the stored configuration as it is: what is written back is this, minus the one entry
+      let sync: SyncSkeleton;
+      try {
+        sync = (await readConfigEntity({
+          entityId: 'sync',
+          state,
+        })) as SyncSkeleton;
+      } catch (error) {
+        // a deployment without the legacy sync configuration holds no legacy mapping
+        if (!noLegacySyncMappings(error)) {
+          throw new FrodoError(`Error reading sync mappings`, error);
+        }
+      }
+      const storedMappings = sync ? sync.mappings : [];
+      if (!Array.isArray(storedMappings)) {
+        throw new FrodoError(
+          `The sync configuration does not hold a list of mappings.`
+        );
+      }
+      // the derived _id and syncAfter are on copies, never on what is written
+      const mappingsToDelete = deriveSyncMappings({
+        rawMappings: storedMappings,
+        state,
+      }).filter((mapping) => mapping._id === mappingId);
       if (mappingsToDelete.length !== 1) {
         const message = `Mapping ${mappingId} not found in sync.json or multiple mappings found!`;
         debugMessage({
@@ -951,37 +989,45 @@ export async function deleteMapping({
         });
         throw new FrodoError(message);
       }
-      const updatedMappings = mappings.filter(
-        (mapping) => mapping._id !== mappingId
+      // every other entry stays as it was read, null entries and entries without a name included
+      const remainingMappings = storedMappings.filter(
+        (mapping) => !mapping || `sync/${mapping.name}` !== mappingId
       );
       debugMessage({
         message: `MappingOps.deleteMapping: ${
-          updatedMappings.length
-        } remaining mappings in sync.json: ${updatedMappings
-          .map((mapping) => mapping._id)
+          remainingMappings.length
+        } remaining mappings in sync.json: ${remainingMappings
+          .map((mapping) => `sync/${mapping?.name}`)
           .join(', ')}`,
         state,
       });
-      // update the mappings
-      const finalMappings = await updateLegacyMappings({
-        mappings: updatedMappings,
-        state,
-      });
+      // update the configuration: every other property is written as it was read
+      let finalMappings: MappingSkeleton[];
+      try {
+        const written = await putConfigEntity({
+          entityId: 'sync',
+          entityData: { ...sync, mappings: remainingMappings },
+          state,
+        });
+        finalMappings = written.mappings as MappingSkeleton[];
+      } catch (error) {
+        throw new FrodoError(`Error updating legacy mappings`, error);
+      }
       debugMessage({
         message: `MappingOps.deleteMapping: ${
           finalMappings.length
         } mappings in sync.json after update: ${finalMappings
-          .map((mapping) => mapping._id)
+          .map((mapping) => `sync/${mapping?.name}`)
           .join(', ')}`,
         state,
       });
-      // are there any mappings that were not deleted?
+      // is the mapping still there? It is looked for by name: an entry that was written without an _id comes back without one
       const undeletedMappings = finalMappings.filter(
-        (mapping) => mappingId == mapping._id
+        (mapping) => !!mapping && `sync/${mapping.name}` === mappingId
       );
       // if so, throw exception
       if (undeletedMappings.length > 0) {
-        const message = `Mapping ${undeletedMappings[0]._id} was not deleted from sync.json after successful update.`;
+        const message = `Mapping ${mappingId} was not deleted from sync.json after successful update.`;
         debugMessage({
           message,
           state,
