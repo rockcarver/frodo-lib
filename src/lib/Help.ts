@@ -2125,6 +2125,25 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of config entity objects",
   },
   {
+    typeName: "IdmConfig",
+    methodName: "pullKbaConfig",
+    signature: "pullKbaConfig(): Promise<VirtualFileSet>",
+    description: "Pull the KBA configuration, the knowledge-based authentication questions (the config entity `selfservice.kba`), as a file set. The file set holds one file, `kba/selfservice.kba.json`, and owns the folder `kba`. The entity is read with one request, as the tenant has it: the values that the state holds for placeholders are not put back as `${NAME}`. The file is the JSON of the entity with `_rev` and the modified properties left out, the keys in order and every `${` escaped, so that a push reads it as text. Nothing is written: the caller writes the file set where it wants it.",
+    params: [],
+    returns: "{Promise<VirtualFileSet>} a promise resolving to the file set",
+  },
+  {
+    typeName: "IdmConfig",
+    methodName: "pushKbaConfig",
+    signature: "pushKbaConfig( reader: FileSetReader, resultCallback?: ResultCallback<IdObjectSkeletonInterface> ): Promise<PushOutcome[]>",
+    description: "Push the KBA configuration from a file set: read the file `kba/selfservice.kba.json` through the reader, fill its placeholders (`${NAME}`) with the values that the state holds, and import the entity with one request. The id of the entity is the `_id` that the file holds, never the name of the file, and no other file of the reader is read or listed. Whatever fails for the entity (a file that is not there, text that is not JSON, a file without `_id`, a placeholder that has no value, a refusal of the tenant) is the error of the outcome that is returned, and nothing is thrown for it.",
+    params: [
+      { name: "reader", type: "FileSetReader", description: "the reader of the file set", required: true },
+      { name: "resultCallback", type: "ResultCallback<IdObjectSkeletonInterface>", description: "Optional callback that is told once how the push of the entity ended: the error, or the entity that the tenant answered with", required: false },
+    ],
+    returns: "{Promise<PushOutcome[]>} a promise resolving to one outcome, which holds the id of the entity (the path of the file when the file could not be used) and the error, if there was one",
+  },
+  {
     typeName: "IdmCrypto",
     methodName: "isEncrypted",
     signature: "isEncrypted(value: any): boolean",

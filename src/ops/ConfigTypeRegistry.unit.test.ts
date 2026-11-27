@@ -6,8 +6,8 @@
  * The registry of configuration types (`src/ops/ConfigTypeRegistry.ts`) is one list that a person keeps by hand. These
  * tests keep it honest: a module of `src/ops` that exports a function whose name starts with `pull` or `push` (a pull
  * to a file set, a push from one) must have a descriptor in the list that names that function, or the test fails and says
- * which function it is. The list is empty today and the real source passes; a fixture source stands in for the module that
- * does not exist yet.
+ * which function it is. The list holds the KBA configuration today and the real source passes; a fixture source stands in
+ * for a module that has no descriptor.
  *
  * A module counts as listed when the `pull` or the `push` function of a descriptor has the name of one of its exported pull
  * and push functions. Hermetic: it reads the sources of `src/ops` and nothing else.
@@ -16,11 +16,15 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
-import { importSpecifiersOf } from '../test/exportFileFormat/importsOf';
+import {
+  importSpecifiersOf,
+  NODE_IO_MODULES,
+} from '../test/exportFileFormat/importsOf';
 import {
   ConfigTypeRegistry,
   type ConfigTypeDescriptor,
 } from './ConfigTypeRegistry';
+import { kbaConfigType, pullKbaConfig, pushKbaConfig } from './IdmConfigOps';
 
 /** The names of the functions that the registry has to know. */
 const PULL_OR_PUSH = /^(pull|push)[A-Z]/;
@@ -152,6 +156,22 @@ describe('the registry of configuration types', () => {
     ]);
   });
 
+  it('lists the KBA configuration, once, with the fields that its owner gave it', () => {
+    expect(
+      ConfigTypeRegistry.filter((type) => type === kbaConfigType)
+    ).toHaveLength(1);
+    expect(kbaConfigType).toEqual({
+      key: 'kba',
+      scope: 'global',
+      isStatic: true,
+      deployments: ['cloud', 'forgeops'],
+      exportOrder: 140,
+      importOrder: 130,
+      pull: pullKbaConfig,
+      push: pushKbaConfig,
+    });
+  });
+
   it('lists every pull and push function that a module of src/ops exports', () => {
     const sources = opsSources();
 
@@ -171,7 +191,10 @@ describe('the registry of configuration types', () => {
     expect(
       names.filter((name) => /^read[A-Z]/.test(name)).length
     ).toBeGreaterThan(100);
-    expect(names.filter((name) => PULL_OR_PUSH.test(name))).toEqual([]);
+    // the scan finds the two functions of the KBA configuration, in the module that owns the type
+    expect(names).toEqual(
+      expect.arrayContaining(['pullKbaConfig', 'pushKbaConfig'])
+    );
   });
 
   it('fails for a module that exports a pull function that no descriptor names', () => {
@@ -273,7 +296,15 @@ describe('the registry of configuration types', () => {
 });
 
 describe('the module stays pure', () => {
-  it('imports nothing: the descriptors give the functions as they are', () => {
-    expect(importSpecifiersOf('src/ops/ConfigTypeRegistry.ts')).toEqual([]);
+  const imports = importSpecifiersOf('src/ops/ConfigTypeRegistry.ts');
+
+  it('imports only the owner modules of the types, which sit in src/ops', () => {
+    expect(imports).toContain('./IdmConfigOps');
+    // an owner module is a sibling or lies below `src/ops`: never the api, the state, the utilities or a layer above
+    expect(imports.filter((s) => !/^\.\/[A-Za-z][\w/]*$/.test(s))).toEqual([]);
+  });
+
+  it('reaches no module of the file system, the machine or other processes', () => {
+    expect(imports.filter((s) => NODE_IO_MODULES.includes(s))).toEqual([]);
   });
 });

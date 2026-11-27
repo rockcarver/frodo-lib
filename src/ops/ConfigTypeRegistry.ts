@@ -1,15 +1,16 @@
 /**
  * The list of the configuration types that can be pulled to a file set and pushed from one. It is one explicit list, kept
  * by hand, in the order that a pull and a push visit the types: a type is on it when the module that owns the type has
- * given it a descriptor, and the module adds its descriptor here. A module does not register itself. The list starts empty
- * and a test (`ConfigTypeRegistry.unit.test.ts`) fails when a module of `src/ops` exports a function that starts with
- * `pull` or `push` and no descriptor names it.
+ * given it a descriptor, and this list names the descriptor. A module does not register itself. A test
+ * (`ConfigTypeRegistry.unit.test.ts`) fails when a module of `src/ops` exports a function that starts with `pull` or `push`
+ * and no descriptor names it.
  *
- * This module imports nothing: the functions of a descriptor are given as they are, so the list can be read without loading
- * the modules of the types.
+ * This module imports the owner modules of the types, for their descriptors, and nothing else: no api module, no state and
+ * no utility. The checklist for a new type is in `CONTRIBUTE.md`.
  */
+import { kbaConfigType } from './IdmConfigOps';
 
-/** A configuration type: its key. The keys are plain strings; their spelling is settled when the first type is added. */
+/** A configuration type: its key. The keys are plain strings: the word that the type goes by, in lower case (`kba`). */
 export type ConfigType = string;
 
 /** A function of a configuration type: it takes what the type needs, and answers when it is done. */
@@ -42,4 +43,4 @@ export interface ConfigTypeDescriptor {
 }
 
 /** The configuration types, in the order of a pull and a push. */
-export const ConfigTypeRegistry: ConfigTypeDescriptor[] = [];
+export const ConfigTypeRegistry: ConfigTypeDescriptor[] = [kbaConfigType];

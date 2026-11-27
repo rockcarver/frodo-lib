@@ -26,10 +26,21 @@ import {
   getMetadata,
   getResult,
 } from '../utils/ExportImportUtils';
+import {
+  buildFileSet,
+  type FileSetReader,
+  type VirtualFileSet,
+} from '../utils/FileSetUtils';
 import { stringify } from '../utils/JsonUtils';
 import { areScriptHooksValid } from '../utils/ScriptValidationUtils';
+import type { ConfigTypeDescriptor } from './ConfigTypeRegistry';
 import { FrodoError, isNotFoundError } from './FrodoError';
-import { ExportMetaData, ResultCallback } from './OpsTypes';
+import {
+  fileOfObject,
+  readFileSetJson,
+  runPerObject,
+} from './internal/FileSetEngine';
+import { ExportMetaData, PushOutcome, ResultCallback } from './OpsTypes';
 
 export type IdmConfig = {
   /** Read configured managed-object type names. */
@@ -200,6 +211,22 @@ export type IdmConfig = {
     name: string,
     options?: ConfigEntityImportOptions
   ): Promise<IdObjectSkeletonInterface[]>;
+  /**
+   * Pull the KBA configuration, the knowledge-based authentication questions (the config entity `selfservice.kba`), as a file set. The file set holds one file, `kba/selfservice.kba.json`, and owns the folder `kba`. The entity is read with one request, as the tenant has it: the values that the state holds for placeholders are not put back as `${NAME}`. The file is the JSON of the entity with `_rev` and the modified properties left out, the keys in order and every `${` escaped, so that a push reads it as text. Nothing is written: the caller writes the file set where it wants it.
+   * @returns {Promise<VirtualFileSet>} a promise resolving to the file set
+   * @throws {FrodoError} if the entity cannot be read
+   */
+  pullKbaConfig(): Promise<VirtualFileSet>;
+  /**
+   * Push the KBA configuration from a file set: read the file `kba/selfservice.kba.json` through the reader, fill its placeholders (`${NAME}`) with the values that the state holds, and import the entity with one request. The id of the entity is the `_id` that the file holds, never the name of the file, and no other file of the reader is read or listed. Whatever fails for the entity (a file that is not there, text that is not JSON, a file without `_id`, a placeholder that has no value, a refusal of the tenant) is the error of the outcome that is returned, and nothing is thrown for it.
+   * @param {FileSetReader} reader the reader of the file set
+   * @param {ResultCallback<IdObjectSkeletonInterface>} resultCallback Optional callback that is told once how the push of the entity ended: the error, or the entity that the tenant answered with
+   * @returns {Promise<PushOutcome[]>} a promise resolving to one outcome, which holds the id of the entity (the path of the file when the file could not be used) and the error, if there was one
+   */
+  pushKbaConfig(
+    reader: FileSetReader,
+    resultCallback?: ResultCallback<IdObjectSkeletonInterface>
+  ): Promise<PushOutcome[]>;
 };
 
 export default (state: State): IdmConfig => {
@@ -317,6 +344,15 @@ export default (state: State): IdmConfig => {
         options,
         state,
       });
+    },
+    async pullKbaConfig(): Promise<VirtualFileSet> {
+      return pullKbaConfig({ state });
+    },
+    async pushKbaConfig(
+      reader: FileSetReader,
+      resultCallback: ResultCallback<IdObjectSkeletonInterface> = void 0
+    ): Promise<PushOutcome[]> {
+      return pushKbaConfig({ reader, resultCallback, state });
     },
   };
 };
@@ -1203,3 +1239,252 @@ function unSubstituteEntityWithEnv(
   });
   return JSON.parse(configEntityString);
 }
+
+// ── Configuration entities that are pulled to a file set and pushed from one ─────────────────────────────────────────
+//
+// A configuration entity that lives alone in one file takes the same four steps, and the private functions below do them:
+// `splitSingletonConfig` writes the file, `mergeSingletonConfig` reads it back, `pullSingletonConfig` reads the entity
+// from the tenant and splits it, and `pushSingletonConfig` merges the file and imports the entity. What differs from one
+// type to the next is passed in: the id of the entity, the path of its file and whether the file keeps `_rev`.
+
+/** The folder of a file of a file set: the path without its last segment. */
+const folderOf = (path: string): string => path.slice(0, path.lastIndexOf('/'));
+
+/**
+ * Split a configuration entity into a file set of one file. The file is written by the rules of the files of the IDM
+ * configuration: the modified properties are left out (and `_rev` too, unless the type keeps it), and every `${` is escaped.
+ * @param {IdObjectSkeletonInterface} entity the entity, as the tenant has it; it is not changed
+ * @param {string} path the path of the file in the file set; its folder is owned by the set
+ * @param {boolean} keepRev true if the file keeps `_rev`. Default: false
+ * @returns {VirtualFileSet} the file set
+ */
+function splitSingletonConfig({
+  entity,
+  path,
+  keepRev = false,
+}: {
+  entity: IdObjectSkeletonInterface;
+  path: string;
+  keepRev?: boolean;
+}): VirtualFileSet {
+  return buildFileSet({
+    files: [
+      fileOfObject({
+        path,
+        object: entity,
+        keepRev,
+        keepModifiedProperties: false,
+      }),
+    ],
+    ownedFolders: [folderOf(path)],
+  });
+}
+
+/**
+ * Merge the file of a configuration entity back into what an import takes. The id of the entity is the `_id` that the
+ * file holds: the name of the file is never read.
+ * @param {FileSetReader} reader the reader of the file set; only the one file is asked for
+ * @param {string} path the path of the file in the file set
+ * @param {State} state the state, which holds the values of the placeholders
+ * @returns {Promise<ConfigEntityExportInterface>} the entity under its id
+ * @throws {FrodoError} if the file is not there or cannot be read, a placeholder has no value, the text is not JSON, or the file holds no `_id`
+ */
+async function mergeSingletonConfig({
+  reader,
+  path,
+  state,
+}: {
+  reader: FileSetReader;
+  path: string;
+  state: State;
+}): Promise<ConfigEntityExportInterface> {
+  const object = (await readFileSetJson({ reader, path, state })) as
+    IdObjectSkeletonInterface | null | undefined;
+  if (object === undefined) {
+    throw new FrodoError(`The file ${path} does not exist.`);
+  }
+  if (
+    typeof object !== 'object' ||
+    object === null ||
+    typeof object._id !== 'string' ||
+    object._id === ''
+  ) {
+    throw new FrodoError(`The file ${path} holds no _id that is a text.`);
+  }
+  return { idm: { [object._id]: object } };
+}
+
+/**
+ * Pull a configuration entity: read it from the tenant with one request, as it is, and split it.
+ * @param {string} entityId the id of the config entity
+ * @param {string} path the path of the file in the file set
+ * @param {boolean} keepRev true if the file keeps `_rev`. Default: false
+ * @param {State} state the state
+ * @returns {Promise<VirtualFileSet>} the file set
+ * @throws {FrodoError} if the entity cannot be read
+ */
+async function pullSingletonConfig({
+  entityId,
+  path,
+  keepRev = false,
+  state,
+}: {
+  entityId: string;
+  path: string;
+  keepRev?: boolean;
+  state: State;
+}): Promise<VirtualFileSet> {
+  try {
+    const entity = await readConfigEntity({ entityId, state });
+    return splitSingletonConfig({ entity, path, keepRev });
+  } catch (error) {
+    throw new FrodoError(`Error pulling config entity ${entityId}`, error);
+  }
+}
+
+/**
+ * Push a configuration entity: merge its file and import it with one request. The entity is the one object of the push, so
+ * whatever fails for it is the error of its outcome and nothing is thrown.
+ * @param {FileSetReader} reader the reader of the file set
+ * @param {string} path the path of the file in the file set
+ * @param {ResultCallback<IdObjectSkeletonInterface>} resultCallback Optional. Told once how the push of the entity ended
+ * @param {State} state the state
+ * @returns {Promise<PushOutcome[]>} one outcome: the id of the entity, or the path of the file when it could not be used, and the error
+ */
+async function pushSingletonConfig({
+  reader,
+  path,
+  resultCallback,
+  state,
+}: {
+  reader: FileSetReader;
+  path: string;
+  resultCallback?: ResultCallback<IdObjectSkeletonInterface>;
+  state: State;
+}): Promise<PushOutcome[]> {
+  let read: {
+    id: string;
+    importData?: ConfigEntityExportInterface;
+    error?: Error;
+  };
+  try {
+    const importData = await mergeSingletonConfig({ reader, path, state });
+    read = { id: Object.keys(importData.idm)[0], importData };
+  } catch (error) {
+    read = {
+      id: path,
+      error: error instanceof Error ? error : new Error(String(error)),
+    };
+  }
+  return runPerObject({
+    objects: [read],
+    work: async ({ object }) => {
+      if (object.error) throw object.error;
+      const [imported] = await importConfigEntities({
+        importData: object.importData,
+        options: { validate: false },
+        state,
+      });
+      return imported;
+    },
+    resultCallback,
+  });
+}
+
+// ── The KBA configuration ───────────────────────────────────────────────────────────────────────────────────────────
+
+/** The config entity of the KBA configuration. */
+const KBA_ENTITY_ID = 'selfservice.kba';
+
+/** The path of the file of the KBA configuration in a file set. */
+const KBA_PATH = 'kba/selfservice.kba.json';
+
+/**
+ * Split the KBA configuration into a file set: one file, `kba/selfservice.kba.json`, and the folder `kba` owned by the set.
+ * Pure: it reads no tenant and no file.
+ * @param {IdObjectSkeletonInterface} entity the config entity `selfservice.kba`, as the tenant has it; it is not changed
+ * @returns {VirtualFileSet} the file set
+ */
+export function splitKbaConfig(
+  entity: IdObjectSkeletonInterface
+): VirtualFileSet {
+  return splitSingletonConfig({ entity, path: KBA_PATH });
+}
+
+/**
+ * Merge a file set back into the KBA configuration, in the shape that an import takes. Pure but for what the reader reads:
+ * only the file `kba/selfservice.kba.json` is asked for, and the id of the entity is the `_id` that it holds.
+ * @param {FileSetReader} reader the reader of the file set
+ * @param {State} state the state, which holds the values of the placeholders
+ * @returns {Promise<ConfigEntityExportInterface>} the entity under its id
+ * @throws {FrodoError} if the file is not there or cannot be read, a placeholder has no value, the text is not JSON, or the file holds no `_id`
+ */
+export async function mergeKbaConfig({
+  reader,
+  state,
+}: {
+  reader: FileSetReader;
+  state: State;
+}): Promise<ConfigEntityExportInterface> {
+  return mergeSingletonConfig({ reader, path: KBA_PATH, state });
+}
+
+/**
+ * Pull the KBA configuration: read the config entity `selfservice.kba` with one request, as the tenant has it (no value of
+ * the state is put back as a placeholder), and split it.
+ * @param {State} state the state
+ * @returns {Promise<VirtualFileSet>} the file set
+ * @throws {FrodoError} if the entity cannot be read
+ */
+export async function pullKbaConfig({
+  state,
+}: {
+  state: State;
+}): Promise<VirtualFileSet> {
+  return pullSingletonConfig({
+    entityId: KBA_ENTITY_ID,
+    path: KBA_PATH,
+    state,
+  });
+}
+
+/**
+ * Push the KBA configuration: merge the file `kba/selfservice.kba.json` and import the entity with one request.
+ * @param {FileSetReader} reader the reader of the file set
+ * @param {ResultCallback<IdObjectSkeletonInterface>} resultCallback Optional. Told once how the push of the entity ended
+ * @param {State} state the state
+ * @returns {Promise<PushOutcome[]>} one outcome: the id of the entity, or the path of the file when it could not be used, and the error
+ */
+export async function pushKbaConfig({
+  reader,
+  resultCallback,
+  state,
+}: {
+  reader: FileSetReader;
+  resultCallback?: ResultCallback<IdObjectSkeletonInterface>;
+  state: State;
+}): Promise<PushOutcome[]> {
+  return pushSingletonConfig({
+    reader,
+    path: KBA_PATH,
+    resultCallback,
+    state,
+  });
+}
+
+/**
+ * The KBA configuration in the registry of the configuration types. The type is exported inside the config entities of a full
+ * export (`idm`), so it has no `export` and no `import` of its own. The order numbers are the place of the type in the full
+ * pull and the full push, in tens; they are to be checked against the order of the recorded runs when the full pull and push
+ * go through the registry.
+ */
+export const kbaConfigType: ConfigTypeDescriptor = {
+  key: 'kba',
+  scope: 'global',
+  isStatic: true,
+  deployments: ['cloud', 'forgeops'],
+  exportOrder: 140,
+  importOrder: 130,
+  pull: pullKbaConfig,
+  push: pushKbaConfig,
+};
