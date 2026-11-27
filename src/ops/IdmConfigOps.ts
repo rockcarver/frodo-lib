@@ -29,14 +29,18 @@ import {
 import { type FileSetReader, type VirtualFileSet } from '../utils/FileSetUtils';
 import { stringify } from '../utils/JsonUtils';
 import { areScriptHooksValid } from '../utils/ScriptValidationUtils';
-import type { ConfigTypeDescriptor } from './ConfigTypeRegistry';
 import { FrodoError, isNotFoundError } from './FrodoError';
 import {
   mergeAndWriteSingleton,
   mergeSingleton,
   splitSingleton,
 } from './internal/FileSetEngine';
-import { ExportMetaData, PushOutcome, ResultCallback } from './OpsTypes';
+import {
+  ConfigTypeDescriptor,
+  ExportMetaData,
+  PushOutcome,
+  ResultCallback,
+} from './OpsTypes';
 
 export type IdmConfig = {
   /** Read configured managed-object type names. */

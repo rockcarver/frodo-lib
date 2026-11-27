@@ -20,11 +20,14 @@ import {
   importSpecifiersOf,
   NODE_IO_MODULES,
 } from '../test/exportFileFormat/importsOf';
+import { parsedSource } from '../test/utils/SourceText';
+import { type VirtualFileSet } from '../utils/FileSetUtils';
 import {
   ConfigTypeRegistry,
   type ConfigTypeDescriptor,
 } from './ConfigTypeRegistry';
 import { kbaConfigType, pullKbaConfig, pushKbaConfig } from './IdmConfigOps';
+import { type PushOutcome } from './OpsTypes';
 
 /** The names of the functions that the registry has to know. */
 const PULL_OR_PUSH = /^(pull|push)[A-Z]/;
@@ -118,9 +121,15 @@ function opsSources(): Record<string, string> {
 }
 
 /** A function with the name that a type module would give it. */
-async function pullToys(): Promise<void> {}
-async function pushToys(): Promise<void> {}
-async function pullOther(): Promise<void> {}
+async function pullToys(): Promise<VirtualFileSet> {
+  return { files: [], ownedFolders: [] };
+}
+async function pushToys(): Promise<PushOutcome[]> {
+  return [];
+}
+async function pullOther(): Promise<VirtualFileSet> {
+  return { files: [], ownedFolders: [] };
+}
 
 const toy = (own: Partial<ConfigTypeDescriptor>): ConfigTypeDescriptor => ({
   key: 'toys',
@@ -154,6 +163,31 @@ describe('the registry of configuration types', () => {
       'push',
       'scope',
     ]);
+  });
+
+  it('types the pull and the push of a descriptor: a pull gives a file set, a push gives outcomes', () => {
+    // a type error of a test file is not reported by a test run, so the declaration is read as text: the functions that
+    // an owner module gives are checked by the compiler against these two types when the library is built
+    const declaration = parsedSource('ops/OpsTypes.ts').statements.find(
+      (statement): statement is ts.InterfaceDeclaration =>
+        ts.isInterfaceDeclaration(statement) &&
+        statement.name.text === 'ConfigTypeDescriptor'
+    );
+    const typeOf = (member: string): string | undefined =>
+      declaration?.members
+        .find((m) => m.name?.getText() === member)
+        ?.getChildren()
+        .find((child) => ts.isTypeReferenceNode(child))
+        ?.getText();
+
+    expect(typeOf('pull')).toBe('FileSetPull');
+    expect(typeOf('push')).toBe('FileSetPush');
+    // the two types say what the owner modules give: the file set of a pull, the outcomes of a push
+    const types = parsedSource('ops/OpsTypes.ts')
+      .getText()
+      .replace(/\s+/g, ' ');
+    expect(types).toContain('Promise<VirtualFileSet>');
+    expect(types).toContain('}) => Promise<PushOutcome[]>');
   });
 
   it('lists the KBA configuration, once, with the fields that its owner gave it', () => {
@@ -302,9 +336,13 @@ describe('the module stays pure', () => {
     // a type that is added with a module of its own adds that module to this list; a sibling that is not an owner (the
     // errors, the engine, the full export) is not on it, so that the registry cannot become a hub that imports the layer
     const OWNER_MODULES = ['./IdmConfigOps'];
+    // and the module that declares what a descriptor is, which holds types only and imports no module of the ops
+    const TYPES_MODULE = './OpsTypes';
 
     expect(imports).toContain('./IdmConfigOps');
-    expect(imports.filter((s) => !OWNER_MODULES.includes(s))).toEqual([]);
+    expect(
+      imports.filter((s) => !OWNER_MODULES.includes(s) && s !== TYPES_MODULE)
+    ).toEqual([]);
   });
 
   it('reaches no module of the file system, the machine or other processes', () => {

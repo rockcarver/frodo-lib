@@ -1,3 +1,5 @@
+import type { State } from '../shared/State';
+import type { FileSetReader, VirtualFileSet } from '../utils/FileSetUtils';
 import { FrodoError } from './FrodoError';
 
 export interface ExportMetaData {
@@ -71,3 +73,56 @@ export type ObjectReference<Source extends string> = {
   /** The field of the holder that holds the name, as a dotted path without list indexes; a list is reported by the path of the list. */
   from: string;
 };
+
+/** A configuration type: its key. The keys are plain strings: the word that the type goes by, in lower case (`kba`). */
+export type ConfigType = string;
+
+/**
+ * The pull of a configuration type to a file set: it reads the type from the tenant with the state it is given and returns
+ * the file set, and writes nothing. A type that is visited by realm or takes overrides accepts more optional properties.
+ */
+export type FileSetPull = (options: {
+  state: State;
+}) => Promise<VirtualFileSet>;
+
+/**
+ * The push of a configuration type from a file set: it reads the files of the type through the reader, writes them to the
+ * tenant with the state it is given, and gives one outcome for every object. A failure for an object is an outcome with the
+ * error and is not thrown; the result callback, if there is one, is told once for every object. A type that is visited by
+ * realm or takes overrides accepts more optional properties.
+ */
+export type FileSetPush = (options: {
+  reader: FileSetReader;
+  resultCallback?: ResultCallback<unknown>;
+  state: State;
+}) => Promise<PushOutcome[]>;
+
+/** A function of a configuration type that is not typed yet: it takes what the type needs, and answers when it is done. */
+type ConfigTypeFunction = (...args: never[]) => Promise<unknown>;
+
+/**
+ * What the registry of the configuration types knows about one configuration type. The module that owns the type writes it
+ * (one owner per type).
+ */
+export interface ConfigTypeDescriptor {
+  /** The key of the type. */
+  key: ConfigType;
+  /** Whether the type lives once for the tenant (`global`) or once for every realm (`realm`). */
+  scope: 'global' | 'realm';
+  /** Whether the type is static configuration (what a promotion carries) or dynamic. */
+  isStatic: boolean;
+  /** The deployment types that offer the type. */
+  deployments: ('cloud' | 'forgeops' | 'classic')[];
+  /** The place of the type in an export: types are exported in ascending order. */
+  exportOrder: number;
+  /** The place of the type in an import: types are imported in ascending order, which need not be the export order. */
+  importOrder: number;
+  /** The function that exports the type, if it has one. */
+  export?: ConfigTypeFunction;
+  /** The function that imports the type, if it has one. */
+  import?: ConfigTypeFunction;
+  /** The function that pulls the type to a file set, if it has one. */
+  pull?: FileSetPull;
+  /** The function that pushes the type from a file set, if it has one. */
+  push?: FileSetPush;
+}

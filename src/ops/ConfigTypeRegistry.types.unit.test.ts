@@ -19,11 +19,13 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { frodo } from '../lib/FrodoLib';
 import { facadePaths } from '../test/utils/FileSetTestKit';
+import { type VirtualFileSet } from '../utils/FileSetUtils';
 import { getHelpMetadata } from '../utils/HelpUtils';
 import {
   ConfigTypeRegistry,
   type ConfigTypeDescriptor,
 } from './ConfigTypeRegistry';
+import { type PushOutcome } from './OpsTypes';
 
 const GOLDEN_ROOT = fileURLToPath(new URL('../test/golden', import.meta.url));
 
@@ -129,8 +131,12 @@ const realWorld: World = {
   },
 };
 
-async function pullToys(): Promise<void> {}
-async function pushToys(): Promise<void> {}
+async function pullToys(): Promise<VirtualFileSet> {
+  return { files: [], ownedFolders: [] };
+}
+async function pushToys(): Promise<PushOutcome[]> {
+  return [];
+}
 
 /** A type that satisfies every rule in a world that is made for it. */
 const toy = (
