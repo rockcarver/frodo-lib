@@ -10,6 +10,8 @@ applies-to:
   - src/mcp/CapabilityRegistry.ts
 issues:
   - rockcarver/frodo-lib#1114
+supersedes:
+  - 0006
 ---
 
 # Facade methods follow the CRUDQ naming convention, with pull and push for file sets
