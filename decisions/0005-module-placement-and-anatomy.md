@@ -7,6 +7,7 @@ applies-to:
   - src/api/**
   - src/ops/**
   - src/lib/FrodoLib.ts
+seal: sha256-g1:25b57a6dcfc8378484f662a22572729c976f138c42e8dc9abfbcdd0a4ebc6f16
 ---
 
 # Every platform object kind is an api module plus an ops module with one fixed shape

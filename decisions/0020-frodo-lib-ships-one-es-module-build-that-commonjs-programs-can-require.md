@@ -7,6 +7,7 @@ applies-to:
   - package.json
   - tsdown.config.*
   - scripts/**
+seal: sha256-g1:a5003cd71b8e643c64f34012f121bc89eab891fcaf6fe6de4e3f5aeacd8c4c14
 ---
 
 # frodo-lib ships one ES module build, and CommonJS programs load it with require

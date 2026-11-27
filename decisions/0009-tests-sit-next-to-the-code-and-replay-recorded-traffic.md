@@ -7,6 +7,7 @@ applies-to:
   - src/**/*.test.ts
   - src/test/**
   - test/**
+seal: sha256-g1:57888b658d0dc3b59422c850077f708804e0c1d50f793c8c5d02838392e42bba
 ---
 
 # Tests sit next to the module, in two kinds, and run on the sources

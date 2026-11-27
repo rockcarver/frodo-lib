@@ -7,6 +7,7 @@ applies-to:
   - src/api/**
   - src/ops/**
   - src/utils/**
+seal: sha256-g1:9dbe8ec0faa60ba5e22d0805fbddfffed4a79f01c39fecc1a0f6be5128379550
 ---
 
 # Ops code throws FrodoError and prints through Console.ts

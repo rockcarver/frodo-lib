@@ -11,6 +11,7 @@ applies-to:
   - src/api/**
 issues:
   - rockcarver/frodo-lib#1072
+seal: sha256-g1:0ea416689d49f8ed35053327714af06cf6145e7562e05079dfdb7b75d370cb24
 ---
 
 # The access profile and the pre-flight scope check share one set of rules

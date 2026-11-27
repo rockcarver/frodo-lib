@@ -12,6 +12,7 @@ issues:
   - rockcarver/frodo-lib#1114
 supersedes:
   - 0006
+seal: sha256-g1:bedf59a141fb2eaa5d7dc760204ef8885d0563132e41d73f96f65c6b3634dec1
 ---
 
 # Facade methods follow the CRUDQ naming convention, with pull and push for file sets

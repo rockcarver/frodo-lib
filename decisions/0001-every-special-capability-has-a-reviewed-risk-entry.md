@@ -5,6 +5,7 @@ decision-makers:
   - maintainers
 applies-to:
   - src/mcp/**
+seal: sha256-g1:81f2490fe0fc7e95ed3a8ecd1655313996244c9a6699756c26cdd4c9aaac6c9f
 ---
 
 # Every special capability has a reviewed risk entry

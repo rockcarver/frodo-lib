@@ -11,6 +11,7 @@ applies-to:
   - .github/workflows/pipeline.yml
 issues:
   - rockcarver/frodo-lib#982
+seal: sha256-g1:c86770324e8c26d72d395b6b6f6ba2e1e330f8c3380180f69d095c635998b4a8
 ---
 
 # Proxy support is guarded by a short named set of tests, not by running the suite through a proxy
