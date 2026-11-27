@@ -3,10 +3,10 @@
  *
  *        npm run test:only -- src/ops/ConfigTypeRegistry.types
  *
- * The conformance walk of the registry of configuration types (`src/ops/ConfigTypeRegistry.ts`): what every type on the list has
- * to have, so that a type that is added later cannot forget one of the steps of the checklist in `CONTRIBUTE.md`. The real
- * list is walked once; the rules are shown to fail on fixtures, one rule at a time, so that each of them is known to be able
- * to fail. Every `pull` and `push` function of a descriptor
+ * The conformance walk of the registry of configuration types (`src/ops/ConfigTypeRegistry.ts`): what every type on the list
+ * has to have, so that a type that is added later cannot forget one of the steps of the checklist for a new type (the guide
+ * for contributors has it). The real list is walked once; the rules are shown to fail on fixtures, one rule at a time, so that
+ * each of them is known to be able to fail. Every `pull` and `push` function of a descriptor
  * - is a method of the `frodo` facade, found exactly once, so that it is not hidden and not ambiguous,
  * - has an entry in the generated help (`src/lib/Help.ts`), which is what the capability registry and the shell read, and
  * - belongs to a type that has a golden folder `src/test/golden/<key>` with `files/` and `owned-folders.json`.
