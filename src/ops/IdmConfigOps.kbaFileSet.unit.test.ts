@@ -136,11 +136,12 @@ describe('splitKbaConfig', () => {
       'minimumAnswersToVerify',
       'questions',
     ]);
-    // a JavaScript object lists the keys `1`, `2`, `3` and `10` in the order of their value, and the file of the command line does too
+    // a JavaScript object lists the keys `1`, `2`, `3`, `4` and `10` in the order of their value, and the file of the command line does too
     expect(Object.keys(JSON.parse(content).questions)).toEqual([
       '1',
       '2',
       '3',
+      '4',
       '10',
     ]);
     expect(content.startsWith('{\n  "_id": "selfservice.kba",\n')).toBe(true);
@@ -240,7 +241,7 @@ describe('mergeKbaConfig', () => {
           state: newState(),
         })
       ).rejects.toThrow(
-        `The file ${PATH} holds the id "${foreign}", but the id of this type is "selfservice.kba".`
+        `The file ${PATH} does not hold the id of this type, "selfservice.kba".`
       );
     }
   );
@@ -396,7 +397,7 @@ describe('pushKbaConfig', () => {
           .map((error) => (error as Error).message)
           .join(' | ')
       ).toContain(
-        `The file ${PATH} holds the id "${foreign}", but the id of this type is "selfservice.kba".`
+        `The file ${PATH} does not hold the id of this type, "selfservice.kba".`
       );
     }
   );

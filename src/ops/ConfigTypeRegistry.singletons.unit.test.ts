@@ -17,23 +17,27 @@
  *   the golden folder, the path of its file, the folders that its file set owns, and whether its file keeps `_rev`.
  * - `id` and `hasId`: the id of the one object of the type, and whether the object holds it under `_id` (the push refuses a
  *   file that holds another) or holds none (the file is then taken as it is).
- * - `functions`: the split, the merge, the pull and the push of the type, given the tenant that the row talks to.
- * - `tenant`: the tenant that the row talks to, which answers and says what it saw.
+ * - `scope`: the scope that the api of the type checks before it sends a request. The tenant of the row has a token of that
+ *   scope, and a test shows that a token of another scope sends nothing, so a row cannot pass with the scope of another api.
+ * - `functions`: the split, the merge, the pull and the push of the type.
  * - `entityOf`: what the merge gives, as the entity.
- * - `pullRequests` and `pushRequests`: the requests that a pull and a push make, one line each (`GET <url>`).
+ * - `pullRequests` and `pushRequests`: the requests that a pull and a push make, one line each (`GET <url>`). The body of
+ *   the push is not in the row: it is the golden file with its placeholders filled, for every row.
  *
  * Two rows are not types of the library; they are shapes that the first rows do not have, made with the functions of the
- * engine and a tenant in memory, and no module: an object that holds no id in a file in a folder (the shape of the cookie
- * domains of Cloud), and a file at the root of the set. They show what a type of that shape passes to the engine.
+ * engine and an api that exists: an object that holds no id in a file in a folder, read and written through the api of the
+ * Cloud environment, which checks another scope than the IDM (the shape of the cookie domains of Cloud), and a file at the
+ * root of the set. They show what a type of that shape passes to the engine; no module of the library is written for them.
  *
  * Hermetic: made-up data, no tenant, no recording; the golden folders are read, nothing is written.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { inspect } from 'node:util';
 import { jest } from '@jest/globals';
-import { AxiosError } from 'axios';
 import { type IdObjectSkeletonInterface } from '../api/ApiTypes';
+import { type CookieDomains } from '../api/cloud/EnvCookieDomainsApi';
 import { type State } from '../shared/State';
 import {
   importSpecifiersOf,
@@ -41,26 +45,33 @@ import {
 } from '../test/exportFileFormat/importsOf';
 import { goldenDifferences } from '../test/utils/FileSetGolden';
 import {
-  answer,
+  axiosTenant,
   chainOf,
   countingReader,
+  everythingOf,
+  IDM_SCOPE,
   newState,
   readerOf,
   restoreAdapter,
-  seen,
+  type Tenant,
 } from '../test/utils/FileSetTestKit';
-import { type StubAnswer } from '../test/utils/StubAdapter';
 import { assertFileSetPath } from '../utils/FileSetPathUtils';
 import {
   createMemoryFileSetReader,
   type FileSetReader,
   type VirtualFileSet,
 } from '../utils/FileSetUtils';
+import {
+  readCookieDomains,
+  updateCookieDomains,
+} from './cloud/EnvCookieDomainsOps';
 import { FrodoError } from './FrodoError';
 import {
+  importConfigEntities,
   mergeKbaConfig,
   pullKbaConfig,
   pushKbaConfig,
+  readConfigEntity,
   splitKbaConfig,
   type ConfigEntityExportInterface,
 } from './IdmConfigOps';
@@ -75,16 +86,7 @@ afterEach(restoreAdapter);
 
 const GOLDEN_ROOT = fileURLToPath(new URL('../test/golden', import.meta.url));
 const CONFIG_URL = 'https://openam-matrix.example.com/openidm/config';
-
-/** A tenant that a row talks to. */
-type Tenant = {
-  /** The state that the functions of the row are given. */
-  state: State;
-  /** The answers to the requests that follow, in turn; the last one is repeated. A status of 400 or more is a failure. */
-  answer(...answers: StubAnswer[]): void;
-  /** What the tenant has seen so far, one line for each request: the verb and the url. */
-  seen(): string[];
-};
+const ENVIRONMENT_URL = 'https://openam-matrix.example.com/environment';
 
 /** The functions of a type. */
 type Functions = {
@@ -101,136 +103,58 @@ type Functions = {
 /** One type of the table. */
 type Row = {
   key: string;
-  source?: string;
+  source: string;
   golden: string;
   path: string;
   ownedFolders: string[];
   keepsRev: boolean;
   id: string;
   hasId: boolean;
-  functions: (tenant: Tenant) => Functions;
-  tenant: () => Tenant;
+  scope: string;
+  functions: Functions;
   entityOf: (merged: unknown) => object;
   pullRequests: string[];
   pushRequests: string[];
 };
 
-/** The tenant of a type of the IDM: the requests go through axios, and an adapter answers them. */
-function idmTenant(): Tenant {
-  let requests: ReturnType<typeof answer> = [];
-  return {
-    state: newState(),
-    answer: (...answers) => {
-      requests = answer(...answers);
-    },
-    seen: () => seen(requests).map(({ method, url }) => `${method} ${url}`),
-  };
-}
-
 /**
- * A tenant in memory, for a type that is not of the IDM: what a type of that shape reads and writes through functions of
- * its own. It answers like the adapter does, and the functions of the row record what they ask for.
- * @param {string} name what the lines of the requests call the tenant
- * @returns {Tenant & { read: () => Promise<object>; write: (object: object) => Promise<object> }} the tenant and its two functions
+ * The functions of a type that has one object in one file, made with the engine from what the type reads and writes: the
+ * shapes of this table, which are not types of the library.
+ * @param {string} path the path of the file
+ * @param {string} id the id of the object
+ * @param {string | null} idKey the key that holds the id, or null for an object that holds none
+ * @param {() => Promise<object>} read reads the object from the tenant
+ * @param {(object: object, state: State) => Promise<unknown>} write writes the object to the tenant
+ * @returns {Functions} the four functions
  */
-function memoryTenant(name: string) {
-  let answers: StubAnswer[] = [{ data: {} }];
-  const lines: string[] = [];
-  const next = (line: string): StubAnswer => {
-    lines.push(line);
-    return answers[Math.min(lines.length - 1, answers.length - 1)];
-  };
-  const refuse = (status: number): never => {
-    const cause = new AxiosError(
-      `Request failed with status code ${status}`,
-      'ERR_BAD_RESPONSE',
-      undefined,
-      undefined,
-      { status } as never
-    );
-    throw new FrodoError(`Error answered ${status}`, cause);
-  };
-  const tenant: Tenant = {
-    state: newState(),
-    answer: (...given) => {
-      answers = given;
-      lines.length = 0;
-    },
-    seen: () => [...lines],
-  };
-  return {
-    ...tenant,
-    read: async (): Promise<object> => {
-      const given = next(`GET ${name}`);
-      if ((given.status ?? 200) >= 400) refuse(given.status as number);
-      return (given.data ?? {}) as object;
-    },
-    write: async (object: object): Promise<object> => {
-      const given = next(`PUT ${name}`);
-      if ((given.status ?? 200) >= 400) refuse(given.status as number);
-      return (given.data ?? object) as object;
-    },
-  };
-}
-
-/** A type of this table that is a shape and not a module: the engine and a tenant in memory. */
-function shapeRow(own: {
-  key: string;
+function shapeFunctions({
+  path,
+  id,
+  idKey,
+  read,
+  write,
+}: {
   path: string;
   id: string;
-  hasId: boolean;
-  ownedFolders: string[];
-}): Row {
-  const base = `${own.key}`;
-  let current: ReturnType<typeof memoryTenant> | undefined;
-  const spec = {
-    path: own.path,
-    id: own.id,
-    idKey: own.hasId ? '_id' : null,
-  };
+  idKey: string | null;
+  read: (state: State) => Promise<object>;
+  write: (object: object, state: State) => Promise<unknown>;
+}): Functions {
+  const merge = ({ reader, state }: { reader: FileSetReader; state: State }) =>
+    mergeSingleton({ path, id, idKey, reader, state });
   return {
-    key: own.key,
-    golden: own.key,
-    path: own.path,
-    ownedFolders: own.ownedFolders,
-    keepsRev: false,
-    id: own.id,
-    hasId: own.hasId,
-    source: 'src/ops/internal/FileSetEngine.ts',
-    tenant: () => {
-      current = memoryTenant(base);
-      return current;
-    },
-    functions: () => {
-      const merge = ({
-        reader,
-        state,
-      }: {
-        reader: FileSetReader;
-        state: State;
-      }) => mergeSingleton({ ...spec, reader, state });
-      return {
-        split: (object) => splitSingleton({ object, path: own.path }),
-        merge,
-        pull: async () =>
-          splitSingleton({
-            object: await (current as ReturnType<typeof memoryTenant>).read(),
-            path: own.path,
-          }),
-        push: ({ reader, resultCallback, state }) =>
-          mergeAndWriteSingleton({
-            id: own.id,
-            path: own.path,
-            merge: () => merge({ reader, state }),
-            write: (merged) =>
-              (current as ReturnType<typeof memoryTenant>).write(merged),
-            resultCallback: resultCallback as ResultCallback<object>,
-          }),
-      };
-    },
-    entityOf: (merged) => merged as object,
-    pullRequests: [`GET ${base}`],
-    pushRequests: [`PUT ${base}`],
+    split: (object) => splitSingleton({ object, path }),
+    merge,
+    pull: async ({ state }) =>
+      splitSingleton({ object: await read(state), path }),
+    push: ({ reader, resultCallback, state }) =>
+      mergeAndWriteSingleton({
+        id,
+        path,
+        merge: () => merge({ reader, state }),
+        write: (merged) => write(merged as object, state),
+        resultCallback: resultCallback as ResultCallback<unknown>,
+      }),
   };
 }
 
@@ -245,37 +169,74 @@ const ROWS: Row[] = [
     keepsRev: false,
     id: 'selfservice.kba',
     hasId: true,
-    functions: () => ({
+    scope: IDM_SCOPE,
+    functions: {
       split: splitKbaConfig,
       merge: mergeKbaConfig,
       pull: pullKbaConfig,
       push: pushKbaConfig as Functions['push'],
-    }),
-    tenant: idmTenant,
+    },
     entityOf: (merged) =>
       (merged as ConfigEntityExportInterface).idm['selfservice.kba'],
     pullRequests: [`GET ${CONFIG_URL}/selfservice.kba`],
     pushRequests: [`PUT ${CONFIG_URL}/selfservice.kba`],
   },
-  // the shape of the cookie domains of Cloud: an object that holds no id, in a file in a folder
-  shapeRow({
+  // the shape of the cookie domains of Cloud: an object that holds no id, in a file in a folder, read and written through the
+  // api of the Cloud environment, whose scope is not the one of the IDM
+  {
     key: 'shape-no-id',
+    source: 'src/ops/internal/FileSetEngine.ts',
+    golden: 'shape-no-id',
     path: 'cookie-domains/cookie-domains.json',
+    ownedFolders: ['cookie-domains'],
+    keepsRev: false,
     id: 'cookie-domains',
     hasId: false,
-    ownedFolders: ['cookie-domains'],
-  }),
-  // a file at the root of the set, which owns no folder
-  shapeRow({
+    scope: 'fr:idc:cookie-domain:*',
+    functions: shapeFunctions({
+      path: 'cookie-domains/cookie-domains.json',
+      id: 'cookie-domains',
+      idKey: null,
+      read: (state) => readCookieDomains({ state }),
+      write: (domains, state) =>
+        updateCookieDomains({ domains: domains as CookieDomains, state }),
+    }),
+    entityOf: (merged) => merged as object,
+    pullRequests: [`GET ${ENVIRONMENT_URL}/cookie-domains`],
+    pushRequests: [`PUT ${ENVIRONMENT_URL}/cookie-domains`],
+  },
+  // a file at the root of the set, which owns no folder (a config entity, for the requests)
+  {
     key: 'shape-root-file',
+    source: 'src/ops/internal/FileSetEngine.ts',
+    golden: 'shape-root-file',
     path: 'single.json',
+    ownedFolders: [],
+    keepsRev: false,
     id: 'single',
     hasId: true,
-    ownedFolders: [],
-  }),
+    scope: IDM_SCOPE,
+    functions: shapeFunctions({
+      path: 'single.json',
+      id: 'single',
+      idKey: '_id',
+      read: (state) => readConfigEntity({ entityId: 'single', state }),
+      write: async (entity, state) =>
+        (
+          await importConfigEntities({
+            importData: { idm: { single: entity as never } },
+            options: { validate: false },
+            state,
+          })
+        )[0],
+    }),
+    entityOf: (merged) => merged as object,
+    pullRequests: [`GET ${CONFIG_URL}/single`],
+    pushRequests: [`PUT ${CONFIG_URL}/single`],
+  },
 ];
 
-/** The ids that a file must not push to, with what a request to them would be. */
+/** Ids that a file must not push to, whatever the type: the paths that a request would resolve to, and an empty id. */
 const FOREIGN_IDS = [
   'selfservice.other',
   '..',
@@ -283,6 +244,24 @@ const FOREIGN_IDS = [
   '../../am/json/realms/root/users/x',
   '',
 ];
+
+/**
+ * Ids that look like the id of a type and are not it: the same letters in full-width forms (which a comparison that
+ * normalises with NFKC takes for the id), the Cyrillic letters, the id with a zero-width space after it and with a combining
+ * accent after it, and the id in capitals.
+ * @param {string} id the id of a type
+ * @returns {string[]} the look-alikes
+ */
+const lookAlikesOf = (id: string): string[] => [
+  id.replace(/[!-~]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xfee0)),
+  id.replace(/[aeopcxy]/g, (c) => 'аеорсху'['aeopcxy'.indexOf(c)]),
+  `${id}​`,
+  `${id}́`,
+  id.toUpperCase(),
+];
+
+/** The value that no message, outcome, callback or output may ever show. */
+const CANARY = 'canary-value-that-must-never-be-shown-4711';
 
 /** The entity of the golden folder of a row, as a tenant has it. */
 const entityOfRow = (row: Row): Record<string, unknown> =>
@@ -294,12 +273,21 @@ const entityOfRow = (row: Row): Record<string, unknown> =>
 const goldenText = (row: Row): string =>
   readFileSync(join(GOLDEN_ROOT, row.golden, 'files', row.path), 'utf8');
 
+/**
+ * What a push must send for the golden file: the object that the file holds, with its escaped `${` as text, in the order of
+ * the file, as the request carries it.
+ * @param {Row} row the row
+ * @returns {string} the body
+ */
+const goldenBody = (row: Row): string =>
+  JSON.stringify(JSON.parse(goldenText(row).replaceAll('\\\\${', '${')));
+
 describe.each(ROWS)('the single-object type $key', (row) => {
   const goldenFolder = join(GOLDEN_ROOT, row.golden);
-  const make = () => {
-    const tenant = row.tenant();
-    return { tenant, fns: row.functions(tenant) };
-  };
+  const make = (): { tenant: Tenant; fns: Functions } => ({
+    tenant: axiosTenant({ scope: row.scope }),
+    fns: row.functions,
+  });
   /** The golden file with another id, for the rows whose object holds one: the text is the golden text but for the id. */
   const withId = (id: string): string =>
     goldenText(row).replace(
@@ -333,11 +321,29 @@ describe.each(ROWS)('the single-object type $key', (row) => {
       expect(written._rev !== undefined).toBe(row.keepsRev);
     });
 
-    it('writes text that is not ASCII as it is, escapes every `${`, and ends with one newline', () => {
+    it('writes the text that is not ASCII as it is, with no escape for it, and keeps text that only looks like an escape', () => {
+      const { fns } = make();
+      const { content } = fns.split(entityOfRow(row)).files[0];
+      const text = readFileSync(
+        join(GOLDEN_ROOT, row.golden, 'entity.json'),
+        'utf8'
+      );
+      const letters = [...new Set(text.match(/[^\x00-\x7f]/g) ?? [])];
+
+      // every letter that is not ASCII in the entity is in the file as it is
+      expect(letters.length).toBeGreaterThan(0);
+      for (const letter of letters) expect(content).toContain(letter);
+      // and no JSON escape stands for one of them: a backslash that is itself escaped is text (`\\u00e9` is six letters),
+      // so what is looked for is a `\u` that an odd number of backslashes lead
+      expect(content).not.toMatch(
+        /(?<!\\)(?:\\\\)*\\u(?!00[01][0-9a-fA-F])[0-9a-fA-F]{4}/
+      );
+    });
+
+    it('escapes every `${`, and ends with one newline', () => {
       const { fns } = make();
       const { content } = fns.split(entityOfRow(row)).files[0];
 
-      expect(content).not.toContain('\\u');
       expect(content).not.toMatch(/[^\\]\$\{/);
       expect(content.endsWith('}\n')).toBe(true);
       expect(content.endsWith('\n\n')).toBe(false);
@@ -421,22 +427,36 @@ describe.each(ROWS)('the single-object type $key', (row) => {
     });
 
     if (row.hasId) {
-      it.each(FOREIGN_IDS)(
-        'refuses a file that holds the id %j, and names the file and both ids',
+      it.each([...FOREIGN_IDS, ...lookAlikesOf(row.id)])(
+        'refuses a file that holds the id %j, names the file and the id of the type, and never shows the id that the file holds',
         async (foreign) => {
           const failure = merge({ [row.path]: withId(foreign) });
 
           await expect(failure).rejects.toBeInstanceOf(FrodoError);
           const message = ((await failure.catch((error) => error)) as Error)
             .message;
-          if (foreign === '') {
-            expect(message).toContain(`The file ${row.path} holds no _id`);
-          } else {
-            expect(message).toContain(`The file ${row.path} holds the id`);
-            expect(message).toContain(`"${row.id}"`);
-          }
+          expect(message).toBe(
+            foreign === ''
+              ? `The file ${row.path} holds no _id that is a text.`
+              : `The file ${row.path} does not hold the id of this type, ${JSON.stringify(row.id)}.`
+          );
         }
       );
+
+      it('never prints the value of a placeholder that the id of the file resolves to', async () => {
+        const { fns, tenant } = make();
+        tenant.state.setEnv('CANARY_NAME', CANARY);
+
+        const error = await fns
+          .merge({
+            reader: readerOf({ [row.path]: withId('${CANARY_NAME}') }),
+            state: tenant.state,
+          })
+          .catch((e) => e);
+
+        expect(error).toBeInstanceOf(FrodoError);
+        expect(everythingOf(error)).not.toContain(CANARY);
+      });
 
       it.each([
         ['no `_id`', '{"text":"x"}'],
@@ -453,7 +473,7 @@ describe.each(ROWS)('the single-object type $key', (row) => {
         // the file is at the right path, and the name of the file says the id of the type: the content decides
         await expect(
           merge({ [row.path]: withId('not-' + row.id) })
-        ).rejects.toThrow('but the id of this type is');
+        ).rejects.toThrow('does not hold the id of this type');
         await expect(
           merge({ [row.path]: withId(row.id) })
         ).resolves.toBeDefined();
@@ -496,6 +516,16 @@ describe.each(ROWS)('the single-object type $key', (row) => {
       expect(JSON.stringify(answered)).toBe(before);
     });
 
+    it('needs the scope of its api: a token of another scope sends nothing, and the pull rejects', async () => {
+      const { fns, tenant } = make();
+      tenant.answer({ data: entityOfRow(row) });
+
+      await expect(
+        fns.pull({ state: newState({ scope: 'fr:unrelated:*' }) })
+      ).rejects.toBeInstanceOf(FrodoError);
+      expect(tenant.seen()).toEqual([]);
+    });
+
     it.each([404, 500])(
       'rejects with a FrodoError that keeps the cause when the tenant answers %i, and gives no file set',
       async (status) => {
@@ -533,11 +563,31 @@ describe.each(ROWS)('the single-object type $key', (row) => {
       });
 
       expect(tenant.seen()).toEqual(row.pushRequests);
+      // the request carries the file: the golden object, its escaped `${` text again, the keys in the order of the file
+      expect(tenant.bodies()).toEqual([goldenBody(row)]);
       expect(outcomes).toEqual([{ id: row.id }]);
       expect(resultCallback).toHaveBeenCalledTimes(1);
       expect(resultCallback).toHaveBeenCalledWith(undefined, {
         answered: true,
       });
+    });
+
+    it('needs the scope of its api: with a token of another scope the push is an outcome with the error, and nothing is sent', async () => {
+      const { fns, tenant } = make();
+      tenant.answer({ data: {} });
+      const resultCallback = jest.fn();
+
+      const outcomes = await fns.push({
+        reader: golden(),
+        resultCallback,
+        state: newState({ scope: 'fr:unrelated:*' }),
+      });
+
+      expect(tenant.seen()).toEqual([]);
+      expect(outcomes).toHaveLength(1);
+      expect(outcomes[0].id).toBe(row.id);
+      expect(outcomes[0].error).toBeInstanceOf(FrodoError);
+      expect(resultCallback).toHaveBeenCalledTimes(1);
     });
 
     it('pushes what a pull gave', async () => {
@@ -553,6 +603,7 @@ describe.each(ROWS)('the single-object type $key', (row) => {
 
       expect(outcomes).toEqual([{ id: row.id }]);
       expect(tenant.seen()).toEqual(row.pushRequests);
+      expect(tenant.bodies()).toEqual([goldenBody(row)]);
     });
 
     it('is an outcome with the error when the tenant refuses, the callback is told once, and nothing is thrown', async () => {
@@ -616,8 +667,8 @@ describe.each(ROWS)('the single-object type $key', (row) => {
     );
 
     if (row.hasId) {
-      it.each(FOREIGN_IDS)(
-        'sends nothing for a file that holds the id %j: the outcome is the path of the file and the error names both ids',
+      it.each([...FOREIGN_IDS, ...lookAlikesOf(row.id)])(
+        'sends nothing for a file that holds the id %j: the outcome is the path of the file, and the error names the type and not the id of the file',
         async (foreign) => {
           const { fns, tenant } = make();
           tenant.answer({ data: {} });
@@ -633,15 +684,62 @@ describe.each(ROWS)('the single-object type $key', (row) => {
           expect(outcomes).toHaveLength(1);
           expect(outcomes[0].id).toBe(row.path);
           expect(outcomes[0].error).toBeInstanceOf(FrodoError);
-          const message = chainOf(outcomes[0].error)
-            .map((error) => (error as Error).message)
-            .join(' | ');
-          expect(message).toContain(row.path);
-          // an empty id is no id; any other names both
-          if (foreign !== '') expect(message).toContain(`"${row.id}"`);
+          expect(
+            chainOf(outcomes[0].error)
+              .map((error) => (error as Error).message)
+              .join(' | ')
+          ).toContain(
+            foreign === ''
+              ? `The file ${row.path} holds no _id that is a text.`
+              : `The file ${row.path} does not hold the id of this type, ${JSON.stringify(row.id)}.`
+          );
           expect(resultCallback).toHaveBeenCalledTimes(1);
         }
       );
+
+      it('never shows the value of a placeholder that the id of the file resolves to: not in the outcome, not in what the callback is told, not in the output', async () => {
+        const { fns, tenant } = make();
+        tenant.state.setEnv('CANARY_NAME', CANARY);
+        tenant.answer({ data: {} });
+        const resultCallback = jest.fn();
+        const written: string[] = [];
+        const spies = (['log', 'info', 'warn', 'error', 'debug'] as const).map(
+          (name) =>
+            jest.spyOn(console, name).mockImplementation((...a: unknown[]) => {
+              written.push(a.map(String).join(' '));
+            })
+        );
+        const write = (chunk: unknown) => {
+          written.push(String(chunk));
+          return true;
+        };
+        const out = jest
+          .spyOn(process.stdout, 'write')
+          .mockImplementation(write);
+        const err = jest
+          .spyOn(process.stderr, 'write')
+          .mockImplementation(write);
+        let outcomes: PushOutcome[];
+        try {
+          outcomes = await fns.push({
+            reader: readerOf({ [row.path]: withId('${CANARY_NAME}') }),
+            resultCallback,
+            state: tenant.state,
+          });
+        } finally {
+          [...spies, out, err].forEach((spy) => spy.mockRestore());
+        }
+
+        expect(tenant.seen()).toEqual([]);
+        expect(outcomes).toHaveLength(1);
+        expect(outcomes[0].id).toBe(row.path);
+        expect(everythingOf(outcomes[0].error)).not.toContain(CANARY);
+        expect(inspect(outcomes, { depth: null })).not.toContain(CANARY);
+        expect(
+          inspect(resultCallback.mock.calls, { depth: null })
+        ).not.toContain(CANARY);
+        expect(written.join('\n')).not.toContain(CANARY);
+      });
     }
   });
 

@@ -24,6 +24,9 @@
     },
     "3": {
       "en": "Which word, ${notAPlaceholder}, do you remember?"
+    },
+    "4": {
+      "en": "Type \\u00e9 as it is"
     }
   }
 }

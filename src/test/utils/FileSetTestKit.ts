@@ -1,3 +1,4 @@
+import { inspect } from 'node:util';
 import axios, { type AxiosRequestConfig } from 'axios';
 import StateImpl, { type State } from '../../shared/State';
 import {
@@ -16,18 +17,25 @@ import { stubAdapter, type StubAnswer } from './StubAdapter';
 /** The made-up host of the sample data. */
 export const HOST = 'https://openam-matrix.example.com/am';
 
+/** The scope that the requests of the IDM api need. */
+export const IDM_SCOPE = 'fr:idm:*';
+
 /**
- * A state of a Cloud deployment that holds a bearer token for the IDM, so that a request of the IDM api goes out without a
- * login.
+ * A state of a Cloud deployment that holds a bearer token, so that a request of an api goes out without a login. The
+ * token carries the scope that a request checks before it is sent, so the scope has to be the one of the api that the test
+ * talks to: the IDM api needs `fr:idm:*`, the api of the Cloud environment (the cookie domains, say) needs its own.
+ * @param {{ scope?: string }} options the scope of the token. Default: the scope of the IDM api
  * @returns {State} the state
  */
-export function newState(): State {
+export function newState({
+  scope = IDM_SCOPE,
+}: { scope?: string } = {}): State {
   const state = StateImpl({ host: HOST });
   state.setDeploymentType('cloud');
   state.setBearerTokenMeta({
     access_token: 'sample-bearer-token',
     token_type: 'Bearer',
-    scope: 'fr:idm:*',
+    scope,
     expires_in: 3600,
     expires: Date.now() + 60 * 60 * 1000,
   } as never);
@@ -115,6 +123,22 @@ export function chainOf(error: unknown): unknown[] {
 }
 
 /**
+ * Everything that a caller can see of a failure: the message and the stack of every error in it, the way it prints with
+ * every field and the way it serializes. A test that must show that a text never reaches a caller looks for the text here.
+ * @param {unknown} error the failure
+ * @returns {string} the text of all of it
+ */
+export function everythingOf(error: unknown): string {
+  return [
+    chainOf(error)
+      .map((e) => `${(e as Error).message}\n${(e as Error).stack}`)
+      .join('\n'),
+    inspect(error, { depth: null, showHidden: true }),
+    JSON.stringify(error, Object.getOwnPropertyNames(error as object)),
+  ].join('\n');
+}
+
+/**
  * The path of every function on the facade, as the capability registry writes it (`idm.config.pullKbaConfig`).
  * @param {unknown} root the facade
  * @returns {string[]} the paths
@@ -136,4 +160,35 @@ export function facadePaths(root: unknown): string[] {
   };
   walk(root, []);
   return paths;
+}
+
+/** A tenant that a test talks to through axios, with an adapter that answers. */
+export type Tenant = {
+  /** The state that the functions under test are given; its token has the scope that the tenant was made with. */
+  state: State;
+  /** The answers to the requests that follow, in turn; the last one is repeated. A status of 400 or more is a failure. */
+  answer(...answers: StubAnswer[]): void;
+  /** What the tenant has seen so far, one line for each request: the verb and the url. */
+  seen(): string[];
+  /** The body of each request that the tenant has seen, as it went out (`undefined` for a request without one). */
+  bodies(): unknown[];
+};
+
+/**
+ * A tenant whose api needs a scope: the requests go through axios, and an adapter answers them.
+ * @param {{ scope?: string }} options the scope of the token of the state. Default: the scope of the IDM api
+ * @returns {Tenant} the tenant
+ */
+export function axiosTenant({
+  scope = IDM_SCOPE,
+}: { scope?: string } = {}): Tenant {
+  let requests: AxiosRequestConfig[] = [];
+  return {
+    state: newState({ scope }),
+    answer: (...answers) => {
+      requests = answer(...answers);
+    },
+    seen: () => seen(requests).map(({ method, url }) => `${method} ${url}`),
+    bodies: () => seen(requests).map(({ data }) => data),
+  };
 }

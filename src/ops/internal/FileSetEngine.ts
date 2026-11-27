@@ -294,7 +294,7 @@ export async function readFileSetJson({
  * @param {object} object the object to write, which is JSON data
  * @param {Record<string, unknown> | undefined} overrides the overrides of the object, if it has any
  * @param {boolean} keepRev true to keep the `_rev` keys. Default: false
- * @param {boolean} keepModifiedProperties false to leave out the modified properties (`lastModifiedBy`, `lastModifiedDate`, `modified`, `modifiedDate`, `lastChangeDate`, `lastChangedBy`, `lastChanged`, `createdBy`, `creationDate`, `createdDate`) at every depth. Default: true
+ * @param {boolean} keepModifiedProperties false to leave out the modified properties (`lastModifiedBy`, `lastModifiedDate`, `modified`, `modifiedDate`, `lastChangeDate`, `lastChangedBy`, `lastChanged`, `createdBy`, `creationDate`, `createdDate`) at every depth. Default: true, the rule of the agent files; {@link splitSingleton} has the opposite default (false, the rule of the files of the single-object types), so a type that writes a file with this function passes the option it means
  * @returns {VirtualFile} the file
  */
 export function fileOfObject({
@@ -422,7 +422,7 @@ export type SingletonSpec = {
  * @param {object} object the object, as the tenant has it
  * @param {string} path the path of the file in the file set; the folder it lies in is owned by the set (none for a file at the root)
  * @param {boolean} keepRev true if the file keeps the `_rev` keys. Default: false
- * @param {boolean} keepModifiedProperties true if the file keeps the modified properties. Default: false
+ * @param {boolean} keepModifiedProperties true if the file keeps the modified properties. Default: false, the rule of the files of the single-object types; {@link fileOfObject} has the opposite default (true, the rule of the agent files), because the files of the types that call it first were written that way
  * @returns {VirtualFileSet} the file set
  * @throws {Error} if the path is not a path of a file set
  */
@@ -444,18 +444,13 @@ export function splitSingleton({
 }
 
 /**
- * The start of an id for a message: a file can hold an id of any length.
- * @param {string} id the id
- * @returns {string} the id in quotes, cut after 80 characters
- */
-const quotedId = (id: string): string =>
-  JSON.stringify(id.length > 80 ? `${id.slice(0, 80)}...` : id);
-
-/**
  * Merge the file of a single-object type back into its object. Only the one file is asked for, and the id of the object
- * is the one that the file holds, compared with the id of the type: a file that names another id is refused, so that a file
- * set cannot point a push at another object (an id such as `../managed/x` would be a request to another path). The name of
- * the file is never read.
+ * is the one that the file holds, compared with the id of the type exactly (no case folding, no trimming, no Unicode
+ * normalisation) after the placeholders of the file are filled: a file that names another id is refused, so that a file set
+ * cannot point a push at another object (an id such as `../managed/x` would be a request to another path). The message of
+ * the refusal names the path and the id of the type and never the id that the file holds, which can be the value of a
+ * placeholder. The name of the file is never read. A type that keeps the id of its objects in a file that is a list of
+ * them has no constant to compare with, and decides for itself how such an id is checked.
  * @param {FileSetReader} reader the reader of the file set
  * @param {string} path the path of the file in the file set
  * @param {string} id the id of the one object of the type
@@ -489,8 +484,10 @@ export async function mergeSingleton({
     throw new FrodoError(`The file ${path} holds no ${idKey} that is a text.`);
   }
   if (held !== id) {
+    // the id that the file holds is not in the message: it is what the placeholders of the file made of it, so it can be the
+    // value of a name of the state or of the environment of the process, which a message must never show
     throw new FrodoError(
-      `The file ${path} holds the id ${quotedId(held)}, but the id of this type is ${quotedId(id)}.`
+      `The file ${path} does not hold the id of this type, ${JSON.stringify(id)}.`
     );
   }
   return object;

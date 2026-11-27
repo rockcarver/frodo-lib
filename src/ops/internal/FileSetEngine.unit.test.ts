@@ -12,6 +12,7 @@
  * that does not fit in a file name is shortened with a checksum by the name functions (`FileSetPathUtils`), so the rows for a
  * long id say what the engine does with those names.
  */
+import { inspect } from 'node:util';
 import { jest } from '@jest/globals';
 import ts from 'typescript';
 import StateImpl, { type State } from '../../shared/State';
@@ -19,6 +20,7 @@ import {
   importSpecifiersOf,
   NODE_IO_MODULES,
 } from '../../test/exportFileFormat/importsOf';
+import { everythingOf } from '../../test/utils/FileSetTestKit';
 import { typeAlias } from '../../test/utils/SourceText';
 import { encodedName } from '../../utils/FileSetPathUtils';
 import {
@@ -1469,19 +1471,31 @@ describe('mergeSingleton', () => {
     ).resolves.toEqual({ _id: 'the-id', a: 'filled', b: '${LITERAL}' });
   });
 
-  it('refuses a file whose id is not the id of the type, names the path and both ids, and reads the id from the content', async () => {
+  it('refuses a file whose id is not the id of the type, names the path and the id of the type, and never shows the id that the file holds', async () => {
     const failure = merge({ 'dir/x.json': '{"_id":"another-id"}' });
 
     await expect(failure).rejects.toBeInstanceOf(FrodoError);
     await expect(failure).rejects.toThrow(
-      'The file dir/x.json holds the id "another-id", but the id of this type is "the-id".'
+      'The file dir/x.json does not hold the id of this type, "the-id".'
     );
+    expect(((await failure.catch((e) => e)) as Error).message).not.toContain(
+      'another-id'
+    );
+  });
+
+  it('does not repeat an id of any length that the file holds', async () => {
+    const failure = await merge({
+      'dir/x.json': JSON.stringify({ _id: 'z'.repeat(5000) }),
+    }).catch((error) => error);
+
+    expect((failure as Error).message.length).toBeLessThan(120);
+    expect((failure as Error).message).not.toContain('zzz');
   });
 
   it('compares the id in the content and never the name of the file', async () => {
     // the name of the file says `x`, the id of the type is `the-id`: the content decides, in both directions
     await expect(merge({ 'dir/x.json': '{"_id":"x"}' })).rejects.toThrow(
-      'holds the id "x"'
+      'does not hold the id of this type, "the-id"'
     );
     await expect(
       mergeSingleton({
@@ -1500,21 +1514,137 @@ describe('mergeSingleton', () => {
     ['the-id/../the-id'],
     ['The-Id'],
     ['the-id '],
+    ['the-id\n'],
+    ['​the-id'],
   ])('refuses the id %j, which is not the id of the type', async (foreign) => {
     await expect(
       merge({ 'dir/x.json': JSON.stringify({ _id: foreign }) })
-    ).rejects.toThrow('but the id of this type is "the-id"');
+    ).rejects.toThrow('does not hold the id of this type, "the-id"');
   });
 
-  it('cuts a very long id out of the message', async () => {
-    const failure = merge({
-      'dir/x.json': JSON.stringify({ _id: 'z'.repeat(5000) }),
-    }).catch((error) => error);
+  it.each([
+    // the same letters to the eye, and to a comparison that normalises, but not the same id
+    ['the full-width letters', 'ｔｈｅ-ｉｄ', 'the-id'],
+    ['the Cyrillic letters', 'thе-іd', 'the-id'],
+    ['a decomposed accent', 'café', 'café'],
+    ['a composed accent', 'café', 'café'],
+    ['a ligature', 'ﬁle', 'file'],
+  ])(
+    'compares the id as it is, with no normalisation: %s is not the id of the type',
+    async (_what, held, id) => {
+      await expect(
+        mergeSingleton({
+          reader: readerOf({ 'dir/x.json': JSON.stringify({ _id: held }) }),
+          path: 'dir/x.json',
+          id,
+          state,
+        })
+      ).rejects.toThrow('does not hold the id of this type');
+      // the id of the type itself is accepted, in the same form
+      await expect(
+        mergeSingleton({
+          reader: readerOf({ 'dir/x.json': JSON.stringify({ _id: id }) }),
+          path: 'dir/x.json',
+          id,
+          state,
+        })
+      ).resolves.toEqual({ _id: id });
+    }
+  );
 
-    const message = (await failure).message as string;
-    expect(message.length).toBeLessThan(400);
-    expect(message).toContain('zzzz');
-    expect(message).toContain('...');
+  describe('a value of the state or of the process environment never reaches a message', () => {
+    // the placeholders of a file are filled before the id is compared, so `${NAME}` can resolve to anything: a hostile file
+    // set must not be able to print the value of a name that it picked
+    const CANARY = 'canary-value-that-must-never-be-shown-4711';
+
+    it('does not print the value that a placeholder in the id resolves to', async () => {
+      const given = stateOf('cloud');
+      given.setEnv('CANARY_NAME', CANARY);
+
+      const error = await mergeSingleton({
+        reader: readerOf({ 'dir/x.json': '{"_id":"${CANARY_NAME}"}' }),
+        path: 'dir/x.json',
+        id: 'the-id',
+        state: given,
+      }).catch((e) => e);
+
+      expect(error).toBeInstanceOf(FrodoError);
+      expect((error as Error).message).toBe(
+        'The file dir/x.json does not hold the id of this type, "the-id".'
+      );
+      expect(everythingOf(error)).not.toContain(CANARY);
+    });
+
+    it('does not print the value of a variable of the process, when the state is told to read the environment', async () => {
+      process.env.M1A_CANARY_NAME = CANARY;
+      const given = stateOf('cloud');
+      given.setUseProcessEnvironmentForPlaceholders(true);
+      try {
+        const error = await mergeSingleton({
+          reader: readerOf({ 'dir/x.json': '{"_id":"${M1A_CANARY_NAME}"}' }),
+          path: 'dir/x.json',
+          id: 'the-id',
+          state: given,
+        }).catch((e) => e);
+
+        expect(error).toBeInstanceOf(FrodoError);
+        expect(everythingOf(error)).not.toContain(CANARY);
+      } finally {
+        delete process.env.M1A_CANARY_NAME;
+      }
+    });
+
+    it('does not print it from a push either: not in the outcome, not in what the callback is told, not in the output', async () => {
+      const given = stateOf('cloud');
+      given.setEnv('CANARY_NAME', CANARY);
+      const resultCallback = jest.fn();
+      const written: string[] = [];
+      const spies = (['log', 'info', 'warn', 'error', 'debug'] as const).map(
+        (name) =>
+          jest.spyOn(console, name).mockImplementation((...a: unknown[]) => {
+            written.push(a.map(String).join(' '));
+          })
+      );
+      const out = jest
+        .spyOn(process.stdout, 'write')
+        .mockImplementation((chunk: unknown) => {
+          written.push(String(chunk));
+          return true;
+        });
+      const err = jest
+        .spyOn(process.stderr, 'write')
+        .mockImplementation((chunk: unknown) => {
+          written.push(String(chunk));
+          return true;
+        });
+      let outcomes;
+      try {
+        outcomes = await mergeAndWriteSingleton({
+          id: 'the-id',
+          path: 'dir/x.json',
+          merge: () =>
+            mergeSingleton({
+              reader: readerOf({ 'dir/x.json': '{"_id":"${CANARY_NAME}"}' }),
+              path: 'dir/x.json',
+              id: 'the-id',
+              state: given,
+            }),
+          write: async () => ({}),
+          resultCallback,
+        });
+      } finally {
+        [...spies, out, err].forEach((spy) => spy.mockRestore());
+      }
+
+      expect(outcomes).toHaveLength(1);
+      expect(outcomes[0].error).toBeInstanceOf(FrodoError);
+      expect(everythingOf(outcomes[0].error)).not.toContain(CANARY);
+      expect(inspect(outcomes, { depth: null })).not.toContain(CANARY);
+      expect(inspect(resultCallback.mock.calls, { depth: null })).not.toContain(
+        CANARY
+      );
+      expect(written.join('\n')).not.toContain(CANARY);
+    });
   });
 
   it.each([
@@ -1604,7 +1734,7 @@ describe('mergeSingleton', () => {
       ).resolves.toEqual({ name: 'the-id', _id: 'ignored' });
       await expect(
         merge({ 'dir/x.json': '{"name":"other"}' }, { idKey: 'name' })
-      ).rejects.toThrow('holds the id "other"');
+      ).rejects.toThrow('does not hold the id of this type, "the-id"');
       await expect(
         merge({ 'dir/x.json': '{"_id":"the-id"}' }, { idKey: 'name' })
       ).rejects.toThrow('holds no name that is a text.');
