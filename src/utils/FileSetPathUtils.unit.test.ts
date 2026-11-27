@@ -14,10 +14,20 @@
  *
  * The expected names are the file names of ids (`/` becomes `%2F`), checked against sanitize-filename 1.6.5: `/ \ ? < > : | "`
  * and control characters become `%XX`, `*` is removed, a name that is only dots or a device name of Windows becomes empty,
- * trailing dots go, and the name is cut at 255 bytes.
+ * trailing dots go, a trailing space is written `%20`, and the name is cut at 255 bytes.
+ *
+ * An id whose name does not fit in a file name (255 bytes with the longest suffix that the type uses) gets a shortened name:
+ * the cut, `~` and a checksum of the complete id. The format is on disk and permanent, so the golden table below comes from
+ * an independent implementation (Python 3, hashlib), and a differential test against a frozen copy of the previous
+ * functions shows that every id that fits keeps the name it had.
+ *
+ * The differential test at the end runs a deterministic sample of its corpus: 114,318 comparisons, about 7 seconds, and the whole
+ * file about 21 seconds. `FILE_NAME_FULL_CORPUS=1 npm run test:only -- src/utils/FileSetPathUtils` runs all of it: 523,914 ids,
+ * 3,312,456 comparisons, about 98 seconds.
  *
  * Hermetic: no file is read or written, no network, no recording.
  */
+import { createHash } from 'crypto';
 import { posix } from 'path';
 import { frodo } from '../index';
 import { CAPABILITY_META } from '../mcp/CapabilityMetadata';
@@ -54,6 +64,9 @@ const FOLDER = '/work/set/sync/connectors';
 
 /** The value of a row is a string, or `[character, count]` for a long one. */
 const value = (v) => (Array.isArray(v) ? v[0].repeat(v[1]) : v);
+
+/** A character, or a short text, repeated: the long ids and names of the tables are written with it. */
+const rep = (text: string, count: number): string => text.repeat(count);
 
 /** [selector, the file name of that id, without the extension] */
 const FILE_NAMES = [
@@ -101,14 +114,16 @@ const FILE_NAMES = [
   ['\uff0f', '\uff0f'], // a full width slash is not a separator
   ['\uff0e\uff0e', '\uff0e\uff0e'],
   ['a\u202eb', 'a\u202eb'], // the right-to-left override stays as typed
-  // cut at 250 bytes, which leaves room for `.json` in the 255 that a file name can hold
-  [['a', 300], 'a'.repeat(250)],
-  [['é', 200], 'é'.repeat(125)],
-  [['😀', 70], '😀'.repeat(62)],
-  // what the cut leaves at the end of a name is cut again: a file name does not end with dots or spaces
-  ['a'.repeat(249) + '.b', 'a'.repeat(249)],
-  ['a'.repeat(249) + ' b', 'a'.repeat(249)],
-  ['a'.repeat(248) + '. b', 'a'.repeat(248)],
+  // an id that does not fit in the 255 bytes of a file name with `.json` is cut at 241 bytes, at a whole character, and
+  // gets `~` and the checksum of the complete id: 250 bytes, which leaves room for `.json`
+  [['a', 300], 'a'.repeat(241) + '~e8722168'],
+  [['é', 200], 'é'.repeat(120) + '~bf52c47b'],
+  [['😀', 70], '😀'.repeat(60) + '~4a62e2af'],
+  // a name of 250 bytes fits, and one of 251 does not: what the cut leaves at the end does not matter, the checksum ends the name
+  ['a'.repeat(250), 'a'.repeat(250)],
+  ['a'.repeat(249) + '.b', 'a'.repeat(241) + '~d5d42e11'],
+  ['a'.repeat(249) + ' b', 'a'.repeat(241) + '~5c1f4232'],
+  ['a'.repeat(248) + '. b', 'a'.repeat(241) + '~5d9f484c'],
 ];
 
 describe('safeFileName', () => {
@@ -187,7 +202,8 @@ describe('objectFilePath', () => {
     ['a%2Fb', `${FOLDER}/a%2Fb.json`],
     ['..foo', `${FOLDER}/..foo.json`],
     ['...', `${FOLDER}/....json`],
-    [['a', 300], `${FOLDER}/${'a'.repeat(300)}.json`],
+    // an id that is one name but does not fit in a file name gets a shortened name
+    [['a', 300], `${FOLDER}/${'a'.repeat(241)}~e8722168.json`],
     ['a/b', `${FOLDER}/a%2Fb.json`],
     ['../x', `${FOLDER}/..%2Fx.json`],
     ['../../x', `${FOLDER}/..%2F..%2Fx.json`],
@@ -237,6 +253,19 @@ describe('objectFilePath', () => {
     expect(objectFilePath(FOLDER, fileNameOf('con'))).toBe(`${FOLDER}/.json`);
   });
 
+  it('leaves room for the longest suffix of the type: a name that fits with `.json` and not with `.onCreate.js` is shortened for both files of the object', () => {
+    const id = 'a'.repeat(245);
+
+    expect(objectFilePath(FOLDER, id)).toBe(`${FOLDER}/${id}.json`);
+    expect(objectFilePath(FOLDER, id, '.onCreate.js')).toBe(
+      `${FOLDER}/${'a'.repeat(234)}~35dceed4.json`
+    );
+    // the name that was made with the longest suffix is the name of the other files too
+    expect(
+      objectFilePath(FOLDER, fileNameOf(id, '.onCreate.js'), '.onCreate.js')
+    ).toBe(`${FOLDER}/${'a'.repeat(234)}~35dceed4.json`);
+  });
+
   it('keeps a relative folder relative', () => {
     expect(objectFilePath('org-privileges', 'alphaOrgPrivileges')).toBe(
       'org-privileges/alphaOrgPrivileges.json'
@@ -275,6 +304,18 @@ describe('objectFolderPath', () => {
       );
     }
   );
+
+  it('leaves room for the longest suffix of the type in the name of a folder too', () => {
+    const id = 'a'.repeat(245);
+
+    expect(objectFolderPath(MAPPINGS, id)).toBe(`${MAPPINGS}/${id}`);
+    expect(objectFolderPath(MAPPINGS, id, '.onCreate.js')).toBe(
+      `${MAPPINGS}/${'a'.repeat(234)}~35dceed4`
+    );
+    expect(objectFolderPath(MAPPINGS, 'a'.repeat(300))).toBe(
+      `${MAPPINGS}/${'a'.repeat(241)}~e8722168`
+    );
+  });
 
   it('a file in the folder of an object is found with the same name', () => {
     for (const selector of ['x', 'a/b', '../x', 'con', 'a*b']) {
@@ -1313,34 +1354,46 @@ describe('nameInFolder and nameInStem', () => {
     }
   );
 
-  it('does not cut a long name: it fails, naming it, so that two long names never become one', () => {
-    expect(nameInFolder('n'.repeat(300))).toBe('n'.repeat(300));
-    expect(() => nameInFolder(`a/${'n'.repeat(300)}`)).toThrow(
-      'is longer than 255 bytes once encoded, so it cannot be the name of a file.'
-    );
+  it('does not cut a long name silently: it keeps the start and adds the checksum, so that two long names never become one', () => {
+    // one safe name, as typed, of 255 bytes: it fits with no suffix and not with `.json`
+    expect(nameInFolder('n'.repeat(250))).toBe('n'.repeat(250));
+    expect(nameInFolder('n'.repeat(300))).toBe(`${'n'.repeat(241)}~cd5124b3`);
     // a name of 255 bytes that holds a slash is 257 bytes once the slash is written as %2F
-    expect(() => nameInFolder(`a/${'n'.repeat(253)}`)).toThrow(
-      'is longer than 255 bytes once encoded'
+    expect(nameInFolder(`a/${'n'.repeat(253)}`)).toBe(
+      `a%2F${'n'.repeat(237)}~0c8bfa62`
     );
-    expect(nameInFolder(`a/${'n'.repeat(251)}`)).toBe(`a%2F${'n'.repeat(251)}`);
+    // 250 bytes fit, 251 do not
+    expect(nameInFolder(`a/${'n'.repeat(246)}`)).toBe(`a%2F${'n'.repeat(246)}`);
+    expect(nameInFolder(`a/${'n'.repeat(247)}`)).toBe(
+      `a%2F${'n'.repeat(237)}~6878efc3`
+    );
+    // the two ids that the old cut made one name are two names now
+    expect(nameInFolder(`a/${'n'.repeat(251)}`)).not.toBe(
+      nameInFolder(`a/${'n'.repeat(252)}`)
+    );
   });
 
-  it('counts the bytes of the encoded name, and the `*` that the cut sees', () => {
+  it('counts the bytes of the encoded name, and the `*` that the sanitizer sees before it takes it out', () => {
     // 126 characters of two bytes and a slash written as %2F: 256 bytes
-    expect(() => nameInFolder(`a/${'é'.repeat(126)}`)).toThrow(
-      'is longer than 255 bytes once encoded'
+    expect(nameInFolder(`a/${'é'.repeat(126)}`)).toBe(
+      `a%2F${'é'.repeat(118)}~86870cac`
     );
-    expect(nameInFolder(`a/${'é'.repeat(125)}`)).toBe(`a%2F${'é'.repeat(125)}`);
-    // the function that makes the name cuts before it removes a `*`, so a `*` counts as a byte
-    expect(() => nameInFolder(`a/${'n'.repeat(251)}*`)).toThrow(
-      'is longer than 255 bytes once encoded'
+    // 4 + 123 * 2 = 250 bytes fit
+    expect(nameInFolder(`a/${'é'.repeat(123)}`)).toBe(`a%2F${'é'.repeat(123)}`);
+    // the sanitizer cuts before it removes a `*`, so a `*` counts as a byte when it decides whether anything is cut
+    expect(nameInFolder(`a/${'n'.repeat(251)}*`)).toBe(
+      `a%2F${'n'.repeat(237)}~691e0621`
     );
-    expect(nameInFolder(`a/${'n'.repeat(250)}*`)).toBe(
-      `a%2F${'n'.repeat(250)}`
+    // the sanitizer cuts nothing of 251 bytes, and what is left of the name is 250 bytes: the name that main gave
+    expect(nameInFolder(`a/${'n'.repeat(246)}*`)).toBe(
+      `a%2F${'n'.repeat(246)}`
+    );
+    expect(nameInFolder(`a/${'n'.repeat(245)}*`)).toBe(
+      `a%2F${'n'.repeat(245)}`
     );
   });
 
-  it('shows a control character of a refused name as an escape and cuts a long one', () => {
+  it('shows a control character of a refused name as an escape', () => {
     let message = '';
     try {
       nameInFolder('\u001b[31m');
@@ -1351,9 +1404,14 @@ describe('nameInFolder and nameInStem', () => {
     expect(message).toBe(
       "'.' does not name an object: an id or a name is not a path"
     );
-    expect(() => nameInFolder(`/${'n\u0001'.repeat(200)}`)).toThrow(
-      /^The name '\/n\\u0001n\\u0001.*\.\.\.' is longer than 255 bytes once encoded/
-    );
+  });
+
+  it('a long name made of control characters is shortened at a whole escape', () => {
+    const name = nameInFolder(`/${'n\u0001'.repeat(200)}`);
+
+    expect(name).toMatch(/^%2Fn%01n%01.*~[0-9a-f]{8}$/);
+    expect(name).not.toMatch(/%[0-9A-F]?~/);
+    expect(Buffer.byteLength(name)).toBeLessThanOrEqual(250);
   });
 
   it('turns a number into its text, as a template does', () => {
@@ -1445,19 +1503,16 @@ describe('encodedName', () => {
     }
   );
 
-  it('does not cut a name: more than 255 bytes once encoded is refused and 255 is not', () => {
-    expect(encodedName('n'.repeat(255))).toBe('n'.repeat(255));
-    expect(() => encodedName('n'.repeat(256))).toThrow(
-      `The name '${'n'.repeat(100)}...' is longer than 255 bytes once encoded, so it cannot be the name of a file.`
-    );
+  it('does not cut a name silently: 250 bytes fit with `.json`, more get a checksum', () => {
+    expect(encodedName('n'.repeat(250))).toBe('n'.repeat(250));
+    expect(encodedName('n'.repeat(251))).toBe(`${'n'.repeat(241)}~3720803a`);
+    expect(encodedName('n'.repeat(256))).toBe(`${'n'.repeat(241)}~fda476ec`);
     // bytes, not characters
-    expect(encodedName('é'.repeat(127))).toBe('é'.repeat(127));
-    expect(() => encodedName('é'.repeat(128))).toThrow(
-      'is longer than 255 bytes once encoded'
-    );
+    expect(encodedName('é'.repeat(125))).toBe('é'.repeat(125));
+    expect(encodedName('é'.repeat(128))).toBe(`${'é'.repeat(120)}~79c2c47d`);
     // a slash is three bytes once encoded
-    expect(() => encodedName(`a/${'n'.repeat(253)}`)).toThrow(
-      'is longer than 255 bytes once encoded'
+    expect(encodedName(`a/${'n'.repeat(253)}`)).toBe(
+      `a%2F${'n'.repeat(237)}~0c8bfa62`
     );
   });
 
@@ -1805,6 +1860,2872 @@ describe('what the gate lets through is what the library reads (a corpus of 402,
   });
 });
 
+/**
+ * The names of ids that do not fit. A name has to fit in 255 bytes together with the longest suffix that the type uses
+ * (`.json` by default). An id that does not fit gets a shortened name: its encoded name cut at a whole character, `~`, and
+ * the first 8 hexadecimal characters of the SHA-256 of the complete id as UTF-16 code units. The format is on disk and
+ * permanent, so the table below was made by an independent implementation, not by these functions.
+ */
+describe('a name that does not fit gets a checksum', () => {
+  const FUNCTIONS: Record<string, (id: string, suffix?: string) => string> = {
+    fileNameOf,
+    encodedName,
+    nameInFolder,
+    nameInStem,
+  };
+
+  // Generated by an independent implementation (Python 3, hashlib and urllib); the checksum of a row is
+  // sha256(id.encode('utf-16-le', 'surrogatepass')).hexdigest()[:8], the cut is written again from the rule.
+  // [function, id, longest suffix, name]; `undefined` is a value that leaves no name (fileNameOf gives '').
+  const GOLDEN: [string, string, string, string | undefined][] = [
+    ['fileNameOf', rep('a', 300), '.json', rep('a', 241) + '~e8722168'],
+    ['encodedName', rep('a', 300), '.json', rep('a', 241) + '~e8722168'],
+    ['nameInFolder', rep('a', 300), '.json', rep('a', 241) + '~e8722168'],
+    ['nameInStem', rep('a', 300), '.json', rep('a', 241) + '~e8722168'],
+    ['fileNameOf', rep('a', 251), '.json', rep('a', 241) + '~d260b91f'],
+    ['encodedName', rep('a', 251), '.json', rep('a', 241) + '~d260b91f'],
+    ['nameInFolder', rep('a', 251), '.json', rep('a', 241) + '~d260b91f'],
+    ['fileNameOf', rep('a', 250), '.json', rep('a', 250)],
+    ['encodedName', rep('a', 250), '.json', rep('a', 250)],
+    ['nameInFolder', rep('a', 250), '.json', rep('a', 250)],
+    ['fileNameOf', rep('a', 255), '', rep('a', 255)],
+    ['encodedName', rep('a', 255), '', rep('a', 255)],
+    ['nameInFolder', rep('a', 255), '', rep('a', 255)],
+    ['fileNameOf', rep('a', 256), '', rep('a', 246) + '~0fe06eea'],
+    ['encodedName', rep('a', 256), '', rep('a', 246) + '~0fe06eea'],
+    ['nameInFolder', rep('a', 256), '', rep('a', 246) + '~0fe06eea'],
+    ['fileNameOf', rep('x', 300) + '-1', '.json', rep('x', 241) + '~bed1c36e'],
+    ['encodedName', rep('x', 300) + '-1', '.json', rep('x', 241) + '~bed1c36e'],
+    [
+      'nameInFolder',
+      rep('x', 300) + '-1',
+      '.json',
+      rep('x', 241) + '~bed1c36e',
+    ],
+    ['fileNameOf', rep('x', 300) + '-2', '.json', rep('x', 241) + '~001fbd52'],
+    ['encodedName', rep('x', 300) + '-2', '.json', rep('x', 241) + '~001fbd52'],
+    [
+      'nameInFolder',
+      rep('x', 300) + '-2',
+      '.json',
+      rep('x', 241) + '~001fbd52',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 300) + '7449',
+      '.json',
+      rep('a', 241) + '~5b2c45dc',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 300) + '7449',
+      '.json',
+      rep('a', 241) + '~5b2c45dc',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 300) + '22501',
+      '.json',
+      rep('a', 241) + '~5b2c45dc',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 300) + '22501',
+      '.json',
+      rep('a', 241) + '~5b2c45dc',
+    ],
+    ['fileNameOf', rep('/', 100), '.json', rep('%2F', 80) + '~660c00d4'],
+    ['encodedName', rep('/', 100), '.json', rep('%2F', 80) + '~660c00d4'],
+    ['nameInFolder', rep('/', 100), '.json', rep('%2F', 80) + '~660c00d4'],
+    ['fileNameOf', rep('/', 86), '', rep('%2F', 82) + '~c4d15c2e'],
+    ['encodedName', rep('/', 86), '', rep('%2F', 82) + '~c4d15c2e'],
+    ['nameInFolder', rep('/', 86), '', rep('%2F', 82) + '~c4d15c2e'],
+    ['fileNameOf', rep('/', 85), '', rep('%2F', 85)],
+    ['encodedName', rep('/', 85), '', rep('%2F', 85)],
+    ['nameInFolder', rep('/', 85), '', rep('%2F', 85)],
+    ['fileNameOf', rep('é', 200), '.json', rep('é', 120) + '~bf52c47b'],
+    ['encodedName', rep('é', 200), '.json', rep('é', 120) + '~bf52c47b'],
+    ['nameInFolder', rep('é', 200), '.json', rep('é', 120) + '~bf52c47b'],
+    ['fileNameOf', rep('é', 125), '.json', rep('é', 125)],
+    ['nameInFolder', rep('é', 125), '.json', rep('é', 125)],
+    ['fileNameOf', rep('€', 100), '.json', rep('€', 80) + '~32776e23'],
+    ['nameInFolder', rep('€', 100), '.json', rep('€', 80) + '~32776e23'],
+    ['fileNameOf', rep('😀', 70), '.json', rep('😀', 60) + '~4a62e2af'],
+    ['encodedName', rep('😀', 70), '.json', rep('😀', 60) + '~4a62e2af'],
+    ['nameInFolder', rep('😀', 70), '.json', rep('😀', 60) + '~4a62e2af'],
+    [
+      'fileNameOf',
+      rep('a', 4) + rep('\u0085', 100),
+      '.json',
+      rep('a', 4) + rep('%C2%85', 39) + '~ddb52c11',
+    ],
+    [
+      'encodedName',
+      rep('a', 4) + rep('\u0085', 100),
+      '.json',
+      rep('a', 4) + rep('%C2%85', 39) + '~ddb52c11',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 4) + rep('\u0085', 100),
+      '.json',
+      rep('a', 4) + rep('%C2%85', 39) + '~ddb52c11',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 235) + rep('\u0085', 10),
+      '.json',
+      rep('a', 235) + '%C2%85~84855dd1',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 235) + rep('\u0085', 10),
+      '.json',
+      rep('a', 235) + '%C2%85~84855dd1',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 236) + rep('\u0085', 10),
+      '.json',
+      rep('a', 236) + '~ac175dcd',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 236) + rep('\u0085', 10),
+      '.json',
+      rep('a', 236) + '~ac175dcd',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 237) + rep('\u0085', 10),
+      '.json',
+      rep('a', 237) + '~c9ca88da',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 237) + rep('\u0085', 10),
+      '.json',
+      rep('a', 237) + '~c9ca88da',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 238) + rep('\u0085', 10),
+      '.json',
+      rep('a', 238) + '~a056027f',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 238) + rep('\u0085', 10),
+      '.json',
+      rep('a', 238) + '~a056027f',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 239) + rep('\u0085', 10),
+      '.json',
+      rep('a', 239) + '~60324612',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 239) + rep('\u0085', 10),
+      '.json',
+      rep('a', 239) + '~60324612',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 240) + rep('\u0085', 10),
+      '.json',
+      rep('a', 240) + '~182db068',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 240) + rep('\u0085', 10),
+      '.json',
+      rep('a', 240) + '~182db068',
+    ],
+    ['fileNameOf', 'x\ud800', '.json', 'x\ufffd~a7490da1'],
+    ['encodedName', 'x\ud800', '.json', 'x\ufffd~a7490da1'],
+    ['nameInFolder', 'x\ud800', '.json', 'x\ufffd~a7490da1'],
+    ['fileNameOf', 'x\ufffd', '.json', 'x\ufffd'],
+    ['encodedName', 'x\ufffd', '.json', 'x\ufffd'],
+    ['nameInFolder', 'x\ufffd', '.json', 'x\ufffd'],
+    ['fileNameOf', 'x\ud800y', '.json', 'x\ufffdy~2055a8e2'],
+    ['nameInFolder', 'x\ud800y', '.json', 'x\ufffdy~2055a8e2'],
+    ['fileNameOf', 'x\ud801y', '.json', 'x\ufffdy~9ef5b225'],
+    ['nameInFolder', 'x\ud801y', '.json', 'x\ufffdy~9ef5b225'],
+    ['fileNameOf', '\ud800', '.json', '\ufffd~205022e3'],
+    ['nameInFolder', '\ud800', '.json', '\ufffd~205022e3'],
+    ['fileNameOf', '\udc00', '.json', '\ufffd~d63ddb2b'],
+    ['nameInFolder', '\udc00', '.json', '\ufffd~d63ddb2b'],
+    [
+      'fileNameOf',
+      rep('x', 254) + '\ud800',
+      '.json',
+      rep('x', 241) + '~426b50d5',
+    ],
+    [
+      'encodedName',
+      rep('x', 254) + '\ud800',
+      '.json',
+      rep('x', 241) + '~426b50d5',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 254) + '\ud800',
+      '.json',
+      rep('x', 241) + '~426b50d5',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 245) + '\ud800',
+      '.json',
+      rep('x', 241) + '~f5d9cade',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 245) + '\ud800',
+      '.json',
+      rep('x', 241) + '~f5d9cade',
+    ],
+    ['fileNameOf', rep('x', 254) + '\ud800', '', rep('x', 246) + '~426b50d5'],
+    ['nameInFolder', rep('x', 254) + '\ud800', '', rep('x', 246) + '~426b50d5'],
+    ['fileNameOf', rep('x', 250) + '\ud800', '', rep('x', 246) + '~ab8d4c46'],
+    ['nameInFolder', rep('x', 250) + '\ud800', '', rep('x', 246) + '~ab8d4c46'],
+    ['fileNameOf', rep('x', 243), '.onCreate.js', rep('x', 243)],
+    ['encodedName', rep('x', 243), '.onCreate.js', rep('x', 243)],
+    ['nameInFolder', rep('x', 243), '.onCreate.js', rep('x', 243)],
+    ['fileNameOf', rep('a', 244), '.onCreate.js', rep('a', 234) + '~abcb1ecd'],
+    ['encodedName', rep('a', 244), '.onCreate.js', rep('a', 234) + '~abcb1ecd'],
+    [
+      'nameInFolder',
+      rep('a', 244),
+      '.onCreate.js',
+      rep('a', 234) + '~abcb1ecd',
+    ],
+    ['fileNameOf', rep('a', 245), '.onCreate.js', rep('a', 234) + '~35dceed4'],
+    [
+      'nameInFolder',
+      rep('a', 245),
+      '.onCreate.js',
+      rep('a', 234) + '~35dceed4',
+    ],
+    [
+      'fileNameOf',
+      rep('a', 215),
+      '.lllllllllllllllllllllllllllllllllllllll',
+      rep('a', 215),
+    ],
+    [
+      'nameInFolder',
+      rep('a', 215),
+      '.lllllllllllllllllllllllllllllllllllllll',
+      rep('a', 215),
+    ],
+    [
+      'fileNameOf',
+      rep('a', 216),
+      '.lllllllllllllllllllllllllllllllllllllll',
+      rep('a', 206) + '~f0ed1300',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 216),
+      '.lllllllllllllllllllllllllllllllllllllll',
+      rep('a', 206) + '~f0ed1300',
+    ],
+    ['nameInStem', 'a:' + rep('n', 246), '.json', 'a%3A' + rep('n', 246)],
+    ['nameInFolder', 'a:' + rep('n', 246), '.json', 'a:' + rep('n', 246)],
+    [
+      'nameInStem',
+      'a:' + rep('n', 247),
+      '.json',
+      'a%3A' + rep('n', 237) + '~a43dbedc',
+    ],
+    ['nameInFolder', 'a:' + rep('n', 247), '.json', 'a:' + rep('n', 247)],
+    [
+      'nameInStem',
+      'a:' + rep('n', 247),
+      '.onCreate.js',
+      'a%3A' + rep('n', 230) + '~a43dbedc',
+    ],
+    [
+      'nameInStem',
+      'Z:' + rep('n', 300),
+      '.json',
+      'Z%3A' + rep('n', 237) + '~c124484a',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 200) + rep('*', 100),
+      '.json',
+      rep('x', 200) + '~d61daa2d',
+    ],
+    [
+      'encodedName',
+      rep('x', 200) + rep('*', 100),
+      '.json',
+      rep('x', 200) + '~d61daa2d',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 200) + rep('*', 100),
+      '.json',
+      rep('x', 200) + rep('*', 41) + '~d61daa2d',
+    ],
+    ['fileNameOf', rep('*', 300) + 'abc', '.json', undefined],
+    [
+      'nameInFolder',
+      rep('*', 300) + 'abc',
+      '.json',
+      rep('*', 241) + '~96467f3f',
+    ],
+    ['fileNameOf', rep('x', 249) + ' ', '.json', rep('x', 241) + '~f7444881'],
+    ['encodedName', rep('x', 249) + ' ', '.json', rep('x', 241) + '~f7444881'],
+    ['nameInFolder', rep('x', 249) + ' ', '.json', rep('x', 249) + ' '],
+    ['fileNameOf', rep('x', 248) + '...', '.json', rep('x', 248)],
+    ['encodedName', rep('x', 248) + '...', '.json', rep('x', 248)],
+    [
+      'nameInFolder',
+      rep('x', 248) + '...',
+      '.json',
+      rep('x', 241) + '~8003d65d',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 240) + '%2F' + rep('b', 20),
+      '.json',
+      rep('x', 240) + '~34119c09',
+    ],
+    [
+      'encodedName',
+      rep('x', 240) + '%2F' + rep('b', 20),
+      '.json',
+      rep('x', 240) + '~34119c09',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 240) + '%2F' + rep('b', 20),
+      '.json',
+      rep('x', 240) + '~34119c09',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 239) + '%2F' + rep('b', 20),
+      '.json',
+      rep('x', 239) + '~9df4543b',
+    ],
+    [
+      'encodedName',
+      rep('x', 239) + '%2F' + rep('b', 20),
+      '.json',
+      rep('x', 239) + '~9df4543b',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 239) + '%2F' + rep('b', 20),
+      '.json',
+      rep('x', 239) + '~9df4543b',
+    ],
+    ['fileNameOf', rep('%', 300), '.json', rep('%', 240) + '~2291a471'],
+    ['encodedName', rep('%', 300), '.json', rep('%', 240) + '~2291a471'],
+    ['nameInFolder', rep('%', 300), '.json', rep('%', 240) + '~2291a471'],
+    [
+      'fileNameOf',
+      rep('x', 239) + '%%2' + rep('b', 20),
+      '.json',
+      rep('x', 239) + '%~49300bdb',
+    ],
+    [
+      'encodedName',
+      rep('x', 239) + '%%2' + rep('b', 20),
+      '.json',
+      rep('x', 239) + '%~49300bdb',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 239) + '%%2' + rep('b', 20),
+      '.json',
+      rep('x', 239) + '%~49300bdb',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%C2' + rep('b', 20),
+      '.json',
+      rep('x', 238) + '~91dec88c',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%C2' + rep('b', 20),
+      '.json',
+      rep('x', 238) + '~91dec88c',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%C2' + rep('b', 20),
+      '.json',
+      rep('x', 238) + '~91dec88c',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%c2' + rep('b', 20),
+      '.json',
+      rep('x', 238) + '~c7e3b8d2',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%c2' + rep('b', 20),
+      '.json',
+      rep('x', 238) + '~c7e3b8d2',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%c2' + rep('b', 20),
+      '.json',
+      rep('x', 238) + '~c7e3b8d2',
+    ],
+    ['fileNameOf', rep('.', 300), '.json', undefined],
+    ['encodedName', rep('.', 300), '.json', undefined],
+    ['nameInFolder', rep('.', 300), '.json', rep('.', 241) + '~f7071ffd'],
+    ['fileNameOf', 'nul.' + rep('x', 300), '.json', undefined],
+    ['encodedName', 'nul.' + rep('x', 300), '.json', undefined],
+    [
+      'nameInFolder',
+      'nul.' + rep('x', 300),
+      '.json',
+      'nul.' + rep('x', 237) + '~bd4e9aff',
+    ],
+    [
+      'fileNameOf',
+      'a/' + rep('n', 251),
+      '.json',
+      'a%2F' + rep('n', 237) + '~a1933937',
+    ],
+    [
+      'encodedName',
+      'a/' + rep('n', 251),
+      '.json',
+      'a%2F' + rep('n', 237) + '~a1933937',
+    ],
+    [
+      'nameInFolder',
+      'a/' + rep('n', 251),
+      '.json',
+      'a%2F' + rep('n', 237) + '~a1933937',
+    ],
+    [
+      'fileNameOf',
+      'a/' + rep('n', 250),
+      '.json',
+      'a%2F' + rep('n', 237) + '~411ed8e6',
+    ],
+    [
+      'encodedName',
+      'a/' + rep('n', 250),
+      '.json',
+      'a%2F' + rep('n', 237) + '~411ed8e6',
+    ],
+    [
+      'nameInFolder',
+      'a/' + rep('n', 250),
+      '.json',
+      'a%2F' + rep('n', 237) + '~411ed8e6',
+    ],
+    [
+      'fileNameOf',
+      'a/' + rep('n', 249),
+      '.json',
+      'a%2F' + rep('n', 237) + '~2643f1c8',
+    ],
+    [
+      'encodedName',
+      'a/' + rep('n', 249),
+      '.json',
+      'a%2F' + rep('n', 237) + '~2643f1c8',
+    ],
+    [
+      'nameInFolder',
+      'a/' + rep('n', 249),
+      '.json',
+      'a%2F' + rep('n', 237) + '~2643f1c8',
+    ],
+    [
+      'fileNameOf',
+      'a/' + rep('é', 125),
+      '.json',
+      'a%2F' + rep('é', 118) + '~c02f1e61',
+    ],
+    [
+      'nameInFolder',
+      'a/' + rep('é', 125),
+      '.json',
+      'a%2F' + rep('é', 118) + '~c02f1e61',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('x', 241),
+      '.json',
+      'com%C2%B9.' + rep('x', 231) + '~9111d893',
+    ],
+    [
+      'encodedName',
+      'com¹.' + rep('x', 241),
+      '.json',
+      'com%C2%B9.' + rep('x', 231) + '~9111d893',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('x', 236),
+      '.json',
+      'com%C2%B9.' + rep('x', 236),
+    ],
+    [
+      'encodedName',
+      'com¹.' + rep('x', 236),
+      '.json',
+      'com%C2%B9.' + rep('x', 236),
+    ],
+    [
+      'fileNameOf',
+      'lpt².' + rep('x', 246),
+      '.json',
+      'lpt%C2%B2.' + rep('x', 231) + '~456a8d8a',
+    ],
+    [
+      'encodedName',
+      'lpt².' + rep('x', 246),
+      '.json',
+      'lpt%C2%B2.' + rep('x', 231) + '~456a8d8a',
+    ],
+    [
+      'fileNameOf',
+      'COM³.' + rep('é', 120) + 'A',
+      '.json',
+      'COM%C2%B3.%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9~262ff0ae',
+    ],
+    [
+      'encodedName',
+      'COM³.' + rep('é', 120) + 'A',
+      '.json',
+      'COM%C2%B3.%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9~262ff0ae',
+    ],
+    [
+      'fileNameOf',
+      'COM³.' + rep('é', 120) + 'B',
+      '.json',
+      'COM%C2%B3.%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9~a014630d',
+    ],
+    [
+      'encodedName',
+      'COM³.' + rep('é', 120) + 'B',
+      '.json',
+      'COM%C2%B3.%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9~a014630d',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('é', 120) + 'A',
+      '.json',
+      'com%C2%B9.%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9~a65c9a4c',
+    ],
+    [
+      'encodedName',
+      'com¹.' + rep('é', 120) + 'A',
+      '.json',
+      'com%C2%B9.%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9~a65c9a4c',
+    ],
+    ['fileNameOf', 'Com².txt', '.json', 'Com%C2%B2.txt'],
+    ['encodedName', 'Com².txt', '.json', 'Com%C2%B2.txt'],
+    ['fileNameOf', 'com¹', '.json', 'com%C2%B9'],
+    ['encodedName', 'com¹', '.json', 'com%C2%B9'],
+    ['nameInFolder', 'com¹', '.json', 'com¹'],
+    [
+      'fileNameOf',
+      'com¹.a/' + rep('x', 240),
+      '.json',
+      'com%C2%B9.a%252F' + rep('x', 225) + '~29910a65',
+    ],
+    [
+      'encodedName',
+      'com¹.a/' + rep('x', 240),
+      '.json',
+      'com%C2%B9.a%252F' + rep('x', 225) + '~29910a65',
+    ],
+    [
+      'nameInFolder',
+      'com¹.a/' + rep('x', 240),
+      '.json',
+      'com%C2%B9.a%252F' + rep('x', 225) + '~29910a65',
+    ],
+    [
+      'nameInStem',
+      'com¹.a/' + rep('x', 240),
+      '.json',
+      'com%C2%B9.a%252F' + rep('x', 225) + '~29910a65',
+    ],
+    ['fileNameOf', 'nul.' + rep('x', 240), '.json', undefined],
+    ['encodedName', 'nul.' + rep('x', 240), '.json', undefined],
+    ['fileNameOf', 'con', '.json', undefined],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 220) + rep('é', 50),
+      '.json',
+      'com%C2%B9.' + rep('a', 220) + '%C3%A9~81a11698',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 221) + rep('é', 50),
+      '.json',
+      'com%C2%B9.' + rep('a', 221) + '%C3%A9~19eb402e',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 222) + rep('é', 50),
+      '.json',
+      'com%C2%B9.' + rep('a', 222) + '%C3%A9~c3c963f6',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 223) + rep('é', 50),
+      '.json',
+      'com%C2%B9.' + rep('a', 223) + '%C3%A9~c230e49a',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 224) + rep('é', 50),
+      '.json',
+      'com%C2%B9.' + rep('a', 224) + '%C3%A9~7caa15c6',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 225) + rep('é', 50),
+      '.json',
+      'com%C2%B9.' + rep('a', 225) + '%C3%A9~8a0869b6',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 220) + rep('€', 40),
+      '.json',
+      'com%C2%B9.' + rep('a', 220) + '%E2%82%AC~b3eba0ba',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 221) + rep('€', 40),
+      '.json',
+      'com%C2%B9.' + rep('a', 221) + '%E2%82%AC~004e50dc',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 222) + rep('€', 40),
+      '.json',
+      'com%C2%B9.' + rep('a', 222) + '%E2%82%AC~42b7e9b5',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 223) + rep('€', 40),
+      '.json',
+      'com%C2%B9.' + rep('a', 223) + '~56fff3f5',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 224) + rep('€', 40),
+      '.json',
+      'com%C2%B9.' + rep('a', 224) + '~4994a625',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 225) + rep('€', 40),
+      '.json',
+      'com%C2%B9.' + rep('a', 225) + '~c7056f55',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 226) + rep('€', 40),
+      '.json',
+      'com%C2%B9.' + rep('a', 226) + '~04466138',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 227) + rep('€', 40),
+      '.json',
+      'com%C2%B9.' + rep('a', 227) + '~3e10693f',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 228) + rep('€', 40),
+      '.json',
+      'com%C2%B9.' + rep('a', 228) + '~47f4051f',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 220) + rep('😀', 30),
+      '.json',
+      'com%C2%B9.' + rep('a', 220) + '~1b91b0e9',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 221) + rep('😀', 30),
+      '.json',
+      'com%C2%B9.' + rep('a', 221) + '~fe0ec013',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 222) + rep('😀', 30),
+      '.json',
+      'com%C2%B9.' + rep('a', 222) + '~28d5eb8c',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 223) + rep('😀', 30),
+      '.json',
+      'com%C2%B9.' + rep('a', 223) + '~8c12034b',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 224) + rep('😀', 30),
+      '.json',
+      'com%C2%B9.' + rep('a', 224) + '~bd9d0995',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 225) + rep('😀', 30),
+      '.json',
+      'com%C2%B9.' + rep('a', 225) + '~7fd6594b',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 226) + rep('😀', 30),
+      '.json',
+      'com%C2%B9.' + rep('a', 226) + '~c681fb5b',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 227) + rep('😀', 30),
+      '.json',
+      'com%C2%B9.' + rep('a', 227) + '~87514343',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 228) + rep('😀', 30),
+      '.json',
+      'com%C2%B9.' + rep('a', 228) + '~e30c3848',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 229) + rep('😀', 30),
+      '.json',
+      'com%C2%B9.' + rep('a', 229) + '~eaea0e5b',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 230) + rep('😀', 30),
+      '.json',
+      'com%C2%B9.' + rep('a', 230) + '~3ab626f1',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 231) + rep('😀', 30),
+      '.json',
+      'com%C2%B9.' + rep('a', 231) + '~cd779f2e',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 233) + '%E2%82%AC' + rep('b', 20),
+      '.json',
+      rep('x', 233) + '~5f545a8f',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 233) + '%E2%82%AC' + rep('b', 20),
+      '.json',
+      rep('x', 233) + '~5f545a8f',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 234) + '%E2%82%AC' + rep('b', 20),
+      '.json',
+      rep('x', 234) + '~3b081ab1',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 234) + '%E2%82%AC' + rep('b', 20),
+      '.json',
+      rep('x', 234) + '~3b081ab1',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 235) + '%E2%82%AC' + rep('b', 20),
+      '.json',
+      rep('x', 235) + '~cfd43b6e',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 235) + '%E2%82%AC' + rep('b', 20),
+      '.json',
+      rep('x', 235) + '~cfd43b6e',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 236) + '%E2%82%AC' + rep('b', 20),
+      '.json',
+      rep('x', 236) + '~d406931a',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 236) + '%E2%82%AC' + rep('b', 20),
+      '.json',
+      rep('x', 236) + '~d406931a',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 237) + '%E2%82%AC' + rep('b', 20),
+      '.json',
+      rep('x', 237) + '~b1e1b769',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 237) + '%E2%82%AC' + rep('b', 20),
+      '.json',
+      rep('x', 237) + '~b1e1b769',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%E2%82%AC' + rep('b', 20),
+      '.json',
+      rep('x', 238) + '~b1b15cd4',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%E2%82%AC' + rep('b', 20),
+      '.json',
+      rep('x', 238) + '~b1b15cd4',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 239) + '%E2%82%AC' + rep('b', 20),
+      '.json',
+      rep('x', 239) + '~1931c9fc',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 239) + '%E2%82%AC' + rep('b', 20),
+      '.json',
+      rep('x', 239) + '~1931c9fc',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 240) + '%E2%82%AC' + rep('b', 20),
+      '.json',
+      rep('x', 240) + '~a78a0330',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 240) + '%E2%82%AC' + rep('b', 20),
+      '.json',
+      rep('x', 240) + '~a78a0330',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 229) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 229) + '%F0%9F%98%80~f5f0fcf4',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 229) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 229) + '%F0%9F%98%80~f5f0fcf4',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 230) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 230) + '~3e14915b',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 230) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 230) + '~3e14915b',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 231) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 231) + '~d58ae8e7',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 231) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 231) + '~d58ae8e7',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 232) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 232) + '~d5594cbf',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 232) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 232) + '~d5594cbf',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 233) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 233) + '~670f726e',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 233) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 233) + '~670f726e',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 234) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 234) + '~f34847e2',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 234) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 234) + '~f34847e2',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 235) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 235) + '~7c0fad90',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 235) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 235) + '~7c0fad90',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 236) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 236) + '~44322be0',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 236) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 236) + '~44322be0',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 237) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 237) + '~b09d47b1',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 237) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 237) + '~b09d47b1',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 238) + '~72ebf47b',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 238) + '~72ebf47b',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 239) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 239) + '~9a5eb670',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 239) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 239) + '~9a5eb670',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 240) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 240) + '~31f9b82e',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 240) + '%F0%9F%98%80' + rep('b', 20),
+      '.json',
+      rep('x', 240) + '~31f9b82e',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 239) + '%a' + rep('y', 300),
+      '.json',
+      rep('x', 239) + '~2ecd2aa7',
+    ],
+    [
+      'encodedName',
+      rep('x', 239) + '%a' + rep('y', 300),
+      '.json',
+      rep('x', 239) + '~2ecd2aa7',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 239) + '%a' + rep('y', 300),
+      '.json',
+      rep('x', 239) + '~2ecd2aa7',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%e2%82' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~a9ffa6b7',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%e2%82' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~a9ffa6b7',
+    ],
+    ['fileNameOf', 'con.\ud800', '.json', undefined],
+    ['encodedName', 'con.\ud800', '.json', undefined],
+    ['nameInFolder', 'con.\ud800', '.json', 'con.\ufffd~27d6eb4b'],
+    ['fileNameOf', 'nul.x\udc00', '.json', undefined],
+    ['encodedName', 'nul.x\udc00', '.json', undefined],
+    ['nameInFolder', 'nul.x\udc00', '.json', 'nul.x\ufffd~97ca4acc'],
+    ['fileNameOf', 'aux.' + rep('x', 300) + '\ud800', '.json', undefined],
+    ['encodedName', 'aux.' + rep('x', 300) + '\ud800', '.json', undefined],
+    [
+      'nameInFolder',
+      'aux.' + rep('x', 300) + '\ud800',
+      '.json',
+      'aux.' + rep('x', 237) + '~7701b8ae',
+    ],
+    ['fileNameOf', 'com¹.\ud800', '.json', 'com%C2%B9.%EF%BF%BD~5c5125c6'],
+    ['encodedName', 'com¹.\ud800', '.json', 'com%C2%B9.%EF%BF%BD~5c5125c6'],
+    ['nameInFolder', 'com¹.\ud800', '.json', 'com¹.\ufffd~5c5125c6'],
+    ['fileNameOf', 'a\u007fb', '.json', 'a\ufffdb~c459de40'],
+    ['encodedName', 'a\u007fb', '.json', 'a\ufffdb~c459de40'],
+    ['nameInFolder', 'a\u007fb', '.json', 'a\ufffdb~c459de40'],
+    ['nameInStem', 'a\u007fb', '.json', 'a\ufffdb~c459de40'],
+    ['fileNameOf', '\u007f', '.json', '\ufffd~9f3a060c'],
+    ['encodedName', '\u007f', '.json', '\ufffd~9f3a060c'],
+    ['nameInFolder', '\u007f', '.json', '\ufffd~9f3a060c'],
+    [
+      'fileNameOf',
+      '\u007f' + rep('x', 300),
+      '.json',
+      '\ufffd' + rep('x', 238) + '~e9539ca3',
+    ],
+    [
+      'encodedName',
+      '\u007f' + rep('x', 300),
+      '.json',
+      '\ufffd' + rep('x', 238) + '~e9539ca3',
+    ],
+    [
+      'nameInFolder',
+      '\u007f' + rep('x', 300),
+      '.json',
+      '\ufffd' + rep('x', 238) + '~e9539ca3',
+    ],
+    [
+      'nameInStem',
+      '\u007f' + rep('x', 300),
+      '.json',
+      '\ufffd' + rep('x', 238) + '~e9539ca3',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 250) + '\u007f',
+      '.json',
+      rep('x', 241) + '~3221f382',
+    ],
+    [
+      'encodedName',
+      rep('x', 250) + '\u007f',
+      '.json',
+      rep('x', 241) + '~3221f382',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 250) + '\u007f',
+      '.json',
+      rep('x', 241) + '~3221f382',
+    ],
+    ['fileNameOf', 'a/\u007f', '.json', 'a%2F\ufffd~54fbb0a6'],
+    ['encodedName', 'a/\u007f', '.json', 'a%2F\ufffd~54fbb0a6'],
+    ['nameInFolder', 'a/\u007f', '.json', 'a%2F\ufffd~54fbb0a6'],
+    [
+      'fileNameOf',
+      '\u007f\u007f\u007f',
+      '.json',
+      '\ufffd\ufffd\ufffd~3bfe2982',
+    ],
+    [
+      'nameInFolder',
+      '\u007f\u007f\u007f',
+      '.json',
+      '\ufffd\ufffd\ufffd~3bfe2982',
+    ],
+    ['fileNameOf', rep('x', 250) + '*', '.json', rep('x', 250)],
+    ['encodedName', rep('x', 250) + '*', '.json', rep('x', 250)],
+    ['nameInFolder', rep('x', 250) + '*', '.json', rep('x', 241) + '~a6378e32'],
+    ['fileNameOf', rep('x', 250) + '.', '.json', rep('x', 250)],
+    ['encodedName', rep('x', 250) + '.', '.json', rep('x', 250)],
+    ['nameInFolder', rep('x', 250) + '.', '.json', rep('x', 241) + '~e79fc591'],
+    ['fileNameOf', rep('x', 247) + ' .', '.json', rep('x', 247) + '%20'],
+    ['encodedName', rep('x', 247) + ' .', '.json', rep('x', 247) + '%20'],
+    ['nameInFolder', rep('x', 247) + ' .', '.json', rep('x', 247) + ' .'],
+    ['fileNameOf', 'aaa' + rep('*', 248) + 'Z', '.json', 'aaaZ'],
+    ['encodedName', 'aaa' + rep('*', 248) + 'Z', '.json', 'aaaZ'],
+    [
+      'nameInFolder',
+      'aaa' + rep('*', 248) + 'Z',
+      '.json',
+      'aaa' + rep('*', 238) + '~0c181db2',
+    ],
+    ['fileNameOf', rep('x', 200) + rep('*', 55), '.json', rep('x', 200)],
+    ['encodedName', rep('x', 200) + rep('*', 55), '.json', rep('x', 200)],
+    [
+      'nameInFolder',
+      rep('x', 200) + rep('*', 55),
+      '.json',
+      rep('x', 200) + rep('*', 41) + '~b81f6726',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 200) + rep('*', 56),
+      '.json',
+      rep('x', 200) + '~2f5d1312',
+    ],
+    [
+      'encodedName',
+      rep('x', 200) + rep('*', 56),
+      '.json',
+      rep('x', 200) + '~2f5d1312',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 200) + rep('*', 56),
+      '.json',
+      rep('x', 200) + rep('*', 41) + '~2f5d1312',
+    ],
+    ['fileNameOf', rep('x', 243) + rep('*', 12), '.onCreate.js', rep('x', 243)],
+    [
+      'encodedName',
+      rep('x', 243) + rep('*', 12),
+      '.onCreate.js',
+      rep('x', 243),
+    ],
+    [
+      'nameInFolder',
+      rep('x', 243) + rep('*', 12),
+      '.onCreate.js',
+      rep('x', 234) + '~387853ca',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 243) + rep('*', 13),
+      '.onCreate.js',
+      rep('x', 234) + '~bbb024dd',
+    ],
+    [
+      'encodedName',
+      rep('x', 243) + rep('*', 13),
+      '.onCreate.js',
+      rep('x', 234) + '~bbb024dd',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 243) + rep('*', 13),
+      '.onCreate.js',
+      rep('x', 234) + '~bbb024dd',
+    ],
+    ['fileNameOf', 'a/' + rep('n', 246) + '*', '.json', 'a%2F' + rep('n', 246)],
+    [
+      'encodedName',
+      'a/' + rep('n', 246) + '*',
+      '.json',
+      'a%2F' + rep('n', 246),
+    ],
+    [
+      'nameInFolder',
+      'a/' + rep('n', 246) + '*',
+      '.json',
+      'a%2F' + rep('n', 246),
+    ],
+    [
+      'fileNameOf',
+      rep('*', 100) + rep('a', 300),
+      '.json',
+      rep('a', 155) + '~0099e8fb',
+    ],
+    [
+      'encodedName',
+      rep('*', 100) + rep('a', 300),
+      '.json',
+      rep('a', 155) + '~0099e8fb',
+    ],
+    [
+      'nameInFolder',
+      rep('*', 100) + rep('a', 300),
+      '.json',
+      rep('*', 100) + rep('a', 141) + '~0099e8fb',
+    ],
+    [
+      'fileNameOf',
+      'éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé',
+      '.json',
+      'éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééée~b6a90f48',
+    ],
+    [
+      'encodedName',
+      'éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé',
+      '.json',
+      'éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééée~b6a90f48',
+    ],
+    [
+      'nameInFolder',
+      'éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé',
+      '.json',
+      'éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééée~b6a90f48',
+    ],
+    ['fileNameOf', 'éééééééééééééééééééé', '.json', 'éééééééééééééééééééé'],
+    ['encodedName', 'éééééééééééééééééééé', '.json', 'éééééééééééééééééééé'],
+    ['nameInFolder', 'éééééééééééééééééééé', '.json', 'éééééééééééééééééééé'],
+    ['fileNameOf', rep('a', 252), '.é', rep('a', 252)],
+    ['encodedName', rep('a', 252), '.é', rep('a', 252)],
+    ['nameInFolder', rep('a', 252), '.é', rep('a', 252)],
+    ['fileNameOf', rep('a', 253), '.é', rep('a', 243) + '~c33c0a4d'],
+    ['encodedName', rep('a', 253), '.é', rep('a', 243) + '~c33c0a4d'],
+    ['nameInFolder', rep('a', 253), '.é', rep('a', 243) + '~c33c0a4d'],
+    ['fileNameOf', rep('a', 247), '.é.html', rep('a', 247)],
+    ['encodedName', rep('a', 247), '.é.html', rep('a', 247)],
+    ['nameInFolder', rep('a', 247), '.é.html', rep('a', 247)],
+    ['fileNameOf', rep('a', 248), '.é.html', rep('a', 238) + '~f195ec43'],
+    ['encodedName', rep('a', 248), '.é.html', rep('a', 238) + '~f195ec43'],
+    ['nameInFolder', rep('a', 248), '.é.html', rep('a', 238) + '~f195ec43'],
+    ['fileNameOf', rep('a', 250), '.€', rep('a', 250)],
+    ['nameInFolder', rep('a', 250), '.€', rep('a', 250)],
+    ['fileNameOf', rep('a', 251), '.€', rep('a', 251)],
+    ['nameInFolder', rep('a', 251), '.€', rep('a', 251)],
+    [
+      'fileNameOf',
+      rep('a', 241) + '~e8722168',
+      '.json',
+      rep('a', 241) + '~e8722168',
+    ],
+    [
+      'encodedName',
+      rep('a', 241) + '~e8722168',
+      '.json',
+      rep('a', 241) + '~e8722168',
+    ],
+    [
+      'nameInFolder',
+      rep('a', 241) + '~e8722168',
+      '.json',
+      rep('a', 241) + '~e8722168',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%C0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~62fe3e65',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%C0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~62fe3e65',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%C0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~62fe3e65',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%C1' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~ac6adba0',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%C1' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~ac6adba0',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%C1' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~ac6adba0',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%C2' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~577539e3',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%C2' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~577539e3',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%C2' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~577539e3',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%CF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~1d2879a0',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%CF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~1d2879a0',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%CF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~1d2879a0',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%D0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~898821dc',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%D0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~898821dc',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%D0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~898821dc',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%DF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~48fb79ef',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%DF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~48fb79ef',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%DF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~48fb79ef',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%E0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~e8156d20',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%E0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~e8156d20',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%E0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~e8156d20',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%EF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~558ce557',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%EF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~558ce557',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%EF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~558ce557',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%F0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~928c2116',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%F0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~928c2116',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%F0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~928c2116',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%F7' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~7558480f',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%F7' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~7558480f',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%F7' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~7558480f',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%F8' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%F8~ec065dff',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%F8' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%F8~ec065dff',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%F8' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%F8~ec065dff',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%FF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%FF~5fd4b656',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%FF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%FF~5fd4b656',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%FF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%FF~5fd4b656',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%BF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%BF~b9cf230b',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%BF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%BF~b9cf230b',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%BF' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%BF~b9cf230b',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%80' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%80~0347e94f',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%80' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%80~0347e94f',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%80' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%80~0347e94f',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%7F' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%7F~c580f112',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%7F' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%7F~c580f112',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%7F' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '%7F~c580f112',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%c0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~cd8c17ff',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%c0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~cd8c17ff',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%c0' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~cd8c17ff',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%df' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~370500ef',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%df' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~370500ef',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%df' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~370500ef',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 238) + '%f7' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~d3781d52',
+    ],
+    [
+      'encodedName',
+      rep('x', 238) + '%f7' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~d3781d52',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 238) + '%f7' + rep('y', 300),
+      '.json',
+      rep('x', 238) + '~d3781d52',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 235) + '%C2%80' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%C2%80~35844397',
+    ],
+    [
+      'encodedName',
+      rep('x', 235) + '%C2%80' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%C2%80~35844397',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 235) + '%C2%80' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%C2%80~35844397',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 235) + '%E0%80' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '~2ba3237f',
+    ],
+    [
+      'encodedName',
+      rep('x', 235) + '%E0%80' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '~2ba3237f',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 235) + '%E0%80' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '~2ba3237f',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 232) + '%E0%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%E0%80%80~42afd5d0',
+    ],
+    [
+      'encodedName',
+      rep('x', 232) + '%E0%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%E0%80%80~42afd5d0',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 232) + '%E0%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%E0%80%80~42afd5d0',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 232) + '%F0%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '~83aa8fb2',
+    ],
+    [
+      'encodedName',
+      rep('x', 232) + '%F0%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '~83aa8fb2',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 232) + '%F0%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '~83aa8fb2',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 229) + '%F0%80%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 229) + '%F0%80%80%80~aefc75f8',
+    ],
+    [
+      'encodedName',
+      rep('x', 229) + '%F0%80%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 229) + '%F0%80%80%80~aefc75f8',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 229) + '%F0%80%80%80' + rep('y', 300),
+      '.json',
+      rep('x', 229) + '%F0%80%80%80~aefc75f8',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 232) + '%F0%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%F0%80yyy~5b514145',
+    ],
+    [
+      'encodedName',
+      rep('x', 232) + '%F0%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%F0%80yyy~5b514145',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 232) + '%F0%80' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%F0%80yyy~5b514145',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 235) + '%C3%A9' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%C3%A9~bc17e0ab',
+    ],
+    [
+      'encodedName',
+      rep('x', 235) + '%C3%A9' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%C3%A9~bc17e0ab',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 235) + '%C3%A9' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%C3%A9~bc17e0ab',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 232) + '%E2%82%AC' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%E2%82%AC~aacc2390',
+    ],
+    [
+      'encodedName',
+      rep('x', 232) + '%E2%82%AC' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%E2%82%AC~aacc2390',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 232) + '%E2%82%AC' + rep('y', 300),
+      '.json',
+      rep('x', 232) + '%E2%82%AC~aacc2390',
+    ],
+    [
+      'fileNameOf',
+      'com¹.' + rep('a', 228) + rep('ж', 40),
+      '.json',
+      'com%C2%B9.' + rep('a', 228) + '~615d384c',
+    ],
+    [
+      'encodedName',
+      'com¹.' + rep('a', 228) + rep('ж', 40),
+      '.json',
+      'com%C2%B9.' + rep('a', 228) + '~615d384c',
+    ],
+    [
+      'fileNameOf',
+      'a?<b' + rep('x', 300),
+      '.json',
+      'a%3F%3Cb' + rep('x', 233) + '~9d5025bf',
+    ],
+    [
+      'encodedName',
+      'a?<b' + rep('x', 300),
+      '.json',
+      'a%3F%3Cb' + rep('x', 233) + '~9d5025bf',
+    ],
+    [
+      'nameInFolder',
+      'a?<b' + rep('x', 300),
+      '.json',
+      'a?<b' + rep('x', 237) + '~9d5025bf',
+    ],
+    [
+      'nameInStem',
+      'a?<b' + rep('x', 300),
+      '.json',
+      'a?<b' + rep('x', 237) + '~9d5025bf',
+    ],
+    ['encodedName', rep('*', 300) + 'abc', '.json', undefined],
+    ['nameInStem', rep('*', 300) + 'abc', '.json', rep('*', 241) + '~96467f3f'],
+    [
+      'fileNameOf',
+      rep('x', 235) + '%E0%BF' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '~afaaf9e0',
+    ],
+    [
+      'encodedName',
+      rep('x', 235) + '%E0%BF' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '~afaaf9e0',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 235) + '%E0%BF' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '~afaaf9e0',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 235) + '%E0%7F' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%E0%7F~1c245a08',
+    ],
+    [
+      'encodedName',
+      rep('x', 235) + '%E0%7F' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%E0%7F~1c245a08',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 235) + '%E0%7F' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%E0%7F~1c245a08',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 235) + '%E0%C0' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%E0~6018170a',
+    ],
+    [
+      'encodedName',
+      rep('x', 235) + '%E0%C0' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%E0~6018170a',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 235) + '%E0%C0' + rep('y', 300),
+      '.json',
+      rep('x', 235) + '%E0~6018170a',
+    ],
+    [
+      'fileNameOf',
+      rep('x', 229) + '%F0%80%80%BF' + rep('y', 300),
+      '.json',
+      rep('x', 229) + '%F0%80%80%BF~5c9b581a',
+    ],
+    [
+      'encodedName',
+      rep('x', 229) + '%F0%80%80%BF' + rep('y', 300),
+      '.json',
+      rep('x', 229) + '%F0%80%80%BF~5c9b581a',
+    ],
+    [
+      'nameInFolder',
+      rep('x', 229) + '%F0%80%80%BF' + rep('y', 300),
+      '.json',
+      rep('x', 229) + '%F0%80%80%BF~5c9b581a',
+    ],
+  ];
+
+  /** An id, short enough to read in the name of a test. */
+  const shown = (id: string): string =>
+    id.length > 24
+      ? `${JSON.stringify(id.slice(0, 12))}...(${id.length} characters)`
+      : JSON.stringify(id);
+
+  it.each(
+    GOLDEN.map(([fn, id, suffix, name]) => [
+      `${fn}(${shown(id)}, ${JSON.stringify(suffix)})`,
+      fn,
+      id,
+      suffix,
+      name,
+    ])
+  )(
+    '%s is as the independent implementation says',
+    (_label, fn, id, suffix, expected) => {
+      const make = FUNCTIONS[fn as string];
+
+      if (expected === undefined) {
+        // a value that leaves no name: the agent types get an empty file name, every other function refuses it
+        if (fn === 'fileNameOf')
+          expect(make(id as string, suffix as string)).toBe('');
+        else {
+          expect(() => make(id as string, suffix as string)).toThrow(
+            'does not name an object'
+          );
+        }
+        return;
+      }
+      expect(make(id as string, suffix as string)).toBe(expected);
+    }
+  );
+
+  it('every row of the table is a name that fits with its suffix, is well-formed and passes the gate', () => {
+    let named = 0;
+    for (const [, id, suffix, name] of GOLDEN) {
+      if (name === undefined) continue;
+      named++;
+      expect(
+        Buffer.byteLength(name) + Buffer.byteLength(suffix)
+      ).toBeLessThanOrEqual(255);
+      expect(name.isWellFormed()).toBe(true);
+      expect(() => assertFileSetPath(`d/${name}${suffix}`)).not.toThrow();
+      expect(id.length).toBeGreaterThan(0);
+    }
+    expect(named).toBeGreaterThan(110);
+  });
+
+  it('the table has the traps in it: a lone surrogate, a colon, a cut inside an escape, `*` and a name of 250 bytes', () => {
+    const ids = GOLDEN.map(([, id]) => id);
+
+    expect(ids).toContain('x\ud800');
+    expect(ids).toContain(`${rep('x', 254)}\ud800`);
+    expect(ids).toContain(`a:${rep('n', 247)}`);
+    expect(ids).toContain(`aaaa${rep('\u0085', 100)}`);
+    expect(ids).toContain(rep('/', 86));
+    expect(ids).toContain(`${rep('x', 200)}${rep('*', 100)}`);
+    expect(ids).toContain(rep('a', 250));
+    // a device name with a superscript digit, which the sanitizer writes out whole as %XX
+    expect(ids).toContain(`com\u00b9.${rep('x', 241)}`);
+    // a lone surrogate after a device name and a dot, and U+007F
+    expect(ids).toContain('con.\ud800');
+    expect(ids).toContain('a\u007fb');
+    // an id at the boundary that main gave a valid name: a `*` and a trailing dot or space
+    expect(ids).toContain(`${rep('x', 250)}*`);
+    expect(ids).toContain(`${rep('x', 247)} .`);
+    // the clash that is certain: an id shaped like a shortened name
+    expect(ids).toContain(`${rep('a', 241)}~e8722168`);
+  });
+
+  it('an id of the shape of a shortened name has that name, so the id it was made from clashes with it: the engine reports the later one', () => {
+    const shaped = `${rep('a', 241)}~e8722168`;
+
+    // the id fits (250 bytes), so it keeps its name, and the name of `a` repeated 300 times is the same string
+    expect(fileNameOf(shaped)).toBe(shaped);
+    expect(fileNameOf(rep('a', 300))).toBe(shaped);
+    expect(nameInFolder(shaped)).toBe(nameInFolder(rep('a', 300)));
+  });
+
+  it('two ids that share a cut and the 8 characters of a checksum (about one pair in four billion that shares a cut) get one name: the engine reports the second', () => {
+    const first = `${rep('a', 300)}7449`;
+    const second = `${rep('a', 300)}22501`;
+
+    expect(first).not.toBe(second);
+    expect(fileNameOf(first)).toBe(fileNameOf(second));
+    expect(fileNameOf(first)).toBe(`${rep('a', 241)}~5b2c45dc`);
+  });
+
+  describe('the three traps', () => {
+    it('the whole encoded name is measured: a long run of slashes is not one name (a sanitizer cut at 255 bytes made them one)', () => {
+      const names = new Set<string>();
+      for (let count = 80; count <= 120; count++) {
+        for (const suffix of ['', '.json']) {
+          const id = rep('/', count);
+          const name = nameInFolder(id, suffix);
+
+          expect(
+            Buffer.byteLength(name) + Buffer.byteLength(suffix)
+          ).toBeLessThanOrEqual(255);
+          if (suffix === '') names.add(name);
+        }
+      }
+      // 41 different ids, 41 different names with no suffix
+      expect(names.size).toBe(41);
+      expect(fileNameOf(rep('/', 86), '')).toBe(`${rep('%2F', 82)}~c4d15c2e`);
+      expect(fileNameOf(rep('/', 85), '')).toBe(rep('%2F', 85));
+    });
+
+    it('a lone surrogate is found in the id, not in the sanitized name (the sanitizer drops it at its own cut)', () => {
+      const id = `${rep('x', 254)}\ud800`;
+
+      expect(id.isWellFormed()).toBe(false);
+      // the sanitizer drops the surrogate: the name that it makes looks like text
+      expect(safeFileName(id).isWellFormed()).toBe(true);
+      expect(safeFileName(id)).toBe(rep('x', 254));
+      // and the id still gets a checksum of its own, which is not the checksum of the id without it
+      expect(fileNameOf(id)).toBe(`${rep('x', 241)}~426b50d5`);
+      expect(fileNameOf(id)).not.toBe(fileNameOf(rep('x', 254)));
+      expect(fileNameOf(`${rep('x', 254)}\ud801`)).not.toBe(fileNameOf(id));
+    });
+
+    it('the colon that nameInStem writes as %3A counts before the name fits, not after', () => {
+      const fits = `a:${rep('n', 246)}`;
+      const longer = `a:${rep('n', 247)}`;
+
+      expect(nameInStem(fits)).toBe(`a%3A${rep('n', 246)}`);
+      expect(Buffer.byteLength(nameInStem(fits)) + 5).toBe(255);
+      expect(nameInStem(longer)).toBe(`a%3A${rep('n', 237)}~a43dbedc`);
+      // the file that a type makes of the stem is a path that the gate lets through
+      expect(() =>
+        assertFileSetPath(`d/${nameInStem(longer)}.json`)
+      ).not.toThrow();
+      expect(() =>
+        assertFileSetPath(`d/${nameInStem(fits)}.json`)
+      ).not.toThrow();
+    });
+
+    it('one name for one object: the name is made once with the longest suffix, and is the same name for every shorter one', () => {
+      const id = rep('a', 300);
+      const longest = '.onCreate.js';
+      const name = fileNameOf(id, longest);
+
+      expect(name).toBe(`${rep('a', 234)}~e8722168`);
+      for (const suffix of ['', '.js', '.json', longest]) {
+        expect(fileNameOf(name, suffix)).toBe(name);
+        expect(encodedName(name, suffix)).toBe(name);
+        expect(nameInFolder(name, suffix)).toBe(name);
+        expect(nameInStem(name, suffix)).toBe(name);
+        expect(objectFilePath('d', name, suffix)).toBe(`d/${name}.json`);
+      }
+      // a name that is made with the short suffix and then asked for with the long one is shortened again: its checksum
+      // is the checksum of the shortened name, not of the id (which is why a type makes the name once)
+      expect(fileNameOf(fileNameOf(id), longest)).not.toBe(name);
+    });
+  });
+
+  describe('the cases of the first review', () => {
+    it('a device name with a superscript digit and a dot: the sanitizer writes the whole id out as %XX, and the name is measured as it made it', () => {
+      const cases: [string, ((id: string) => string)[]][] = [
+        [`com\u00b9.${rep('x', 241)}`, [fileNameOf, encodedName]],
+        [`lpt\u00b2.${rep('x', 246)}`, [fileNameOf, encodedName]],
+        [`COM\u00b3.${rep('é', 120)}A`, [fileNameOf, encodedName]],
+        // an id that is not one safe name goes through the sanitizer in every function
+        [
+          `Com\u00b9.a/${rep('x', 240)}`,
+          [fileNameOf, encodedName, nameInFolder, nameInStem],
+        ],
+      ];
+      for (const [id, makes] of cases) {
+        for (const make of makes) {
+          const name = make(id);
+
+          // the name is a name that fits: the file is a path that the gate lets through, and asking again changes nothing
+          expect(Buffer.byteLength(name)).toBeLessThanOrEqual(250);
+          expect(() => assertFileSetPath(`d/${name}.json`)).not.toThrow();
+          expect(make(name)).toBe(name);
+          expect(name).toMatch(/~[0-9a-f]{8}$/);
+        }
+      }
+      // two different long ids have two names, where the sanitizer cut both at 255 bytes to one
+      expect(fileNameOf(`com\u00b9.${rep('é', 120)}A`)).not.toBe(
+        fileNameOf(`com\u00b9.${rep('é', 120)}B`)
+      );
+      // an id that is short enough is the name that the sanitizer made, written out whole
+      expect(fileNameOf('com\u00b9.é')).toBe('com%C2%B9.%C3%A9');
+      expect(fileNameOf('LPT\u00b2')).toBe('LPT%C2%B2');
+      // a device name without a superscript is emptied, whatever its length
+      expect(fileNameOf(`com1.${rep('x', 300)}`)).toBe('');
+    });
+
+    it('a cut never ends inside an escaped character of the name that the sanitizer wrote out for a device name', () => {
+      const bad: string[] = [];
+      for (const character of ['é', '€', '😀']) {
+        for (let padding = 215; padding <= 245; padding++) {
+          const id = `com¹.${rep('a', padding)}${rep(character, 40)}`;
+          const name = fileNameOf(id);
+          const cut = name.slice(0, -9);
+
+          try {
+            decodeURIComponent(cut);
+          } catch {
+            bad.push(`${character} ${padding}: ${cut.slice(-14)}`);
+          }
+        }
+      }
+
+      expect(bad).toEqual([]);
+    });
+
+    it('a lone surrogate after a device name and a dot is no error: the name is clean with a checksum, or none where the device name is emptied', () => {
+      // a device name is emptied whatever follows the dot, so it has no name; as typed, in a folder, it is a name like another
+      for (const id of [
+        'con.\ud800',
+        'nul.x\udc00',
+        `aux.${rep('x', 300)}\ud800`,
+      ]) {
+        expect(fileNameOf(id)).toBe('');
+        expect(() => encodedName(id)).toThrow('does not name an object');
+        expect(nameInFolder(id)).toMatch(/~[0-9a-f]{8}$/);
+        expect(nameInFolder(id).slice(-8)).toBe(checksumOf(id));
+      }
+      // with a superscript digit it is not a device name for the sanitizer, which writes the whole id out
+      for (const id of [
+        'com\u00b9.\ud800',
+        `COM\u00b2.${rep('é', 130)}\udc00`,
+      ]) {
+        for (const make of [
+          fileNameOf,
+          encodedName,
+          nameInFolder,
+          nameInStem,
+        ]) {
+          const name = make(id);
+
+          expect(name).toMatch(/~[0-9a-f]{8}$/);
+          expect(name.isWellFormed()).toBe(true);
+          expect(name.slice(-8)).toBe(checksumOf(id));
+          expect(() => assertFileSetPath(`d/${name}.json`)).not.toThrow();
+        }
+      }
+    });
+
+    it('U+007F is not text for a file name: it is written as U+FFFD, and the id gets the checksum of its own', () => {
+      for (const make of [fileNameOf, encodedName, nameInFolder, nameInStem]) {
+        const name = make('a\u007fb');
+
+        expect(name).toBe(`a�b~${checksumOf('a\u007fb')}`);
+        expect(() => assertFileSetPath(`d/${name}.json`)).not.toThrow();
+        // two ids that differ only in that character, and a lone surrogate, have three names
+        expect(new Set([name, make('a�b'), make('a\ud800b')]).size).toBe(3);
+        expect(make(`\u007f${rep('x', 300)}`)).toMatch(/^�x+~[0-9a-f]{8}$/);
+      }
+    });
+
+    it('an id keeps the name that main gave it when that was a valid file name with its suffix: a `*`, a trailing dot or a trailing space at the boundary', () => {
+      // these were 251 to 255 bytes only before the sanitizer took a `*` or the dots at the end out (a space at the end is
+      // written `%20` and stays): main's name is a valid file
+      expect(fileNameOf(`${rep('x', 250)}*`)).toBe(rep('x', 250));
+      expect(fileNameOf(`${rep('x', 250)}.`)).toBe(rep('x', 250));
+      expect(fileNameOf(`aaa${rep('*', 248)}Z`)).toBe('aaaZ');
+      expect(fileNameOf(`${rep('x', 247)} .`)).toBe(`${rep('x', 247)}%20`);
+      // a name that the sanitizer cut, or that is too long with its suffix, is not: the id is shortened
+      expect(fileNameOf(`${rep('x', 200)}${rep('*', 56)}`)).toMatch(
+        /~[0-9a-f]{8}$/
+      );
+      expect(fileNameOf(`${rep('x', 249)} `)).toBe(`${rep('x', 241)}~f7444881`);
+      expect(fileNameOf(`${rep('x', 251)}.`)).toMatch(/~[0-9a-f]{8}$/);
+    });
+
+    it('a value that is not a string is refused as the sanitizer refuses it, and a number is its text for the functions that take a name', () => {
+      for (const value of [undefined, null, 5, {}, ['a']]) {
+        expect(() => fileNameOf(value as unknown as string)).toThrow(
+          'Input must be string'
+        );
+      }
+      expect(nameInFolder(5 as unknown as string)).toBe('5');
+      expect(encodedName(1.5 as unknown as string)).toBe('1.5');
+    });
+
+    it('a suffix that holds a character of more than one byte is counted in bytes', () => {
+      expect(fileNameOf(rep('a', 252), '.é')).toBe(rep('a', 252));
+      expect(fileNameOf(rep('a', 253), '.é')).toBe(
+        `${rep('a', 243)}~${checksumOf(rep('a', 253))}`
+      );
+      expect(fileNameOf(rep('a', 247), '.é.html')).toBe(rep('a', 247));
+      expect(fileNameOf(rep('a', 248), '.é.html')).toBe(
+        `${rep('a', 238)}~${checksumOf(rep('a', 248))}`
+      );
+    });
+
+    it('a name that was cut as NFD and as NFC has the checksum of the id as it was given', () => {
+      const nfc = rep('é', 130);
+      const nfd = nfc.normalize('NFD');
+
+      expect(nfd).not.toBe(nfc);
+      expect(fileNameOf(nfd).slice(-8)).toBe(checksumOf(nfd));
+      expect(fileNameOf(nfd).slice(-8)).not.toBe(fileNameOf(nfc).slice(-8));
+    });
+  });
+
+  describe('a name of N bytes and a suffix of S bytes', () => {
+    // the last two hold a character of two and of three bytes: a suffix is counted in bytes
+    const SUFFIXES = [
+      '',
+      '.json',
+      '.onCreate.js',
+      `.${rep('l', 39)}`,
+      '.é.html',
+      '.€',
+    ];
+    const CHARACTERS: [string, number][] = [
+      ['a', 1],
+      ['é', 2],
+      ['€', 3],
+      ['😀', 4],
+      ['%41', 3],
+    ];
+
+    it.each(
+      SUFFIXES.flatMap((suffix) =>
+        CHARACTERS.map(([character, bytes]) => [
+          JSON.stringify(suffix),
+          character,
+          bytes,
+          suffix,
+        ])
+      )
+    )(
+      'with the suffix %s a name made of %s (%d bytes each) is kept up to 255 bytes in all and is shortened one character beyond',
+      (_label, character, bytes, suffix) => {
+        const room = 255 - Buffer.byteLength(suffix as string);
+        const most = Math.floor(room / (bytes as number));
+        const kept = rep(character as string, most);
+        const beyond = rep(character as string, most + 1);
+
+        for (const make of [nameInFolder, fileNameOf, encodedName]) {
+          expect(make(kept, suffix as string)).toBe(kept);
+          const shortened = make(beyond, suffix as string);
+
+          expect(shortened).toMatch(/~[0-9a-f]{8}$/);
+          expect(
+            Buffer.byteLength(shortened) + Buffer.byteLength(suffix as string)
+          ).toBeLessThanOrEqual(255);
+          // the cut is at a whole character: what is left is a whole number of them
+          expect(shortened.slice(0, -9)).toBe(
+            rep(
+              character as string,
+              shortened.slice(0, -9).length / (character as string).length
+            )
+          );
+        }
+      }
+    );
+
+    it('a character of a path is three bytes once it is written as %XX, and a `*` is counted before the sanitizer takes it out', () => {
+      const ESCAPED: [string, string][] = [
+        ['/', '%2F'],
+        ['\\', '%5C'],
+        ['?', '%3F'],
+        ['<', '%3C'],
+        ['>', '%3E'],
+        [':', '%3A'],
+        ['|', '%7C'],
+        ['"', '%22'],
+      ];
+      for (const suffix of SUFFIXES) {
+        const room = 255 - Buffer.byteLength(suffix);
+        const most = Math.floor(room / 3);
+        for (const [character, escape] of ESCAPED) {
+          expect(fileNameOf(rep(character, most), suffix)).toBe(
+            rep(escape, most)
+          );
+          expect(encodedName(rep(character, most + 1), suffix)).toMatch(
+            /~[0-9a-f]{8}$/
+          );
+        }
+        // the sanitizer takes `*` out after it has cut at 255 bytes: `x` and 254 stars are 255 bytes, nothing is cut and the
+        // name that is left (`x`) is the name that main gave; one star more and the sanitizer cuts, so the id is shortened
+        expect(fileNameOf(`x${rep('*', 254)}`, suffix)).toBe('x');
+        expect(fileNameOf(`x${rep('*', 255)}`, suffix)).toBe(
+          `x~${checksumOf(`x${rep('*', 255)}`)}`
+        );
+      }
+    });
+
+    it('a suffix that leaves no room for a shortened name is refused, whatever the id', () => {
+      const tooLong = `.${rep('s', 246)}`;
+
+      for (const make of [fileNameOf, encodedName, nameInFolder, nameInStem]) {
+        expect(() => make('a', tooLong)).toThrow('leaves no room for a name');
+      }
+      expect(() => objectFilePath('d', 'a', tooLong)).toThrow(
+        'leaves no room for a name'
+      );
+      expect(() => objectFolderPath('d', 'a', tooLong)).toThrow(
+        'leaves no room for a name'
+      );
+      // 246 bytes of suffix leave room for the checksum and nothing else
+      const edge = `.${rep('s', 245)}`;
+
+      expect(fileNameOf(rep('a', 300), edge)).toBe(`~e8722168`);
+    });
+  });
+});
+
+/** The first 8 hexadecimal characters of the SHA-256 of an id as UTF-16 code units: the checksum of a shortened name. */
+const checksumOf = (id: string): string =>
+  createHash('sha256').update(id, 'utf16le').digest('hex').slice(0, 8);
+
+describe('the names that every function makes, over a battery of ids', () => {
+  const CHARACTERS = [
+    'a',
+    'é',
+    '€',
+    '😀',
+    '/',
+    '?',
+    '*',
+    '%',
+    '\u0085',
+    '\n',
+    ' ',
+    // the other characters of a path, which the sanitizer writes out as %XX
+    '\\',
+    ':',
+    '<',
+    '>',
+    '|',
+    '"',
+    // not text: a lone high and a lone low surrogate, and U+007F
+    '\ud800',
+    '\udc00',
+    '\u007f',
+  ];
+  const LENGTHS = [
+    1, 5, 62, 84, 85, 86, 125, 126, 127, 128, 250, 251, 256, 300,
+  ];
+  const SUFFIXES = [
+    '',
+    '.json',
+    '.js',
+    '.onCreate.js',
+    `.${rep('l', 39)}`,
+    '.é.html',
+  ];
+  const FUNCTIONS = { fileNameOf, encodedName, nameInFolder, nameInStem };
+  const IDS = CHARACTERS.flatMap((character) =>
+    LENGTHS.flatMap((length) => [
+      rep(character, length),
+      `a:${rep(character, length)}`,
+      `x${rep(character, length)}`,
+      // a device name and a dot, which the sanitizer empties, and with a superscript digit, which it writes out whole
+      `con.${rep(character, length)}`,
+      `com\u00b9.${rep(character, length)}`,
+    ])
+  );
+
+  /** What a function makes of an id, or `undefined` for an id that leaves no name. */
+  const nameOf = (
+    make: (id: string, suffix?: string) => string,
+    id: string,
+    suffix: string
+  ): string | undefined => {
+    try {
+      const name = make(id, suffix);
+      return name === '' ? undefined : name;
+    } catch (error) {
+      expect(error.message).toContain('does not name an object');
+      return undefined;
+    }
+  };
+
+  it('every name fits with its suffix, is text, passes the gate, and is the same name when it is asked for again with the same or a shorter suffix', () => {
+    const bad: string[] = [];
+    let named = 0;
+    for (const [fn, make] of Object.entries(FUNCTIONS)) {
+      for (const suffix of SUFFIXES) {
+        for (const id of IDS) {
+          const name = nameOf(make, id, suffix);
+          if (name === undefined) continue;
+          named++;
+          try {
+            if (!name.isWellFormed()) throw new Error('not text');
+            if (Buffer.byteLength(name) + Buffer.byteLength(suffix) > 255) {
+              throw new Error('too long');
+            }
+            assertFileSetPath(`d/${name}${suffix}`);
+            for (const shorter of SUFFIXES) {
+              if (Buffer.byteLength(shorter) > Buffer.byteLength(suffix)) {
+                continue;
+              }
+              if (make(name, shorter) !== name) throw new Error('not stable');
+            }
+          } catch (error) {
+            bad.push(
+              `${fn} ${JSON.stringify(suffix)} ${JSON.stringify(id.slice(0, 20))}(${id.length}): ${error.message}`
+            );
+          }
+        }
+      }
+    }
+
+    expect(bad.slice(0, 5)).toEqual([]);
+    // 20 characters, 14 lengths, 5 shapes, 5 suffixes, 4 functions: 28,000 names, a few of which leave no name
+    expect(named).toBeGreaterThan(20000);
+  });
+
+  it('a cut never ends inside an escape: what the name function wrote of the id decodes, whole escaped characters only', () => {
+    const bad: string[] = [];
+    let checked = 0;
+    for (const [fn, make] of Object.entries(FUNCTIONS)) {
+      for (const suffix of SUFFIXES) {
+        for (const id of IDS) {
+          // a `%` that the id holds itself is its own character: only the escapes that the name function wrote are looked at
+          if (id.includes('%')) continue;
+          const name = nameOf(make, id, suffix);
+          if (name === undefined || !/~[0-9a-f]{8}$/.test(name)) continue;
+          checked++;
+          try {
+            // a `%` that is not a whole escape, or an escaped character that lacks a byte, is a URIError
+            decodeURIComponent(name.slice(0, -9));
+          } catch {
+            bad.push(
+              `${fn} ${JSON.stringify(suffix)} ${JSON.stringify(id.slice(0, 12))}(${id.length}): ${name.slice(-24, -9)}`
+            );
+          }
+        }
+      }
+    }
+
+    expect(bad.slice(0, 5)).toEqual([]);
+    expect(checked).toBeGreaterThan(5000);
+  });
+
+  it('two ids that do not fit never share a name', () => {
+    const shared: string[] = [];
+    let shortened = 0;
+    for (const [fn, make] of Object.entries(FUNCTIONS)) {
+      for (const suffix of SUFFIXES) {
+        const seen = new Map<string, string>();
+        for (const id of IDS) {
+          const name = nameOf(make, id, suffix);
+          // no id of the battery holds a `~`, so a name with a checksum is the name of an id that did not fit
+          if (name === undefined || !/~[0-9a-f]{8}$/.test(name)) continue;
+          shortened++;
+          const first = seen.get(name);
+          if (first !== undefined && first !== id) {
+            shared.push(
+              `${fn} ${JSON.stringify(suffix)}: ${JSON.stringify(first.slice(0, 20))} and ${JSON.stringify(id.slice(0, 20))}`
+            );
+          }
+          seen.set(name, id);
+        }
+      }
+    }
+
+    expect(shared.slice(0, 5)).toEqual([]);
+    expect(shortened).toBeGreaterThan(9000);
+  });
+
+  it('ids that share a cut get their own checksums', () => {
+    const names = new Set<string>();
+    for (let index = 0; index < 3000; index++) {
+      names.add(fileNameOf(`${rep('a', 300)}${index}`));
+    }
+    const cuts = new Set([...names].map((name) => name.slice(0, -9)));
+
+    expect(names.size).toBe(3000);
+    expect([...cuts]).toEqual([rep('a', 241)]);
+  });
+
+  it('the checksum is of the complete id, and the same id has the same name whatever the suffix', () => {
+    for (const id of [rep('a', 300), `${rep('é', 150)}`, rep('/', 100)]) {
+      for (const make of [fileNameOf, encodedName, nameInFolder]) {
+        for (const suffix of SUFFIXES) {
+          expect(make(id, suffix).slice(-8)).toBe(checksumOf(id));
+        }
+      }
+    }
+    // a lone surrogate keeps its own code unit: two ids that differ only there differ
+    expect(checksumOf('\ud800')).not.toBe(checksumOf('\ud801'));
+    expect(checksumOf('x\ud800')).not.toBe(checksumOf('x�'));
+    expect(fileNameOf('x\ud800')).not.toBe(fileNameOf('x\ud801'));
+    expect(fileNameOf('x\ud800')).not.toBe(fileNameOf('x�'));
+  });
+});
+
+/**
+ * An id keeps the name that main gave it exactly when that name was a valid file name with its suffix, as a differential
+ * test: a frozen copy of the functions as they were before the checksum (5.0.0-56) is run next to the functions as they are
+ * over a generated corpus, and the set of ids whose name differs from the old one is exactly the set of ids that did not fit:
+ * those whose old name the sanitizer or the function cut silently, those that were not text, and those whose old name was
+ * too long with the suffix for the gate. What "the sanitizer cut it" means is decided by a port of the source of
+ * sanitize-filename that is written in this file, not by the functions under test, and the port is shown to give the name
+ * that the package gives.
+ *
+ * The corpus is a deterministic sample (114,318 comparisons, about 7 seconds). `FILE_NAME_FULL_CORPUS=1 npm run test:only --
+ * src/utils/FileSetPathUtils` runs all of it: the 402,234 strings of the gate corpus and 121,680 long ids, 3,312,456
+ * comparisons, about 98 seconds.
+ */
+describe('an id keeps the name that it had exactly when that was a valid file name', () => {
+  const FULL = process.env.FILE_NAME_FULL_CORPUS === '1';
+
+  // ---- a port of the function `sanitize` of sanitize-filename 1.6.5 (its source, as written there) ----
+  const PORT_ILLEGAL = /[/?<>\\:*|"]/g;
+  // eslint-disable-next-line no-control-regex
+  const PORT_CONTROL = /[\x00-\x1f\x80-\x9f]/g;
+  const PORT_RESERVED = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(\..*)?$/i;
+  const portStrip = (text: string, replace: boolean): string => {
+    let end = text.length;
+    while (end > 0 && (text[end - 1] === '.' || text[end - 1] === ' ')) end--;
+    if (end === text.length) return text;
+    return (
+      text.slice(0, end) + (replace ? encodeURIComponent(text.slice(end)) : '')
+    );
+  };
+  const portTruncate = (text: string, limit: number): string => {
+    let bytes = 0;
+    let end = 0;
+    for (const character of text) {
+      const size = Buffer.byteLength(character);
+      if (bytes + size > limit) break;
+      bytes += size;
+      end += character.length;
+    }
+    return text.slice(0, end);
+  };
+  const portSanitize = (
+    input: string,
+    replace: boolean
+  ): { first: string; out: string } => {
+    const rep = (piece: string): string =>
+      replace ? encodeURIComponent(piece) : '';
+    const first = portStrip(
+      input
+        .replace(PORT_ILLEGAL, rep)
+        .replace(PORT_CONTROL, rep)
+        .replace(/^\.+$/, rep)
+        .replace(PORT_RESERVED, rep),
+      replace
+    );
+    const out = portStrip(portTruncate(first, 255), false).replace(
+      PORT_RESERVED,
+      ''
+    );
+    return { first, out };
+  };
+  /** What the module's call gives: the name, and the bytes that its first pass had before it was cut. */
+  const portName = (text: string): { name: string; firstBytes: number } => {
+    const once = portSanitize(text, true);
+    return {
+      name: portSanitize(once.out, false).out,
+      firstBytes: Buffer.byteLength(once.first),
+    };
+  };
+
+  // ---- the frozen functions of 5.0.0-56 ----
+  const bytesOfTheOldFunctions = (text: string): number =>
+    Buffer.byteLength(
+      text
+        // eslint-disable-next-line no-control-regex
+        .replace(/[\u0000-\u001f\u0080-\u009f/?<>\\:|"]/g, (character) =>
+          encodeURIComponent(character)
+        )
+    );
+  const refuse = (text: string): never => {
+    throw new Error(
+      `'${text}' does not name an object: an id or a name is not a path`
+    );
+  };
+  const before: Record<string, (value: string) => string> = {
+    fileNameOf: (value) => {
+      const name = safeFileName(value);
+      if (Buffer.byteLength(name) <= 250) return name;
+      return Buffer.from(name)
+        .subarray(0, 250)
+        .toString('utf8')
+        .replace(/�+$/, '')
+        .replace(/[. ]+$/, '');
+    },
+    nameInFolder: (value) => {
+      const text = String(value);
+      if (isOneSafeSegment(text)) return text;
+      if (bytesOfTheOldFunctions(text) > 255) throw new Error('too long');
+      const name = safeFileName(text);
+      return name === '' ? refuse(text) : name;
+    },
+    encodedName: (value) => {
+      const text = String(value);
+      if (bytesOfTheOldFunctions(text) > 255) throw new Error('too long');
+      const name = safeFileName(text);
+      return name === '' ? refuse(text) : name;
+    },
+    nameInStem: (value) => {
+      const name = before.nameInFolder(value);
+      return /^[A-Za-z]:/.test(name) ? `${name[0]}%3A${name.slice(2)}` : name;
+    },
+  };
+  const after: Record<string, (id: string, suffix?: string) => string> = {
+    fileNameOf,
+    nameInFolder,
+    encodedName,
+    nameInStem,
+  };
+
+  /** What a function gives, as one comparable value: its name, or `refused`, or the text of any other error. */
+  const outcome = (
+    make: (id: string, suffix?: string) => string,
+    id: string,
+    suffix?: string
+  ): string => {
+    try {
+      return `name ${make(id, suffix)}`;
+    } catch (error) {
+      return error.message.includes('does not name an object')
+        ? 'refused'
+        : `refused ${error.message}`;
+    }
+  };
+
+  const isText = (id: string): boolean =>
+    id.isWellFormed() && !id.includes('\u007f');
+
+  /**
+   * Whether the name that main gave to an id was a valid file name with the suffix: the id is text, the name is as long as
+   * the sanitizer or the typed id makes it (nothing was cut, not by the sanitizer at 255 bytes and not by the function at
+   * 250), it is 255 bytes or less with the suffix, and the gate accepts the file.
+   */
+  const wasValid = (
+    fn: string,
+    id: string,
+    suffix: string,
+    was: string
+  ): boolean => {
+    if (!isText(id)) return false;
+    if (Buffer.byteLength(was) + Buffer.byteLength(suffix) > 255) return false;
+    const typed =
+      (fn === 'nameInFolder' || fn === 'nameInStem') && isOneSafeSegment(id);
+    if (!typed) {
+      const port = portName(id);
+      if (port.firstBytes > 255 || port.name !== was) return false;
+    }
+    try {
+      assertFileSetPath(`d/${was}${suffix}`);
+    } catch {
+      return false;
+    }
+    return true;
+  };
+
+  type Counts = { same: number; changed: number; none: number };
+
+  /** Runs one id through the four functions and the suffixes; problems are what the claim does not hold for. */
+  const compare = (
+    id: string,
+    suffixes: string[],
+    problems: string[],
+    counts: Counts
+  ): void => {
+    for (const fn of Object.keys(before)) {
+      for (const suffix of suffixes) {
+        // the old file name was cut at 250 bytes for `.json`: it is no measure for a shorter suffix
+        if (fn === 'fileNameOf' && Buffer.byteLength(suffix) < 5) continue;
+        const now = outcome(after[fn], id, suffix);
+        const was = outcome(before[fn], id);
+        const label = `${fn} ${JSON.stringify(suffix)} ${JSON.stringify(id.slice(0, 30))}(${id.length})`;
+        if (!was.startsWith('name ') || was === 'name ') {
+          // the old function refused the id (a name over 255 bytes, a lone surrogate after a device name), or it was one that
+          // the sanitizer empties (an empty name): there is no old name to keep. The new one is a legal name, or no name for
+          // a value that the sanitizer empties
+          counts.none++;
+          const leavesNone =
+            portName(id.toWellFormed().replaceAll('\u007f', '\ufffd')).name ===
+              '' &&
+            !(
+              (fn === 'nameInFolder' || fn === 'nameInStem') &&
+              isOneSafeSegment(id)
+            );
+          if (now === 'refused' || now === 'name ') {
+            if (!leavesNone)
+              problems.push(`${label}: no name for an id that has one`);
+          } else if (!now.startsWith('name ')) {
+            // an error that is not the refusal of a value that leaves no name
+            problems.push(`${label}: ${now.slice(0, 60)}`);
+          } else {
+            const name = now.slice('name '.length);
+            try {
+              assertFileSetPath(`d/${name}${suffix}`);
+              if (
+                !name.isWellFormed() ||
+                Buffer.byteLength(name) + Buffer.byteLength(suffix) > 255
+              ) {
+                throw new Error('too long or not text');
+              }
+            } catch {
+              problems.push(
+                `${label}: the name ${now.slice(0, 50)} is not a legal name`
+              );
+            }
+          }
+          continue;
+        }
+        const keptName = wasValid(fn, id, suffix, was.slice('name '.length));
+        if (keptName) {
+          counts.same++;
+          if (now !== was) {
+            problems.push(
+              `${label}: was valid, was ${was.slice(0, 40)} is ${now.slice(0, 40)}`
+            );
+          }
+          continue;
+        }
+        counts.changed++;
+        // an old name that was cut, too long with its suffix, not text or refused by the gate: the name is another one now,
+        // a shortened name that fits, is text and passes the gate
+        const name = now.slice('name '.length);
+        let fine =
+          now.startsWith('name ') &&
+          now !== was &&
+          /~[0-9a-f]{8}$/.test(name) &&
+          Buffer.byteLength(name) + Buffer.byteLength(suffix) <= 255 &&
+          name.isWellFormed();
+        if (fine) {
+          try {
+            assertFileSetPath(`d/${name}${suffix}`);
+          } catch {
+            fine = false;
+          }
+        }
+        if (!fine) {
+          problems.push(`${label}: was not valid, is ${now.slice(0, 60)}`);
+        }
+      }
+    }
+  };
+
+  it('the port of the sanitizer gives the name that the package gives, and the length of its first pass', () => {
+    const problems: string[] = [];
+    const ids = [
+      `com¹.${'x'.repeat(241)}`,
+      `lpt².${'é'.repeat(120)}A`,
+      `COM³.a/b c${'€'.repeat(30)}`,
+      `con.${'x'.repeat(400)}`,
+      `nul${'x'.repeat(300)}`,
+      `${'x'.repeat(249)} `,
+      `${'x'.repeat(100)}${'*'.repeat(300)}${'y'.repeat(100)}`,
+      '.'.repeat(300),
+      ' ',
+      'a .',
+      `${'*'.repeat(300)}abc`,
+    ];
+    for (const piece of ['', 'com¹.', 'LPT²', 'nul.']) {
+      for (const body of [
+        'a',
+        'é',
+        '€',
+        '😀',
+        '/',
+        '\\',
+        ':',
+        '?',
+        '*',
+        '%',
+        '<',
+        '>',
+        '|',
+        '"',
+        '\u0085',
+        '\n',
+        ' ',
+        '.',
+        '..',
+      ]) {
+        for (const length of [1, 60, 85, 86, 125, 126, 250, 251, 256, 300]) {
+          ids.push(piece + body.repeat(length));
+          ids.push(`${piece}x${body.repeat(length)}${body}`);
+        }
+      }
+    }
+    for (const id of ids) {
+      const port = portName(id);
+      if (port.name !== safeFileName(id))
+        problems.push(
+          `${JSON.stringify(id.slice(0, 30))}(${id.length}): the name`
+        );
+    }
+
+    expect(problems.slice(0, 5)).toEqual([]);
+    expect(ids.length).toBeGreaterThan(1500);
+  });
+
+  it('over the strings of the gate corpus every name is the name that it was (all 402,234 with FILE_NAME_FULL_CORPUS=1)', () => {
+    const PIECES = [
+      '..',
+      '.',
+      'C:',
+      'c:',
+      ':',
+      '\\',
+      '/',
+      '%3A',
+      '：',
+      'a',
+      'x.js',
+      'CC::',
+      'C',
+    ];
+    const problems: string[] = [];
+    const counts: Counts = { same: 0, changed: 0, none: 0 };
+    let total = 0;
+    let used = 0;
+    const walk = (prefix: string, depth: number): void => {
+      total++;
+      // a deterministic sample: every string of up to three pieces and every 80th of the others
+      if (FULL || depth <= 3 || total % 80 === 0) {
+        used++;
+        compare(prefix, ['.json'], problems, counts);
+      }
+      if (depth === 5) return;
+      for (const piece of PIECES) walk(prefix + piece, depth + 1);
+    };
+    walk('', 0);
+
+    expect(problems.slice(0, 5)).toEqual([]);
+    expect(total).toBe(402234);
+    // every one of them fits: the names are the old names
+    expect(counts.changed).toBe(0);
+    expect(counts.same).toBeGreaterThan(FULL ? 1500000 : 25000);
+    expect(used).toBeGreaterThan(FULL ? 402000 : 7000);
+  }, 240000);
+
+  it('over long ids around the 255 bytes the ids whose name changed are exactly the ids that did not fit (all of them with FILE_NAME_FULL_CORPUS=1)', () => {
+    const PIECES = [
+      'a',
+      'é',
+      '€',
+      '😀',
+      '/',
+      '\\',
+      ':',
+      '?',
+      '*',
+      '%',
+      '<',
+      '>',
+      '|',
+      '"',
+      '\u007f',
+      '\u0085',
+      '\n',
+      'C:',
+      '..',
+      ' ',
+      '.',
+      '\ud800',
+    ];
+    // a device name with a dot or a superscript digit, which the sanitizer writes out whole, comes first in an id
+    const PREFIXES = [
+      '',
+      'com¹.',
+      'LPT².',
+      'Nul.',
+      'con',
+      'COM3.txt',
+      'aux.',
+      'com³',
+    ];
+    const SUFFIXES = ['.json', '.onCreate.js', '', '.é'];
+    const problems: string[] = [];
+    const counts: Counts = { same: 0, changed: 0, none: 0 };
+    const bodies: [string, number][] = [];
+    const walk = (prefix: string, depth: number): void => {
+      bodies.push([prefix, depth]);
+      if (depth === 2) return;
+      for (const piece of PIECES) walk(prefix + piece, depth + 1);
+    };
+    walk('', 0);
+    let serial = 0;
+    let used = 0;
+    for (const prefix of PREFIXES) {
+      const superscript = /[¹²³]/.test(prefix);
+      for (const [body, depth] of bodies) {
+        for (const measure of [
+          portName((prefix + body).toWellFormed()).firstBytes,
+          Buffer.byteLength(prefix + body),
+        ]) {
+          for (let target = 242; target <= 256; target++) {
+            if (target < measure) continue;
+            const id = prefix + 'a'.repeat(target - measure) + body;
+            serial++;
+            // a deterministic sample: every 30th id, and every id of a superscript device name with a short body
+            if (FULL || serial % 30 === 0 || (superscript && depth <= 1)) {
+              used++;
+              compare(id, SUFFIXES, problems, counts);
+            }
+          }
+        }
+      }
+    }
+
+    expect(problems.slice(0, 5)).toEqual([]);
+    expect(used).toBeGreaterThan(FULL ? 100000 : 5000);
+    // both sorts are well represented: the old name is kept, or it is another, shortened name
+    expect(counts.same).toBeGreaterThan(FULL ? 100000 : 8000);
+    expect(counts.changed).toBeGreaterThan(FULL ? 300000 : 20000);
+  }, 240000);
+});
+
 describe('the module stays pure', () => {
   const imports = importSpecifiersOf('src/utils/FileSetPathUtils.ts');
 
@@ -1816,7 +4737,11 @@ describe('the module stays pure', () => {
     expect(imports.filter((s) => NODE_IO_MODULES.includes(s))).toEqual([]);
   });
 
-  it('imports only path and sanitize-filename', () => {
-    expect([...imports].sort()).toEqual(['path', 'sanitize-filename']);
+  it('imports only crypto, path and sanitize-filename (crypto is a built-in module that touches neither the file system nor the machine)', () => {
+    expect([...imports].sort()).toEqual([
+      'crypto',
+      'path',
+      'sanitize-filename',
+    ]);
   });
 });

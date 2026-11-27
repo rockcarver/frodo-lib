@@ -254,16 +254,16 @@ describe('reading the file set and pushing it', () => {
     }
   });
 
-  it('gives a toy whose file holds no `_id` the id that the name of its file stands for', async () => {
+  it('fails the merge for a file that holds no `_id`, and names the file: the name of a file is never an id', async () => {
     const reader = readerOf(
       buildFileSet({
         files: [{ path: 'realms/alpha/toys/a%2Fb.json', content: '{"x":1}' }],
       })
     );
 
-    const merged = await mergeToys({ reader, state: stateOf('cloud') });
-
-    expect(merged.alpha).toEqual([{ x: 1, _id: 'a/b' }]);
+    await expect(
+      mergeToys({ reader, state: stateOf('cloud') })
+    ).rejects.toThrow('The file realms/alpha/toys/a%2Fb.json holds no _id.');
   });
 
   it('merges only the realm that was named, and none that does not exist in the set', async () => {
@@ -407,10 +407,13 @@ describe('reading the file set and pushing it', () => {
     const reader = readerOf(
       buildFileSet({
         files: [
-          { path: 'realms/alpha/toys/A.json', content: '{"a":"${NO_VALUE}"}' },
-          { path: 'realms/alpha/toys/B.json', content: '{"b":1}' },
+          {
+            path: 'realms/alpha/toys/A.json',
+            content: '{"_id":"A","a":"${NO_VALUE}"}',
+          },
+          { path: 'realms/alpha/toys/B.json', content: '{"_id":"B","b":1}' },
           { path: 'realms/alpha/toys/C.json', content: '{ not json' },
-          { path: 'realms/alpha/toys/D.json', content: '{"d":1}' },
+          { path: 'realms/alpha/toys/D.json', content: '{"_id":"D","d":1}' },
         ],
       })
     );
@@ -425,17 +428,18 @@ describe('reading the file set and pushing it', () => {
       },
     });
 
+    // the toys go in the order of their ids; a file that cannot be read has its path for an id, which sorts after them
     expect(sent).toEqual(['B', 'D']);
     expect(outcomes.map((o) => [o.id, o.error?.message])).toEqual([
-      ['A', 'Error processing A'],
       ['B', undefined],
-      ['C', 'Error processing C'],
       ['D', undefined],
+      ['realms/alpha/toys/A.json', 'Error processing realms/alpha/toys/A.json'],
+      ['realms/alpha/toys/C.json', 'Error processing realms/alpha/toys/C.json'],
     ]);
-    expect(outcomes[0].error?.originalErrors[0].message).toBe(
+    expect(outcomes[2].error?.originalErrors[0].message).toBe(
       'No value found for placeholder "NO_VALUE"'
     );
-    expect(outcomes[2].error?.originalErrors[0].message).toBe(
+    expect(outcomes[3].error?.originalErrors[0].message).toBe(
       'Error parsing JSON from realms/alpha/toys/C.json'
     );
   });
@@ -448,6 +452,301 @@ describe('reading the file set and pushing it', () => {
     });
 
     expect(splitToys({ toys: merged }).fileSet).toEqual(first);
+  });
+});
+
+/**
+ * A push never reads a file name. The id of a toy is the `_id` that its file holds: the files are the same toys whatever they
+ * are called, in the order of their ids, which is what lets a type give a long id a shortened name with a checksum.
+ */
+describe('a push never reads a file name', () => {
+  const LONG_ONE = `${'a'.repeat(300)}-1`;
+  const LONG_TWO = `${'a'.repeat(300)}-2`;
+  /** The toys of the tenant, and ids that need escapes, are long, or are not text. */
+  const hardToys = (): Record<string, ToyObject[]> => ({
+    alpha: [
+      ...TOY_TENANT.alpha,
+      { _id: LONG_ONE, name: 'long one' },
+      { _id: LONG_TWO, name: 'long two' },
+      { _id: 'x\ud800', name: 'a lone surrogate' },
+      { _id: '😀'.repeat(70), name: 'emoji' },
+      { _id: '/'.repeat(100), name: 'slashes' },
+      { _id: `a:${'n'.repeat(247)}`, name: 'a colon' },
+      // U+007F is not text for a file name: the file has a clean name and a checksum, the toy keeps its id
+      { _id: 'a\u007fb', name: 'a control character' },
+    ],
+    bravo: TOY_TENANT.bravo,
+  });
+  const readerOf = (fileSet: VirtualFileSet) =>
+    createMemoryFileSetReader(fileSet);
+
+  /** Every file of the set under another name: reversed, as `f<index>.json`, in the same folder. */
+  const renamedEvery = (fileSet: VirtualFileSet): VirtualFileSet => ({
+    ownedFolders: fileSet.ownedFolders,
+    files: [...fileSet.files].reverse().map((file, index) => ({
+      path: `${file.path.slice(0, file.path.lastIndexOf('/'))}/f${index}.json`,
+      content: file.content,
+    })),
+  });
+
+  /** What a push does and says: the toys it sends, in order, and how it ends, for every object. */
+  const pushed = async (fileSet: VirtualFileSet) => {
+    const sent: string[] = [];
+    const told: [string | undefined, string | undefined][] = [];
+    const state = stateOf('cloud');
+    const outcomes = await pushToys({
+      reader: readerOf(fileSet),
+      state,
+      importToy: async (realm, toy) => {
+        sent.push(`${realm}:${JSON.stringify(toy)}`);
+        if (toy._id === LONG_TWO) throw new Error('the server refused it');
+        return toy;
+      },
+      resultCallback: (error, result) => {
+        told.push([error?.message, result?._id]);
+      },
+    });
+    return {
+      sent,
+      told,
+      outcomes: outcomes.map((outcome) => [
+        outcome.id,
+        outcome.error?.message,
+        outcome.error?.originalErrors?.map((e) => e.message),
+      ]),
+    };
+  };
+
+  it('gives the same toys, the same order, the same outcomes, errors and callback calls when every file has another name', async () => {
+    const { fileSet } = await pull('cloud', { toys: hardToys() });
+    const renamed = renamedEvery(fileSet);
+
+    // the files are all called something else, in the same folders, and the pull is made of hard ids
+    expect(fileSet.files).toHaveLength(11);
+    expect(renamed.files).toHaveLength(11);
+    expect(renamed.files.map((file) => file.path)).not.toEqual(
+      expect.arrayContaining(fileSet.files.map((file) => file.path))
+    );
+    expect(
+      renamed.files.every((file) =>
+        /^realms\/\w+\/toys\/f\d+\.json$/.test(file.path)
+      )
+    ).toBe(true);
+    expect(renamed.files.some((file) => file.path.includes('~'))).toBe(false);
+    expect(fileSet.files.some((file) => file.path.includes('~'))).toBe(true);
+
+    const before = await mergeToys({
+      reader: readerOf(fileSet),
+      state: stateOf('cloud'),
+    });
+    const after = await mergeToys({
+      reader: readerOf(renamed),
+      state: stateOf('cloud'),
+    });
+
+    expect(after).toEqual(before);
+    expect(before.alpha.map((toy) => toy._id)).toContain('x\ud800');
+    expect(before.alpha.map((toy) => toy._id)).toContain(LONG_ONE);
+
+    const first = await pushed(fileSet);
+    const second = await pushed(renamed);
+
+    expect(second).toEqual(first);
+    // the toys went in the order of their ids, and the failed one is the one that the server refused, by its id
+    expect(first.sent).toHaveLength(11);
+    expect(
+      first.outcomes.filter((outcome) => outcome[1] !== undefined)
+    ).toEqual([
+      [LONG_TWO, `Error processing ${LONG_TWO}`, ['the server refused it']],
+    ]);
+    // realm by realm, each in the order of the ids
+    const alphaIds = hardToys().alpha.map((toy) => toy._id);
+    expect(first.outcomes.map((outcome) => outcome[0])).toEqual([
+      ...alphaIds.sort((a, b) => (a < b ? -1 : 1)),
+      'Login',
+    ]);
+    expect(first.told).toHaveLength(11);
+  });
+
+  it('sends the toys in the order of their ids, and not in the order of the files', async () => {
+    const reader = readerOf(
+      buildFileSet({
+        files: [
+          { path: 'realms/alpha/toys/1.json', content: '{"_id":"c"}' },
+          { path: 'realms/alpha/toys/2.json', content: '{"_id":"a"}' },
+          { path: 'realms/alpha/toys/3.json', content: '{"_id":"b"}' },
+        ],
+      })
+    );
+    const sent: string[] = [];
+
+    const outcomes = await pushToys({
+      reader,
+      state: stateOf('cloud'),
+      importToy: async (_realm, toy) => {
+        sent.push(toy._id);
+        return toy;
+      },
+    });
+
+    expect(sent).toEqual(['a', 'b', 'c']);
+    expect(outcomes.map((outcome) => outcome.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('takes the id from the file and not from its name, also when the name looks like another id', async () => {
+    const reader = readerOf(
+      buildFileSet({
+        files: [
+          { path: 'realms/alpha/toys/Login.json', content: '{"_id":"Zion"}' },
+          { path: 'realms/alpha/toys/Zion.json', content: '{"_id":"Login"}' },
+        ],
+      })
+    );
+    const sent: string[] = [];
+
+    const outcomes = await pushToys({
+      reader,
+      state: stateOf('cloud'),
+      importToy: async (_realm, toy) => {
+        sent.push(toy._id);
+        return toy;
+      },
+    });
+
+    expect(sent).toEqual(['Login', 'Zion']);
+    expect(outcomes).toEqual([{ id: 'Login' }, { id: 'Zion' }]);
+  });
+
+  it('fails only the file that holds no `_id`, with its path for an id, and pushes the others', async () => {
+    const { fileSet } = await pull('cloud', { toys: hardToys() });
+    const withoutId: VirtualFileSet = {
+      ...fileSet,
+      files: [
+        ...fileSet.files,
+        { path: 'realms/alpha/toys/noid.json', content: '{"name":"no id"}\n' },
+        { path: 'realms/alpha/toys/null.json', content: 'null\n' },
+        { path: 'realms/alpha/toys/nullid.json', content: '{"_id":null}\n' },
+      ],
+    };
+    const sent: string[] = [];
+    const told: (string | undefined)[] = [];
+
+    const outcomes = await pushToys({
+      reader: readerOf(buildFileSet(withoutId)),
+      state: stateOf('cloud'),
+      importToy: async (_realm, toy) => {
+        sent.push(toy._id);
+        return toy;
+      },
+      resultCallback: (error) => {
+        told.push(error?.message);
+      },
+    });
+
+    const failed = outcomes.filter((outcome) => outcome.error);
+    expect(failed.map((outcome) => outcome.id)).toEqual([
+      'realms/alpha/toys/noid.json',
+      'realms/alpha/toys/null.json',
+      'realms/alpha/toys/nullid.json',
+    ]);
+    expect(failed[0].error?.message).toBe(
+      'Error processing realms/alpha/toys/noid.json'
+    );
+    expect(failed[0].error?.originalErrors[0].message).toBe(
+      'The file realms/alpha/toys/noid.json holds no _id.'
+    );
+    expect(failed[1].error?.originalErrors[0].message).toBe(
+      'The file realms/alpha/toys/null.json holds no _id.'
+    );
+    expect(failed[2].error?.originalErrors[0].message).toBe(
+      'The file realms/alpha/toys/nullid.json holds no _id.'
+    );
+    // the others were pushed, all eleven of them, and the callback was told of every file
+    expect(sent).toHaveLength(11);
+    expect(outcomes).toHaveLength(14);
+    expect(told.filter((message) => message !== undefined)).toHaveLength(3);
+    expect(told).toHaveLength(14);
+    await expect(
+      mergeToys({
+        reader: readerOf(buildFileSet(withoutId)),
+        state: stateOf('cloud'),
+      })
+    ).rejects.toThrow('holds no _id.');
+  });
+
+  it('pulls the same files twice, and whatever order the tenant answers in', async () => {
+    const first = await pull('cloud', { toys: hardToys() });
+    const second = await pull('cloud', { toys: hardToys() });
+    const reversed = hardToys();
+    reversed.alpha.reverse();
+    const third = await pull('cloud', { toys: reversed });
+
+    expect(second.fileSet).toEqual(first.fileSet);
+    expect(third.fileSet).toEqual(first.fileSet);
+    expect(first.collisions).toEqual([]);
+    expect(first.refused).toEqual([]);
+  });
+
+  it('is the identity for ids of every shape: pull, read back, split again gives the same files, and the toys come back whole', async () => {
+    const first = await pull('cloud', { toys: hardToys() });
+    const merged = await mergeToys({
+      reader: readerOf(first.fileSet),
+      state: stateOf('cloud'),
+    });
+
+    expect(splitToys({ toys: merged }).fileSet).toEqual(first.fileSet);
+    const ids = merged.alpha.map((toy) => toy._id);
+    for (const toy of hardToys().alpha) {
+      expect(ids).toContain(toy._id);
+    }
+  });
+
+  it('gives every id its own file and never makes a path that the gate refuses, however the id is made', () => {
+    const ids: string[] = [];
+    for (const character of [
+      'a',
+      'é',
+      '€',
+      '😀',
+      '/',
+      '?',
+      '*',
+      '%',
+      '\u0085',
+      ' ',
+      '\u007f',
+      '<',
+      '|',
+    ]) {
+      for (const length of [
+        1, 60, 62, 63, 84, 85, 86, 120, 125, 126, 250, 251, 255, 256, 300, 1000,
+      ]) {
+        ids.push(character.repeat(length));
+      }
+    }
+    ids.push(
+      '\ud800',
+      'x\ud800',
+      `${'x'.repeat(254)}\ud800`,
+      `${'x'.repeat(245)}\ud800`,
+      `com\u00b9.${'é'.repeat(130)}`,
+      `${'x'.repeat(250)}*`
+    );
+    const toys = ids.map((_id) => ({ _id }));
+
+    const split = splitToys({ toys: { alpha: toys } });
+
+    // only ids that leave no name (dots, `*`, a device name) are refused; every other id is a file, and no two ids share one
+    expect(split.collisions).toEqual([]);
+    expect(
+      split.refused.map((r) => r.id).every((id) => /^[*.]+$/.test(id))
+    ).toBe(true);
+    expect(split.fileSet.files.length + split.refused.length).toBe(ids.length);
+    for (const file of split.fileSet.files) {
+      expect(
+        Buffer.byteLength(file.path.slice(file.path.lastIndexOf('/') + 1))
+      ).toBeLessThanOrEqual(255);
+    }
   });
 });
 

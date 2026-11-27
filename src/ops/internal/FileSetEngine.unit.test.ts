@@ -8,7 +8,9 @@
  * (`createMemoryFileSetReader`) and a state is made up, so nothing here touches a tenant, a file or the real home.
  *
  * The functions were written for the command line first; the rows that come from there are the cases that command had:
- * the root realm of a Cloud deployment, ids that differ only in case, a name of 300 characters, one object that fails.
+ * the root realm of a Cloud deployment, ids that differ only in case, a name of 300 characters, one object that fails. A name
+ * that does not fit in a file name is shortened with a checksum by the name functions (`FileSetPathUtils`), so the rows for a
+ * long id say what the engine does with those names.
  */
 import { jest } from '@jest/globals';
 import ts from 'typescript';
@@ -29,7 +31,6 @@ import {
   applyOverrides,
   assignFileNames,
   fileOfObject,
-  idOfFile,
   inRealm,
   isCloudRootRealm,
   overridesOf,
@@ -280,15 +281,73 @@ describe('assignFileNames', () => {
     expect(collisions).toEqual([{ id: 'é', firstId: 'é' }]);
   });
 
-  it('cuts an id of 300 characters at 250 bytes, so two such ids that differ later collide', () => {
+  it('gives two ids of 300 characters that differ late two names, each with the checksum of its own id', () => {
     const first = `${'n'.repeat(250)}one`;
     const second = `${'n'.repeat(250)}two`;
+    const { names, collisions, refused } = assignFileNames([
+      first,
+      second,
+      'short',
+    ]);
+
+    // the checksums come from an independent implementation (Python 3, hashlib), see FileSetPathUtils.unit.test.ts
+    expect(names.get(first)).toBe(`${'n'.repeat(241)}~05702624`);
+    expect(names.get(second)).toBe(`${'n'.repeat(241)}~d2337d37`);
+    expect(names.get('short')).toBe('short');
+    expect(collisions).toEqual([]);
+    expect(refused).toEqual([]);
+  });
+
+  it('reports the second of two ids that share a cut and a checksum as a collision, and the first keeps the name', () => {
+    // a pair that was found by trying: both have the cut of 241 letters and the checksum 5b2c45dc
+    const first = `${'a'.repeat(300)}7449`;
+    const second = `${'a'.repeat(300)}22501`;
     const { names, collisions } = assignFileNames([first, second, 'short']);
 
-    expect(names.get(first)).toBe('n'.repeat(250));
-    expect(names.get('short')).toBe('short');
+    expect(names.get(first)).toBe(`${'a'.repeat(241)}~5b2c45dc`);
     expect(names.has(second)).toBe(false);
+    expect(names.get('short')).toBe('short');
     expect(collisions).toEqual([{ id: second, firstId: first }]);
+    // the name of an id never depends on the other ids: the order that the pair comes in is the only thing that decides
+    expect(assignFileNames([second, first]).collisions).toEqual([
+      { id: first, firstId: second },
+    ]);
+  });
+
+  it('reports the later of an id and an id of the shape of its shortened name as a collision, and writes nothing for it', () => {
+    // an id of 250 bytes that is written like the shortened name of an id of 300 letters keeps its name (it fits), so the two
+    // ids have one name: the checksum has 8 characters, and a name of that shape is an id of its own
+    const long = 'a'.repeat(300);
+    const shaped = `${'a'.repeat(241)}~e8722168`;
+
+    const longFirst = assignFileNames([long, shaped]);
+    expect(longFirst.names.get(long)).toBe(shaped);
+    expect(longFirst.names.has(shaped)).toBe(false);
+    expect(longFirst.collisions).toEqual([{ id: shaped, firstId: long }]);
+    expect(longFirst.refused).toEqual([]);
+
+    const shapedFirst = assignFileNames([shaped, long]);
+    expect(shapedFirst.names.get(shaped)).toBe(shaped);
+    expect(shapedFirst.names.has(long)).toBe(false);
+    expect(shapedFirst.collisions).toEqual([{ id: long, firstId: shaped }]);
+  });
+
+  it('gives an id that is not text (a lone surrogate, U+007F) a name of its own and does not refuse it', () => {
+    for (const nameOf of [undefined, encodedName]) {
+      const { names, collisions, refused } = assignFileNames(
+        ['x\ud800', 'x\ufffd', 'x\ud801', 'x\u007f'],
+        nameOf
+      );
+
+      expect([...names]).toEqual([
+        ['x\ud800', 'x\ufffd~a7490da1'],
+        ['x\ufffd', 'x\ufffd'],
+        ['x\ud801', 'x\ufffd~c3e32b2f'],
+        ['x\u007f', 'x\ufffd~9775ebe3'],
+      ]);
+      expect(collisions).toEqual([]);
+      expect(refused).toEqual([]);
+    }
   });
 
   it('keeps the names of the ids that do not collide, in the order given', () => {
@@ -413,7 +472,6 @@ describe.each(PROTOTYPE_NAMES)('the name %s', (name) => {
         new Set()
       )
     ).toEqual({ a: 1 });
-    expect(idOfFile(`${name}.json`)).toBe(name);
   });
 
   it('is the one realm to visit when it is named', async () => {
@@ -596,24 +654,7 @@ describe('applyOverrides', () => {
   });
 });
 
-describe('idOfFile and realmOfDir', () => {
-  it.each([
-    ['Login.json', 'Login'],
-    ['a%2Fb.json', 'a/b'],
-    ['a%20b.json', 'a b'],
-    ['%C3%A9.json', 'é'],
-    ['no-extension', 'no-extension'],
-    ['x.json.json', 'x.json'],
-    // `.json` is taken off the end only, not where it first occurs
-    ['my.json.config.json', 'my.json.config'],
-    ['a.jsonx', 'a.jsonx'],
-    ['a.JSON', 'a.JSON'],
-    ['100%.json', '100%'],
-    ['%E0%A4%A.json', '%E0%A4%A'],
-  ])('the file %j is the object %j', (fileName, expected) => {
-    expect(idOfFile(fileName)).toBe(expected);
-  });
-
+describe('realmOfDir', () => {
   it.each([
     ['root', '/'],
     ['alpha', 'alpha'],
@@ -1105,6 +1146,49 @@ describe('runPerObject', () => {
 
     expect(outcomes[0].error?.originalErrors).toEqual([part]);
     expect(outcomes[1]).toEqual({ id: 'two' });
+  });
+
+  it('makes a throw of the callback, when the work reported a part through the errorCallback, the failure of that object: wrapped, the callback told, the run goes on', async () => {
+    const broken = new Error('the callback broke');
+    const ran: string[] = [];
+    const told: string[] = [];
+    let calls = 0;
+
+    const outcomes = await runPerObject({
+      objects: [{ id: 'one' }, { id: 'two' }, { id: 'three' }],
+      work: async ({ object, errorCallback }) => {
+        ran.push(object.id);
+        if (object.id === 'one') errorCallback(new FrodoError('a part failed'));
+        return `result of ${object.id}`;
+      },
+      resultCallback: (error, result) => {
+        calls++;
+        told.push(error ? error.message : `ok ${result}`);
+        // the first call is the one that the errorCallback makes for the part: it throws
+        if (calls === 1) throw broken;
+      },
+    });
+
+    // the run goes on: every object ran and every object has its outcome
+    expect(ran).toEqual(['one', 'two', 'three']);
+    expect(outcomes.map((outcome) => outcome.id)).toEqual([
+      'one',
+      'two',
+      'three',
+    ]);
+    // the throw is a throw of the work: it fails that object, wrapped once, with the callback's error as its cause
+    expect(outcomes[0].error).toBeInstanceOf(FrodoError);
+    expect(outcomes[0].error.message).toBe('Error processing one');
+    expect(outcomes[0].error.originalErrors).toEqual([broken]);
+    expect(outcomes[1]).toEqual({ id: 'two' });
+    expect(outcomes[2]).toEqual({ id: 'three' });
+    // the callback was told of the part, then of the failure of the object, then of the others
+    expect(told).toEqual([
+      'a part failed',
+      'Error processing one',
+      'ok result of two',
+      'ok result of three',
+    ]);
   });
 
   it('passes the leftOutCallback on as it is, and counts nothing itself', async () => {

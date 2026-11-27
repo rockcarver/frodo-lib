@@ -113,13 +113,17 @@ export async function inRealm<R>({
 
 /**
  * The file names of objects that are written to one folder. Two ids whose names are the same on a file system that ignores
- * case or Unicode form (and two long ids that are cut to one name) collide: the first id keeps the name and the later ones
- * are reported. An id for which the name function throws gets no name: it is reported as refused, with the error, and never
- * thrown, so one id that leaves no name does not stop the others. Only what the name function throws is refused here: a
- * name that passes it can still make a path that `assertFileSetPath` refuses (an id whose name is 251 bytes or longer, whose
- * file `<name>.json` then has a part of more than 255 bytes, or an id with a lone surrogate), and `buildFileSet` then throws
- * for the whole set. The ids are taken in the order they are given: a caller that wants the same names whatever order the
- * tenant answers in sorts them first (`compareOrdinal`).
+ * case or Unicode form collide: the first id keeps the name and the later ones are reported. The name functions of
+ * `FileSetPathUtils` give a name that fits in a file name to every id that has a name: an id that was not a valid file name
+ * with its suffix, or that is not text (a lone surrogate, U+007F), gets a shortened name, the start of its name and a checksum
+ * of the complete id, so long ids that start alike have their own names. Two ids can still collide, when the cut and the 8
+ * hexadecimal characters of the checksum are both the same (about one pair in four billion that shares a cut), and when an id
+ * is written like the shortened name of another (`a` repeated 241 times and `~e8722168` is the name of `a` repeated 300
+ * times, and it is also an id of 250 bytes that keeps its name): the first id keeps the name, the other is reported as a
+ * collision, and nothing is renamed or written for it, so a name never depends on the other ids. An id for which the name
+ * function throws gets no name: it is reported as refused, with the error, and never thrown, so one id that leaves no name
+ * does not stop the others. The ids are taken in the order they are given: a caller that wants the same names whatever order
+ * the tenant answers in sorts them first (`compareOrdinal`).
  * @param {string[]} ids the ids, in the order they are written
  * @param {(id: string) => string} nameOf gives the file name of an id, without the extension; the name that the agent types use by default
  * @returns {{ names: Map<string, string>; collisions: { id: string; firstId: string }[]; refused: { id: string; error: Error }[] }} the file name of each id that has one, the ids that collide with an earlier one, and the ids that have no name
@@ -228,21 +232,6 @@ export function applyOverrides(
 ): Record<string, unknown> {
   const copy = cloneDeep(object);
   return overrides === undefined ? copy : mergeDeep(copy, cloneDeep(overrides));
-}
-
-/**
- * The id of an object whose file has no id of its own: the name of the file without `.json`, decoded, because the names of
- * the files of a pull write what a file system cannot hold as `%XX`. A name that does not decode is the id as it is.
- * @param {string} fileName the name of the file
- * @returns {string} the id
- */
-export function idOfFile(fileName: string): string {
-  const name = fileName.replace(/\.json$/, '');
-  try {
-    return decodeURIComponent(name);
-  } catch {
-    return name;
-  }
 }
 
 /**
