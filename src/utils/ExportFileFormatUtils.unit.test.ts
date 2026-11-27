@@ -438,20 +438,60 @@ describe('resolvePlaceholders', () => {
     expect(asked).toEqual(['Y']);
   });
 
-  test('a placeholder with no closing brace is not a placeholder: the content is returned as it is', () => {
+  test('a placeholder with no closing brace is not a placeholder: it is not looked up, and an escaped one is written without the backslashes', () => {
     const asked: string[] = [];
-    // the escape and the opening are in the text, and no closing brace anywhere after them
-    const content = 'text \\\\${OPEN';
+    const lookup = (name: string) => {
+      asked.push(name);
+      return 'x';
+    };
+
+    // the opening is in the text and no closing brace is anywhere after it: not a placeholder, so nothing is looked up
+    expect(resolvePlaceholders({ content: 'text ${OPEN', lookup })).toBe(
+      'text ${OPEN'
+    );
+    // an escaped one is text, and a file that a pull wrote holds `\\${` for every `${`: unescaped whether or not a complete
+    // placeholder is anywhere in the file (it was left as it was when none was, so the backslashes were sent to the tenant)
+    expect(resolvePlaceholders({ content: 'text \\\\${OPEN', lookup })).toBe(
+      'text ${OPEN'
+    );
     expect(
       resolvePlaceholders({
-        content,
-        lookup: (name) => {
-          asked.push(name);
-          return 'x';
-        },
+        content: '{\n  "a": "open \\\\${ never"\n}',
+        lookup,
       })
-    ).toBe(content);
+    ).toBe('{\n  "a": "open ${ never"\n}');
+    expect(resolvePlaceholders({ content: 'ends with \\\\${', lookup })).toBe(
+      'ends with ${'
+    );
     expect(asked).toEqual([]);
+  });
+
+  test('an escaped placeholder is written without the backslashes when no complete placeholder is in the content, and when one is', () => {
+    const lookup = lookupOf({ B: 'filled' });
+
+    const alone = '{"a":"\\\\${A}"}';
+    const withOther = '{"a":"\\\\${A}","b":"${B}"}';
+
+    expect(resolvePlaceholders({ content: alone, lookup })).toBe(
+      '{"a":"${A}"}'
+    );
+    expect(resolvePlaceholders({ content: withOther, lookup })).toBe(
+      '{"a":"${A}","b":"filled"}'
+    );
+  });
+
+  // KNOWN FAULT, not fixed here (a follow-up issue has the reproduction): every occurrence of a placeholder is filled, the
+  // escaped one too, when a file holds both forms of one name (a hand-written `${A}` and an escaped `\\${A}`): the escaped
+  // one loses its escape and keeps one backslash and the value. A file that a pull wrote holds only escaped placeholders, so
+  // a pull then a push cannot meet it. This test pins what happens today so that the day it is fixed, this test is changed
+  // to say `"b":"${A}"`.
+  test('known fault: an escaped placeholder is filled too when the same name is also a placeholder to fill', () => {
+    expect(
+      resolvePlaceholders({
+        content: '{"a":"${A}","b":"\\\\${A}"}',
+        lookup: lookupOf({ A: 'VALUE' }),
+      })
+    ).toBe('{"a":"VALUE","b":"\\\\VALUE"}');
   });
 
   test('a content without a placeholder is returned as it is and the lookup is not called', () => {

@@ -211,6 +211,9 @@ describe('MCP capability foundation', () => {
     // ies-plural form
     expect(inferOperationType('readPolicies')).toBe('list');
     expect(inferOperationType('deleteJourney')).toBe('delete');
+    // a pull of a file set is classed as an export, a push as an import
+    expect(inferOperationType('pullKbaConfig')).toBe('export');
+    expect(inferOperationType('pushKbaConfig')).toBe('import');
     expect(inferRiskClass('delete', 'deleteJourney')).toBe('high');
     expect(inferRiskClass('read', 'readServiceAccount')).toBe('critical');
   });
@@ -227,6 +230,13 @@ describe('MCP capability foundation', () => {
     // compound plural
     expect(inferObjectType('readScriptTypes', ['script'], 'list')).toBe(
       'ScriptType'
+    );
+    // the object type of a pull and a push follows the verb as it follows the other prefixes
+    expect(inferObjectType('pullKbaConfig', ['idm', 'config'], 'export')).toBe(
+      'KbaConfig'
+    );
+    expect(inferObjectType('pushKbaConfig', ['idm', 'config'], 'import')).toBe(
+      'KbaConfig'
     );
   });
 

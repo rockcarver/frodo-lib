@@ -1,0 +1,32 @@
+{
+  "_id": "selfservice.kba",
+  "_rev": "0c4a7b0e-5d36-4f0a-9a62-8f1e2d7c3b95-217",
+  "kbaPropertyName": "kbaInfo",
+  "minimumAnswersToVerify": 1,
+  "minimumAnswersToDefine": 2,
+  "lastChanged": {
+    "date": "2026-11-20T09:30:00.000Z"
+  },
+  "createDate": "2026-01-15T10:00:00.000Z",
+  "questions": {
+    "2": {
+      "en": "Who was your first employer?"
+    },
+    "10": {
+      "en": "What was the name of your first pet?",
+      "modifiedDate": "2026-11-19T08:00:00.000Z"
+    },
+    "1": {
+      "en": "What's your favorite color?",
+      "en_GB": "What is your favourite colour?",
+      "fr": "Quelle est votre couleur préférée?",
+      "ja": "あなたの好きな色は何ですか？"
+    },
+    "3": {
+      "en": "Which word, ${notAPlaceholder}, do you remember?"
+    },
+    "4": {
+      "en": "Type \\u00e9 as it is"
+    }
+  }
+}

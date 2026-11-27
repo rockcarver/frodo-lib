@@ -90,7 +90,7 @@ npm run test:only -- src/mcp/CapabilityRegistry.test.ts
 npm run mcp:contract-gap-summary
 ```
 
-- Name methods with the CRUDQ prefixes (`create`, `read`, `update`, `delete`, `query`, `search`, `list`, `count`, `export`, `import`; `get`/`set` for one property; `enable`/`disable` for status) and the registry infers what they do.
+- Name methods with the CRUDQ prefixes (`create`, `read`, `update`, `delete`, `query`, `search`, `list`, `count`, `export`, `import`, and `pull` and `push` for a file set; `get`/`set` for one property; `enable`/`disable` for status) and the registry infers what they do (a `pull` is an `export`, a `push` an `import`).
 - Any other name is a special capability and needs an explicit entry in `src/mcp/CapabilityMetadata.ts` that says truthfully whether it mutates and what its risk class is. The test fails until it exists, and it has zero tolerance.
 - Never add to `src/mcp/contract-gap-baseline.json`; it stays `[]`. The gap summary prints empty tables when there are no gaps.
 

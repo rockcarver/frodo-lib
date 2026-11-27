@@ -2125,6 +2125,25 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of config entity objects",
   },
   {
+    typeName: "IdmConfig",
+    methodName: "pullKbaConfig",
+    signature: "pullKbaConfig(): Promise<VirtualFileSet>",
+    description: "Pull the KBA configuration, the knowledge-based authentication questions (the config entity `selfservice.kba`), as a file set. The file set holds one file, `kba/selfservice.kba.json`, and owns the folder `kba`. The pull reads the entity with one request, as the tenant has it, and splits it; it does not go through the export, which would put `${NAME}` back for a value that the state holds. The file is the JSON of the entity with `_rev` and the modified properties left out, the keys in order and every `${` escaped, so that a push reads it as text (the one exception is a name for which the state holds a value: the import of a push fills such a `${NAME}` in again). The answer of the tenant is not checked: a successful answer that is not an object is split as it is, as the command line always did. Nothing is written: the caller writes the file set where it wants it.",
+    params: [],
+    returns: "{Promise<VirtualFileSet>} a promise resolving to the file set",
+  },
+  {
+    typeName: "IdmConfig",
+    methodName: "pushKbaConfig",
+    signature: "pushKbaConfig( reader: FileSetReader, resultCallback?: ResultCallback<IdObjectSkeletonInterface> ): Promise<PushOutcome[]>",
+    description: "Push the KBA configuration from a file set: read the file `kba/selfservice.kba.json` through the reader, fill its placeholders (`${NAME}`) with the values that the state holds (and, when the switch of the state for it is on, with the variables of the process), and import the entity with one request. The file has to hold the id `selfservice.kba`: a file that holds another id, or none, is refused and nothing is sent, so that a file set cannot point the push at another entity. The name of the file is never read, and no other file of the reader is read or listed. Whatever fails for the entity (a file that is not there or holds another id, text that is not JSON, a placeholder that has no value, a refusal of the tenant) is the error of the outcome that is returned, and the push does not throw for it; only a result callback that throws ends the push with its own error. A `${NAME}` that the file holds escaped stays text, unless the state holds a value for `NAME`: the import fills it in again.",
+    params: [
+      { name: "reader", type: "FileSetReader", description: "the reader of the file set", required: true },
+      { name: "resultCallback", type: "ResultCallback<IdObjectSkeletonInterface>", description: "Optional callback that is told once how the push of the entity ended: the error, or the entity that the tenant answered with", required: false },
+    ],
+    returns: "{Promise<PushOutcome[]>} a promise resolving to one outcome, which holds the id of the entity (the path of the file when the file could not be used) and the error, if there was one",
+  },
+  {
     typeName: "IdmCrypto",
     methodName: "isEncrypted",
     signature: "isEncrypted(value: any): boolean",
