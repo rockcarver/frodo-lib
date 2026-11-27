@@ -1,0 +1,7 @@
+{
+  "domains": [
+    "mü.example.com",
+    "account.example.com",
+    "\\${tenant}.example.com"
+  ]
+}

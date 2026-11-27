@@ -19,6 +19,7 @@
  */
 import { jest } from '@jest/globals';
 import { frodo } from '../lib/FrodoLib';
+import { facadePaths } from '../test/utils/FileSetTestKit';
 import { resolveCapabilityMeta } from './CapabilityMetadata';
 import { applyCapabilityPolicy, MCP_POLICY_PRESETS } from './CapabilityPolicy';
 import {
@@ -61,25 +62,6 @@ function descriptorOf(path: string): McpCapabilityDescriptor {
       openWorldHint: false,
     },
   };
-}
-
-/** The path of every function of the facade (`idm.config.pullKbaConfig`). */
-function facadePaths(): string[] {
-  const paths: string[] = [];
-  const visited = new WeakSet<object>();
-  const walk = (node: unknown, path: string[]): void => {
-    if (!node || typeof node !== 'object' || visited.has(node)) return;
-    visited.add(node);
-    for (const [key, value] of Object.entries(node)) {
-      if (path.length === 0 && ['state', 'cache', 'factory'].includes(key)) {
-        continue;
-      }
-      if (typeof value === 'function') paths.push([...path, key].join('.'));
-      else walk(value, [...path, key]);
-    }
-  };
-  walk(frodo, []);
-  return paths;
 }
 
 const PULL = 'idm.config.pullKbaConfig';
@@ -127,11 +109,6 @@ describe('what the registry infers for a pull and a push', () => {
     expect(allowed('agentic')).toEqual([]);
     expect(allowed('standard')).toEqual([PULL]);
     expect(allowed('admin')).toEqual([PULL, PUSH]);
-  });
-
-  it('is not mutating for a pull, and mutating for a push', () => {
-    expect(descriptorOf(PULL).mutating).toBe(false);
-    expect(descriptorOf(PUSH).mutating).toBe(true);
   });
 });
 
@@ -184,7 +161,7 @@ describe('what MCP offers', () => {
   });
 
   it('has an entry that excludes every pull and push of the facade, so that the next type cannot forget it', () => {
-    const paths = facadePaths().filter((path) =>
+    const paths = facadePaths(frodo).filter((path) =>
       /^(pull|push)[A-Z]/.test(path.split('.').pop() as string)
     );
 

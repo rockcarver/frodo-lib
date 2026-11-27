@@ -298,10 +298,13 @@ describe('the registry of configuration types', () => {
 describe('the module stays pure', () => {
   const imports = importSpecifiersOf('src/ops/ConfigTypeRegistry.ts');
 
-  it('imports only the owner modules of the types, which sit in src/ops', () => {
+  it('imports only the owner modules of the types: one of the modules named here, and nothing else', () => {
+    // a type that is added with a module of its own adds that module to this list; a sibling that is not an owner (the
+    // errors, the engine, the full export) is not on it, so that the registry cannot become a hub that imports the layer
+    const OWNER_MODULES = ['./IdmConfigOps'];
+
     expect(imports).toContain('./IdmConfigOps');
-    // an owner module is a sibling or lies below `src/ops`: never the api, the state, the utilities or a layer above
-    expect(imports.filter((s) => !/^\.\/[A-Za-z][\w/]*$/.test(s))).toEqual([]);
+    expect(imports.filter((s) => !OWNER_MODULES.includes(s))).toEqual([]);
   });
 
   it('reaches no module of the file system, the machine or other processes', () => {

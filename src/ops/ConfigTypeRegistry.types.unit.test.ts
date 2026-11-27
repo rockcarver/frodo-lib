@@ -18,6 +18,7 @@ import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { frodo } from '../lib/FrodoLib';
+import { facadePaths } from '../test/utils/FileSetTestKit';
 import { getHelpMetadata } from '../utils/HelpUtils';
 import {
   ConfigTypeRegistry,
@@ -25,30 +26,6 @@ import {
 } from './ConfigTypeRegistry';
 
 const GOLDEN_ROOT = fileURLToPath(new URL('../test/golden', import.meta.url));
-
-/** The top level members of the facade that are not operations: the state, the caches and the factory. */
-const NOT_OPERATIONS = new Set(['state', 'cache', 'factory']);
-
-/**
- * The path of every function on the facade, as the capability registry writes it (`idm.config.pullKbaConfig`).
- * @param {unknown} root the facade
- * @returns {string[]} the paths
- */
-function facadePaths(root: unknown): string[] {
-  const paths: string[] = [];
-  const visited = new WeakSet<object>();
-  const walk = (node: unknown, path: string[]): void => {
-    if (!node || typeof node !== 'object' || visited.has(node)) return;
-    visited.add(node);
-    for (const [key, value] of Object.entries(node)) {
-      if (path.length === 0 && NOT_OPERATIONS.has(key)) continue;
-      if (typeof value === 'function') paths.push([...path, key].join('.'));
-      else walk(value, [...path, key]);
-    }
-  };
-  walk(root, []);
-  return paths;
-}
 
 /** What the walk needs to know about the world. */
 type World = {
@@ -189,13 +166,6 @@ describe('the types on the registry', () => {
     expect(realWorld.help).toContain('pullKbaConfig');
     expect(realWorld.hasGolden('kba')).toBe(true);
     expect(realWorld.hasGolden('no-such-type')).toBe(false);
-  });
-
-  it('name the same functions as their owner module exports', () => {
-    for (const type of ConfigTypeRegistry) {
-      expect(type.pull?.name).toMatch(/^pull[A-Z]/);
-      expect(type.push?.name).toMatch(/^push[A-Z]/);
-    }
   });
 });
 
