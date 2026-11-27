@@ -174,16 +174,32 @@ describe('deleteMapping, a legacy mapping', () => {
   );
 
   test('keeps the syncAfter of the others as stored, also where it names the deleted mapping', async () => {
+    // the stored lists are not the ones that the order of the mappings gives:
+    // B names the deleted mapping A, C does not, and D lists them the other way round
+    stored = syncOf([
+      mappingA(),
+      { ...mappingB(), syncAfter: ['ldapUser'] },
+      { ...mappingC(), syncAfter: ['ldapRole'] },
+      {
+        name: 'ldapOrg',
+        source: 'system/ldap/org',
+        target: 'managed/org',
+        syncAfter: ['ldapRole', 'ldapUser'],
+      },
+    ]);
+
     await deleteMapping({ mappingId: 'sync/ldapUser', state });
 
     const written = JSON.parse(puts[0].body).mappings;
-    // B and C both still name the deleted mapping: nothing was added or removed
     expect(written.map((it: any) => it.name)).toEqual([
       'ldapRole',
       'ldapGroup',
+      'ldapOrg',
     ]);
+    // the reference to the deleted mapping stays, and nothing is added or removed
     expect(written[0].syncAfter).toEqual(['ldapUser']);
-    expect(written[1].syncAfter).toEqual(['ldapUser', 'ldapRole']);
+    expect(written[1].syncAfter).toEqual(['ldapRole']);
+    expect(written[2].syncAfter).toEqual(['ldapRole', 'ldapUser']);
   });
 
   test('writes back the _id of the document and every other property of it', async () => {
