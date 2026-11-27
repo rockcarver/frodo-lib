@@ -546,7 +546,11 @@ export function inferOperationType(
   if (/^(search|query)[A-Z]/.test(methodName)) return 'search';
   if (/^(list|getListOf|getFull)[A-Z]/.test(methodName)) return 'list';
   if (/^export[A-Z]/.test(methodName)) return 'export';
+  // a pull reads the tenant and returns a file set, as an export reads it and returns data: not mutating, not read-only
+  if (/^pull[A-Z]/.test(methodName)) return 'export';
   if (/^import[A-Z]/.test(methodName)) return 'import';
+  // a push writes to the tenant, with the risk of an import
+  if (/^push[A-Z]/.test(methodName)) return 'import';
   return 'special';
 }
 
@@ -576,6 +580,8 @@ export function inferObjectType(
     'getFull',
     'export',
     'import',
+    'pull',
+    'push',
   ];
   const matchedPrefix = operationPrefixes.find((prefix) =>
     methodName.startsWith(prefix)
