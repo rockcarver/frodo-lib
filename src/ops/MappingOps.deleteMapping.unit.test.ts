@@ -105,14 +105,19 @@ const syncOf = (mappings: any[], more: object = {}) => ({
   mappings,
 });
 
-/** The error that a read of `config/sync` answers where the deployment has none. */
-function noSyncConfiguration() {
-  const response: any = new Error('Request failed with status code 404');
-  response.response = { status: 404 };
-  response.config = {
+/** The error of a failed request for `config/sync`, as the HTTP client raises it. */
+function requestFailed(status: number): any {
+  const failed: any = new Error(`Request failed with status code ${status}`);
+  failed.response = { status };
+  failed.config = {
     url: 'https://openam-matrix.example.com/openidm/config/sync',
   };
-  return new FrodoError('Error reading config entity sync', response);
+  return failed;
+}
+
+/** The error that a read of `config/sync` answers where the deployment has none. */
+function noSyncConfiguration() {
+  return new FrodoError('Error reading config entity sync', requestFailed(404));
 }
 
 /** the document the tenant holds; `undefined` where there is no `sync` configuration */
@@ -123,6 +128,10 @@ let handedOut: { object: any; text: string }[];
 let puts: { entityId: string; body: string }[];
 /** what the tenant answers to an update; by default what it was given, which it keeps */
 let answer: ((written: any) => any) | undefined;
+/** an error that the read of `sync` fails with */
+let readFailure: Error | undefined;
+/** an error that the update of `sync` fails with: the tenant refuses the write and keeps what it holds */
+let putFailure: Error | undefined;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -130,9 +139,12 @@ beforeEach(() => {
   handedOut = [];
   puts = [];
   answer = undefined;
+  readFailure = undefined;
+  putFailure = undefined;
   readConfigEntity.mockReset();
   readConfigEntity.mockImplementation(async ({ entityId }: any) => {
     if (entityId !== 'sync') throw new Error(`unexpected read of ${entityId}`);
+    if (readFailure) throw readFailure;
     if (stored === undefined) throw noSyncConfiguration();
     // a fresh object on every call, as a request gives it
     const object = JSON.parse(JSON.stringify(stored));
@@ -146,6 +158,7 @@ beforeEach(() => {
   putConfigEntity.mockImplementation(async ({ entityId, entityData }: any) => {
     const body = JSON.stringify(entityData);
     puts.push({ entityId, body });
+    if (putFailure) throw putFailure;
     if (answer) return answer(JSON.parse(body));
     stored = JSON.parse(body);
     return JSON.parse(body);
@@ -342,20 +355,122 @@ describe('deleteMapping, a legacy mapping', () => {
     });
   });
 
-  test('returns the mapping as readSyncMappings gives it: _id and syncAfter derived from its place', async () => {
-    const listed = await readSyncMappings({ state });
-    const expected = listed.find((it) => it._id === 'sync/ldapRole');
+  test.each([
+    [
+      'an entry that stores neither an _id nor a syncAfter',
+      'sync/ldapUser',
+      () => syncOf([mappingA(), mappingB(), mappingC()]),
+      { ...mappingA(), _id: 'sync/ldapUser', syncAfter: [] },
+    ],
+    [
+      'an entry whose stored syncAfter is not the one that its place gives',
+      'sync/ldapGroup',
+      () =>
+        syncOf([
+          mappingA(),
+          mappingB(),
+          { ...mappingC(), syncAfter: ['ldapRole'] },
+        ]),
+      {
+        ...mappingC(),
+        _id: 'sync/ldapGroup',
+        syncAfter: ['ldapUser', 'ldapRole'],
+      },
+    ],
+  ])(
+    'returns the deleted mapping as readSyncMappings gives it (%s): _id and syncAfter derived from its place',
+    async (_what, mappingId, document, expected) => {
+      stored = document();
+      const listed = await readSyncMappings({ state });
 
-    const deleted = await deleteMapping({ mappingId: 'sync/ldapRole', state });
+      const deleted = await deleteMapping({ mappingId, state });
 
-    expect(deleted).toEqual(expected);
-    expect(deleted).toEqual({
-      _id: 'sync/ldapRole',
-      name: 'ldapRole',
-      source: 'system/ldap/group',
-      target: 'managed/role',
-      syncAfter: ['ldapUser'],
-    });
+      expect(deleted).toEqual(listed.find((it) => it._id === mappingId));
+      expect(deleted).toEqual(expected);
+    }
+  );
+
+  test.each(['ldapUser', 'ldap'])(
+    'removes only the entry named %s, not an entry with a near name',
+    async (name) => {
+      const entry = (named: string) => ({
+        name: named,
+        source: 'system/ldap/account',
+        target: 'managed/user',
+      });
+      const all = [
+        'ldap',
+        'ldapUser',
+        'LDAPUser',
+        'ldapuser',
+        'ldapUser2',
+        'ldapUser/x',
+        'ldap user',
+      ].map(entry);
+      stored = syncOf(all);
+
+      await deleteMapping({ mappingId: `sync/${name}`, state });
+
+      expect(puts[0].body).toBe(
+        JSON.stringify(syncOf(all.filter((it) => it.name !== name)))
+      );
+    }
+  );
+
+  test.each([500, 403])(
+    'passes on a read error that is not a 404 (HTTP %i) and writes nothing',
+    async (status) => {
+      const cause = requestFailed(status);
+      readFailure = new FrodoError('Error reading config entity sync', cause);
+
+      const error: any = await deleteMapping({
+        mappingId: 'sync/ldapUser',
+        state,
+      }).catch((e) => e);
+
+      expect(error).toBeInstanceOf(FrodoError);
+      expect(error.message).toBe('Error deleting mapping sync/ldapUser');
+      expect(error.originalErrors[0].message).toBe(
+        'Error reading sync mappings'
+      );
+      expect(rootCause(error)).toBe(cause);
+      expect(putConfigEntity).not.toHaveBeenCalled();
+    }
+  );
+
+  test('does not report a delete that the tenant refused: the error of the write reaches the caller and the entry stays', async () => {
+    const refused = new Error('HTTP 403');
+    putFailure = refused;
+
+    const error: any = await deleteMapping({
+      mappingId: 'sync/ldapRole',
+      state,
+    }).catch((e) => e);
+
+    expect(error).toBeInstanceOf(FrodoError);
+    expect(error.message).toBe('Error deleting mapping sync/ldapRole');
+    expect(error.originalErrors[0].message).toBe(
+      'Error updating legacy mappings'
+    );
+    expect(rootCause(error)).toBe(refused);
+    expect(puts).toHaveLength(1);
+    expect(stored).toEqual(syncOf([mappingA(), mappingB(), mappingC()]));
+  });
+
+  test('as before, an answer to the update that holds no list of mappings fails after the write was made', async () => {
+    // a recorded answer always holds the list. This pins what the function does
+    // when it does not (the check after the write needs the list): it is what
+    // the function did before, not something to rely on.
+    answer = () => ({ _id: 'sync' });
+
+    const error: any = await deleteMapping({
+      mappingId: 'sync/ldapUser',
+      state,
+    }).catch((e) => e);
+
+    expect(error).toBeInstanceOf(FrodoError);
+    expect(error.message).toBe('Error deleting mapping sync/ldapUser');
+    expect(puts).toHaveLength(1);
   });
 });
 
@@ -385,12 +500,13 @@ describe('deleteMapping, a new-style mapping', () => {
 });
 
 describe('readSyncMappings, the legacy mappings as the library presents them', () => {
-  test('gives every mapping an _id and a syncAfter from its place, and skips a null entry', async () => {
+  test('gives every mapping an _id and a syncAfter from its place, skips a null entry and lists an entry without a name as sync/undefined', async () => {
     stored = syncOf([
       mappingA(),
       null,
       { ...mappingB(), _id: 'sync/stale' },
       mappingC(),
+      nameless(),
     ]);
 
     const result = await readSyncMappings({ state });
@@ -402,6 +518,12 @@ describe('readSyncMappings, the legacy mappings as the library presents them', (
         ...mappingC(),
         _id: 'sync/ldapGroup',
         syncAfter: ['ldapUser', 'ldapRole'],
+      },
+      // an entry without a name is listed as sync/undefined
+      {
+        ...nameless(),
+        _id: 'sync/undefined',
+        syncAfter: ['ldapUser', 'ldapRole', 'ldapGroup'],
       },
     ]);
     // the entries keep their keys in the order they were stored: _id and syncAfter come last
