@@ -1,0 +1,9 @@
+# The settings of Record Keeper for this repository, edited by the maintainers. The check reads this file from the base branch, never from a pull
+# request, and a change to it needs the approval of the owners. Only the keys that differ from the defaults are set; the other keys of the kit
+# (extra-keys, witnesses) keep their defaults.
+
+folder: decisions                                        # the records are in decisions/ at the root, not in docs/decisions, because docs/ here is generated typedoc output
+shared-folder: core                                      # decisions/core/ holds the records that bind frodo-lib and frodo-cli; the kit does not read it
+shared-changes: allow                                    # the kit raises no P-08 for a change in decisions/core/; the repository's own check (src/decisionRecords.test.ts) judges it
+owners: [vscheuber/28791378, atomicsamurai/16958965]     # the accounts that approve acts, as login/id
+approvals: 2                                             # two owners approve an act: the author of the pull request counts as one, one more approving review is needed

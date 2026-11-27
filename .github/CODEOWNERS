@@ -1,0 +1,2 @@
+# The owners of the files that Record Keeper guards. The setup check asks that the settings, the pin and the four workflows of the kit have an owner.
+/.github/ @vscheuber @atomicsamurai
