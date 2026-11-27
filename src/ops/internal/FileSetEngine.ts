@@ -280,22 +280,30 @@ export async function readFileSetJson({
 /**
  * The file that an object is written to, as a pull writes it: every `${` in the object is escaped, so that a push does not
  * take it for a placeholder (the values that the state holds for placeholders are never put into a file); the keys are
- * sorted at every depth; `_rev` is left out and the modified properties are kept; the text ends with a newline. Without
- * overrides the object is escaped as it is. With overrides they are merged in after the escaping and written as they are, so
- * that a `${NAME}` in an override stays a placeholder for a push to fill. The object and the overrides are not changed.
+ * sorted at every depth; the text ends with a newline. `_rev` is left out unless `keepRev` is set, and the modified
+ * properties are kept unless `keepModifiedProperties` is false: the defaults are the rules of the agent files, and a type
+ * whose files follow other rules passes what differs. Without overrides the object is escaped as it is. With overrides they
+ * are merged in after the escaping and written as they are, so that a `${NAME}` in an override stays a placeholder for a push
+ * to fill; the two options apply to the merged object. The object and the overrides are not changed.
  * @param {string} path the path of the file in the file set
  * @param {object} object the object to write, which is JSON data
  * @param {Record<string, unknown> | undefined} overrides the overrides of the object, if it has any
+ * @param {boolean} keepRev true to keep the `_rev` keys. Default: false
+ * @param {boolean} keepModifiedProperties false to leave out the modified properties (`lastModifiedBy`, `lastModifiedDate`, `modified`, `modifiedDate`, `lastChangeDate`, `lastChangedBy`, `lastChanged`, `createdBy`, `creationDate`, `createdDate`) at every depth. Default: true
  * @returns {VirtualFile} the file
  */
 export function fileOfObject({
   path,
   object,
   overrides,
+  keepRev = false,
+  keepModifiedProperties = true,
 }: {
   path: string;
   object: object;
   overrides?: Record<string, unknown>;
+  keepRev?: boolean;
+  keepModifiedProperties?: boolean;
 }): VirtualFile {
   const escaped = escapePlaceholders(object) as Record<string, unknown>;
   const data =
@@ -306,8 +314,8 @@ export function fileOfObject({
       data,
       metadata: {},
       includeMeta: false,
-      keepRev: false,
-      keepModifiedProperties: true,
+      keepRev,
+      keepModifiedProperties,
     }),
   };
 }

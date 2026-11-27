@@ -954,6 +954,87 @@ describe('fileOfObject', () => {
       fileOfObject({ path: 'x.json', object: { b: { d: 2, c: 1 }, a: 1 } })
     );
   });
+
+  describe('the two options of the serializer', () => {
+    // a type whose files are not agent files chooses: its entity has a revision, and the tenant keeps the dates
+    const object = {
+      _id: 'x',
+      _rev: '7',
+      lastChanged: { date: 'yesterday', _rev: '8' },
+      createdBy: 'someone',
+      modifiedDate: 'today',
+      createDate: 'before',
+      text: 'a ${b}',
+    };
+
+    it('keeps `_rev` at every depth with `keepRev`, and leaves it out by default', () => {
+      const keep = JSON.parse(
+        fileOfObject({ path: 'x.json', object, keepRev: true }).content
+      );
+      const leave = JSON.parse(
+        fileOfObject({ path: 'x.json', object }).content
+      );
+
+      expect(keep._rev).toBe('7');
+      expect(keep.lastChanged._rev).toBe('8');
+      expect(leave._rev).toBeUndefined();
+      expect(leave.lastChanged._rev).toBeUndefined();
+    });
+
+    it('leaves the ten modified properties out with `keepModifiedProperties: false`, and keeps them by default', () => {
+      const leave = JSON.parse(
+        fileOfObject({ path: 'x.json', object, keepModifiedProperties: false })
+          .content
+      );
+      const keep = JSON.parse(fileOfObject({ path: 'x.json', object }).content);
+
+      // `lastChanged` (with what is nested in it), `createdBy` and `modifiedDate` are modified properties; `createDate` is not
+      expect(Object.keys(leave).sort()).toEqual(['_id', 'createDate', 'text']);
+      expect(Object.keys(keep).sort()).toEqual([
+        '_id',
+        'createDate',
+        'createdBy',
+        'lastChanged',
+        'modifiedDate',
+        'text',
+      ]);
+    });
+
+    it('gives the same file with the defaults written out as with no options', () => {
+      expect(
+        fileOfObject({
+          path: 'x.json',
+          object,
+          keepRev: false,
+          keepModifiedProperties: true,
+        })
+      ).toEqual(fileOfObject({ path: 'x.json', object }));
+    });
+
+    it('does not take away what the file always has: the escaping, the order of the keys and the newline', () => {
+      const { content } = fileOfObject({
+        path: 'x.json',
+        object,
+        keepRev: true,
+        keepModifiedProperties: false,
+      });
+
+      expect(content).toBe(
+        '{\n  "_id": "x",\n  "_rev": "7",\n  "createDate": "before",\n  "text": "a \\\\${b}"\n}\n'
+      );
+    });
+
+    it('applies to the overrides that are merged in as well', () => {
+      const { content } = fileOfObject({
+        path: 'x.json',
+        object: { _id: 'x' },
+        overrides: { modifiedDate: 'today', _rev: '9', kept: 1 },
+        keepModifiedProperties: false,
+      });
+
+      expect(JSON.parse(content)).toEqual({ _id: 'x', kept: 1 });
+    });
+  });
 });
 
 describe('runPerObject', () => {
