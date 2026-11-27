@@ -40,6 +40,7 @@ import {
   newState,
   readerOf,
   restoreAdapter,
+  ROUND_TRIP_TEXTS,
   seen,
 } from '../test/utils/FileSetTestKit';
 import { readJsonFile, saveJsonToFile } from '../utils/ExportImportUtils';
@@ -415,6 +416,48 @@ describe('pushKbaConfig', () => {
     expect(asked).toEqual({ read: [PATH], listed: [] });
     expect(requests).toHaveLength(1);
   });
+});
+
+describe('a pull then a push of the texts that hold `${`', () => {
+  // the entity of the tenant goes through the pull, the file and the push: what the tenant is sent is what it had, whether or
+  // not a complete `${NAME}` is in the text, in the line or anywhere in the file
+  it.each(ROUND_TRIP_TEXTS)(
+    'sends the text back as it was: $name',
+    async ({ text, state: values, afterImport }) => {
+      const state = newState();
+      for (const [name, value] of Object.entries(values ?? {})) {
+        state.setEnv(name, value);
+      }
+      const given = {
+        _id: 'selfservice.kba',
+        _rev: '1-a',
+        kbaPropertyName: 'kbaInfo',
+        questions: { '1': { en: text, [`key ${text}`]: text } },
+      };
+      answer({ data: JSON.parse(JSON.stringify(given)) });
+      const set = await pullKbaConfig({ state });
+      const requests = answer({ data: {} });
+
+      const outcomes = await pushKbaConfig({
+        reader: createMemoryFileSetReader(set),
+        state,
+      });
+
+      expect(outcomes).toEqual([{ id: 'selfservice.kba' }]);
+      const sent = JSON.parse(String(seen(requests)[0].data));
+      const { _rev, ...expected } = given;
+      expect(_rev).toBe('1-a');
+      // the import fills `${NAME}` again for a name that the state holds, which is all that may differ
+      const after = (value: string): string =>
+        afterImport === undefined ? value : afterImport;
+      expect(sent).toEqual({
+        ...expected,
+        questions: {
+          '1': { en: after(text), [`key ${after(text)}`]: after(text) },
+        },
+      });
+    }
+  );
 });
 
 describe('the methods of the facade', () => {

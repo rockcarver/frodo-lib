@@ -164,8 +164,9 @@ export function parseExportJson(content: string): object {
  * the lookup gives for NAME. For `${BASE64:NAME}` the lookup is asked for NAME and the value it gives is decoded from
  * Base64 (UTF-8) before it is used. A placeholder that is escaped with two backslashes in front (`\\${NAME}`) is not
  * filled and is written without them (`${NAME}`). The lookup is asked once for each placeholder, in the order they
- * appear in the text, and not at all if the text has none. A `${` that is never closed with a `}` is not a placeholder
- * and the text is then returned as it is.
+ * appear in the text, and not at all if the text has none. A `${` that is never closed with a `}` on its line is not a
+ * placeholder and is left as it is; an escaped one (`\\${`) is written without the backslashes whether or not the text
+ * holds a placeholder.
  * @param {string} content the text
  * @param {(name: string) => string | undefined} lookup gives the value for a name, or undefined if there is none (an empty string is a value)
  * @returns {string} the text with the placeholders filled and the escaped placeholders unescaped
@@ -181,7 +182,9 @@ export function resolvePlaceholders({
   let newContent = content;
   const placeholders = content.match(/\\*?\${.*?}/g);
   if (!placeholders) {
-    return newContent;
+    // nothing to fill, but an escaped `${` is text all the same: a file that a pull wrote holds `\\${` for every `${`, and
+    // one that is never closed on its line (every line of an indented file is `"key": "value"`) is no placeholder
+    return unescapePlaceholders(newContent);
   }
   const resolvable = placeholders.filter((p) => !p.startsWith('\\\\'));
   for (const placeholder of resolvable) {

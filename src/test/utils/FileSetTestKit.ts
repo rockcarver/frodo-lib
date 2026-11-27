@@ -192,3 +192,48 @@ export function axiosTenant({
     bodies: () => seen(requests).map(({ data }) => data),
   };
 }
+
+/**
+ * A text that a pull writes and a push reads back, with what a push must give: the text it started as. The table is for the
+ * tests of the round trip (an entity is pulled, written to a file and pushed): a `${` is escaped in the file and has to be
+ * the same text again, whether or not a complete `${NAME}` is in the text, in the line, in the file.
+ * - `text`: the text of a value of the entity.
+ * - `state`: values that the state holds, as `setEnv` takes them.
+ * - `afterImport`: what the entity holds after the import, when that is not `text`: the import fills a `${NAME}` again for a
+ *   name whose value the state holds (it always did), so a text that holds one is not given back as it was.
+ */
+export const ROUND_TRIP_TEXTS: {
+  name: string;
+  text: string;
+  state?: Record<string, string>;
+  afterImport?: string;
+}[] = [
+  { name: 'no `${`', text: 'plain text' },
+  { name: 'nothing but text with a brace', text: 'braces } and { only' },
+  { name: 'a `$` and a `{` that are not together', text: 'cost $ and {x}' },
+  { name: 'a `$` at the end and a `{` at the start', text: 'ends with $\n{x}' },
+  { name: 'a `${` that is never closed', text: 'open ${ never closed' },
+  { name: 'a `${` at the end', text: 'ends with ${' },
+  { name: 'a `${` and a `}` that is not behind it', text: '} before ${ open' },
+  { name: 'a complete `${KEY}` that the state lacks', text: 'a ${GONE} here' },
+  { name: 'an empty `${}`', text: 'empty ${} here' },
+  { name: 'a `${` inside a `${`', text: 'nested ${a${B}} here' },
+  { name: 'a `${BASE64:...}`', text: 'encoded ${BASE64:abc} here' },
+  { name: 'text that already holds a `\\${`', text: 'path \\${x} here' },
+  {
+    name: 'text that holds two backslashes before `${`',
+    text: 'two \\\\${x} here',
+  },
+  {
+    name: 'text that holds a backslash and no `${`',
+    text: 'back\\slash \\ end',
+  },
+  { name: 'both `${A}` and `\\${A}`', text: 'both ${A} and \\${A}' },
+  { name: 'a `${` on every line of a text', text: 'one ${\ntwo ${x\nthree' },
+  {
+    name: 'a complete `${KEY}` that the state holds',
+    text: 'a ${KEY} here',
+    state: { KEY: 'filled-by-the-state' },
+    afterImport: 'a filled-by-the-state here',
+  },
+];
