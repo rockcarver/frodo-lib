@@ -30,6 +30,13 @@ const SECRET =
 const EMAIL =
   /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/;
 const TENANT_HOST = /\.forgeblocks\.com/i;
+// Record Keeper installs the skill record-a-decision and replaces it at every
+// update, so its text is the kit's and is never edited here. It is written for
+// the kit's default records folder, docs/decisions, and says to use the folder
+// of the settings instead; this repository's folder is decisions/ (docs/ is
+// typedoc output). Only that skill may name the default folder.
+const KIT_SKILL = 'record-a-decision';
+const KIT_DEFAULT_FOLDER = /^docs\/decisions(?:\/|$)/;
 
 type FrontMatter =
   { error: string } | { data: Record<string, string>; body: string[] };
@@ -192,6 +199,7 @@ function checkSkills(root: string): string[] {
       }
     }
     for (const token of tokens) {
+      if (dir === KIT_SKILL && KIT_DEFAULT_FOLDER.test(token)) continue;
       if (isRepoPath(root, token) && !fs.existsSync(path.join(root, token))) {
         fail(`"${token}" is not a path in this repository`);
       }
@@ -454,6 +462,38 @@ test('paths and links must point at files that exist', () => {
   has(
     check(skill(SKILL({}, 'See [guide](../../../GONE.md).\n'))),
     'does not point at a file'
+  );
+});
+test('only the skill that Record Keeper installs may name its default records folder', () => {
+  const defaultFolder =
+    '```console\nls docs/decisions\ncp docs/decisions/template.md docs/decisions/NNNN-x.md\n```\n';
+  // docs/ exists, as it does here, so that a folder below it is a path to check.
+  const kitSkill = (body: string) => (f: Files) => {
+    f['docs/index.md'] = 'typedoc output\n';
+    f['.claude/skills/do-things/SKILL.md'] = null;
+    f['AGENTS.md'] = 'Procedures: record-a-decision\n';
+    f['.claude/skills/record-a-decision/SKILL.md'] = SKILL(
+      { name: 'record-a-decision' },
+      body
+    );
+  };
+  expect(check(kitSkill(defaultFolder))).toEqual([]);
+  // Any other skill must name a folder that exists here ...
+  has(
+    check((f) => {
+      f['docs/index.md'] = 'typedoc output\n';
+      skill(SKILL({}, defaultFolder))(f);
+    }),
+    '"docs/decisions" is not a path in this repository'
+  );
+  // ... and the kit's skill is let off for the default folder and nothing else.
+  has(
+    check(kitSkill('```console\ncat docs/gone.md\n```\n')),
+    '"docs/gone.md" is not a path in this repository'
+  );
+  has(
+    check(kitSkill('```console\ncat decisions/0009-gone.md\n```\n')),
+    '"decisions/0009-gone.md" is not a path in this repository'
   );
 });
 test('cited records must exist', () => {

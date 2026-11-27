@@ -1,0 +1,42 @@
+name: Records integrity
+
+# Judges a pull request against the rules of the decision records (https://github.com/gearsnlevers/record-keeper/blob/main/docs/workflow.md).
+#
+# It runs on pull_request_target, so GitHub takes this file from the default branch and a pull request cannot change the check it is judged by.
+# It therefore never checks out, installs or runs anything the pull request holds: the commits of the pull request are fetched as git
+# objects and read through git. The job has no `if:`, and the trigger no `paths:` or `branches:`, because a skipped job satisfies a
+# required check and a path filter leaves a pull request blocked for ever.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+
+permissions: {}
+
+jobs:
+  check:
+    # The name of the job is the name of the check that a ruleset requires.
+    name: Records integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      checks: read
+      contents: read
+      pull-requests: read
+    steps:
+      # The default branch, with its history: the code of the check, and the commits that the pull request is compared with. The credentials
+      # stay, because fetching refs/pull/N/head from a private repository needs them; the token can only read.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+
+      # Everything about the pull request is read from the API by the program; only its number comes from the event, through the environment.
+      - name: Judge the pull request
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+        run: node .github/record-keeper/check-pull-request.mjs --repo "$GITHUB_REPOSITORY" --pr "$PULL_REQUEST"

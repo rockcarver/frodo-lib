@@ -1,0 +1,62 @@
+name: Records updater
+
+# The updater of Record Keeper (https://github.com/gearsnlevers/record-keeper/blob/main/docs/updater.md). It keeps this repository on a released version of the
+# kit: when a newer release exists it rebuilds the branch record-keeper/update from the default branch, with the files of the release and the new pin, and opens
+# or updates ONE pull request. A person merges it; the updater never merges anything.
+#
+# It runs from the default branch only: on a schedule and by hand. A pull request never starts it. It never runs what it downloads.
+#
+# The token of this workflow can read and nothing else. The writes (the branch, the pull request) are made with the repository secret RECORD_KEEPER_TOKEN, a
+# fine-grained token for this repository with Contents, Pull requests and Workflows write: an update changes files in .github/workflows, which the token of a
+# workflow may not push. Without the secret the run reports what it would change, and fails when there is something to change.
+on:
+  schedule:
+    - cron: '41 5 * * *'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Release tag to go to (default: the newest release of the pinned channel)'
+        type: string
+        required: false
+      dry-run:
+        description: 'Say what would change, and change nothing'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# One run at a time, and a run that has started is never cancelled: it may be half way through its writes.
+concurrency:
+  group: records-updater
+  cancel-in-progress: false
+
+jobs:
+  update:
+    # The name of the job is the name of the check.
+    name: Records updater
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # The default branch, with the credentials of the secret: the program pushes the update branch with them. They fall back to the token of the workflow, with
+      # which the program can read and cannot push.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          token: ${{ secrets.RECORD_KEEPER_TOKEN || github.token }}
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+
+      # Nothing from the event reaches the shell but the two inputs of a manual run, through the environment.
+      - name: Update Record Keeper
+        env:
+          RECORD_KEEPER_TOKEN: ${{ secrets.RECORD_KEEPER_TOKEN }}
+          TARGET: ${{ inputs.target }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          args=()
+          if [ -n "$TARGET" ]; then args+=(--target "$TARGET"); fi
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          node .github/record-keeper/updater.mjs "${args[@]}"

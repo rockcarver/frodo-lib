@@ -1,0 +1,62 @@
+name: Records audit
+
+# The nightly audit of the records (https://github.com/gearsnlevers/record-keeper/blob/main/docs/audit-run.md). It judges the whole history of the default branch again, checks the acts against the reviews of
+# the pull requests that merged them, opens and closes the incident issues, and adds to the log branch record-keeper/log.
+#
+# It runs from the default branch only: on a schedule, on a push to it, and by hand. A pull request never starts it, and it never runs what a pull request
+# holds. The job has no `if:` and fails while a violation stands, so the head commit shows red until the violation is resolved. A push to the log
+# branch does not start it, and neither does the token of a workflow start another one.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Plan only: write no issue and no log'
+        type: boolean
+        default: false
+
+permissions: {}
+
+# One run at a time, and a run that has started is never cancelled: it may be half way through its writes. A run that waits is replaced by a newer one
+# that waits, because each run audits the whole history.
+concurrency:
+  group: records-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    # The name of the job is the name of the check.
+    name: Records audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      checks: read
+      contents: write
+      issues: write
+      pull-requests: read
+    steps:
+      # The default branch, with its whole history: the audit refuses a shallow clone. The credentials stay, because the program pushes the log branch
+      # with them.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+
+      # Nothing from the event reaches the shell but the input of a manual run, through the environment.
+      - name: Audit the records
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            node .github/record-keeper/run-audit.mjs --repo "$GITHUB_REPOSITORY" --dry-run
+          else
+            node .github/record-keeper/run-audit.mjs --repo "$GITHUB_REPOSITORY"
+          fi
