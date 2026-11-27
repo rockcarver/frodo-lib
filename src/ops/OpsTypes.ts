@@ -26,10 +26,12 @@ export type LeftOutAttributesCallback = (
 ) => void;
 
 /**
- * What became of one object of a push: its id, and the error when the work for it threw. A push gives one outcome for
- * every object it was asked to push, in the order it was given them, so that one failure never hides the others. The
- * error is the failure of the whole object: a failure of a part that the work reported through its `errorCallback` and
- * then went on was told to the result callback and is not in the outcome.
+ * What became of one object of a push: its id, and the error when the push of it failed. A push gives one outcome for every
+ * object it was asked to push, in the order it was given them, so that one failure never hides the others. The error is the
+ * failure of the whole object. A failure of a part of the object that the push reported to the result callback and then went
+ * on from is told to that callback and is not in the outcome.
+ * - `id`: the id of the object, as the file of the object holds it; when the file could not be used, the path of the file.
+ * - `error`: why the object was not pushed, with the cause nested. It is not there when the push of the object succeeded.
  */
 export type PushOutcome = {
   id: string;

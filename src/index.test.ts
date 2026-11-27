@@ -60,6 +60,7 @@ describe('package root exports', () => {
       'ConnectorReference',
       'ConnectorServerReference',
       'MappingReference',
+      'PushOutcome',
     ]) {
       const from = exported.get(name);
       expect(from).toBeDefined();
