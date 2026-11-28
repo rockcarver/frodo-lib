@@ -33,11 +33,12 @@
  */
 import http from 'http';
 import https from 'https';
-import net, { AddressInfo } from 'net';
+import net from 'net';
 import 'reflect-metadata';
 import AuthenticateOps from '../ops/AuthenticateOps';
 import { FrodoError } from '../ops/FrodoError';
 import StateImpl from '../shared/State';
+import { closedPort, listen } from '../test/utils/ClosedPort';
 import { createLoopbackCertificate } from '../test/utils/LoopbackCertificate';
 import { generateAmApi } from './BaseApi';
 
@@ -69,14 +70,6 @@ const PROXY_QUERY_VALUE = 'made-up-token';
 /** Servers started by a test, closed by `afterEach`. */
 const cleanups: Array<() => Promise<void>> = [];
 
-function listen(server: net.Server): Promise<number> {
-  return new Promise((resolve) => {
-    server.listen(0, '127.0.0.1', () =>
-      resolve((server.address() as AddressInfo).port)
-    );
-  });
-}
-
 /** Closes a server, destroying the connections that a client keeps alive. */
 function closer(server: net.Server, sockets: Set<net.Socket>) {
   return () =>
@@ -84,14 +77,6 @@ function closer(server: net.Server, sockets: Set<net.Socket>) {
       sockets.forEach((socket) => socket.destroy());
       server.close(() => resolve());
     });
-}
-
-/** A port on which nothing listens. */
-async function closedPort(): Promise<number> {
-  const server = net.createServer();
-  const port = await listen(server);
-  await new Promise<void>((resolve) => server.close(() => resolve()));
-  return port;
 }
 
 type Target = {

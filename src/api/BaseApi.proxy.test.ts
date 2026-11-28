@@ -34,12 +34,13 @@ import { spawnSync } from 'child_process';
 import fs from 'fs';
 import http from 'http';
 import https from 'https';
-import net, { AddressInfo } from 'net';
+import net from 'net';
 import path from 'path';
 import 'reflect-metadata';
 import { jest } from '@jest/globals';
 import { FrodoError } from '../ops/FrodoError';
 import StateImpl from '../shared/State';
+import { closedPort, listen } from '../test/utils/ClosedPort';
 import { createLoopbackCertificate } from '../test/utils/LoopbackCertificate';
 import { proxyProbeVerdict, runProxyProbe } from '../test/utils/ProxyProbe';
 import { generateAmApi } from './BaseApi';
@@ -136,14 +137,6 @@ const STATUS_TEXT: Record<number, string> = {
 /** Servers started by a test, closed by `afterEach`. */
 const cleanups: Array<() => Promise<void>> = [];
 
-function listen(server: net.Server): Promise<number> {
-  return new Promise((resolve) => {
-    server.listen(0, '127.0.0.1', () =>
-      resolve((server.address() as AddressInfo).port)
-    );
-  });
-}
-
 /** Closes a server, destroying the connections that a client keeps alive. */
 function closer(server: http.Server, sockets: Set<net.Socket>) {
   return () =>
@@ -151,14 +144,6 @@ function closer(server: http.Server, sockets: Set<net.Socket>) {
       sockets.forEach((socket) => socket.destroy());
       server.close(() => resolve());
     });
-}
-
-/** A port on which nothing listens. */
-async function closedPort(): Promise<number> {
-  const server = net.createServer();
-  const port = await listen(server);
-  await new Promise<void>((resolve) => server.close(() => resolve()));
-  return port;
 }
 
 async function startTarget(

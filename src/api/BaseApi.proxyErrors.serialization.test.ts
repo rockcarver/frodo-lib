@@ -24,7 +24,7 @@
 import { createPrivateKey, createPublicKey, webcrypto } from 'crypto';
 import http from 'http';
 import https from 'https';
-import net, { AddressInfo } from 'net';
+import net from 'net';
 import util from 'util';
 import 'reflect-metadata';
 import {
@@ -37,6 +37,7 @@ import {
 import { ProxyAgent } from 'proxy-agent';
 import { FrodoError } from '../ops/FrodoError';
 import StateImpl from '../shared/State';
+import { closedPort, listen } from '../test/utils/ClosedPort';
 import { getPrivateKey, getPublicKey } from '../test/utils/TestUtils';
 import { getServerInfo } from './ServerInfoApi';
 
@@ -97,27 +98,12 @@ type ProxyOptions = {
 
 const cleanups: Array<() => Promise<void>> = [];
 
-function listen(server: net.Server): Promise<number> {
-  return new Promise((resolve) => {
-    server.listen(0, '127.0.0.1', () =>
-      resolve((server.address() as AddressInfo).port)
-    );
-  });
-}
-
 function closer(server: http.Server, sockets: Set<net.Socket>) {
   return () =>
     new Promise<void>((resolve) => {
       sockets.forEach((socket) => socket.destroy());
       server.close(() => resolve());
     });
-}
-
-async function closedPort(): Promise<number> {
-  const server = net.createServer();
-  const port = await listen(server);
-  await new Promise<void>((resolve) => server.close(() => resolve()));
-  return port;
 }
 
 async function createSelfSignedCertificate(): Promise<{
