@@ -14,6 +14,7 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, test } from '@jest/globals';
+import { leastCpuMilliseconds } from '../test/utils/CpuTime';
 import {
   CIMD_GRANT_TYPES,
   CIMD_METADATA_DENY_LIST_FIELDS,
@@ -881,10 +882,17 @@ describe('validateCIMDProfile', () => {
       expect(matchesWildcardPattern('a*b*c', 'axxbyy')).toBe(false);
       expect(matchesWildcardPattern('**', '')).toBe(true);
       expect(matchesWildcardPattern('a', '')).toBe(false);
-      // many wildcards on a long text must not be slow
-      const start = Date.now();
-      matchesWildcardPattern('*a*a*a*a*a*a*a*a*b', 'a'.repeat(5000));
-      expect(Date.now() - start).toBeLessThan(500);
+      // many wildcards on a long text must not be slow: the CPU time of the least of a few runs,
+      // and a run that does not return in a few seconds is interrupted and fails the test
+      let matches = true;
+      const milliseconds = leastCpuMilliseconds(() => {
+        matches = matchesWildcardPattern(
+          '*a*a*a*a*a*a*a*a*b',
+          'a'.repeat(5000)
+        );
+      }, 500);
+      expect(matches).toBe(false);
+      expect(milliseconds).toBeLessThan(500);
     });
   });
 

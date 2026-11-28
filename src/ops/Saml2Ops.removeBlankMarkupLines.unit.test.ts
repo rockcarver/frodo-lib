@@ -1,3 +1,4 @@
+import { leastCpuMilliseconds } from '../test/utils/CpuTime';
 import {
   FAKE_CERTIFICATE_LINES,
   hostedSpMetadata,
@@ -14,6 +15,14 @@ import { removeBlankMarkupLines } from './Saml2Ops';
  * A document with a `Signature` element is left alone.
  * Pure unit test: no recordings, no network.
  */
+
+/**
+ * The time that a linear function may take. It is CPU time and not the wall clock (a pause of the machine does not
+ * count), the least of a few runs, and a run that does not return in a few seconds is interrupted and fails the test:
+ * a function that reads the text again for each line takes minutes on these texts.
+ */
+const CPU_BOUND_MS = 1000;
+const cpuTime = (run: () => unknown) => leastCpuMilliseconds(run, CPU_BOUND_MS);
 
 /** the whitespace-only lines of a text, not counting the empty rest after the last newline */
 const blankLinesOf = (xml: string) =>
@@ -217,15 +226,16 @@ describe('removeBlankMarkupLines', () => {
 
     test('many CDATA sections and comments on a line are followed in linear time', () => {
       const tokens = '<!-- a -->'.repeat(100000);
-      const start = performance.now();
-      expect(removeBlankMarkupLines(`<a>${tokens}\n\n<b/>`)).toBe(
-        `<a>${tokens}\n<b/>`
-      );
       const cdata = '<![CDATA[ a ]]>'.repeat(100000);
-      expect(removeBlankMarkupLines(`<a>${cdata}\n\n<b/>`)).toBe(
-        `<a>${cdata}\n<b/>`
-      );
-      expect(performance.now() - start).toBeLessThan(1000);
+      let results: string[] = [];
+      const milliseconds = cpuTime(() => {
+        results = [
+          removeBlankMarkupLines(`<a>${tokens}\n\n<b/>`),
+          removeBlankMarkupLines(`<a>${cdata}\n\n<b/>`),
+        ];
+      });
+      expect(results).toEqual([`<a>${tokens}\n<b/>`, `<a>${cdata}\n<b/>`]);
+      expect(milliseconds).toBeLessThan(CPU_BOUND_MS);
     });
 
     test.each([
@@ -444,10 +454,11 @@ describe('removeBlankMarkupLines', () => {
       const lines: string[] = [];
       while (lines.length < 50000) lines.push(...unit);
       const xml = lines.join('\n');
-      const start = performance.now();
-      const result = removeBlankMarkupLines(xml);
-      const elapsed = performance.now() - start;
-      expect(elapsed).toBeLessThan(1000);
+      let result = '';
+      const milliseconds = cpuTime(() => {
+        result = removeBlankMarkupLines(xml);
+      });
+      expect(milliseconds).toBeLessThan(CPU_BOUND_MS);
       // the two blank lines after each <a> go, the one inside the text stays
       const resultLines = result.split('\n');
       const rounds = Math.ceil(50000 / unit.length);
@@ -458,15 +469,20 @@ describe('removeBlankMarkupLines', () => {
       const runOfBlank = `<a>${'\n  '.repeat(200000)}\n<b/>`;
       const longLine = `<a>\n\n<${'x'.repeat(200000)}`;
       const manyOpenings = `${'<a:'.repeat(100000)}>\n\n<b/>`;
-      const start = performance.now();
-      expect(removeBlankMarkupLines(runOfBlank)).toBe('<a>\n<b/>');
-      expect(removeBlankMarkupLines(longLine)).toBe(
-        `<a>\n<${'x'.repeat(200000)}`
-      );
-      expect(removeBlankMarkupLines(manyOpenings)).toBe(
-        manyOpenings.replace('\n\n', '\n')
-      );
-      expect(performance.now() - start).toBeLessThan(1000);
+      let results: string[] = [];
+      const milliseconds = cpuTime(() => {
+        results = [
+          removeBlankMarkupLines(runOfBlank),
+          removeBlankMarkupLines(longLine),
+          removeBlankMarkupLines(manyOpenings),
+        ];
+      });
+      expect(results).toEqual([
+        '<a>\n<b/>',
+        `<a>\n<${'x'.repeat(200000)}`,
+        manyOpenings.replace('\n\n', '\n'),
+      ]);
+      expect(milliseconds).toBeLessThan(CPU_BOUND_MS);
     });
   });
 });
