@@ -9,17 +9,26 @@ import {
   getErrorCallback,
   replaceEnvSpecificValues,
 } from '../../utils/ExportImportUtils';
-import { fileNameOf, sameOnAnyFileSystem } from '../../utils/FileSetPathUtils';
+import {
+  fileNameOf,
+  nameInFolder,
+  sameOnAnyFileSystem,
+} from '../../utils/FileSetPathUtils';
 import {
   buildFileSet,
+  compareOrdinal,
   type FileSetReader,
   type VirtualFile,
   type VirtualFileSet,
 } from '../../utils/FileSetUtils';
 import { cloneDeep, mergeDeep } from '../../utils/JsonUtils';
+import { isRequestSegment } from '../../utils/RequestPathUtils';
 import { FrodoError } from '../FrodoError';
 import {
+  type ConfigTypeDescriptor,
   type LeftOutAttributesCallback,
+  type PullFinding,
+  type PullResult,
   type PushOutcome,
   type ResultCallback,
 } from '../OpsTypes';
@@ -249,6 +258,56 @@ export function realmOfDir(dir: string): string {
 }
 
 /**
+ * Read the content of a file of a file set through the reader, without looking at what it is.
+ * @param {FileSetReader} reader the reader of the file set
+ * @param {string} path the path of the file
+ * @returns {Promise<unknown>} what the reader gave: the text of the file, or undefined when the file does not exist
+ * @throws {FrodoError} if the reader fails ("Error reading file")
+ */
+async function readFileSetContent(
+  reader: FileSetReader,
+  path: string
+): Promise<unknown> {
+  try {
+    return await reader.readFile(path);
+  } catch (error) {
+    throw new FrodoError(`Error reading file ${path}`, error);
+  }
+}
+
+/**
+ * The text of a file, from what the reader gave: a reader gives text or nothing, and anything else breaks its contract, so what
+ * it gave is not shown.
+ * @param {unknown} content what the reader gave for the file
+ * @param {string} path the path of the file
+ * @returns {string} the text
+ * @throws {FrodoError} if the reader gave something that is not text ("The reader did not return text for")
+ */
+function textOfContent(content: unknown, path: string): string {
+  if (typeof content !== 'string') {
+    throw new FrodoError(`The reader did not return text for ${path}.`);
+  }
+  return content;
+}
+
+/**
+ * Fill the placeholders of the text of a file and parse it.
+ * @param {string} content the text of the file
+ * @param {string} path the path of the file
+ * @param {State} state the state, which holds the values of the placeholders
+ * @returns {object} the data of the file, with the placeholders filled
+ * @throws {FrodoError} if a placeholder has no value, or the text is not JSON ("Error parsing JSON from")
+ */
+function parseFileSetText(content: string, path: string, state: State): object {
+  const resolved = replaceEnvSpecificValues({ content, state });
+  try {
+    return parseExportJson(resolved);
+  } catch (error) {
+    throw new FrodoError(`Error parsing JSON from ${path}`, error);
+  }
+}
+
+/**
  * Read a JSON file of a file set and fill its placeholders: the values that the state holds (and, only when the state's
  * switch is on, the variables of the process) and `BASE64:` values, and the escaped `\\${` stays as it was written. A
  * placeholder that has no value fails with an error that names the placeholder and never shows a value.
@@ -267,23 +326,9 @@ export async function readFileSetJson({
   path: string;
   state: State;
 }): Promise<object | undefined> {
-  let content: string | undefined;
-  try {
-    content = await reader.readFile(path);
-  } catch (error) {
-    throw new FrodoError(`Error reading file ${path}`, error);
-  }
+  const content = await readFileSetContent(reader, path);
   if (content === undefined) return undefined;
-  // a reader gives text or nothing: anything else breaks its contract, and what it gave is not shown
-  if (typeof content !== 'string') {
-    throw new FrodoError(`The reader did not return text for ${path}.`);
-  }
-  const resolved = replaceEnvSpecificValues({ content, state });
-  try {
-    return parseExportJson(resolved);
-  } catch (error) {
-    throw new FrodoError(`Error parsing JSON from ${path}`, error);
-  }
+  return parseFileSetText(textOfContent(content, path), path, state);
 }
 
 /**
@@ -538,5 +583,458 @@ export async function mergeAndWriteSingleton<M, R>({
       return write(object.merged as M);
     },
     resultCallback,
+  });
+}
+
+// ── A type with a list of objects ───────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * What a type with a list of objects (a file for each object, in one folder) passes to the functions below: where its files
+ * are, what its ids look like, and what it is. The functions take the spec as it is, so a type holds one constant and hands it
+ * to the split, the merge and the push.
+ * @property {string} folder the folder of the type in the file set; the set owns it
+ * @property {string | null} idPrefix what the id of an object of the type looks like, which is checked on a pull and on a push, because a push reads the id from the content of a file and puts it into the path of a request, and nothing else says which object the file is for. A prefix, such as `a/`, means the id is that prefix and one name, as `isRequestSegment` says what a name is (the type decides which entries of a tenant are its objects by the prefix). The empty text means the id is one name and has no prefix. `null` means the id never reaches a request, so any text that is not empty will do, if it holds no control character and no lone surrogate. In every case an id that holds `${` is refused, and an id that is accepted is still text from a file or a tenant: in the mode `null` it can hold characters that change what a terminal shows (a bidirectional control, a zero-width character), and it is the `id` of the outcome of a push and is in the text of the error that the run of a push gives for the object, so a caller shows it in the form that is safe for its output
+ * @property {Pick<ConfigTypeDescriptor, 'key' | 'volume'>} type the type itself: its descriptor, so that the flag that makes the engine refuse an unbounded type has one source
+ * @property {(name: string) => string} nameOf gives the file name of an object, without the extension, from its id without the prefix. Default: `nameInFolder`, which keeps the name as it is when it is one name of a file (`Login:SSO` keeps its colon), and writes every other name with the characters of a path as `%XX`: a name that holds `C:` anywhere is written so, and its colon is `%3A` (`ABC:x` is `ABC%3Ax`), because the library removes `C:` from a path
+ */
+export type ListSpec = {
+  folder: string;
+  idPrefix: string | null;
+  type: Pick<ConfigTypeDescriptor, 'key' | 'volume'>;
+  nameOf?: (name: string) => string;
+};
+
+/**
+ * One file of the folder of a type with a list of objects, read for a push: the object, or why the file cannot be used.
+ * @property {string} id the id of the object, as the file holds it; when the file cannot be used, the path of the file
+ * @property {string} path the path of the file
+ * @property {Record<string, unknown>} object the object with its placeholders filled; not there when the file cannot be used
+ * @property {Error} error why the file cannot be used; never holds the id that the file holds, which can be the value of a placeholder
+ */
+export type ListRead = {
+  id: string;
+  path: string;
+  object?: Record<string, unknown>;
+  error?: Error;
+};
+
+/**
+ * Throw for a type that is unbounded, so that the functions for a list of objects never read, list or write anything for one: a
+ * file set holds the whole of a type in memory, and a type with more objects than that has no file set. A type that names no
+ * volume is bounded.
+ * @param {Pick<ConfigTypeDescriptor, 'key' | 'volume'>} type the type, as its descriptor says
+ * @throws {FrodoError} if the volume of the type is `unbounded`
+ */
+export function assertBounded(
+  type: Pick<ConfigTypeDescriptor, 'key' | 'volume'>
+): void {
+  if (type.volume === 'unbounded') {
+    throw new FrodoError(
+      `The configuration type '${type.key}' is unbounded: a file set holds the whole of a type in memory, so a type that can have more objects than that is not pulled to a file set and not pushed from one.`
+    );
+  }
+}
+
+/** The opener of a placeholder. An id never holds one: a value of the state or of the process would end up in a request. */
+const PLACEHOLDER_OPENER = '${';
+
+/** Whether a value is a JSON object: not `null`, not an array. */
+const isJsonObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** What a check of an id finds. */
+type IdVerdict =
+  'ok' | 'not-of-type' | 'not-an-id' | 'not-text' | 'placeholder';
+
+/**
+ * Check an id against the spec of a type. The same check runs on a pull, on the id that the tenant gave, and on a push, on the id
+ * that the file holds, so that a pull never writes a file that a push would refuse.
+ * @param {string} id the id, which is text that is not empty
+ * @param {string | null} idPrefix what the id of the type looks like (see {@link ListSpec})
+ * @returns {IdVerdict} `not-of-type` for an id that does not start with the prefix, `not-an-id` for one that is not the prefix and one name, `not-text` for an id that never reaches a request and holds a control character or a lone surrogate, `placeholder` for one that holds `${`, `ok` otherwise
+ */
+function judgeId(id: string, idPrefix: string | null): IdVerdict {
+  if (idPrefix !== null) {
+    if (!id.startsWith(idPrefix)) return 'not-of-type';
+    if (!isRequestSegment(id.slice(idPrefix.length))) return 'not-an-id';
+  } else if (/\p{Cc}/u.test(id) || !id.isWellFormed()) {
+    return 'not-text';
+  }
+  return id.includes(PLACEHOLDER_OPENER) ? 'placeholder' : 'ok';
+}
+
+/** What one name is, in the words of a message: what `isRequestSegment` accepts. */
+const ONE_NAME =
+  'one name (not empty, not "." or "..", not starting with ";", ".;" or "..;", with or without blanks before the ";", no slash, backslash, "?", "#", "%" or control character, and no blank at either end)';
+
+/** What an id has to be, in the words of a message, with the prefix of the type (a constant of the type) and never an id. */
+const shapeOfId = (idPrefix: string | null): string =>
+  idPrefix
+    ? `the prefix ${JSON.stringify(idPrefix)} followed by ${ONE_NAME}`
+    : ONE_NAME;
+
+/**
+ * The finding for an id that is not an id of the type. One message for each reason, and none holds an id: the id is the `id` of
+ * the finding.
+ * @param {string} id the id
+ * @param {IdVerdict} verdict what the check found, not `ok`
+ * @param {string | null} idPrefix what the id of the type looks like
+ * @returns {PullFinding} the finding
+ */
+function findingOfVerdict(
+  id: string,
+  verdict: Exclude<IdVerdict, 'ok'>,
+  idPrefix: string | null
+): PullFinding {
+  switch (verdict) {
+    case 'not-of-type':
+      return {
+        kind: 'not-of-type',
+        id,
+        message:
+          'its id does not start with the prefix: not an object of this type',
+      };
+    case 'not-an-id':
+      return {
+        kind: 'refused',
+        id,
+        message: `its id is not an id of this type: it is not ${shapeOfId(idPrefix)}`,
+      };
+    case 'not-text':
+      return {
+        kind: 'refused',
+        id,
+        message:
+          'its id holds a control character or a character that is not text',
+      };
+    case 'placeholder':
+      return {
+        kind: 'refused',
+        id,
+        message:
+          'its id holds a placeholder opener: an id is never filled from a placeholder',
+      };
+  }
+}
+
+/**
+ * Split the objects of a type with a list of objects into a file set of one file for each, and say what could not be written.
+ * Pure: it reads no tenant and no file, and prints nothing. The objects are not changed.
+ *
+ * The ids are taken in ordinal order before any file name is made, so that the same objects give the same files whatever order
+ * the tenant answered in, and of two ids that have one file name (they differ only in case or Unicode form, or the name
+ * function writes them alike) the one that sorts first keeps the name. What is not written is a finding, never silently
+ * dropped and never thrown, so one bad entry does not stop the others:
+ * - `unreadable`: the entry is not an object that holds an id that is a text that is not empty (it has no `id`),
+ * - `not-of-type`: the id does not start with the prefix, so the entry is not an object of this type (a query for a prefix can
+ *   answer with others); a notice, and not a failure,
+ * - `refused`: the id is not the prefix and one name, or holds `${`, or leaves no file name,
+ * - `collision`: another object has the same file name, and `firstId` is the id that has it (an id that the answer holds twice
+ *   collides with itself).
+ * The findings are in this order: the unreadable ones in the order of the answer, then the others by id in ordinal order. No
+ * message holds an id.
+ *
+ * The file set owns the folder, also when there is no object, so a consumer that cleans owned folders removes what the tenant no
+ * longer has. A consumer that finds findings does not clean.
+ * @param {string} folder the folder of the type in the file set
+ * @param {string | null} idPrefix what the id of the type looks like (see {@link ListSpec})
+ * @param {Pick<ConfigTypeDescriptor, 'key' | 'volume'>} type the type; an unbounded type is refused before the objects are looked at
+ * @param {(name: string) => string} nameOf Optional. Gives the file name of an object from its id without the prefix. Default: `nameInFolder`
+ * @param {unknown[]} objects what the tenant answered, one entry for each object, each of which should be an object that holds an `_id`
+ * @param {boolean} keepRev true if the files keep the `_rev` keys; there is no default, because the defaults of the files of the types differ
+ * @param {boolean} keepModifiedProperties true if the files keep the modified properties; there is no default, as for `keepRev`
+ * @param {(id: string) => Record<string, unknown> | undefined} overridesFor Optional. Gives the overrides of the object with the id, which are merged in after the escaping and written as they are
+ * @returns {PullResult} the file set, and the findings
+ * @throws {FrodoError} if the type is unbounded
+ * @throws {Error} if the folder is not a path of a file set, or the name function gives a name that is not one
+ */
+export function splitList({
+  folder,
+  idPrefix,
+  type,
+  nameOf = nameInFolder,
+  objects,
+  keepRev,
+  keepModifiedProperties,
+  overridesFor,
+}: ListSpec & {
+  objects: unknown[];
+  keepRev: boolean;
+  keepModifiedProperties: boolean;
+  overridesFor?: (id: string) => Record<string, unknown> | undefined;
+}): PullResult {
+  assertBounded(type);
+  const unreadable: PullFinding[] = [];
+  const entries: { id: string; object: Record<string, unknown> }[] = [];
+  for (const entry of objects) {
+    const id = isJsonObject(entry) ? entry._id : undefined;
+    if (typeof id !== 'string' || id === '') {
+      unreadable.push({
+        kind: 'unreadable',
+        message: 'the entry is not an object that holds an id that is a text',
+      });
+    } else {
+      entries.push({ id, object: entry as Record<string, unknown> });
+    }
+  }
+  // a stable sort: of two entries with one id the first of the answer is the one that is kept
+  entries.sort((a, b) => compareOrdinal(a.id, b.id));
+
+  const others: PullFinding[] = [];
+  const kept: typeof entries = [];
+  const keptIds = new Set<string>();
+  for (const entry of entries) {
+    const verdict = judgeId(entry.id, idPrefix);
+    if (verdict !== 'ok') {
+      others.push(findingOfVerdict(entry.id, verdict, idPrefix));
+    } else if (keptIds.has(entry.id)) {
+      others.push({
+        kind: 'collision',
+        id: entry.id,
+        firstId: entry.id,
+        message: 'another object has the same file name',
+      });
+    } else {
+      keptIds.add(entry.id);
+      kept.push(entry);
+    }
+  }
+
+  const prefixLength = idPrefix === null ? 0 : idPrefix.length;
+  const named = assignFileNames(
+    kept.map((entry) => entry.id),
+    (id) => nameOf(id.slice(prefixLength))
+  );
+  for (const { id, firstId } of named.collisions) {
+    others.push({
+      kind: 'collision',
+      id,
+      firstId,
+      message: 'another object has the same file name',
+    });
+  }
+  for (const { id } of named.refused) {
+    others.push({
+      kind: 'refused',
+      id,
+      message: 'its id leaves no file name',
+    });
+  }
+
+  const files = kept.flatMap((entry) => {
+    const name = named.names.get(entry.id);
+    return name === undefined
+      ? []
+      : [
+          fileOfObject({
+            path: `${folder}/${name}.json`,
+            object: entry.object,
+            overrides: overridesFor?.(entry.id),
+            keepRev,
+            keepModifiedProperties,
+          }),
+        ];
+  });
+  others.sort((a, b) => compareOrdinal(a.id as string, b.id as string));
+  return {
+    fileSet: buildFileSet({ files, ownedFolders: [folder] }),
+    findings: [...unreadable, ...others],
+  };
+}
+
+/**
+ * Read one file of a type with a list of objects, and check the id that it holds, before anything is sent for it. The text is
+ * read once and checked in this order, so that a value of the state or of the process never reaches an id, an error or a request:
+ * 1. The id as the text of the file holds it, parsed as it is written, before any placeholder is filled: an `_id` that holds `${`
+ *    is refused, whatever the placeholder would be filled with, and whether or not the state has a value for it.
+ * 2. The placeholders are filled and the text parsed, as for every file of a file set (a placeholder without a value, and text
+ *    that is not JSON, fail with their own errors).
+ * 3. The text has to be JSON as it is written, and the id that it holds after the placeholders are filled has to be the id that it
+ *    held before (a value that closes the string and adds another `_id` would otherwise make the id of the file).
+ * 4. The id is a text that is not empty, and is an id of the type (see {@link ListSpec}).
+ * @param {string} text the text of the file
+ * @param {string} path the path of the file
+ * @param {string | null} idPrefix what the id of the type looks like
+ * @param {State} state the state, which holds the values of the placeholders
+ * @returns {Record<string, unknown>} the object with its placeholders filled
+ * @throws {FrodoError} if the file cannot be used; the message names the path and never an id
+ */
+function objectOfListFile(
+  text: string,
+  path: string,
+  idPrefix: string | null,
+  state: State
+): Record<string, unknown> {
+  let rawId: unknown;
+  let isRawJson = true;
+  try {
+    const raw = parseExportJson(text) as unknown;
+    rawId = isJsonObject(raw) ? raw._id : undefined;
+  } catch {
+    isRawJson = false;
+  }
+  if (typeof rawId === 'string' && rawId.includes(PLACEHOLDER_OPENER)) {
+    throw new FrodoError(
+      `The file ${path} holds an _id with a placeholder opener, which an id never holds.`
+    );
+  }
+  const object = parseFileSetText(text, path, state) as unknown;
+  if (!isRawJson) {
+    throw new FrodoError(
+      `The file ${path} is not JSON until its placeholders are filled, so its _id cannot be checked.`
+    );
+  }
+  const id = isJsonObject(object) ? object._id : undefined;
+  if (id === undefined || id === null) {
+    throw new FrodoError(`The file ${path} holds no _id.`);
+  }
+  if (typeof id !== 'string' || id === '') {
+    throw new FrodoError(
+      `The file ${path} holds an _id that is empty or not a text.`
+    );
+  }
+  if (id !== rawId) {
+    throw new FrodoError(
+      `The file ${path} holds an _id that its placeholders changed, which an id never does.`
+    );
+  }
+  const verdict = judgeId(id, idPrefix);
+  if (verdict === 'not-text') {
+    throw new FrodoError(
+      `The file ${path} holds an _id with a control character or a character that is not text.`
+    );
+  }
+  // the verdict `placeholder` cannot come here: an id that holds `${` was refused on the raw text, and the filled id is the raw id
+  if (verdict !== 'ok') {
+    throw new FrodoError(
+      `The file ${path} does not hold an id of this type: it is not ${shapeOfId(idPrefix)}.`
+    );
+  }
+  return object as Record<string, unknown>;
+}
+
+/**
+ * Read the files of a type with a list of objects, and check every id, for a push. Only the `.json` files that lie in the folder
+ * are read, in the order of their paths; a folder that does not exist has no file, and nothing else is listed or read. The id
+ * of an object is the `_id` that its file holds and never the name of the file: files can be renamed, or shortened because their
+ * id is long, and the object is the same object. A file that cannot be used is a result of its own with its path for an id and
+ * the error, and the other files are read: the reader cannot read the file, the text is not JSON, a placeholder has no value, the
+ * file holds no `_id` that is a text that is not empty, the id is not an id of the type (see {@link ListSpec}), or it holds `${`, or another file that is
+ * earlier in the order of the paths holds the same id (the later file is refused and the message names the earlier PATH). No
+ * message holds an id. The comparison of ids is exact, with no case folding and no Unicode normalisation, as for the single
+ * object of a type.
+ * @param {string} folder the folder of the type in the file set
+ * @param {string | null} idPrefix what the id of the type looks like (see {@link ListSpec})
+ * @param {Pick<ConfigTypeDescriptor, 'key' | 'volume'>} type the type; an unbounded type is refused before anything is listed or read
+ * @param {FileSetReader} reader the reader of the file set
+ * @param {State} state the state, which holds the values of the placeholders
+ * @returns {Promise<ListRead[]>} one result for every file, in the order of the paths
+ * @throws {FrodoError} if the type is unbounded, or the reader cannot list the folder ("Error listing the folder"): nothing can be read then, so it rejects for every file at once. A file that the reader cannot read ("Error reading file", with the cause) is a result of its own and does not reject
+ */
+export async function mergeList({
+  folder,
+  idPrefix,
+  type,
+  reader,
+  state,
+}: ListSpec & { reader: FileSetReader; state: State }): Promise<ListRead[]> {
+  assertBounded(type);
+  let entries: Awaited<ReturnType<FileSetReader['listDirectory']>>;
+  try {
+    entries = await reader.listDirectory(folder);
+  } catch (error) {
+    throw new FrodoError(`Error listing the folder ${folder}`, error);
+  }
+  const paths = (entries ?? [])
+    .filter((entry) => !entry.isDirectory && entry.name.endsWith('.json'))
+    .map((entry) => `${folder}/${entry.name}`)
+    .sort(compareOrdinal);
+  const reads: ListRead[] = [];
+  // the id of each object that was read, and the file it was read from
+  const holders = new Map<string, string>();
+  for (const path of paths) {
+    try {
+      // a reader that cannot read this file is one failed object, as a file that cannot be used: the others are read
+      const content = await readFileSetContent(reader, path);
+      if (content === undefined) {
+        throw new FrodoError(`The file ${path} does not exist.`);
+      }
+      const object = objectOfListFile(
+        textOfContent(content, path),
+        path,
+        idPrefix,
+        state
+      );
+      const id = object._id as string;
+      const earlier = holders.get(id);
+      if (earlier !== undefined) {
+        throw new FrodoError(
+          `The file ${path} holds the same _id as the file ${earlier}.`
+        );
+      }
+      holders.set(id, path);
+      reads.push({ id, path, object });
+    } catch (error) {
+      reads.push({
+        id: path,
+        path,
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+  }
+  return reads;
+}
+
+/**
+ * Push the objects of a type with a list of objects: read the files of the folder with {@link mergeList}, then write each object,
+ * one after the other, in the order of their ids (a file that cannot be used has its path for an id and sorts with the others,
+ * and nothing is written for it). Whatever fails for an object is the error of its outcome and is not thrown, and the other
+ * objects are written; see {@link runPerObject} for what the outcomes and the callbacks are, which is what this function hands on.
+ * @param {string} folder the folder of the type in the file set
+ * @param {string | null} idPrefix what the id of the type looks like (see {@link ListSpec})
+ * @param {Pick<ConfigTypeDescriptor, 'key' | 'volume'>} type the type; an unbounded type is refused before anything is listed, read or written
+ * @param {FileSetReader} reader the reader of the file set
+ * @param {State} state the state, which holds the values of the placeholders
+ * @param {(object: Record<string, unknown>, id: string, leftOutCallback?: LeftOutAttributesCallback) => Promise<R>} write writes one object to the tenant, and gives what the tenant answered; its result goes to the callback
+ * @param {ResultCallback<R>} resultCallback Optional. Told how the push of every object ended; the callback of the push of the type that was shipped before the engine took lists
+ * @param {LeftOutAttributesCallback} leftOutCallback Optional. Passed on to every write
+ * @returns {Promise<PushOutcome[]>} one outcome for every file, in the order of the ids; the id is the `_id` of the file, or its path when the file could not be used, which a file that the reader cannot read is too
+ * @throws {FrodoError} if the type is unbounded, or the reader cannot list the folder; a `resultCallback` that throws ends the push with its own error
+ */
+export async function mergeAndWriteList<R>({
+  folder,
+  idPrefix,
+  type,
+  reader,
+  state,
+  write,
+  resultCallback,
+  leftOutCallback,
+}: ListSpec & {
+  reader: FileSetReader;
+  state: State;
+  write: (
+    object: Record<string, unknown>,
+    id: string,
+    leftOutCallback?: LeftOutAttributesCallback
+  ) => Promise<R>;
+  resultCallback?: ResultCallback<R>;
+  leftOutCallback?: LeftOutAttributesCallback;
+}): Promise<PushOutcome[]> {
+  // `mergeList` refuses an unbounded type before it lists or reads anything
+  const reads = await mergeList({ folder, idPrefix, type, reader, state });
+  reads.sort((a, b) => compareOrdinal(a.id, b.id));
+  return runPerObject({
+    objects: reads,
+    work: async ({ object, leftOutCallback: leftOut }) => {
+      if (object.error) throw object.error;
+      return write(
+        object.object as Record<string, unknown>,
+        object.id,
+        leftOut
+      );
+    },
+    resultCallback,
+    leftOutCallback,
   });
 }

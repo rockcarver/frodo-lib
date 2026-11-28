@@ -78,12 +78,45 @@ export type ObjectReference<Source extends string> = {
 export type ConfigType = string;
 
 /**
- * The pull of a configuration type to a file set: it reads the type from the tenant with the state it is given and returns
- * the file set, and writes nothing. A type that is visited by realm or takes overrides accepts more optional properties.
+ * Something that a pull found and did not put into the file set. A pull that finds one still gives the file set of everything
+ * else, so that one bad entry does not stop the others; it never drops one silently, so the caller decides what it means for
+ * the outcome that it reports. The message states the reason and never holds the id: the id is the `id` field, because it is
+ * text that came from the tenant (it can hold characters that change what a terminal shows) and the caller shows it in the
+ * form that is safe for its output.
+ * - `kind`: why the entry is not in the file set. `collision`: another object has the same file name (`firstId` is the id that
+ *   keeps the name). `refused`: the id is not an id of the type, or leaves no file name, or holds a placeholder. `unreadable`:
+ *   the entry is not an object that holds an id that is a text (it has no `id`). `not-of-type`: the id does not start with the
+ *   prefix of the type, so the entry is not an object of this type, which a query for the prefix can return; it is a notice and
+ *   not a failure.
+ * - `id`: the id of the entry, as the tenant gave it; not there for an entry that holds none.
+ * - `firstId`: only for a `collision`, the id of the object that has the file name.
+ * - `message`: the reason, without the id.
  */
-export type FileSetPull = (options: {
-  state: State;
-}) => Promise<VirtualFileSet>;
+export type PullFinding = {
+  kind: 'collision' | 'refused' | 'unreadable' | 'not-of-type';
+  id?: string;
+  firstId?: string;
+  message: string;
+};
+
+/**
+ * What a pull gives: the file set, and what it found that is not in it. A pull of a type that has one object has nothing to
+ * find, and its list is empty. Both are required, so that a caller cannot write the file set and drop the findings by
+ * mistake: `write(await pull())` does not compile.
+ * - `fileSet`: the files that the pull made, and the folders that the set owns.
+ * - `findings`: the entries that are not in the file set, and why; empty when there are none.
+ */
+export type PullResult = {
+  fileSet: VirtualFileSet;
+  findings: PullFinding[];
+};
+
+/**
+ * The pull of a configuration type to a file set: it reads the type from the tenant with the state it is given and returns
+ * the file set and what it found that it did not put into it, and writes nothing. A type that is visited by realm or takes
+ * overrides accepts more optional properties.
+ */
+export type FileSetPull = (options: { state: State }) => Promise<PullResult>;
 
 /**
  * The push of a configuration type from a file set: it reads the files of the type through the reader, writes them to the
@@ -96,6 +129,14 @@ export type FileSetPush = (options: {
   resultCallback?: ResultCallback<unknown>;
   state: State;
 }) => Promise<PushOutcome[]>;
+
+/**
+ * How much of a configuration type there can be. A `bounded` type has so few objects that the whole of it is held in memory and
+ * written as one file set (every type of a file set today). An `unbounded` type can have more objects than that (the OAuth2
+ * clients of a deployment that registers them dynamically, the users): it is not pulled to a file set, and the engine refuses it
+ * before it reads or lists anything.
+ */
+export type Volume = 'bounded' | 'unbounded';
 
 /** A function of a configuration type that is not typed yet: it takes what the type needs, and answers when it is done. */
 type ConfigTypeFunction = (...args: never[]) => Promise<unknown>;
@@ -125,4 +166,6 @@ export interface ConfigTypeDescriptor {
   pull?: FileSetPull;
   /** The function that pushes the type from a file set, if it has one. */
   push?: FileSetPush;
+  /** How much of the type there can be. Default: `bounded`. The engine of the types with a list of objects refuses an `unbounded` type. */
+  volume?: Volume;
 }

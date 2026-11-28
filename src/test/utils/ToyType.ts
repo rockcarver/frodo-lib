@@ -1,17 +1,18 @@
 import {
-  assignFileNames,
-  fileOfObject,
   inRealm,
+  mergeAndWriteList,
+  mergeList,
   overridesOf,
-  readFileSetJson,
   realmOfDir,
   realmsToVisit,
-  runPerObject,
+  splitList,
   unmatchedOverrides,
+  type ListSpec,
   type RealmOverrides,
 } from '../../ops/internal/FileSetEngine';
 import {
   type LeftOutAttributesCallback,
+  type PullFinding,
   type PushOutcome,
   type ResultCallback,
 } from '../../ops/OpsTypes';
@@ -27,23 +28,41 @@ import {
 
 /**
  * A configuration type that exists only for the tests: a toy, one JSON file for each toy in the folder of its realm,
- * `realms/<realm>/toys/<name>.json`. It is written the way that the first real type will be, from the functions of the engine
- * and the builder and nothing else, so the tests of the engine have a type to run through: `splitToys` is the pure split of
- * the toys of the realms into a file set, `pullToys` reads the toys of the realms and splits them, `mergeToys` is the pure
- * merge of a file set back into the toys of the realms, and `pushToys` merges and sends each toy through a function that the
- * caller passes in. No tenant, no file system.
+ * `realms/<realm>/toys/<name>.json`. It is written the way that the first real type will be, from the list functions of the
+ * engine and the builder and nothing else, so the tests of the engine have a type to run through: `splitToys` is the pure split
+ * of the toys of the realms into a file set and its findings, `pullToys` reads the toys of the realms and splits them,
+ * `mergeToys` is the pure merge of a file set back into the toys of the realms, and `pushToys` merges and sends each toy
+ * through a function that the caller passes in. The realms are the toy's own: the engine knows one folder, and the toy asks it
+ * once for each realm. No tenant, no file system.
  */
 
 /** One toy, as the tenant has it: it has an id and anything else. */
 export type ToyObject = { _id: string; [key: string]: unknown };
 
+/** A finding of the engine, and the realm of the toy that it is about: the engine knows one folder, the toy has one for each realm. */
+export type ToyFinding = PullFinding & { realm: string };
+
 /** What a split gives: the file set, and what the engine reported while it was made. */
 export type ToySplit = {
   fileSet: VirtualFileSet;
-  collisions: { realm: string; id: string; firstId: string }[];
-  refused: { realm: string; id: string; error: Error }[];
+  findings: ToyFinding[];
   unmatched: { realm: string; id: string }[];
 };
+
+/**
+ * What the toy tells the engine about the toys of a realm: one folder for each realm, an id that never reaches a request (a toy
+ * is never sent anywhere that builds a path from its id), and the names that encode every character of a path.
+ * @param {string} realm the realm
+ * @returns {ListSpec} the spec for the realm
+ */
+function toySpec(realm: string): ListSpec {
+  return {
+    folder: `realms/${realmFolderOf(realm)}/toys`,
+    idPrefix: null,
+    type: { key: 'toys' },
+    nameOf: encodedName,
+  };
+}
 
 /**
  * The toys of the realms as they are on the tenant, and what a split of them must give (the golden folder
@@ -72,9 +91,9 @@ export const TOY_TENANT: Record<string, ToyObject[]> = {
 };
 
 /**
- * The pure split of the toys of the realms into a file set. Ids are taken in ordinal order, so the same toys give the same
- * set whatever order the tenant answered in; a toy whose id leaves no file name, and one whose name another toy has, are
- * reported and not written.
+ * The pure split of the toys of the realms into a file set, realm by realm through `splitList`. Ids are taken in ordinal order,
+ * so the same toys give the same set whatever order the tenant answered in; a toy whose id leaves no file name, one whose name
+ * another toy has, and an entry that is no toy, are findings and not written.
  * @param {Record<string, ToyObject[]>} toys the toys of each realm
  * @param {RealmOverrides} overrides the overrides, if there are any
  * @returns {ToySplit} the file set and what was reported
@@ -90,41 +109,23 @@ export function splitToys({
   const ownedFolders: string[] = [];
   const matched = new Set<string>();
   const visited = new Set<string>();
-  const collisions: ToySplit['collisions'] = [];
-  const refused: ToySplit['refused'] = [];
+  const findings: ToyFinding[] = [];
   for (const realm of Object.keys(toys)) {
     visited.add(realm);
-    const folder = `realms/${realmFolderOf(realm)}/toys`;
-    ownedFolders.push(folder);
-    const sorted = [...toys[realm]].sort((a, b) =>
-      compareOrdinal(a._id, b._id)
-    );
-    const named = assignFileNames(
-      sorted.map((toy) => toy._id),
-      encodedName
-    );
-    for (const { id, firstId } of named.collisions) {
-      collisions.push({ realm, id, firstId });
-    }
-    for (const { id, error } of named.refused) {
-      refused.push({ realm, id, error });
-    }
-    for (const toy of sorted) {
-      const name = named.names.get(toy._id);
-      if (name === undefined) continue;
-      files.push(
-        fileOfObject({
-          path: `${folder}/${name}.json`,
-          object: toy,
-          overrides: overridesOf(overrides, realm, toy._id, matched),
-        })
-      );
-    }
+    const result = splitList({
+      ...toySpec(realm),
+      objects: toys[realm],
+      keepRev: false,
+      keepModifiedProperties: true,
+      overridesFor: (id) => overridesOf(overrides, realm, id, matched),
+    });
+    files.push(...result.fileSet.files);
+    ownedFolders.push(...result.fileSet.ownedFolders);
+    findings.push(...result.findings.map((finding) => ({ ...finding, realm })));
   }
   return {
     fileSet: buildFileSet({ files, ownedFolders }),
-    collisions,
-    refused,
+    findings,
     unmatched: unmatchedOverrides(overrides, matched, visited),
   };
 }
@@ -162,17 +163,14 @@ export async function pullToys({
   return splitToys({ toys: Object.fromEntries(entries), overrides });
 }
 
-/** The files of the toys of each realm that a reader holds, in the order of the listing. */
-type ToyFiles = { realm: string; folder: string; names: string[] }[];
-
 /**
- * The folders of the toys of the realms to visit and the files in them: the realms are the folders below `realms`.
+ * The realms of a file set that a pull or a push visits: the realm that was asked for, or the folders below `realms`.
  * @param {FileSetReader} reader the reader of the file set
  * @param {string} realm the realm to read, if one was asked for
  * @param {State} state the state
- * @returns {Promise<ToyFiles>} the realms and their files
+ * @returns {Promise<string[]>} the realms
  */
-async function toyFilesOf({
+async function toyRealmsOf({
   reader,
   realm,
   state,
@@ -180,8 +178,8 @@ async function toyFilesOf({
   reader: FileSetReader;
   realm?: string;
   state: State;
-}): Promise<ToyFiles> {
-  const realms = await realmsToVisit({
+}): Promise<string[]> {
+  return realmsToVisit({
     realm,
     realmNames: async () =>
       ((await reader.listDirectory('realms')) ?? [])
@@ -189,56 +187,13 @@ async function toyFilesOf({
         .map((entry) => realmOfDir(entry.name)),
     state,
   });
-  const found: ToyFiles = [];
-  for (const visit of realms) {
-    const folder = `realms/${realmFolderOf(visit)}/toys`;
-    const entries = (await reader.listDirectory(folder)) ?? [];
-    found.push({
-      realm: visit,
-      folder,
-      names: entries
-        .filter((entry) => !entry.isDirectory && entry.name.endsWith('.json'))
-        .map((entry) => entry.name),
-    });
-  }
-  return found;
-}
-
-/**
- * Read one toy of a file set. The id is the `_id` that the file holds and nothing else: a push never reads a file name, so a
- * file can be renamed, or shortened because its id is long, and the toy is the same toy.
- * @param {FileSetReader} reader the reader of the file set
- * @param {string} path the path of the file
- * @param {State} state the state, which holds the values of the placeholders
- * @returns {Promise<ToyObject>} the toy
- * @throws {Error} if the file holds no `_id`, or cannot be read
- */
-async function readToy({
-  reader,
-  path,
-  state,
-}: {
-  reader: FileSetReader;
-  path: string;
-  state: State;
-}): Promise<ToyObject> {
-  const object = (await readFileSetJson({ reader, path, state })) as
-    Record<string, unknown> | null | undefined;
-  if (
-    typeof object !== 'object' ||
-    object === null ||
-    object._id === undefined ||
-    object._id === null
-  ) {
-    throw new Error(`The file ${path} holds no _id.`);
-  }
-  return { ...object, _id: String(object._id) };
 }
 
 /**
  * The merge of a file set into the toys of each realm that it holds: the realms are the folders below `realms`, a toy is
  * the id of its file (`_id`) and the rest of the file, placeholders filled from the state. The toys of a realm are in the
- * order of their ids, whatever the files are called. A file that cannot be read, or holds no `_id`, fails the merge.
+ * order of their ids, whatever the files are called. A file that cannot be read, holds no `_id`, or holds an id that another
+ * file holds, fails the merge with the error that the engine gave for the file.
  * @param {FileSetReader} reader the reader of the file set
  * @param {string} realm the realm to read, if one was asked for
  * @param {State} state the state
@@ -254,21 +209,21 @@ export async function mergeToys({
   state: State;
 }): Promise<Record<string, ToyObject[]>> {
   const entries: [string, ToyObject[]][] = [];
-  for (const found of await toyFilesOf({ reader, realm, state })) {
+  for (const visit of await toyRealmsOf({ reader, realm, state })) {
     const read: ToyObject[] = [];
-    for (const name of found.names) {
-      read.push(
-        await readToy({ reader, path: `${found.folder}/${name}`, state })
-      );
+    for (const file of await mergeList({
+      ...toySpec(visit),
+      reader,
+      state,
+    })) {
+      if (file.error) throw file.error;
+      read.push(file.object as ToyObject);
     }
     read.sort((a, b) => compareOrdinal(a._id, b._id));
-    entries.push([found.realm, read]);
+    entries.push([visit, read]);
   }
   return Object.fromEntries(entries);
 }
-
-/** A file of the toys of a realm, read for a push: the toy, or why it could not be read, under the id it is sent by. */
-type ToyRead = { id: string; toy?: ToyObject; error?: Error };
 
 /**
  * Push the toys: send each toy of the file set through `importToy`, in its realm. Every file is one object of the run, so a
@@ -303,37 +258,21 @@ export async function pushToys({
   state: State;
 }): Promise<PushOutcome[]> {
   const outcomes: PushOutcome[] = [];
-  for (const found of await toyFilesOf({ reader, realm, state })) {
+  for (const visit of await toyRealmsOf({ reader, realm, state })) {
     outcomes.push(
       ...(await inRealm({
-        realm: found.realm,
+        realm: visit,
         state,
-        work: async () => {
-          const read: ToyRead[] = [];
-          for (const name of found.names) {
-            const path = `${found.folder}/${name}`;
-            try {
-              const toy = await readToy({ reader, path, state });
-              read.push({ id: toy._id, toy });
-            } catch (error) {
-              read.push({
-                id: path,
-                error:
-                  error instanceof Error ? error : new Error(String(error)),
-              });
-            }
-          }
-          read.sort((a, b) => compareOrdinal(a.id, b.id));
-          return runPerObject({
-            objects: read,
-            work: async ({ object, leftOutCallback: leftOut }) => {
-              if (object.error) throw object.error;
-              return importToy(found.realm, object.toy as ToyObject, leftOut);
-            },
+        work: () =>
+          mergeAndWriteList({
+            ...toySpec(visit),
+            reader,
+            state,
+            write: (toy, _id, leftOut) =>
+              importToy(visit, toy as ToyObject, leftOut),
             resultCallback,
             leftOutCallback,
-          });
-        },
+          }),
       }))
     );
   }

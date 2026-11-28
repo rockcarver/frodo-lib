@@ -1991,6 +1991,7 @@ describe('the module stays pure', () => {
       '../../utils/FileSetPathUtils',
       '../../utils/FileSetUtils',
       '../../utils/JsonUtils',
+      '../../utils/RequestPathUtils',
       '../FrodoError',
       '../OpsTypes',
     ]);

@@ -62,6 +62,8 @@ describe('package root exports', () => {
       'ConnectorServerReference',
       'MappingReference',
       'PushOutcome',
+      'PullResult',
+      'PullFinding',
     ]) {
       const from = exported.get(name);
       expect(from).toBeDefined();
@@ -74,12 +76,15 @@ describe('package root exports', () => {
   });
 
   test('exports from the shared types of the ops only the types that are meant to be public', () => {
-    // the descriptor of a configuration type and the types of its pull and push are for the library, not for its callers: a new
-    // type at the package root is a decision, and this list is where it is taken
+    // the descriptor of a configuration type and the types of its pull and push are for the library, not for its callers, except
+    // what a pull gives back (`PullResult` and its `PullFinding`), which the caller of a pull has to name to read the findings: a
+    // new type at the package root is a decision, and this list is where it is taken
     expect(exportsFrom('index.ts', './ops/OpsTypes')).toEqual({
       types: [
         'ExportMetaData',
         'ObjectReference',
+        'PullFinding',
+        'PullResult',
         'PushOutcome',
         'ReferenceDependency',
       ],

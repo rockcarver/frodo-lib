@@ -10,7 +10,7 @@
  * - is a method of the `frodo` facade, found exactly once, so that it is not hidden and not ambiguous,
  * - has an entry in the generated help (`src/lib/Help.ts`), which is what the capability registry and the shell read, and
  * - belongs to a type that has a golden folder `src/test/golden/<key>` with `files/` and `owned-folders.json`.
- * The key and the two order numbers of a type are used once.
+ * The key and the two order numbers of a type are used once, and a type that names a volume names `bounded` or `unbounded`.
  *
  * Hermetic: it reads the facade object, the generated help and the folder of the golden file sets.
  */
@@ -19,13 +19,12 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { frodo } from '../lib/FrodoLib';
 import { facadePaths } from '../test/utils/FileSetTestKit';
-import { type VirtualFileSet } from '../utils/FileSetUtils';
 import { getHelpMetadata } from '../utils/HelpUtils';
 import {
   ConfigTypeRegistry,
   type ConfigTypeDescriptor,
 } from './ConfigTypeRegistry';
-import { type PushOutcome } from './OpsTypes';
+import { type PullResult, type PushOutcome } from './OpsTypes';
 
 const GOLDEN_ROOT = fileURLToPath(new URL('../test/golden', import.meta.url));
 
@@ -74,6 +73,14 @@ function violationsOf(
     }
     if (type.deployments.length === 0) {
       violations.push(`${type.key}: no deployment type offers the type`);
+    }
+    // a type that names no volume is bounded; a word that is neither is a typo that would make the engine take it for bounded
+    if (
+      type.volume !== undefined &&
+      type.volume !== 'bounded' &&
+      type.volume !== 'unbounded'
+    ) {
+      violations.push(`${type.key}: the volume is bounded or unbounded`);
     }
     if (!type.pull && !type.push) {
       violations.push(`${type.key}: neither a pull nor a push`);
@@ -131,8 +138,8 @@ const realWorld: World = {
   },
 };
 
-async function pullToys(): Promise<VirtualFileSet> {
-  return { files: [], ownedFolders: [] };
+async function pullToys(): Promise<PullResult> {
+  return { fileSet: { files: [], ownedFolders: [] }, findings: [] };
 }
 async function pushToys(): Promise<PushOutcome[]> {
   return [];
@@ -245,6 +252,26 @@ describe('the rules of the walk', () => {
     ]);
     expect(violationsOf([toy({ deployments: [] })], toyWorld())).toEqual([
       'toys: no deployment type offers the type',
+    ]);
+  });
+
+  it('pass for a type that names its volume, bounded or unbounded, and for one that names none', () => {
+    expect(violationsOf([toy({ volume: 'bounded' })], toyWorld())).toEqual([]);
+    expect(violationsOf([toy({ volume: 'unbounded' })], toyWorld())).toEqual(
+      []
+    );
+    expect(violationsOf([toy({ volume: undefined })], toyWorld())).toEqual([]);
+  });
+
+  it('fail for a volume that is neither bounded nor unbounded', () => {
+    expect(violationsOf([toy({ volume: 'big' as never })], toyWorld())).toEqual(
+      ['toys: the volume is bounded or unbounded']
+    );
+    expect(violationsOf([toy({ volume: '' as never })], toyWorld())).toEqual([
+      'toys: the volume is bounded or unbounded',
+    ]);
+    expect(violationsOf([toy({ volume: null })], toyWorld())).toEqual([
+      'toys: the volume is bounded or unbounded',
     ]);
   });
 
