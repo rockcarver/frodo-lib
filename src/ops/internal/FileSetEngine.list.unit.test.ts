@@ -844,6 +844,8 @@ describe('mergeList', () => {
         'locales/xjson': '{"_id":"uilocale/x"}',
         'locales/backupjson': '{"_id":"uilocale/backup"}',
         'locales/a.json.bak': '{"_id":"uilocale/bak"}',
+        // the extension is `.json` and nothing else: the comparison is case-sensitive
+        'locales/e.JSON': '{"_id":"uilocale/e"}',
         'locales/sub/b.json': '{"_id":"uilocale/b"}',
         // a folder whose name ends in `.json` is a folder, and is not read
         'locales/folder.json/d.json': '{"_id":"uilocale/d"}',
