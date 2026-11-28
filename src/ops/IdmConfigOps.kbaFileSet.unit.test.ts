@@ -284,7 +284,7 @@ describe('pullKbaConfig', () => {
     ).toContain('${KBA_PROPERTY}');
 
     answer({ data: entity() });
-    const set = await pullKbaConfig({ state });
+    const { fileSet: set } = await pullKbaConfig({ state });
 
     expect(set.files[0].content).toContain('"kbaPropertyName": "kbaInfo"');
     expect(set.files[0].content).not.toContain('KBA_PROPERTY');
@@ -294,8 +294,21 @@ describe('pullKbaConfig', () => {
     answer({ data: entity() });
 
     expect(
-      goldenDifferences(await pullKbaConfig({ state: newState() }), GOLDEN)
+      goldenDifferences(
+        (await pullKbaConfig({ state: newState() })).fileSet,
+        GOLDEN
+      )
     ).toEqual([]);
+  });
+
+  it('gives a result of exactly the file set and the findings, and the KBA configuration has no finding to make', async () => {
+    answer({ data: entity() });
+
+    const result = await pullKbaConfig({ state: newState() });
+
+    expect(Object.keys(result).sort()).toEqual(['fileSet', 'findings']);
+    expect(result.findings).toEqual([]);
+    expect(result.fileSet.files.map((file) => file.path)).toEqual([PATH]);
   });
 
   it('rejects with the error of the read as it is, one level: the message names the entity and the cause is the answer of the tenant', async () => {
@@ -363,7 +376,7 @@ describe('pushKbaConfig', () => {
 
   it('pushes what a pull gave: the entity without the revision and the modified properties', async () => {
     answer({ data: entity() });
-    const set = await pullKbaConfig({ state: newState() });
+    const { fileSet: set } = await pullKbaConfig({ state: newState() });
     const requests = answer({ data: {} });
 
     await pushKbaConfig({
@@ -435,7 +448,7 @@ describe('a pull then a push of the texts that hold `${`', () => {
         questions: { '1': { en: text, [`key ${text}`]: text } },
       };
       answer({ data: JSON.parse(JSON.stringify(given)) });
-      const set = await pullKbaConfig({ state });
+      const { fileSet: set } = await pullKbaConfig({ state });
       const requests = answer({ data: {} });
 
       const outcomes = await pushKbaConfig({
@@ -477,9 +490,10 @@ describe('the methods of the facade', () => {
   it('pulls with the state of the instance: one GET, and the golden file set', async () => {
     const requests = answer({ data: entity() });
 
-    const set = await instance().idm.config.pullKbaConfig();
+    const result = await instance().idm.config.pullKbaConfig();
 
-    expect(goldenDifferences(set, GOLDEN)).toEqual([]);
+    expect(goldenDifferences(result.fileSet, GOLDEN)).toEqual([]);
+    expect(result.findings).toEqual([]);
     expect(seen(requests).map(({ method, url }) => ({ method, url }))).toEqual([
       { method: 'GET', url: `${CONFIG_URL}/selfservice.kba` },
     ]);

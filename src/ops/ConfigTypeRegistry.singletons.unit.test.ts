@@ -80,7 +80,11 @@ import {
   mergeSingleton,
   splitSingleton,
 } from './internal/FileSetEngine';
-import { type PushOutcome, type ResultCallback } from './OpsTypes';
+import {
+  type PullResult,
+  type PushOutcome,
+  type ResultCallback,
+} from './OpsTypes';
 
 afterEach(restoreAdapter);
 
@@ -92,7 +96,7 @@ const ENVIRONMENT_URL = 'https://openam-matrix.example.com/environment';
 type Functions = {
   split(entity: object): VirtualFileSet;
   merge(arguments_: { reader: FileSetReader; state: State }): Promise<unknown>;
-  pull(arguments_: { state: State }): Promise<VirtualFileSet>;
+  pull(arguments_: { state: State }): Promise<PullResult>;
   push(arguments_: {
     reader: FileSetReader;
     resultCallback?: ResultCallback<never>;
@@ -145,8 +149,10 @@ function shapeFunctions({
   return {
     split: (object) => splitSingleton({ object, path }),
     merge,
-    pull: async ({ state }) =>
-      splitSingleton({ object: await read(state), path }),
+    pull: async ({ state }) => ({
+      fileSet: splitSingleton({ object: await read(state), path }),
+      findings: [],
+    }),
     push: ({ reader, resultCallback, state }) =>
       mergeAndWriteSingleton({
         id,
@@ -499,10 +505,21 @@ describe.each(ROWS)('the single-object type $key', (row) => {
       const { fns, tenant } = make();
       tenant.answer({ data: entityOfRow(row) });
 
-      const set = await fns.pull({ state: tenant.state });
+      const { fileSet: set } = await fns.pull({ state: tenant.state });
 
       expect(tenant.seen()).toEqual(row.pullRequests);
       expect(goldenDifferences(set, goldenFolder)).toEqual([]);
+    });
+
+    it('gives the file set and a list of findings that is empty, nothing else: a type with one object has nothing to report', async () => {
+      const { fns, tenant } = make();
+      tenant.answer({ data: entityOfRow(row) });
+
+      const result = await fns.pull({ state: tenant.state });
+
+      expect(Object.keys(result).sort()).toEqual(['fileSet', 'findings']);
+      expect(result.findings).toEqual([]);
+      expect(result.fileSet.files.map((file) => file.path)).toEqual([row.path]);
     });
 
     it('does not change what the tenant answered', async () => {
@@ -593,7 +610,7 @@ describe.each(ROWS)('the single-object type $key', (row) => {
     it('pushes what a pull gave', async () => {
       const { fns, tenant } = make();
       tenant.answer({ data: entityOfRow(row) });
-      const set = await fns.pull({ state: tenant.state });
+      const { fileSet: set } = await fns.pull({ state: tenant.state });
       tenant.answer({ data: {} });
 
       const outcomes = await fns.push({

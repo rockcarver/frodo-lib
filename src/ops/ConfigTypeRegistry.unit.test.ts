@@ -20,14 +20,18 @@ import {
   importSpecifiersOf,
   NODE_IO_MODULES,
 } from '../test/exportFileFormat/importsOf';
-import { parsedSource } from '../test/utils/SourceText';
-import { type VirtualFileSet } from '../utils/FileSetUtils';
+import { parsedSource, typeAlias } from '../test/utils/SourceText';
+import { type VirtualFile, type VirtualFileSet } from '../utils/FileSetUtils';
 import {
   ConfigTypeRegistry,
   type ConfigTypeDescriptor,
 } from './ConfigTypeRegistry';
 import { kbaConfigType, pullKbaConfig, pushKbaConfig } from './IdmConfigOps';
-import { type PushOutcome } from './OpsTypes';
+import {
+  type FileSetPull,
+  type PullResult,
+  type PushOutcome,
+} from './OpsTypes';
 
 /** The names of the functions that the registry has to know. */
 const PULL_OR_PUSH = /^(pull|push)[A-Z]/;
@@ -121,14 +125,14 @@ function opsSources(): Record<string, string> {
 }
 
 /** A function with the name that a type module would give it. */
-async function pullToys(): Promise<VirtualFileSet> {
-  return { files: [], ownedFolders: [] };
+async function pullToys(): Promise<PullResult> {
+  return { fileSet: { files: [], ownedFolders: [] }, findings: [] };
 }
 async function pushToys(): Promise<PushOutcome[]> {
   return [];
 }
-async function pullOther(): Promise<VirtualFileSet> {
-  return { files: [], ownedFolders: [] };
+async function pullOther(): Promise<PullResult> {
+  return { fileSet: { files: [], ownedFolders: [] }, findings: [] };
 }
 
 const toy = (own: Partial<ConfigTypeDescriptor>): ConfigTypeDescriptor => ({
@@ -165,7 +169,7 @@ describe('the registry of configuration types', () => {
     ]);
   });
 
-  it('types the pull and the push of a descriptor: a pull gives a file set, a push gives outcomes', () => {
+  it('types the pull and the push of a descriptor: a pull gives a file set and its findings, a push gives outcomes', () => {
     // a type error of a test file is not reported by a test run, so the declaration is read as text: the functions that
     // an owner module gives are checked by the compiler against these two types when the library is built
     const declaration = parsedSource('ops/OpsTypes.ts').statements.find(
@@ -182,12 +186,105 @@ describe('the registry of configuration types', () => {
 
     expect(typeOf('pull')).toBe('FileSetPull');
     expect(typeOf('push')).toBe('FileSetPush');
-    // the two types say what the owner modules give: the file set of a pull, the outcomes of a push
+    // the two types say what the owner modules give: the file set and the findings of a pull, the outcomes of a push
     const types = parsedSource('ops/OpsTypes.ts')
       .getText()
       .replace(/\s+/g, ' ');
-    expect(types).toContain('Promise<VirtualFileSet>');
+    expect(types).toContain('}) => Promise<PullResult>');
     expect(types).toContain('}) => Promise<PushOutcome[]>');
+  });
+
+  it('types what a pull gives as a file set and a list of findings, and both are required', () => {
+    const result = typeAlias('ops/OpsTypes.ts', 'PullResult');
+    const members = ts.isTypeLiteralNode(result.type)
+      ? result.type.members.filter(ts.isPropertySignature)
+      : [];
+    const member = (name: string) =>
+      members.find((m) => m.name.getText() === name);
+
+    expect(members.map((m) => m.name.getText())).toEqual([
+      'fileSet',
+      'findings',
+    ]);
+    expect(member('fileSet')?.type?.getText()).toBe('VirtualFileSet');
+    expect(member('findings')?.type?.getText()).toBe('PullFinding[]');
+    // a pull that does not say what it found is not a pull: no `?`
+    expect(member('fileSet')?.questionToken).toBeUndefined();
+    expect(member('findings')?.questionToken).toBeUndefined();
+  });
+
+  it('types a finding: what it was, which object, and a message', () => {
+    const finding = typeAlias('ops/OpsTypes.ts', 'PullFinding');
+    const members = ts.isTypeLiteralNode(finding.type)
+      ? finding.type.members.filter(ts.isPropertySignature)
+      : [];
+    const text = (name: string) =>
+      members
+        .find((m) => m.name.getText() === name)
+        ?.getText()
+        .replace(/\s+/g, ' ');
+
+    expect(text('kind')).toBe(
+      "kind: 'collision' | 'refused' | 'unreadable' | 'not-of-type';"
+    );
+    expect(text('id')).toBe('id?: string;');
+    expect(text('firstId')).toBe('firstId?: string;');
+    expect(text('message')).toBe('message: string;');
+    expect(members).toHaveLength(4);
+  });
+
+  it('types the volume of a type as bounded or unbounded, and a type that names none is bounded', () => {
+    const volume = typeAlias('ops/OpsTypes.ts', 'Volume');
+    const descriptor = parsedSource('ops/OpsTypes.ts').statements.find(
+      (statement): statement is ts.InterfaceDeclaration =>
+        ts.isInterfaceDeclaration(statement) &&
+        statement.name.text === 'ConfigTypeDescriptor'
+    );
+    const member = descriptor?.members.find(
+      (m) => m.name?.getText() === 'volume'
+    );
+
+    expect(volume.type.getText()).toBe("'bounded' | 'unbounded'");
+    expect(member?.getText()).toContain('volume?: Volume;');
+    // the KBA configuration has one object and names no volume
+    expect(Object.keys(kbaConfigType)).not.toContain('volume');
+  });
+
+  describe('what the compiler refuses (read by tsc over the test files, which a test run does not do)', () => {
+    // each line below is a type error that `@ts-expect-error` marks: tsc reports the comment when the line compiles
+    const write = (_set: VirtualFileSet): void => undefined;
+    const files: VirtualFile[] = [];
+
+    /** Never called: it is here for the compiler. */
+    async function probes(pull: FileSetPull, state: never): Promise<void> {
+      // a pull that gives a bare file set is not a pull
+      // @ts-expect-error a file set is not a PullResult
+      const bare: FileSetPull = async () => ({ files, ownedFolders: [] });
+      // a result without its findings is not a pull
+      // @ts-expect-error findings are required
+      const silent: FileSetPull = async () => ({
+        fileSet: { files, ownedFolders: [] },
+      });
+      // the findings of a pull cannot be dropped by handing its result to a writer
+      // @ts-expect-error a PullResult is not a file set
+      write(await pull({ state }));
+      // the right shape compiles
+      const right: FileSetPull = async () => ({
+        fileSet: { files, ownedFolders: [] },
+        findings: [{ kind: 'collision', message: 'a message' }],
+      });
+      write((await pull({ state })).fileSet);
+      // a finding has one of the four reasons
+      const unknown: PullResult['findings'] = [
+        // @ts-expect-error an unknown reason
+        { kind: 'skipped', message: 'x' },
+      ];
+      void [bare, silent, right, unknown];
+    }
+
+    it('is written for the compiler: the probes exist and are not run', () => {
+      expect(typeof probes).toBe('function');
+    });
   });
 
   it('lists the KBA configuration, once, with the fields that its owner gave it', () => {
