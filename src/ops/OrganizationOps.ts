@@ -80,6 +80,7 @@ export async function readOrganizations({
       orgs = orgs.concat(result.result);
     } catch (error) {
       errors.push(error);
+      break;
     }
   } while (result.pagedResultsCookie);
   if (errors.length > 0) {
@@ -107,7 +108,7 @@ export async function listOrganizationsTopDown({ state }: { state: State }) {
         pageCookie: result.pagedResultsCookie,
         state,
       });
-      orgs.concat(result.result);
+      orgs.push(...result.result);
     } while (result.pagedResultsCookie);
     return orgs;
   } catch (error) {

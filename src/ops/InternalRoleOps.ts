@@ -1,4 +1,7 @@
-import { type IdObjectSkeletonInterface } from '../api/ApiTypes';
+import {
+  type IdObjectSkeletonInterface,
+  type PagedResult,
+} from '../api/ApiTypes';
 import {
   createInternalObject,
   deleteInternalObject,
@@ -374,6 +377,25 @@ export async function readInternalRoleByName({
   }
 }
 
+/**
+ * A read that follows the paged results cookie ends with an error when the answer carries the cookie that its
+ * request carried: the server does not move on, and the next request would be the same one, without end.
+ * The message says what happened and never holds the cookie.
+ */
+function assertCookieMovedOn({
+  sent,
+  received,
+}: {
+  sent?: string;
+  received?: string;
+}) {
+  if (sent && received === sent) {
+    throw new FrodoError(
+      'The answer carries the same paged results cookie as the request, so the next page cannot be read'
+    );
+  }
+}
+
 export async function readInternalRoles({
   fields = defaultFields,
   state,
@@ -382,12 +404,27 @@ export async function readInternalRoles({
   state: State;
 }): Promise<InternalRoleSkeleton[]> {
   try {
-    const { result } = await queryAllInternalObjectsByType({
-      type: INTERNAL_ROLE_TYPE,
-      fields,
-      state,
-    });
-    return result as InternalRoleSkeleton[];
+    let roles: IdObjectSkeletonInterface[] = [];
+    let page: PagedResult<IdObjectSkeletonInterface> = {
+      result: [],
+      resultCount: 0,
+      pagedResultsCookie: null,
+      totalPagedResultsPolicy: 'NONE',
+      totalPagedResults: -1,
+      remainingPagedResults: -1,
+    };
+    do {
+      const sent = page.pagedResultsCookie;
+      page = await queryAllInternalObjectsByType({
+        type: INTERNAL_ROLE_TYPE,
+        fields,
+        pageCookie: sent,
+        state,
+      });
+      assertCookieMovedOn({ sent, received: page.pagedResultsCookie });
+      roles = roles.concat(page.result);
+    } while (page.pagedResultsCookie);
+    return roles as InternalRoleSkeleton[];
   } catch (error) {
     throw new FrodoError(`Error reading internal roles`, error);
   }
@@ -536,13 +573,28 @@ export async function queryInternalRoles({
   state: State;
 }): Promise<InternalRoleSkeleton[]> {
   try {
-    const { result } = await queryInternalObjects({
-      type: INTERNAL_ROLE_TYPE,
-      filter,
-      fields,
-      state,
-    });
-    return result as InternalRoleSkeleton[];
+    let roles: IdObjectSkeletonInterface[] = [];
+    let page: PagedResult<IdObjectSkeletonInterface> = {
+      result: [],
+      resultCount: 0,
+      pagedResultsCookie: null,
+      totalPagedResultsPolicy: 'NONE',
+      totalPagedResults: -1,
+      remainingPagedResults: -1,
+    };
+    do {
+      const sent = page.pagedResultsCookie;
+      page = await queryInternalObjects({
+        type: INTERNAL_ROLE_TYPE,
+        filter,
+        fields,
+        pageCookie: sent,
+        state,
+      });
+      assertCookieMovedOn({ sent, received: page.pagedResultsCookie });
+      roles = roles.concat(page.result);
+    } while (page.pagedResultsCookie);
+    return roles as InternalRoleSkeleton[];
   } catch (error) {
     throw new FrodoError(
       `Error querying internal roles with filter ${filter}`,

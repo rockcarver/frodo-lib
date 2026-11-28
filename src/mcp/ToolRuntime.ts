@@ -13,7 +13,6 @@
  * the established Frodo factory helpers (`createInstance*`).
  */
 
-import { DEFAULT_PAGE_SIZE as INTERNAL_OBJECT_PAGE_SIZE } from '../api/InternalObjectApi';
 import * as ManagedObjectApi from '../api/ManagedObjectApi';
 import { getIdmServerVersionInfo } from '../api/ServerInfoApi';
 import type { Frodo } from '../lib/FrodoLib';
@@ -119,16 +118,6 @@ const SELF_CAPPING_CAPABILITIES: Readonly<
     argument: 'maxEvents',
     dedupeArgument: 'dedupeByTransactionId',
     readsWholePages: true,
-  },
-  // one request of at most one page of the internal object api: the cookie of the answer is dropped
-  'role.readInternalRoles': {
-    fixedCap: INTERNAL_OBJECT_PAGE_SIZE,
-    readOn:
-      'Use role.queryInternalRoles with a filter that matches fewer roles to read the rest.',
-  },
-  'role.queryInternalRoles': {
-    fixedCap: INTERNAL_OBJECT_PAGE_SIZE,
-    readOn: 'Narrow the filter to read the rest.',
   },
 };
 
