@@ -11,18 +11,27 @@
  * does not return is interrupted and fails the test), generous, and far under
  * what a function that reads a text again for each of its characters takes
  * (minutes).
+ *
+ * Where a test says that a text is read from its head, or that an error that
+ * many paths lead to is written once, it counts what was read instead of timing
+ * it: the longest text that a regular expression was given, the texts that
+ * `JSON.parse` was given, how many times the view wrote an error. A count does not
+ * change with the load of the machine; a time does.
  */
 import { spawn } from 'child_process';
 import { resolve } from 'path';
 import { inspect } from 'util';
+import { jest } from '@jest/globals';
 import { isolatedChildEnv } from '../../test/support/runWorkers';
 import { FrodoError } from '../ops/FrodoError';
 import { leastCpuMilliseconds } from '../test/utils/CpuTime';
 import { failure } from '../test/utils/SerializationForms';
 import {
   attachSafeSerialization,
+  CUT_MARGIN,
   describeBody,
   describeError,
+  MAX_BODY_LENGTH,
   MAX_STRUCTURED_TEXT,
 } from './ErrorSerializationUtils';
 import {
@@ -124,6 +133,50 @@ const QUADRATIC = [
   'headers that decode and no payload',
   'a header of a megabyte that does not decode',
 ];
+
+/**
+ * The most that a function that is given a long text may read of it at once: twice the head that is
+ * written and the margin after it (`MAX_BODY_LENGTH` and `CUT_MARGIN`), as a regular expression's subject.
+ */
+const READ_LIMIT = 2 * (MAX_BODY_LENGTH + CUT_MARGIN);
+
+/**
+ * What a function reads of the texts that it is given: the longest text that a regular expression was given, and the
+ * texts that `JSON.parse` was given and that are longer than `READ_LIMIT`. A regular expression that is given a
+ * text longer than a hundred times the limit makes the call fail at once, before it reads the text.
+ */
+function readsOf(run: () => unknown) {
+  const exec = RegExp.prototype.exec;
+  const parse = JSON.parse;
+  let longestSubject = 0;
+  const longParses: number[] = [];
+  const execSpy = jest
+    .spyOn(RegExp.prototype, 'exec')
+    .mockImplementation(function (this: RegExp, subject: string) {
+      const length = String(subject).length;
+      longestSubject = Math.max(longestSubject, length);
+      if (length > 100 * READ_LIMIT) {
+        throw new Error(
+          `a regular expression was given a text of ${length} characters`
+        );
+      }
+      return exec.call(this, subject);
+    });
+  const parseSpy = jest.spyOn(JSON, 'parse').mockImplementation(((
+    text: string,
+    reviver?: never
+  ) => {
+    if (String(text).length > READ_LIMIT) longParses.push(String(text).length);
+    return parse.call(JSON, text, reviver);
+  }) as typeof JSON.parse);
+  try {
+    run();
+  } finally {
+    execSpy.mockRestore();
+    parseSpy.mockRestore();
+  }
+  return { longestSubject, longParses };
+}
 
 /** Runs a function and throws when its CPU time (the least of a few runs) is over the bound. */
 function within<T>(label: string, run: () => T, bound = BOUND_MS): T {
@@ -235,36 +288,86 @@ describe('redacting a text of an adversarial shape', () => {
 });
 
 describe('writing an error that holds the same error many times', () => {
-  /** An error with `width` children, all the same error, `depth` levels deep: `width ** depth` ways to reach a leaf. */
-  function shared(depth: number, width: number, message = 'x') {
+  /**
+   * An error with `width` children, all the same error, `depth` levels deep: `width ** depth` ways to reach a leaf.
+   * Every error that is made is added to `levels`, the leaf first.
+   */
+  function shared(
+    depth: number,
+    width: number,
+    message = 'x',
+    levels: FrodoError[] = []
+  ) {
     let level = new FrodoError(message);
+    levels.push(level);
     for (let index = 0; index < depth; index++) {
       level = new FrodoError(`${message} ${index}`, Array(width).fill(level));
+      levels.push(level);
     }
     return level;
   }
 
-  /** The least CPU time of a few runs, so that a pause of the machine does not decide. */
-  const fastest = (run: () => unknown, bound: number): number =>
-    leastCpuMilliseconds(run, bound);
+  /** How many times the view of an error is written for the error that is watched before the walk is cut off. */
+  const MOST_WRITES = 1000;
+  /** How many times the view may write the one error that so many paths lead to. */
+  const WRITES_ALLOWED = 5;
 
-  test('1: 8 levels of 8 shared children (16 million ways to reach a leaf) are written in the time of a few errors', () => {
-    const error = shared(8, 8);
-    expect(fastest(() => JSON.stringify(error), 100)).toBeLessThan(100);
-    expect(fastest(() => inspect(error, { depth: null }), 100)).toBeLessThan(
-      100
-    );
-    expect(fastest(() => describeError(error), 100)).toBeLessThan(100);
+  /**
+   * Counts how many times the view writes the deepest error that it reads (the error that holds the leaf: the
+   * view reads no deeper than `MAX_ERROR_DEPTH`, and `width ** (depth - 1)` paths lead to it). The view reads
+   * `httpDescription` of an error whenever it writes the error, and the combined message does not read it, so
+   * the number of reads is the number of times the error was written. At `MOST_WRITES` the walk is cut off
+   * (the errors lose their children), so that a view that walks every path ends at once.
+   * @param {FrodoError[]} levels the errors that `shared` made, the leaf first
+   * @returns {{ reads: number }} the count
+   */
+  function countWrites(levels: FrodoError[]) {
+    const writes = { reads: 0 };
+    Object.defineProperty(levels[1], 'httpDescription', {
+      get() {
+        if (++writes.reads === MOST_WRITES) {
+          levels.forEach((level) => (level.originalErrors = []));
+        }
+        return undefined;
+      },
+      configurable: true,
+    });
+    return writes;
+  }
+
+  test.each([
+    ['JSON.stringify', (error: FrodoError) => JSON.stringify(error)],
+    ['util.inspect', (error: FrodoError) => inspect(error, { depth: null })],
+    ['describeError', (error: FrodoError) => describeError(error)],
+  ])(
+    '1: 8 levels of 8 shared children (16 million ways to reach a leaf) are written once for each error, not once for each way to reach it: %s',
+    (_name, write) => {
+      const levels: FrodoError[] = [];
+      const error = shared(8, 8, 'x', levels);
+      const writes = countWrites(levels);
+      write(error);
+      // written at least once (the error that is counted is not skipped), and not once for each way to it
+      expect(writes.reads).toBeGreaterThan(0);
+      expect(writes.reads).toBeLessThanOrEqual(WRITES_ALLOWED);
+    }
+  );
+
+  test('2: the same, with a message of 4 MiB in every error: the text of a message is read from its head', () => {
+    const levels: FrodoError[] = [];
+    const error = shared(8, 8, 'x'.repeat(4 * MEGABYTE), levels);
+    const writes = countWrites(levels);
+    const reads = readsOf(() => JSON.stringify(error));
+    expect(writes.reads).toBeGreaterThan(0);
+    expect(writes.reads).toBeLessThanOrEqual(WRITES_ALLOWED);
+    expect(reads.longestSubject).toBeLessThanOrEqual(READ_LIMIT);
   });
 
-  test('2: the same, with a message of 4 MiB in every error', () => {
-    const error = shared(8, 8, 'x'.repeat(4 * MEGABYTE));
-    expect(fastest(() => JSON.stringify(error), 1000)).toBeLessThan(1000);
-  });
-
+  // one error and no shared children: nothing to count, and the CPU time is a thousandth of the bound
   test('3: a message of 4 MiB is written in a fraction of a second', () => {
     const error = new FrodoError('y'.repeat(4 * MEGABYTE), failure());
-    expect(fastest(() => JSON.stringify(error), 500)).toBeLessThan(500);
+    expect(leastCpuMilliseconds(() => JSON.stringify(error), 500)).toBeLessThan(
+      500
+    );
   });
 
   test('4: what is written of the shared graph is the head of the text of the error, and says how long it is', () => {
@@ -478,10 +581,14 @@ describe('writing an answer that holds a JSON text of megabytes inside a string'
       : text;
 
   test.each(TEXTS)(
-    '1: %s as the value of a string in an object (describeBody): about as long as writing the object',
+    '1: %s as the value of a string in an object (describeBody): read once with the object, not as a text of its own',
     (_name, text) => {
       const body = { echo: padded(text) };
-      expect(cpu(() => describeBody(body), 150)).toBeLessThan(150);
+      const reads = readsOf(() => describeBody(body));
+      // no expression reads more than the head of the text
+      expect(reads.longestSubject).toBeLessThanOrEqual(READ_LIMIT);
+      // the text is not parsed: only the copy of the whole body that is made before it is written is as long
+      expect(reads.longParses.length).toBeLessThanOrEqual(1);
     }
   );
 
@@ -518,11 +625,17 @@ describe('writing an answer that holds a JSON text of megabytes inside a string'
   ];
 
   test.each(PLAIN_TEXTS)(
-    '3b: %s (a text of several MiB that is no JSON) is written from its head: the time does not depend on its length',
+    '3b: %s (a text of several MiB that is no JSON) is written from its head: nothing after the head is read, so the time does not depend on its length',
     (_name, text) => {
       expect(text.length).toBeGreaterThan(3 * MEBIBYTE);
-      expect(cpu(() => describeBody(text), 40)).toBeLessThan(40);
-      expect(cpu(() => describeBody({ echo: text }), 120)).toBeLessThan(120);
+      // as a body: a text that is not parsed and that no expression reads beyond the head
+      const asBody = readsOf(() => describeBody(text));
+      expect(asBody.longestSubject).toBeLessThanOrEqual(READ_LIMIT);
+      expect(asBody.longParses).toEqual([]);
+      // in an object: the same, besides the copy of the whole body that is made before it is written
+      const inObject = readsOf(() => describeBody({ echo: text }));
+      expect(inObject.longestSubject).toBeLessThanOrEqual(READ_LIMIT);
+      expect(inObject.longParses.length).toBeLessThanOrEqual(1);
     }
   );
 
