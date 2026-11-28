@@ -203,15 +203,15 @@ describe('BrowserAuthenticateOps loopback listener', () => {
     const listener = await startLoopbackRedirectListener({
       expectedState: generateStateNonce(),
     });
-    const timedOut = expect(listener.waitForCallback(300)).rejects.toThrow(
-      /Timed out.*state_mismatch \(2\), method_not_allowed \(1\)/
-    );
-
+    // the requests come first and the wait after them: the listener counts what it ignores
+    // whether or not somebody waits yet, so no timer decides how many requests are counted
     await send(`${listener.redirectUri}?code=a&state=wrong`);
     await send(`${listener.redirectUri}?code=b&state=wrong`);
     await send(listener.redirectUri, { method: 'POST' });
 
-    await timedOut;
+    await expect(listener.waitForCallback(50)).rejects.toThrow(
+      /Timed out.*state_mismatch \(2\), method_not_allowed \(1\)/
+    );
   });
 
   test('12: The timeout error does not mention ignored requests when there were none', async () => {
