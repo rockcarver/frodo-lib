@@ -88,7 +88,9 @@ type Row = {
   request: Mock;
   /** the API function that is called for each object that a page holds (update and delete) */
   work?: Mock;
-  call: () => Promise<unknown>;
+  /** `pageSize` is passed to the functions that take one (every function of the rows but the delete) */
+  call: (pageSize?: number) => Promise<unknown>;
+  takesPageSize: boolean;
   /** the message of the error; `done` is the number of objects the call had deleted */
   message: (done: number) => string;
 };
@@ -98,18 +100,22 @@ const rows: Row[] = [
     name: 'queryManagedSystemObjects',
     operation: 'query',
     request: managedSystemObjectApi.queryManagedSystemObjects,
-    call: () => ops.queryManagedSystemObjects({ type: 'teammember', state }),
+    takesPageSize: true,
+    call: (pageSize) =>
+      ops.queryManagedSystemObjects({ type: 'teammember', pageSize, state }),
     message: () => 'Error querying "teammember" objects matching filter "true"',
   },
   {
     name: 'queryRelatedManagedSystemObjects',
     operation: 'query',
     request: managedSystemObjectApi.queryRelatedManagedSystemObjects,
-    call: () =>
+    takesPageSize: true,
+    call: (pageSize) =>
       ops.queryRelatedManagedSystemObjects({
         type: 'teammember',
         id: 'u1',
         relationship: 'roles',
+        pageSize,
         state,
       }),
     message: () =>
@@ -120,13 +126,15 @@ const rows: Row[] = [
     operation: 'update',
     request: managedSystemObjectApi.queryManagedSystemObjects,
     work: managedSystemObjectApi.patchManagedSystemObject,
-    call: () =>
+    takesPageSize: true,
+    call: (pageSize) =>
       ops.updateManagedSystemObjectsProperties({
         type: 'teammember',
         filter: 'true',
         operations: [
           { operation: 'replace', field: '/accountStatus', value: 'inactive' },
         ],
+        pageSize,
         state,
       }),
     message: () => 'Error patching "teammember" objects matching filter "true"',
@@ -136,6 +144,7 @@ const rows: Row[] = [
     operation: 'delete',
     request: managedSystemObjectApi.queryManagedSystemObjects,
     work: managedSystemObjectApi.deleteManagedSystemObject,
+    takesPageSize: false,
     call: () =>
       ops.deleteManagedSystemObjects({
         type: 'teammember',
@@ -283,6 +292,36 @@ describe.each(rows.filter((row) => row.operation === 'update'))(
       expect(cookiesOf(row.request)).toEqual([null, 'c1']);
       // the failed object is the first of its page: the others of that page and of the next page are patched
       expect(idsOf(row.work)).toEqual(['u1', 'u2', 'u3']);
+    });
+  }
+);
+
+describe.each(rows.filter((row) => row.takesPageSize))(
+  '$name: the page size',
+  (row) => {
+    test('of the call reaches every page request', async () => {
+      row.request.mockImplementation(
+        scripted([page(['u1'], 'c1'), page(['u2'], 'c2'), page(['u3'])])
+      );
+
+      await row.call(25);
+
+      expect(row.request.mock.calls.map((call) => call[0].pageSize)).toEqual([
+        25, 25, 25,
+      ]);
+    });
+
+    test('is the default page size of the API when the call gives none', async () => {
+      row.request.mockImplementation(
+        scripted([page(['u1'], 'c1'), page(['u2'])])
+      );
+
+      await row.call();
+
+      expect(row.request.mock.calls.map((call) => call[0].pageSize)).toEqual([
+        actualManagedSystemObjectApi.DEFAULT_PAGE_SIZE,
+        actualManagedSystemObjectApi.DEFAULT_PAGE_SIZE,
+      ]);
     });
   }
 );
