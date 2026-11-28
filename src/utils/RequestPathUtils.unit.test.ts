@@ -51,17 +51,24 @@ describe('isRequestSegment', () => {
     // zero-width and bidirectional controls are not control characters of the C0 and C1 blocks
     ['a\u200bb'],
     ['a\u202eb'],
+    // format characters are accepted, in every position: they travel percent-encoded, so they cannot retarget a request
+    ['\u200ba'],
+    ['a\u200b'],
+    ['\ufeffa'],
+    ['a\ufeff'],
+    ['a\u180eb'],
+    ['a\u202e'],
     // a blank inside a name is part of the name: it is escaped in the request and nothing is cut off
     ['My Schedule'],
     ['a b c'],
     ['a\u00a0b'],
     ['a\u3000b'],
-    // a `;` and what follows it are part of the name, unless the name before it is one dot or two (below)
+    // a `;` and what follows it are part of the name, unless the name before the first `;` is empty, one dot or two (below)
     ['a;b'],
     ['a;..'],
     ['x;.'],
-    [';'],
-    [';..'],
+    ['a;'],
+    ['a;;'],
     ['...;'],
     ['a.;'],
     ['.a;b'],
@@ -108,6 +115,11 @@ describe('isRequestSegment', () => {
     ['.;', 'the current folder with a path parameter'],
     ['..;x=y', 'the parent folder with a path parameter that has a value'],
     ['.;x', 'the current folder with a path parameter that has a name'],
+    [';', 'a path parameter and no name before it'],
+    [';..', 'a path parameter that is the parent folder and no name before it'],
+    [';x', 'a path parameter that has a name and no name before it'],
+    [';x=y', 'a path parameter that has a value and no name before it'],
+    [';;', 'two empty path parameters'],
     [
       '..;..',
       'the parent folder with a path parameter that is the parent folder',
@@ -150,6 +162,17 @@ describe('isRequestSegment', () => {
     }
   );
 
+  it('refuses a blank at either end of a value of any length, not only of a short one', () => {
+    for (const blank of [' ', '\u00a0', '\u2003', '\u3000']) {
+      for (const name of ['en-US', 'My Schedule', 'a'.repeat(300)]) {
+        expect(isRequestSegment(`${blank}${name}`)).toBe(false);
+        expect(isRequestSegment(`${name}${blank}`)).toBe(false);
+        expect(isRequestSegment(`${blank}${name}${blank}`)).toBe(false);
+        expect(isRequestSegment(`${name}${blank}${name}`)).toBe(true);
+      }
+    }
+  });
+
   it('refuses a control character at either end too, as the URL parser removes them', () => {
     for (let code = 0; code <= 0x20; code++) {
       const unit = String.fromCharCode(code);
@@ -158,13 +181,18 @@ describe('isRequestSegment', () => {
     }
   });
 
-  it('takes a `;` as part of the name, except after one dot or two, whatever follows', () => {
-    for (const dots of ['.', '..']) {
+  it('takes a `;` as part of the name, except when the part before the first `;` is empty, one dot or two, whatever follows', () => {
+    // a server may cut the parameters off a segment before it reads the dots, and what is left is no name, or a dot
+    for (const before of ['', '.', '..']) {
       for (const rest of ['', 'x', 'x=y', '..', ';', '/']) {
-        expect(isRequestSegment(`${dots};${rest}`)).toBe(false);
+        expect(isRequestSegment(`${before};${rest}`)).toBe(false);
       }
-      expect(isRequestSegment(`a${dots};`)).toBe(true);
-      expect(isRequestSegment(`${dots}a;`)).toBe(true);
+    }
+    // the part before the first `;` is a name: what follows is a parameter of that name
+    for (const name of ['a', '...', '.a', 'a.', 'a..', 'My Schedule']) {
+      for (const rest of ['', 'x', '..', ';', '.']) {
+        expect(isRequestSegment(`${name};${rest}`)).toBe(true);
+      }
     }
   });
 

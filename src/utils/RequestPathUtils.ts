@@ -11,8 +11,9 @@
  * throws for a lone surrogate).
  *
  * A value is one segment of a request path when it is text that
- * - is not empty, and is not `.` or `..` (a request layer resolves them, so the request goes to another object), and is not `.`
- *   or `..` followed by `;` and anything (a server may cut the path parameters off a segment before it resolves the dots),
+ * - is not empty, and is not `.` or `..` (a request layer resolves them, so the request goes to another object), and does not
+ *   start with `;`, `.;` or `..;` (a server may cut the path parameters off a segment before it resolves the dots, and what
+ *   is left is no name, or a dot: the part before the first `;` is a name itself),
  * - holds no `/`, no `\`, no `?`, no `#` and no `%`,
  * - holds no control character (the C0 and C1 blocks and DEL), and no lone surrogate (it is well formed text),
  * - does not start or end with a blank: a space or another separator of the Unicode categories Zs, Zl and Zp (the no-break
@@ -21,8 +22,10 @@
  *   the other blanks are refused for the same reason, because a server or a proxy may cut them too. A blank inside a name is
  *   part of the name (`My Schedule`).
  *
- * Every other character is part of a name, a colon, a dot inside the name (`..foo`, `a..b`) and a `;` that does not follow a
- * dot or two dots included.
+ * Every other character is part of a name, a colon, a dot inside the name (`..foo`, `a..b`) and a `;` after a name (`a;b`)
+ * included. A format character (a zero-width space, a bidirectional control, the byte order mark) is part of a name too: the
+ * request carries it percent-encoded, so it cannot retarget a request. A caller that refuses it for another reason, because
+ * it shows the id and the character changes what is shown, has another rule, and this one does not replace it.
  * @param {string} value the id, or the part of the id that is to be one segment
  * @returns {boolean} true if the value is one segment of the path of a request
  */
@@ -32,7 +35,7 @@ export function isRequestSegment(value: string): boolean {
     value !== '' &&
     value !== '.' &&
     value !== '..' &&
-    !/^\.\.?;/.test(value) &&
+    !/^\.{0,2};/.test(value) &&
     !/[/\\?#%\p{Cc}]/u.test(value) &&
     !/^\p{Z}|\p{Z}$/u.test(value) &&
     value.isWellFormed()
