@@ -159,19 +159,27 @@ describe('pulling the toys', () => {
         { _id: 'fine', name: 'fine' },
       ],
     };
-    const { fileSet, collisions, refused } = await pull('cloud', { toys });
+    const { fileSet, findings } = await pull('cloud', { toys });
+    const collisions = findings.filter((f) => f.kind === 'collision');
+    const refused = findings.filter((f) => f.kind === 'refused');
 
     // ids are taken in ordinal order: `Login` is before `login`
     expect(collisions).toEqual([
-      { realm: 'alpha', id: 'login', firstId: 'Login' },
+      {
+        kind: 'collision',
+        realm: 'alpha',
+        id: 'login',
+        firstId: 'Login',
+        message: 'another object has the same file name',
+      },
     ]);
     expect(refused.map((r) => `${r.realm} ${r.id}`)).toEqual([
       'alpha ..',
       'alpha con',
     ]);
-    expect(refused[0].error.message).toBe(
-      "'..' does not name an object: an id or a name is not a path"
-    );
+    // the message says why and never holds the id: the id is a field of the finding
+    expect(refused[0].message).toBe('its id leaves no file name');
+    expect(findings).toHaveLength(3);
     expect(fileSet.files.map((file) => file.path)).toEqual([
       'realms/alpha/toys/Login.json',
       'realms/alpha/toys/fine.json',
@@ -683,8 +691,7 @@ describe('a push never reads a file name', () => {
 
     expect(second.fileSet).toEqual(first.fileSet);
     expect(third.fileSet).toEqual(first.fileSet);
-    expect(first.collisions).toEqual([]);
-    expect(first.refused).toEqual([]);
+    expect(first.findings).toEqual([]);
   });
 
   it('is the identity for ids of every shape: pull, read back, split again gives the same files, and the toys come back whole', async () => {
@@ -737,11 +744,14 @@ describe('a push never reads a file name', () => {
     const split = splitToys({ toys: { alpha: toys } });
 
     // only ids that leave no name (dots, `*`, a device name) are refused; every other id is a file, and no two ids share one
-    expect(split.collisions).toEqual([]);
+    expect(split.findings.filter((f) => f.kind === 'collision')).toEqual([]);
+    expect(split.findings.every((f) => f.kind === 'refused')).toBe(true);
     expect(
-      split.refused.map((r) => r.id).every((id) => /^[*.]+$/.test(id))
+      split.findings
+        .map((f) => f.id as string)
+        .every((id) => /^[*.]+$/.test(id))
     ).toBe(true);
-    expect(split.fileSet.files.length + split.refused.length).toBe(ids.length);
+    expect(split.fileSet.files.length + split.findings.length).toBe(ids.length);
     for (const file of split.fileSet.files) {
       expect(
         Buffer.byteLength(file.path.slice(file.path.lastIndexOf('/') + 1))
