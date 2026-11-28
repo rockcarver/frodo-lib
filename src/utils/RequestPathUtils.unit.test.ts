@@ -77,6 +77,11 @@ describe('isRequestSegment', () => {
     ['.. a;'],
     ['.\u2003a;x'],
     ['..\u00a0a;..'],
+    // a format character is not a blank: the request carries it percent-encoded, so dots, a format character and a `;` stay a name
+    // (the decision for a format character at the end of a value, in the TSDoc of the function)
+    ['..\ufeff;x'],
+    ['.\u200b;'],
+    ['.\u180e;..'],
   ])('%j is one segment of a request path', (candidate) => {
     expect(isRequestSegment(candidate)).toBe(true);
   });
@@ -141,6 +146,14 @@ describe('isRequestSegment', () => {
     ],
     ['..  ;x', 'the parent folder, two spaces and a path parameter'],
     ['..\u2028;', 'the parent folder, a line separator and a path parameter'],
+    [
+      `.${' '.repeat(50)};`,
+      'the current folder, fifty spaces and a path parameter',
+    ],
+    [
+      `..${'\u3000'.repeat(50)};x`,
+      'the parent folder, fifty ideographic spaces and a path parameter that has a name',
+    ],
     [
       '. \u00a0\u3000;x=y',
       'the current folder, three blanks of three kinds and a path parameter',
@@ -227,7 +240,17 @@ describe('isRequestSegment', () => {
     // a server may cut the parameters off a segment before it reads the dots, and what is left (a server that trims the blanks
     // too has nothing but the dots left) is no name, or a dot
     for (const before of ['', '.', '..']) {
-      for (const blanks of ['', ' ', '  ', '\u00a0', '\u2003', '\u3000']) {
+      for (const blanks of [
+        '',
+        ' ',
+        '  ',
+        '\u00a0',
+        '\u2003',
+        '\u3000',
+        // a run of any length: not the first few blanks only
+        ' '.repeat(50),
+        '\u3000'.repeat(50),
+      ]) {
         for (const rest of ['', 'x', 'x=y', '..', ';', '/']) {
           expect(isRequestSegment(`${before}${blanks};${rest}`)).toBe(false);
         }
