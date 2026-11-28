@@ -1,4 +1,7 @@
-import { type IdObjectSkeletonInterface } from '../api/ApiTypes';
+import {
+  type IdObjectSkeletonInterface,
+  type PagedResult,
+} from '../api/ApiTypes';
 import {
   createInternalObject,
   deleteInternalObject,
@@ -382,12 +385,25 @@ export async function readInternalRoles({
   state: State;
 }): Promise<InternalRoleSkeleton[]> {
   try {
-    const { result } = await queryAllInternalObjectsByType({
-      type: INTERNAL_ROLE_TYPE,
-      fields,
-      state,
-    });
-    return result as InternalRoleSkeleton[];
+    let roles: IdObjectSkeletonInterface[] = [];
+    let page: PagedResult<IdObjectSkeletonInterface> = {
+      result: [],
+      resultCount: 0,
+      pagedResultsCookie: null,
+      totalPagedResultsPolicy: 'NONE',
+      totalPagedResults: -1,
+      remainingPagedResults: -1,
+    };
+    do {
+      page = await queryAllInternalObjectsByType({
+        type: INTERNAL_ROLE_TYPE,
+        fields,
+        pageCookie: page.pagedResultsCookie,
+        state,
+      });
+      roles = roles.concat(page.result);
+    } while (page.pagedResultsCookie);
+    return roles as InternalRoleSkeleton[];
   } catch (error) {
     throw new FrodoError(`Error reading internal roles`, error);
   }
@@ -536,13 +552,26 @@ export async function queryInternalRoles({
   state: State;
 }): Promise<InternalRoleSkeleton[]> {
   try {
-    const { result } = await queryInternalObjects({
-      type: INTERNAL_ROLE_TYPE,
-      filter,
-      fields,
-      state,
-    });
-    return result as InternalRoleSkeleton[];
+    let roles: IdObjectSkeletonInterface[] = [];
+    let page: PagedResult<IdObjectSkeletonInterface> = {
+      result: [],
+      resultCount: 0,
+      pagedResultsCookie: null,
+      totalPagedResultsPolicy: 'NONE',
+      totalPagedResults: -1,
+      remainingPagedResults: -1,
+    };
+    do {
+      page = await queryInternalObjects({
+        type: INTERNAL_ROLE_TYPE,
+        filter,
+        fields,
+        pageCookie: page.pagedResultsCookie,
+        state,
+      });
+      roles = roles.concat(page.result);
+    } while (page.pagedResultsCookie);
+    return roles as InternalRoleSkeleton[];
   } catch (error) {
     throw new FrodoError(
       `Error querying internal roles with filter ${filter}`,
