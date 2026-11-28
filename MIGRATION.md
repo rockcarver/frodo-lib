@@ -762,12 +762,17 @@ releases missed):
   1000: with more than 1000 roles it now deletes more), and
   `frodo.config.exportFullConfiguration` exports every internal role.
   `frodo.role.readInternalRoleByName` and `frodo.role.deleteInternalRoleByName`
-  are unchanged in practice. A tenant with at most 1000 internal roles sends the
-  same single request as before. The MCP tool runtime no longer treats
-  `role.readInternalRoles` and `role.queryInternalRoles` as capabilities that
-  stop at 1000 items, because they read every role: a result of exactly 1000
-  roles is `truncated: false` with a `total` of 1000, and the size budget of the
-  runtime still marks a result that it cut.
+  are unchanged in practice. A tenant with fewer internal roles than one page
+  (1000) sends the same single request as before, and so does one with exactly
+  1000 when the answer carries no cookie (when it does carry one, the read asks
+  once more and ends on an empty page). A read that is answered with the cookie
+  that its request carried ends with an error that says so (the message does not
+  hold the cookie), instead of asking for the same page again and again. The MCP
+  tool runtime no longer treats `role.readInternalRoles` and
+  `role.queryInternalRoles` as capabilities that stop at 1000 items, because
+  they read every role: a result of exactly 1000 roles is `truncated: false`
+  with a `total` of 1000, and the size budget of the runtime still marks a
+  result that it cut.
 - A page that cannot be read now ends the paging loop of
   `frodo.idm.managed.updateManagedObjectsProperties`, `deleteManagedObjects`,
   `queryManagedObjects` and `queryRelatedManagedObjects`, of the four functions
