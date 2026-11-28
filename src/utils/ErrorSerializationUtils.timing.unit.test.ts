@@ -12,7 +12,10 @@
  * what a function that reads a text again for each of its characters takes
  * (minutes).
  */
+import { spawn } from 'child_process';
+import { resolve } from 'path';
 import { inspect } from 'util';
+import { isolatedChildEnv } from '../../test/support/runWorkers';
 import { FrodoError } from '../ops/FrodoError';
 import { leastCpuMilliseconds } from '../test/utils/CpuTime';
 import { failure } from '../test/utils/SerializationForms';
@@ -279,58 +282,77 @@ describe('writing an error that holds the same error many times', () => {
 
 describe('redacting a text that is many megabytes long', () => {
   const MEBIBYTE = 1024 * 1024;
-  const big = (length: number, character = 'a') => character.repeat(length);
+  const WITHHELD = '<redacted>';
+
+  /** A text that is told as pieces: a text as it is, or a text and how many times it is repeated. */
+  type Recipe = (string | [string, number])[];
+  const build = (recipe: Recipe) =>
+    recipe
+      .map((piece) =>
+        typeof piece === 'string' ? piece : piece[0].repeat(piece[1])
+      )
+      .join('');
 
   // `redactCredentials` is also used on text that is not cut first (the message of a
   // failed item of a collected result): an expression that keeps an entry per character
   // runs the stack of the engine out on a value of many megabytes and throws
-  const LARGE: [string, string, string][] = [
-    [
-      'a quoted value of 16 MiB',
-      `{"password":"${big(16 * MEBIBYTE)}"}`,
-      '{"password":"<redacted>"}',
-    ],
-    [
-      'a value in escaped quotes of 16 MiB',
-      `{\\"password\\":\\"${big(16 * MEBIBYTE)}\\"}`,
-      '{\\"password\\":\\"<redacted>\\"}',
-    ],
-    [
-      'a bearer value of 16 MiB',
-      `Bearer ${big(16 * MEBIBYTE)}`,
-      'Bearer <redacted>',
-    ],
-    [
-      'a bare value of 16 MiB',
-      `password=${big(16 * MEBIBYTE)}`,
-      'password=<redacted>',
-    ],
-    [
-      'a token with a header of 6 MiB and a payload',
-      `eyJ${big(6 * MEBIBYTE, 'A')}.abcdefgh`,
-      '<redacted>',
-    ],
-    [
-      'a header of 6 MiB behind a word that decodes as JSON, and a payload',
-      `x-${Buffer.from(JSON.stringify({ a: big(5 * MEBIBYTE) })).toString('base64url')}.abcdefgh`,
-      'x-<redacted>',
-    ],
-    [
-      'a header of 6 MiB behind a word that does not decode as JSON: not a token',
-      `x-eyJ${big(6 * MEBIBYTE, 'A')}.abcdefgh`,
-      `x-eyJ${big(6 * MEBIBYTE, 'A')}.abcdefgh`,
-    ],
-    [
-      'a single part of 6 MiB that starts with eyJ',
-      `eyJ${big(6 * MEBIBYTE, 'A')}`,
-      `eyJ${big(6 * MEBIBYTE, 'A')}`,
-    ],
-    [
-      'a payload of 6 MiB behind a header',
-      `eyJhbGciOiJub25lIn0.${big(6 * MEBIBYTE, 'A')}`,
-      '<redacted>',
-    ],
+  const LARGE: {
+    name: string;
+    text: Recipe;
+    /** what comes back: a text that does not hold the value, or `undefined` for the text itself (not a secret) */
+    expected: Recipe | undefined;
+  }[] = [
+    {
+      name: 'a quoted value of 16 MiB',
+      text: ['{"password":"', ['a', 16 * MEBIBYTE], '"}'],
+      expected: ['{"password":"<redacted>"}'],
+    },
+    {
+      name: 'a value in escaped quotes of 16 MiB',
+      text: ['{\\"password\\":\\"', ['a', 16 * MEBIBYTE], '\\"}'],
+      expected: ['{\\"password\\":\\"<redacted>\\"}'],
+    },
+    {
+      name: 'a bearer value of 16 MiB',
+      text: ['Bearer ', ['a', 16 * MEBIBYTE]],
+      expected: ['Bearer <redacted>'],
+    },
+    {
+      name: 'a bare value of 16 MiB',
+      text: ['password=', ['a', 16 * MEBIBYTE]],
+      expected: ['password=<redacted>'],
+    },
+    {
+      name: 'a token with a header of 6 MiB and a payload',
+      text: ['eyJ', ['A', 6 * MEBIBYTE], '.abcdefgh'],
+      expected: ['<redacted>'],
+    },
+    {
+      // the header is the Base64 text of {"a":"aaa...a"}, 5 MiB of a
+      name: 'a header of 6 MiB behind a word that decodes as JSON, and a payload',
+      text: ['x-eyJhIjoi', ['YWFh', (5 * MEBIBYTE) / 3], 'In0', '.abcdefgh'],
+      expected: ['x-<redacted>'],
+    },
+    {
+      name: 'a header of 6 MiB behind a word that does not decode as JSON: not a token',
+      text: ['x-eyJ', ['A', 6 * MEBIBYTE], '.abcdefgh'],
+      expected: undefined,
+    },
+    {
+      name: 'a single part of 6 MiB that starts with eyJ',
+      text: ['eyJ', ['A', 6 * MEBIBYTE]],
+      expected: undefined,
+    },
+    {
+      name: 'a payload of 6 MiB behind a header',
+      text: ['eyJhbGciOiJub25lIn0.', ['A', 6 * MEBIBYTE]],
+      expected: ['<redacted>'],
+    },
   ];
+
+  /** The first and the last characters of a text, and how long it is: what a failure says about a text of megabytes. */
+  const outline = (text: string) =>
+    `${text.length} characters, from "${text.slice(0, 40)}" to "${text.slice(-40)}"`;
 
   test('2: a text that no expression can read is not passed on, and no exception is thrown', () => {
     // millions of escapes in one quoted value: whether the engine reads it or runs out of its
@@ -342,13 +364,75 @@ describe('redacting a text that is many megabytes long', () => {
     expect(redacted).toContain('<redacted>');
   });
 
-  test.each(LARGE)('1: %s', (_name, text, expected) => {
+  // The engine compiles a regular expression without optimization once the process holds a lot of
+  // compiled expression code (a test runner that has run many files does), and then an expression that
+  // keeps an entry per character runs the stack out on a text of many MiB: the text is withheld as a
+  // whole, which is the safe answer. So this test asks for what is safe (no exception, none of the
+  // value, the text it should be or the text that is withheld), and the exact text is asked of a
+  // process of its own in the next test.
+  test.each(LARGE)('1: $name', ({ text: recipe, expected: expectedRecipe }) => {
+    const text = build(recipe);
+    const expected = expectedRecipe ? build(expectedRecipe) : text;
     let redacted = '';
     const milliseconds = leastCpuMilliseconds(() => {
       redacted = redactCredentials(text);
     }, BOUND_MS * 4);
-    expect(redacted === expected).toBe(true);
+    const verdict =
+      redacted === expected
+        ? 'as expected'
+        : redacted === WITHHELD
+          ? 'withheld'
+          : `neither the expected text nor the withheld one: ${outline(redacted)}`;
+    expect(['as expected', 'withheld']).toContain(verdict);
+    if (expectedRecipe) {
+      // the value is gone (the secrets are long runs of a letter, or of the four letters of its Base64 text)
+      expect(/(.{1,4})\1{15}/.test(redacted)).toBe(false);
+    }
     expect(milliseconds).toBeLessThan(BOUND_MS * 4);
+  });
+
+  test('3: in a process of its own, every text comes back as it should', async () => {
+    // a plain node process that loads the sources (see test/support/register-ts.cjs)
+    const script = `
+      const { redactCredentials } = require('./src/utils/SensitiveDataUtils');
+      const build = (recipe) => recipe
+        .map((piece) => (typeof piece === 'string' ? piece : piece[0].repeat(piece[1])))
+        .join('');
+      const results = JSON.parse(process.argv[1]).map(({ name, text, expected }) => {
+        const from = build(text);
+        return { name, same: redactCredentials(from) === (expected ? build(expected) : from) };
+      });
+      process.stdout.write(JSON.stringify(results));
+    `;
+    const child = spawn(
+      process.execPath,
+      [
+        '-r',
+        resolve('.', 'test', 'support', 'register-ts.cjs'),
+        '-e',
+        script,
+        JSON.stringify(LARGE),
+      ],
+      {
+        cwd: resolve('.'),
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: isolatedChildEnv(),
+      }
+    );
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (chunk) => (stdout += chunk));
+    child.stderr.on('data', (chunk) => (stderr += chunk));
+    const code = await new Promise((done, fail) => {
+      child.on('error', fail);
+      child.on('close', done);
+    });
+    expect([code, stderr]).toEqual([0, '']);
+    const results = JSON.parse(stdout) as { name: string; same: boolean }[];
+    expect(results).toHaveLength(LARGE.length);
+    expect(results.filter(({ same }) => !same).map(({ name }) => name)).toEqual(
+      []
+    );
   });
 });
 
