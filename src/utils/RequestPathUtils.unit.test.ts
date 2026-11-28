@@ -5,7 +5,7 @@
  *
  * `isRequestSegment` is the test of an id that a push reads from the content of a file and puts into the path of a request:
  * the value is one segment of that path, and what a request layer or a server could read as more than one segment, as a
- * query, as a fragment or as an escape is refused. It is not the test of a file name (`isOneSafeSegment`, which refuses `C:`
+ * query, as a fragment, as an escape, as a path that goes up, or as another id once a blank at its end is cut off is refused. It is not the test of a file name (`isOneSafeSegment`, which refuses `C:`
  * because the library removes it from a path, and lets `?`, `#` and `%` through): the differences are shown row by row.
  *
  * Hermetic: no file is read or written, no network.
@@ -49,8 +49,22 @@ describe('isRequestSegment', () => {
     ['a^b'],
     ['a[b]'],
     // zero-width and bidirectional controls are not control characters of the C0 and C1 blocks
-    ['a​b'],
-    ['a‮b'],
+    ['a\u200bb'],
+    ['a\u202eb'],
+    // a blank inside a name is part of the name: it is escaped in the request and nothing is cut off
+    ['My Schedule'],
+    ['a b c'],
+    ['a\u00a0b'],
+    ['a\u3000b'],
+    // a `;` and what follows it are part of the name, unless the name before it is one dot or two (below)
+    ['a;b'],
+    ['a;..'],
+    ['x;.'],
+    [';'],
+    [';..'],
+    ['...;'],
+    ['a.;'],
+    ['.a;b'],
   ])('%j is one segment of a request path', (candidate) => {
     expect(isRequestSegment(candidate)).toBe(true);
   });
@@ -83,6 +97,21 @@ describe('isRequestSegment', () => {
     ['a\u0080b', 'the first control character of the C1 block'],
     ['a\u0085b', 'a control character of the C1 block'],
     ['a\u009fb', 'the last control character of the C1 block'],
+    [' ', 'a space'],
+    ['. ', 'the current folder and a space, which the URL parser cuts off'],
+    ['.. ', 'the parent folder and a space, which the URL parser cuts off'],
+    ['..  ', 'the parent folder and two spaces'],
+    ['a ', 'a space at the end'],
+    [' a', 'a space at the start'],
+    [' a ', 'a space at both ends'],
+    ['..;', 'the parent folder with a path parameter'],
+    ['.;', 'the current folder with a path parameter'],
+    ['..;x=y', 'the parent folder with a path parameter that has a value'],
+    ['.;x', 'the current folder with a path parameter that has a name'],
+    [
+      '..;..',
+      'the parent folder with a path parameter that is the parent folder',
+    ],
     ['\ud800', 'a lone high surrogate'],
     ['\udc00', 'a lone low surrogate'],
     ['x\ud800', 'a lone high surrogate at the end'],
@@ -90,6 +119,53 @@ describe('isRequestSegment', () => {
     ['a\udc00b', 'a lone low surrogate in the middle'],
   ])('%j is not (%s)', (candidate) => {
     expect(isRequestSegment(candidate)).toBe(false);
+  });
+
+  // a blank at either end: the WHATWG URL parser removes the spaces and the control characters at the end of a URL, so `uilocale/.. `
+  // is the request for `uilocale/..`; the other blanks are refused for the same reason (a server or a proxy may cut them off too)
+  const BLANKS: [string, string][] = [
+    ['\u0020', 'a space'],
+    ['\u00a0', 'a no-break space'],
+    ['\u1680', 'an Ogham space mark'],
+    ...Array.from({ length: 11 }, (_, index): [string, string] => [
+      String.fromCharCode(0x2000 + index),
+      `a space of U+${(0x2000 + index).toString(16)}`,
+    ]),
+    ['\u2028', 'a line separator'],
+    ['\u2029', 'a paragraph separator'],
+    ['\u202f', 'a narrow no-break space'],
+    ['\u205f', 'a medium mathematical space'],
+    ['\u3000', 'an ideographic space'],
+  ];
+
+  it.each(BLANKS)(
+    'refuses %j (%s) at the end, at the start and at both ends, and takes it inside',
+    (blank) => {
+      expect(isRequestSegment(`a${blank}`)).toBe(false);
+      expect(isRequestSegment(`${blank}a`)).toBe(false);
+      expect(isRequestSegment(`${blank}a${blank}`)).toBe(false);
+      expect(isRequestSegment(`..${blank}`)).toBe(false);
+      expect(isRequestSegment(`${blank}`)).toBe(false);
+      expect(isRequestSegment(`a${blank}b`)).toBe(true);
+    }
+  );
+
+  it('refuses a control character at either end too, as the URL parser removes them', () => {
+    for (let code = 0; code <= 0x20; code++) {
+      const unit = String.fromCharCode(code);
+      expect(isRequestSegment(`a${unit}`)).toBe(false);
+      expect(isRequestSegment(`${unit}a`)).toBe(false);
+    }
+  });
+
+  it('takes a `;` as part of the name, except after one dot or two, whatever follows', () => {
+    for (const dots of ['.', '..']) {
+      for (const rest of ['', 'x', 'x=y', '..', ';', '/']) {
+        expect(isRequestSegment(`${dots};${rest}`)).toBe(false);
+      }
+      expect(isRequestSegment(`a${dots};`)).toBe(true);
+      expect(isRequestSegment(`${dots}a;`)).toBe(true);
+    }
   });
 
   it('refuses what is not a text', () => {
@@ -103,6 +179,9 @@ describe('isRequestSegment', () => {
     it.each([
       ['ABC:x', true, false],
       ['C:', true, false],
+      ['a ', false, true],
+      ['.. ', false, true],
+      [' a', false, true],
       ['a?b', false, true],
       ['x?_action=y', false, true],
       ['a#b', false, true],
@@ -139,17 +218,27 @@ describe('isRequestSegment', () => {
   });
 
   describe('what it accepts reaches a request as one segment', () => {
-    // every code unit alone and between two letters, as a text that a file can hold: a value that passes must be encodable and
-    // must stay one segment, without a query or a fragment, when it is put after a folder of a URL
+    // every code unit alone, between two letters, at the start, at the end, and around `.` and `..`, as a text that a file can
+    // hold: a value that passes must be encodable, and the URL that is built from it, as the request layer builds it with the
+    // WHATWG parser, must have exactly the path that is expected: the folder, then the value, with no query and no fragment
     const units = Array.from({ length: 0x10000 }, (_, code) =>
       String.fromCharCode(code)
     );
-    const accepted = units
-      .flatMap((unit) => [unit, `a${unit}b`])
-      .filter(isRequestSegment);
+    const forms = (unit: string): string[] => [
+      unit,
+      `a${unit}b`,
+      `${unit}a`,
+      `a${unit}`,
+      `.${unit}`,
+      `..${unit}`,
+      `${unit}.`,
+      `${unit}..`,
+    ];
+    const accepted = units.flatMap(forms).filter(isRequestSegment);
+    const FOLDER = '/openidm/config/uilocale/';
 
     it('accepts most characters, so that the sweep is not empty', () => {
-      expect(accepted.length).toBeGreaterThan(100000);
+      expect(accepted.length).toBeGreaterThan(200000);
     });
 
     it('never makes encodeURIComponent throw, which a lone surrogate does', () => {
@@ -160,21 +249,41 @@ describe('isRequestSegment', () => {
       expect(() => encodeURIComponent('\ud800')).toThrow();
     });
 
-    it('keeps one segment, with no query and no fragment, in the path of a URL', () => {
-      const broken: string[] = [];
+    it('builds a URL whose path is the folder and the value, whatever the value ends in', () => {
+      const retargeted: string[] = [];
       for (const value of accepted) {
-        const url = new URL(`https://openam-matrix.example.com/c/${value}`);
+        const url = new URL(
+          `https://openam-matrix.example.com${FOLDER}${value}`
+        );
+        // the path is the folder and one segment that the value escapes to: the segment decodes to the value, so nothing was
+        // cut off the end of it and nothing in it was read as a dot, a slash, a query or a fragment
         const segments = url.pathname.split('/');
         if (
-          segments.length !== 3 ||
-          segments[1] !== 'c' ||
+          url.pathname.length <= FOLDER.length ||
+          !url.pathname.startsWith(FOLDER) ||
+          segments.length !== 5 ||
+          decodeURIComponent(segments[4]) !== value ||
           url.search !== '' ||
           url.hash !== ''
         ) {
-          broken.push(JSON.stringify(value));
+          retargeted.push(JSON.stringify(value));
         }
       }
-      expect(broken).toEqual([]);
+      expect(retargeted).toEqual([]);
+    });
+
+    it('is the check that sees a value that is cut off the end of the URL: a space at the end is the value without it', () => {
+      // what the sweep is for: these are values that the check refuses, because the URL for them is the URL for another path
+      for (const [value, path] of [
+        ['.. ', '/openidm/config/'],
+        ['. ', FOLDER],
+        ['fr ', `${FOLDER}fr`],
+      ]) {
+        expect(isRequestSegment(value)).toBe(false);
+        expect(
+          new URL(`https://openam-matrix.example.com${FOLDER}${value}`).pathname
+        ).toBe(path);
+      }
     });
   });
 });
