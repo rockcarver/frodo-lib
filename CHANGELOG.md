@@ -10,6 +10,11 @@ For a per-major summary of breaking changes and how to migrate, see the
 
 ## Unreleased
 
+## [v5.0.0-58] - 2026-11-28
+
+### Fixed
+- Resolved an issue in `deleteMapping` where the sync configuration was not written as stored. This fix ensures that the `syncAfter` value is preserved, null entries are dropped, and nameless entries are correctly handled (#1186).
+
 ## [v5.0.0-57] - 2026-11-27
 
 ### Added
@@ -3142,6 +3147,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
+[v5.0.0-58]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-57...v5.0.0-58
 [v5.0.0-57]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-56...v5.0.0-57
 [v5.0.0-56]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-55...v5.0.0-56
 [v5.0.0-55]: https://github.com/rockcarver/frodo-lib/compare/v5.0.0-54...v5.0.0-55
