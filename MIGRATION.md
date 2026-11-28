@@ -356,8 +356,12 @@ releases missed):
   warning says so), returns a plain array and is `truncated` with a `total` of
   `null` when it returns as many items as its limit (it may have left more).
   `role.readInternalRoles` and `role.queryInternalRoles` read every role (see
-  the entry on paged reads below), so they have no limit of their own: they are
-  `truncated` only when the runtime cut the response to its size budget.
+  the entry on internal roles at the end of this list), so the capability has no
+  limit of its own and its result is not marked as cut by one. The limits that
+  every list result has still apply: the runtime returns at most 1000 items per
+  response and keeps within its size budget, so a result of more than 1000 roles
+  is `truncated: true` with the real `total` and a `nextPageOffset`, and the
+  caller reads on from there.
   `cloud.log.searchEvents` counts its limit
   before it removes duplicate events (`dedupeByTransactionId`, on unless it is
   `false`), so with deduplication a count below the limit proves nothing: the
@@ -769,10 +773,14 @@ releases missed):
   that its request carried ends with an error that says so (the message does not
   hold the cookie), instead of asking for the same page again and again. The MCP
   tool runtime no longer treats `role.readInternalRoles` and
-  `role.queryInternalRoles` as capabilities that stop at 1000 items, because
-  they read every role: a result of exactly 1000 roles is `truncated: false`
-  with a `total` of 1000, and the size budget of the runtime still marks a
-  result that it cut.
+  `role.queryInternalRoles` as capabilities that stop at 1000 items of their
+  own, because they read every role: a result of exactly 1000 roles is
+  `truncated: false` with a `total` of 1000 (before: `truncated: true` and a
+  `total` of `null`). The limits that every list result has still apply: with
+  more than 1000 roles the runtime cuts the response at its ceiling of 1000
+  items (and at its size budget) and says so, `truncated: true` with the real
+  `total` and a `nextPageOffset` to read on, and the warning does not name a
+  limit of the capability.
 - A page that cannot be read now ends the paging loop of
   `frodo.idm.managed.updateManagedObjectsProperties`, `deleteManagedObjects`,
   `queryManagedObjects` and `queryRelatedManagedObjects`, of the four functions
