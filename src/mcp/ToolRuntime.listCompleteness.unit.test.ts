@@ -1773,7 +1773,7 @@ describe('the real search of events against a loopback Log API', () => {
   }, 30000);
 });
 
-describe('a read that stops at a limit that it has no argument for', () => {
+describe('role.readInternalRoles and role.queryInternalRoles read every role, so they have no limit of their own', () => {
   const read = (id: string, list: unknown[], namedArgs?: object) =>
     dispatch(
       runtimeFor(
@@ -1786,18 +1786,17 @@ describe('a read that stops at a limit that it has no argument for', () => {
       namedArgs ? { namedArgs } : {}
     );
 
-  test('T16: role.readInternalRoles with as many roles as its one request holds is truncated, with an unknown total, and the warning names the capability to use', async () => {
+  test('T16: role.readInternalRoles with 1000 roles is complete: they are all the roles there are, and nothing says that more may exist', async () => {
     const result = await read('role.readInternalRoles', smallItems(1000));
 
     expect(result).toMatchObject({
-      truncated: true,
+      truncated: false,
       returned: 1000,
-      total: null,
+      total: 1000,
     });
-    expect(result.warning).toBe(
-      'Result is not complete: the capability role.readInternalRoles stopped at its own limit of 1000 items, so more items may exist than it returned. Do not count or search only this result. Use role.queryInternalRoles with a filter that matches fewer roles to read the rest.'
-    );
-    expect(result.metadata?.pagination?.isPartial).toBe(true);
+    expect('warning' in result).toBe(false);
+    expect('nextPageOffset' in result).toBe(false);
+    expect(result.metadata?.pagination?.isPartial).toBe(false);
   });
 
   test('T16b: role.readInternalRoles with fewer roles is complete', async () => {
@@ -1811,33 +1810,28 @@ describe('a read that stops at a limit that it has no argument for', () => {
     expect('warning' in result).toBe(false);
   });
 
-  test('T16c: role.queryInternalRoles is limited in the same way, tells the agent to narrow the filter, and says both when the response was cut too', async () => {
-    const atTheLimit = await read('role.queryInternalRoles', smallItems(1000), {
-      filter: 'true',
-    });
-    const alsoCut = await read('role.queryInternalRoles', items(1000, 300), {
+  test('T16c: role.queryInternalRoles with 1000 roles is complete too, and one whose response the runtime cut says that and not that the capability stopped at a limit of its own', async () => {
+    const atTheCeiling = await read(
+      'role.queryInternalRoles',
+      smallItems(1000),
+      { filter: 'true' }
+    );
+    const cut = await read('role.queryInternalRoles', items(1000, 300), {
       filter: 'true',
     });
 
-    expect(atTheLimit).toMatchObject({
-      truncated: true,
+    expect(atTheCeiling).toMatchObject({
+      truncated: false,
       returned: 1000,
-      total: null,
+      total: 1000,
     });
-    expect(atTheLimit.warning).toBe(
-      'Result is not complete: the capability role.queryInternalRoles stopped at its own limit of 1000 items, so more items may exist than it returned. Do not count or search only this result. Narrow the filter to read the rest.'
-    );
-    expect(alsoCut).toMatchObject({ truncated: true, total: null });
-    expect(alsoCut.returned).toBeLessThan(1000);
-    expect(alsoCut.warning).toContain(
-      'the capability role.queryInternalRoles stopped at its own limit of 1000 items'
-    );
-    expect(alsoCut.warning).toContain(
-      `data holds ${alsoCut.returned} of the 1000 items that the capability returned`
-    );
-    expect(alsoCut.warning).toContain(
-      `Pass pageOffset: ${alsoCut.nextPageOffset} to read the rest of them.`
-    );
+    expect('warning' in atTheCeiling).toBe(false);
+    expect(cut).toMatchObject({ truncated: true, total: 1000 });
+    expect(cut.returned).toBeLessThan(1000);
+    expect(cut.nextPageOffset).toBe(cut.returned);
+    expect(cut.warning).toContain(`data holds ${cut.returned} of 1000 items`);
+    expect(cut.warning).toContain(`Pass pageOffset: ${cut.nextPageOffset}`);
+    expect(cut.warning).not.toContain('its own limit');
   });
 });
 
