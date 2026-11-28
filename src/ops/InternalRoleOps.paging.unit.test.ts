@@ -4,6 +4,7 @@ import {
   expectWrappedFailure,
   failedRequest,
 } from '../test/utils/ErrorWrapping';
+import { FrodoError } from './FrodoError';
 
 /**
  * InternalRoleOps: the reads of internal roles follow the paged results cookie to the end.
@@ -65,6 +66,35 @@ function scripted(script: Array<Page | Error>) {
 /** The `pageCookie` that each request carried, a missing cookie as null. */
 function cookiesOf(api: jest.Mock<(...args: any[]) => Promise<any>>) {
   return api.mock.calls.map((call) => call[0].pageCookie ?? null);
+}
+
+/** The cookie that an answer carries back that a request already carried; no message may hold it. */
+const REPEATED_COOKIE = 'cookie-that-comes-back';
+
+/** One page of exactly the size that the server cuts at. */
+const FULL_PAGE = Array.from({ length: 1000 }, (_, index) => `r${index}`);
+
+/** The error that a promise rejects with. */
+async function failureOf(promise: Promise<unknown>): Promise<FrodoError> {
+  const error = await promise.then(
+    () => undefined,
+    (e: unknown) => e
+  );
+  expect(error).toBeInstanceOf(FrodoError);
+  return error as FrodoError;
+}
+
+/**
+ * The error of a read whose answer carried the cookie that its request carried: `message` is the message of the
+ * read, the error under it names the condition, and no message holds the cookie.
+ */
+function expectRepeatedCookie(error: FrodoError, message: string) {
+  expect(error.message).toBe(message);
+  expect(error.originalErrors).toHaveLength(1);
+  const inner = error.originalErrors[0] as FrodoError;
+  expect(inner).toBeInstanceOf(FrodoError);
+  expect(inner.message).toContain('same paged results cookie');
+  expect(error.getCombinedMessage()).not.toContain(REPEATED_COOKIE);
 }
 
 const defaultFields = [
@@ -140,6 +170,39 @@ describe('readInternalRoles follows the cookie to the last page', () => {
     expect(api).toHaveBeenCalledTimes(1);
   });
 
+  test('exactly one page of 1000 roles without a cookie is one request', async () => {
+    api.mockResolvedValueOnce(page(FULL_PAGE));
+
+    const roles = await ops.readInternalRoles({ state });
+
+    expect(roles).toHaveLength(1000);
+    expect(api).toHaveBeenCalledTimes(1);
+    expect(cookiesOf(api)).toEqual([null]);
+  });
+
+  test('a page without roles that still carries a cookie does not end the read: the cookie is followed', async () => {
+    api.mockImplementation(
+      scripted([page(['r1'], 'c1'), page([], 'c2'), page(['r2'])])
+    );
+
+    const roles = await ops.readInternalRoles({ state });
+
+    expect(roles.map((role) => role._id)).toEqual(['r1', 'r2']);
+    expect(api).toHaveBeenCalledTimes(3);
+    expect(cookiesOf(api)).toEqual([null, 'c1', 'c2']);
+  });
+
+  test('an answer that carries the cookie of its request ends the read with an error, after two requests, and no message holds the cookie', async () => {
+    api.mockImplementation(
+      scripted([page(['r1'], REPEATED_COOKIE), page(['r2'], REPEATED_COOKIE)])
+    );
+
+    const error = await failureOf(ops.readInternalRoles({ state }));
+
+    expectRepeatedCookie(error, 'Error reading internal roles');
+    expect(api).toHaveBeenCalledTimes(2);
+  });
+
   test('a failing second page ends the read with the error of the read, after two requests', async () => {
     const cause = failedRequest(500);
     api.mockImplementation(scripted([page(['r1'], 'c1'), cause]));
@@ -212,6 +275,44 @@ describe('queryInternalRoles follows the cookie to the last page', () => {
     expect(api).toHaveBeenCalledTimes(1);
   });
 
+  test('exactly one page of 1000 roles without a cookie is one request', async () => {
+    api.mockResolvedValueOnce(page(FULL_PAGE));
+
+    const roles = await ops.queryInternalRoles({ filter: 'true', state });
+
+    expect(roles).toHaveLength(1000);
+    expect(api).toHaveBeenCalledTimes(1);
+    expect(cookiesOf(api)).toEqual([null]);
+  });
+
+  test('a page without roles that still carries a cookie does not end the query: the cookie is followed', async () => {
+    api.mockImplementation(
+      scripted([page(['r1'], 'c1'), page([], 'c2'), page(['r2'])])
+    );
+
+    const roles = await ops.queryInternalRoles({ filter: 'true', state });
+
+    expect(roles.map((role) => role._id)).toEqual(['r1', 'r2']);
+    expect(api).toHaveBeenCalledTimes(3);
+    expect(cookiesOf(api)).toEqual([null, 'c1', 'c2']);
+  });
+
+  test('an answer that carries the cookie of its request ends the query with an error, after two requests, and no message holds the cookie', async () => {
+    api.mockImplementation(
+      scripted([page(['r1'], REPEATED_COOKIE), page(['r2'], REPEATED_COOKIE)])
+    );
+
+    const error = await failureOf(
+      ops.queryInternalRoles({ filter: 'true', state })
+    );
+
+    expectRepeatedCookie(
+      error,
+      'Error querying internal roles with filter true'
+    );
+    expect(api).toHaveBeenCalledTimes(2);
+  });
+
   test('a failing second page ends the query with the error of the query, after two requests', async () => {
     const cause = failedRequest(500);
     api.mockImplementation(scripted([page(['r1'], 'c1'), cause]));
@@ -275,6 +376,29 @@ describe('the functions that read all roles get all of them', () => {
       2
     );
 
+    expect(internalObjectApi.deleteInternalObject).not.toHaveBeenCalled();
+    expect(
+      internalObjectApi.queryAllInternalObjectsByType
+    ).toHaveBeenCalledTimes(2);
+  });
+
+  test('deleteInternalRoles deletes nothing when the server does not move on from a cookie, and says so', async () => {
+    internalObjectApi.queryAllInternalObjectsByType.mockImplementation(
+      scripted([
+        page(['r1', 'r2'], REPEATED_COOKIE),
+        page(['r3'], REPEATED_COOKIE),
+      ])
+    );
+
+    const error = await failureOf(ops.deleteInternalRoles({ state }));
+
+    expect(error.message).toBe('Error deleting internal roles');
+    expect(error.originalErrors).toHaveLength(1);
+    expectRepeatedCookie(
+      error.originalErrors[0] as FrodoError,
+      'Error reading internal roles'
+    );
+    expect(error.getCombinedMessage()).not.toContain(REPEATED_COOKIE);
     expect(internalObjectApi.deleteInternalObject).not.toHaveBeenCalled();
     expect(
       internalObjectApi.queryAllInternalObjectsByType
