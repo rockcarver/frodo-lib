@@ -1833,6 +1833,19 @@ describe('role.readInternalRoles and role.queryInternalRoles read every role, so
     expect(cut.warning).toContain(`Pass pageOffset: ${cut.nextPageOffset}`);
     expect(cut.warning).not.toContain('its own limit');
   });
+
+  test('T16d: with 1500 roles the library read them all, and the generic ceiling of 1000 items per response cuts the response and says how to read on, not that the capability has a limit', async () => {
+    const result = await read('role.readInternalRoles', smallItems(1500));
+
+    expect(result).toMatchObject({
+      truncated: true,
+      returned: 1000,
+      total: 1500,
+      nextPageOffset: 1000,
+    });
+    expect(result.warning).toContain('data holds 1000 of 1500 items');
+    expect(result.warning).not.toContain('its own limit');
+  });
 });
 
 describe('results that are not lists', () => {
