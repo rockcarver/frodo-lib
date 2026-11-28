@@ -382,6 +382,46 @@ describe('the functions that read all roles get all of them', () => {
     ).toHaveBeenCalledTimes(2);
   });
 
+  test('exportInternalRoles returns nothing when a page cannot be read: the error reaches the caller', async () => {
+    const cause = failedRequest(500);
+    internalObjectApi.queryAllInternalObjectsByType.mockImplementation(
+      scripted([page(['r1', 'r2'], 'c1'), cause])
+    );
+
+    await expectWrappedFailure(
+      ops.exportInternalRoles({ state }),
+      'Error exporting internal roles',
+      cause,
+      2
+    );
+
+    expect(
+      internalObjectApi.queryAllInternalObjectsByType
+    ).toHaveBeenCalledTimes(2);
+  });
+
+  test('exportInternalRoles returns nothing when the server does not move on from a cookie: the error reaches the caller', async () => {
+    internalObjectApi.queryAllInternalObjectsByType.mockImplementation(
+      scripted([
+        page(['r1', 'r2'], REPEATED_COOKIE),
+        page(['r3'], REPEATED_COOKIE),
+      ])
+    );
+
+    const error = await failureOf(ops.exportInternalRoles({ state }));
+
+    expect(error.message).toBe('Error exporting internal roles');
+    expect(error.originalErrors).toHaveLength(1);
+    expectRepeatedCookie(
+      error.originalErrors[0] as FrodoError,
+      'Error reading internal roles'
+    );
+    expect(error.getCombinedMessage()).not.toContain(REPEATED_COOKIE);
+    expect(
+      internalObjectApi.queryAllInternalObjectsByType
+    ).toHaveBeenCalledTimes(2);
+  });
+
   test('deleteInternalRoles deletes nothing when the server does not move on from a cookie, and says so', async () => {
     internalObjectApi.queryAllInternalObjectsByType.mockImplementation(
       scripted([
