@@ -665,7 +665,7 @@ function judgeId(id: string, idPrefix: string | null): IdVerdict {
 
 /** What one name is, in the words of a message: what `isRequestSegment` accepts. */
 const ONE_NAME =
-  'one name (not empty, not "." or "..", not "." or ".." with a ";" after it, no slash, backslash, "?", "#", "%" or control character, and no blank at either end)';
+  'one name (not empty, not "." or "..", not starting with ";", ".;" or "..;", no slash, backslash, "?", "#", "%" or control character, and no blank at either end)';
 
 /** What an id has to be, in the words of a message, with the prefix of the type (a constant of the type) and never an id. */
 const shapeOfId = (idPrefix: string | null): string =>

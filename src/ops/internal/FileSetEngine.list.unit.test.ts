@@ -65,7 +65,7 @@ const stateOf = (): State => {
 
 /** What one name is, in the words of a message. */
 const ONE_NAME =
-  'one name (not empty, not "." or "..", not "." or ".." with a ";" after it, no slash, backslash, "?", "#", "%" or control character, and no blank at either end)';
+  'one name (not empty, not "." or "..", not starting with ";", ".;" or "..;", no slash, backslash, "?", "#", "%" or control character, and no blank at either end)';
 
 /** The words of the findings, as the engine writes them: each reason has one message, and it never holds an id. */
 const MESSAGES = {
@@ -310,6 +310,13 @@ describe('splitList', () => {
       // a server may cut the parameters off a segment before it reads the dots
       ['uilocale/..;'],
       ['uilocale/.;x=y'],
+      // a server that cuts the parameters off first leaves no name, or the folder itself
+      ['uilocale/;'],
+      ['uilocale/;..'],
+      ['uilocale/;x'],
+      // a blank at the start of a value of any length
+      ['uilocale/ en-US'],
+      ['uilocale/\u3000My Schedule'],
     ])('refuses %j: it starts with the prefix and is not one name', (id) => {
       const result = split(LOCALES, [{ _id: id }]);
 
@@ -539,7 +546,7 @@ describe('splitList', () => {
 
     it('takes two Unicode forms of one name for one file', () => {
       const composed = 'é';
-      const decomposed = 'é';
+      const decomposed = 'e\u0301';
 
       const result = split(FREE, [{ _id: decomposed }, { _id: composed }]);
 
@@ -1086,9 +1093,13 @@ describe('mergeList', () => {
       ['uilocale/ fr'],
       ['uilocale/fr\u00a0'],
       ['uilocale/fr\u2003'],
-      // a path parameter on a dot
+      // a path parameter on a dot, or on no name
       ['uilocale/..;'],
       ['uilocale/.;x=y'],
+      ['uilocale/;..'],
+      ['uilocale/;x'],
+      // a blank at the start of a value of any length
+      ['uilocale/ en-US'],
     ])(
       'refuses a file that holds %j, with its path for an id, and the message does not hold the id',
       async (id) => {
@@ -1231,6 +1242,28 @@ describe('mergeList', () => {
       ]);
       expect(reads[1].error?.message).toBe(
         'The file locales/b.json holds the same _id as the file locales/a.json.'
+      );
+    });
+
+    it('compares the ids as they are written, not trimmed, in the mode where an id may start or end with a blank: the same id twice is refused, a blank more is another id', async () => {
+      const reads = await read(
+        {
+          'free/a.json': '{"_id":" a "}',
+          'free/b.json': '{"_id":" a "}',
+          'free/c.json': '{"_id":"a"}',
+          'free/d.json': '{"_id":"a "}',
+        },
+        FREE
+      );
+
+      expect(shown(reads)).toEqual([
+        { id: ' a ', path: 'free/a.json', ok: true },
+        { id: 'free/b.json', path: 'free/b.json', ok: false },
+        { id: 'a', path: 'free/c.json', ok: true },
+        { id: 'a ', path: 'free/d.json', ok: true },
+      ]);
+      expect(reads[1].error?.message).toBe(
+        'The file free/b.json holds the same _id as the file free/a.json.'
       );
     });
 
@@ -1479,6 +1512,9 @@ describe('mergeAndWriteList', () => {
       'uilocale/ fr',
       'uilocale/..;',
       'uilocale/.;x',
+      'uilocale/;..',
+      'uilocale/;x',
+      'uilocale/ en-US',
       'uilocale/..',
       'uilocale/a/b',
       'uilocale/x?_action=y',
@@ -1507,7 +1543,7 @@ describe('mergeAndWriteList', () => {
       expect(decodeURIComponent(pathname)).toBe(`/openidm/config/${id}`);
     }
     expect(outcomes.filter((o) => o.error === undefined)).toHaveLength(3);
-    expect(outcomes.filter((o) => o.error !== undefined)).toHaveLength(9);
+    expect(outcomes.filter((o) => o.error !== undefined)).toHaveLength(12);
   });
 
   it('sorts a file that was refused among the others by its path, as that is its id', async () => {
