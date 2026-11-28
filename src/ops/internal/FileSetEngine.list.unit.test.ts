@@ -65,7 +65,7 @@ const stateOf = (): State => {
 
 /** What one name is, in the words of a message. */
 const ONE_NAME =
-  'one name (not empty, not "." or "..", not starting with ";", ".;" or "..;", no slash, backslash, "?", "#", "%" or control character, and no blank at either end)';
+  'one name (not empty, not "." or "..", not starting with ";", ".;" or "..;", with or without blanks before the ";", no slash, backslash, "?", "#", "%" or control character, and no blank at either end)';
 
 /** The words of the findings, as the engine writes them: each reason has one message, and it never holds an id. */
 const MESSAGES = {
@@ -310,6 +310,10 @@ describe('splitList', () => {
       // a server may cut the parameters off a segment before it reads the dots
       ['uilocale/..;'],
       ['uilocale/.;x=y'],
+      // and one that trims the blanks as well leaves the dots
+      ['uilocale/.. ;x'],
+      ['uilocale/. ;..'],
+      ['uilocale/..\u00a0;'],
       // a server that cuts the parameters off first leaves no name, or the folder itself
       ['uilocale/;'],
       ['uilocale/;..'],
@@ -1096,6 +1100,10 @@ describe('mergeList', () => {
       // a path parameter on a dot, or on no name
       ['uilocale/..;'],
       ['uilocale/.;x=y'],
+      ['uilocale/.. ;x'],
+      ['uilocale/. ;..'],
+      ['uilocale/.\u2003;'],
+      ['uilocale/..\u3000;x'],
       ['uilocale/;..'],
       ['uilocale/;x'],
       // a blank at the start of a value of any length
@@ -1512,6 +1520,9 @@ describe('mergeAndWriteList', () => {
       'uilocale/ fr',
       'uilocale/..;',
       'uilocale/.;x',
+      'uilocale/.. ;x',
+      'uilocale/. ;..',
+      'uilocale/..\u00a0;',
       'uilocale/;..',
       'uilocale/;x',
       'uilocale/ en-US',
@@ -1543,7 +1554,7 @@ describe('mergeAndWriteList', () => {
       expect(decodeURIComponent(pathname)).toBe(`/openidm/config/${id}`);
     }
     expect(outcomes.filter((o) => o.error === undefined)).toHaveLength(3);
-    expect(outcomes.filter((o) => o.error !== undefined)).toHaveLength(12);
+    expect(outcomes.filter((o) => o.error !== undefined)).toHaveLength(15);
   });
 
   it('sorts a file that was refused among the others by its path, as that is its id', async () => {

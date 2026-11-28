@@ -12,8 +12,9 @@
  *
  * A value is one segment of a request path when it is text that
  * - is not empty, and is not `.` or `..` (a request layer resolves them, so the request goes to another object), and does not
- *   start with `;`, `.;` or `..;` (a server may cut the path parameters off a segment before it resolves the dots, and what
- *   is left is no name, or a dot: the part before the first `;` is a name itself),
+ *   start with `;`, `.;` or `..;`, with or without blanks (below) before the `;` (`.. ;x`): a server may cut the path
+ *   parameters off a segment before it resolves the dots, and a server that trims the blanks as well is left with no name, or
+ *   a dot. The part before the first `;` is a name itself, so dots and blanks are no name,
  * - holds no `/`, no `\`, no `?`, no `#` and no `%`,
  * - holds no control character (the C0 and C1 blocks and DEL), and no lone surrogate (it is well formed text),
  * - does not start or end with a blank: a space or another separator of the Unicode categories Zs, Zl and Zp (the no-break
@@ -35,7 +36,7 @@ export function isRequestSegment(value: string): boolean {
     value !== '' &&
     value !== '.' &&
     value !== '..' &&
-    !/^\.{0,2};/.test(value) &&
+    !/^\.{0,2}\p{Z}*;/u.test(value) &&
     !/[/\\?#%\p{Cc}]/u.test(value) &&
     !/^\p{Z}|\p{Z}$/u.test(value) &&
     value.isWellFormed()

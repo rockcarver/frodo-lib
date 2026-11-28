@@ -72,6 +72,11 @@ describe('isRequestSegment', () => {
     ['...;'],
     ['a.;'],
     ['.a;b'],
+    // dots and a blank, and a letter before the `;`: that is a name, and what follows the `;` is a parameter of it
+    ['. a;b'],
+    ['.. a;'],
+    ['.\u2003a;x'],
+    ['..\u00a0a;..'],
   ])('%j is one segment of a request path', (candidate) => {
     expect(isRequestSegment(candidate)).toBe(true);
   });
@@ -121,6 +126,26 @@ describe('isRequestSegment', () => {
     [';x=y', 'a path parameter that has a value and no name before it'],
     [';;', 'two empty path parameters'],
     [
+      '.. ;x',
+      'the parent folder, a space and a path parameter that has a name',
+    ],
+    [
+      '. ;..',
+      'the current folder, a space and a path parameter that is the parent folder',
+    ],
+    ['.\u2003;', 'the current folder, an em space and a path parameter'],
+    ['..\u00a0;', 'the parent folder, a no-break space and a path parameter'],
+    [
+      '..\u3000;x',
+      'the parent folder, an ideographic space and a path parameter that has a name',
+    ],
+    ['..  ;x', 'the parent folder, two spaces and a path parameter'],
+    ['..\u2028;', 'the parent folder, a line separator and a path parameter'],
+    [
+      '. \u00a0\u3000;x=y',
+      'the current folder, three blanks of three kinds and a path parameter',
+    ],
+    [
       '..;..',
       'the parent folder with a path parameter that is the parent folder',
     ],
@@ -162,6 +187,23 @@ describe('isRequestSegment', () => {
     }
   );
 
+  it.each(BLANKS)(
+    'refuses dots, %j (%s) and a `;`, because the part before the first `;` is no name, and takes a name there',
+    (blank) => {
+      for (const dots of ['', '.', '..']) {
+        for (const rest of ['', 'x', '..', ';']) {
+          expect(isRequestSegment(`${dots}${blank};${rest}`)).toBe(false);
+          expect(isRequestSegment(`${dots}${blank}${blank};${rest}`)).toBe(
+            false
+          );
+        }
+      }
+      // a letter after the blank makes it a name, and a name may be followed by a parameter
+      expect(isRequestSegment(`.${blank}a;b`)).toBe(true);
+      expect(isRequestSegment(`..${blank}a;`)).toBe(true);
+    }
+  );
+
   it('refuses a blank at either end of a value of any length, not only of a short one', () => {
     for (const blank of [' ', '\u00a0', '\u2003', '\u3000']) {
       for (const name of ['en-US', 'My Schedule', 'a'.repeat(300)]) {
@@ -181,15 +223,28 @@ describe('isRequestSegment', () => {
     }
   });
 
-  it('takes a `;` as part of the name, except when the part before the first `;` is empty, one dot or two, whatever follows', () => {
-    // a server may cut the parameters off a segment before it reads the dots, and what is left is no name, or a dot
+  it('takes a `;` as part of the name, except when the part before the first `;` is empty, one dot or two, or those and blanks, whatever follows', () => {
+    // a server may cut the parameters off a segment before it reads the dots, and what is left (a server that trims the blanks
+    // too has nothing but the dots left) is no name, or a dot
     for (const before of ['', '.', '..']) {
-      for (const rest of ['', 'x', 'x=y', '..', ';', '/']) {
-        expect(isRequestSegment(`${before};${rest}`)).toBe(false);
+      for (const blanks of ['', ' ', '  ', '\u00a0', '\u2003', '\u3000']) {
+        for (const rest of ['', 'x', 'x=y', '..', ';', '/']) {
+          expect(isRequestSegment(`${before}${blanks};${rest}`)).toBe(false);
+        }
       }
     }
     // the part before the first `;` is a name: what follows is a parameter of that name
-    for (const name of ['a', '...', '.a', 'a.', 'a..', 'My Schedule']) {
+    for (const name of [
+      'a',
+      '...',
+      '.a',
+      'a.',
+      'a..',
+      'My Schedule',
+      '. a',
+      '.. a',
+      '.\u2003a',
+    ]) {
       for (const rest of ['', 'x', '..', ';', '.']) {
         expect(isRequestSegment(`${name};${rest}`)).toBe(true);
       }
