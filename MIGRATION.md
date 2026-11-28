@@ -353,11 +353,16 @@ releases missed):
   `cloud.log.tail`, a live cursor, has `returned` and `nextPageToken` and no
   `truncated`. `cloud.log.searchEvents`, which stops at its own `maxEvents`
   limit (it reads whole pages, so it can return more than its limit; the
-  warning says so), and `role.readInternalRoles` and
-  `role.queryInternalRoles`, which read one request of at most 1000 items,
-  return a plain array; each is
-  `truncated` with a `total` of `null` when it returns as many items as its
-  limit (it may have left more). `cloud.log.searchEvents` counts its limit
+  warning says so), returns a plain array and is `truncated` with a `total` of
+  `null` when it returns as many items as its limit (it may have left more).
+  `role.readInternalRoles` and `role.queryInternalRoles` read every role (see
+  the entry on internal roles at the end of this list), so the capability has no
+  limit of its own and its result is not marked as cut by one. The limits that
+  every list result has still apply: the runtime returns at most 1000 items per
+  response and keeps within its size budget, so a result of more than 1000 roles
+  is `truncated: true` with the real `total` and a `nextPageOffset`, and the
+  caller reads on from there.
+  `cloud.log.searchEvents` counts its limit
   before it removes duplicate events (`dedupeByTransactionId`, on unless it is
   `false`), so with deduplication a count below the limit proves nothing: the
   result then has `returned` and a `warning` that says so, and no `truncated`
@@ -751,6 +756,52 @@ releases missed):
   imported and the journeys reported as unresolved are what they were. A caller
   that depends on the old write order of installed journeys has to order them
   itself.
+- `frodo.role.readInternalRoles` and `frodo.role.queryInternalRoles`
+  (`src/ops/InternalRoleOps.ts`) now follow the paged results cookie to the
+  last page. Before, they sent one request of one page (1000 roles) and dropped
+  the cookie of the answer, so a tenant with more than 1000 internal roles got
+  the first 1000 without a word. The functions that read all roles get all of
+  them now: `frodo.role.exportInternalRoles` returns every role,
+  `frodo.role.deleteInternalRoles` deletes every role (before, only the first
+  1000: with more than 1000 roles it now deletes more), and
+  `frodo.config.exportFullConfiguration` exports every internal role.
+  `frodo.role.readInternalRoleByName` and `frodo.role.deleteInternalRoleByName`
+  are unchanged in practice. A tenant with fewer internal roles than one page
+  (1000) sends the same single request as before, and so does one with exactly
+  1000 when the answer carries no cookie (when it does carry one, the read asks
+  once more and ends on an empty page). A read that is answered with the cookie
+  that its request carried ends with an error that says so (the message does not
+  hold the cookie), instead of asking for the same page again and again. The MCP
+  tool runtime no longer treats `role.readInternalRoles` and
+  `role.queryInternalRoles` as capabilities that stop at 1000 items of their
+  own, because they read every role: a result of exactly 1000 roles is
+  `truncated: false` with a `total` of 1000 (before: `truncated: true` and a
+  `total` of `null`). The limits that every list result has still apply: with
+  more than 1000 roles the runtime cuts the response at its ceiling of 1000
+  items (and at its size budget) and says so, `truncated: true` with the real
+  `total` and a `nextPageOffset` to read on, and the warning does not name a
+  limit of the capability.
+- A page that cannot be read now ends the paging loop of
+  `frodo.idm.managed.updateManagedObjectsProperties`, `deleteManagedObjects`,
+  `queryManagedObjects` and `queryRelatedManagedObjects`, of the four functions
+  of the same names of `frodo.idm.managedSystem`
+  (`updateManagedSystemObjectsProperties`, `deleteManagedSystemObjects`,
+  `queryManagedSystemObjects`, `queryRelatedManagedSystemObjects`) and of
+  `frodo.idm.organization.readOrganizations`. These functions caught the error
+  of every page request and went on with the cookie of the last page that had
+  been read, so a request that failed from the second page on was sent again
+  and again and the call never ended (a request that failed once and then
+  succeeded was repeated by accident, and the call still threw at the end). Now
+  the first failed page request ends the loop and the call throws the error it
+  always threw (same message, the cause in `originalErrors`), with that one
+  cause. What lay beyond the failed page is not read: an update does not patch
+  it and a delete does not delete it, and the objects of the pages that were
+  read before stay patched or deleted (the message of a delete says how many).
+  A failed item of a page (one patch or one delete) is reported as before and
+  does not stop the next page from being read.
+- The module function `listOrganizationsTopDown` (`src/ops/OrganizationOps.ts`,
+  not on the `frodo` facade) now returns the organizations that it reads. It
+  read every page and returned an empty array.
 
 **Deprecation**:
 

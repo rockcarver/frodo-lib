@@ -567,6 +567,7 @@ export async function updateManagedSystemObjectsProperties({
       }
     } catch (error) {
       errors.push(error);
+      break;
     }
   } while (page.pagedResultsCookie);
   if (errors.length > 0) {
@@ -625,6 +626,11 @@ export async function deleteManagedSystemObjects({
         pageCookie: result.pagedResultsCookie,
         state,
       });
+    } catch (error) {
+      errors.push(error);
+      break;
+    }
+    try {
       for (const obj of result.result) {
         await deleteManagedSystemObject({ type, id: obj._id, state });
         count++;
@@ -678,6 +684,7 @@ export async function queryManagedSystemObjects({
       result.push(...page.result);
     } catch (error) {
       errors.push(error);
+      break;
     }
   } while (page.pagedResultsCookie);
   if (errors.length > 0) {
@@ -739,6 +746,7 @@ export async function queryRelatedManagedSystemObjects({
       result.push(...page.result);
     } catch (error) {
       errors.push(error);
+      break;
     }
   } while (page.pagedResultsCookie);
   if (errors.length > 0) {
