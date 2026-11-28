@@ -9,6 +9,7 @@ applies-to:
   - src/utils/AutoSetupPolly.ts
   - src/api/BaseApi.ts
   - RECORD_REPLAY.md
+seal: sha256-g1:ad604b346d231c358570b17df53934552d3cf1e92abfa8cbacffa15b8b4fecae
 ---
 
 # Recorded HTTP traffic replays against any host, and the framework is a library feature

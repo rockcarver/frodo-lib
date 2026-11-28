@@ -7,6 +7,7 @@ applies-to:
   - src/test/mock-recordings/**
 issues:
   - rockcarver/frodo-lib#849
+seal: sha256-g1:cfb3fd4e70f13e4da420a5a0b29ceefaa8401381ce53a694eda7ae07ea5c5cc4
 ---
 
 # A recording of a wait may be trimmed of its repeated polls

@@ -5,6 +5,7 @@ decision-makers:
   - maintainers
 applies-to:
   - src/api/**
+seal: sha256-g1:0af46d77716fa611fabe601168f11b442e2d05e1764e87f1e11c6777efe2c4e2
 ---
 
 # The api layer is named after the HTTP operation, the ops layer after CRUDQ

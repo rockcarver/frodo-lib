@@ -11,6 +11,7 @@ applies-to:
   - src/utils/DataProtection.ts
 issues:
   - rockcarver/frodo-lib#914
+seal: sha256-g1:79d5cb4f0f735762d9236b5a93030e6717e703e5be665c597945874bfe14f9a9
 ---
 
 # Files shared by processes are written safely and reading never writes

@@ -7,6 +7,7 @@ applies-to:
   - src/ops/ConfigOps.ts
 issues:
   - rockcarver/frodo-lib#853
+seal: sha256-g1:3fdb2c2a8a4838466865cf1f14f31ea32bc84584880cac3d5112b8b24e8722f8
 ---
 
 # Static configuration is what a promotion carries, and everything else is dynamic

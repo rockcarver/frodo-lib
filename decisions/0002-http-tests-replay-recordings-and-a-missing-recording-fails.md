@@ -6,6 +6,7 @@ decision-makers:
 applies-to:
   - test/jest-polly-replay-integrity.setup.js
   - src/test/**
+seal: sha256-g1:3079d7f47e4f9a56202d2baeeb6671e6914a5d40d196f01921993ab6a87e7664
 ---
 
 # HTTP tests replay recordings and a missing recording fails the test

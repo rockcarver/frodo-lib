@@ -7,6 +7,7 @@ applies-to:
   - src/ops/**
   - src/utils/**
   - src/lib/FrodoLib.ts
+seal: sha256-g1:d6d8e0226d3c15c7548e92ecfb6ce38fe7c833865d770df910bf1f73020d6bec
 ---
 
 # Facade methods follow the CRUDQ naming convention

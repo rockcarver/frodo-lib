@@ -6,6 +6,7 @@ decision-makers:
 applies-to:
   - src/ops/**
   - src/lib/Help.ts
+seal: sha256-g1:639344100e76cfd118ed5455d7f83d3a7d7b052c4447746173bca74a97bc9b17
 ---
 
 # Method documentation is generated from TSDoc

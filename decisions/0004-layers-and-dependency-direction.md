@@ -9,6 +9,7 @@ applies-to:
   - src/shared/**
   - src/utils/**
   - src/lib/FrodoLib.ts
+seal: sha256-g1:32aa6e78dfc10669907dc86de2591806c1e83a8da70ce5dc0afb0d3b04f6fee2
 ---
 
 # frodo-lib has an api layer, an ops layer and a facade, with shared code below them
