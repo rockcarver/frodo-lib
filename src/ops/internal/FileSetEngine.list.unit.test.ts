@@ -63,6 +63,10 @@ const stateOf = (): State => {
   return state;
 };
 
+/** What one name is, in the words of a message. */
+const ONE_NAME =
+  'one name (not empty, not "." or "..", not "." or ".." with a ";" after it, no slash, backslash, "?", "#", "%" or control character, and no blank at either end)';
+
 /** The words of the findings, as the engine writes them: each reason has one message, and it never holds an id. */
 const MESSAGES = {
   collision: 'another object has the same file name',
@@ -73,10 +77,14 @@ const MESSAGES = {
   placeholder:
     'its id holds a placeholder opener: an id is never filled from a placeholder',
   notOneNameAfterPrefix: (prefix: string) =>
-    `its id is not an id of this type: it is not the prefix ${JSON.stringify(prefix)} followed by one name (not empty, not "." or "..", with no slash, backslash, "?", "#", "%" or control character)`,
-  notOneName:
-    'its id is not an id of this type: it is not one name (not empty, not "." or "..", with no slash, backslash, "?", "#", "%" or control character)',
+    `its id is not an id of this type: it is not the prefix ${JSON.stringify(prefix)} followed by ${ONE_NAME}`,
+  notOneName: `its id is not an id of this type: it is not ${ONE_NAME}`,
+  notText: 'its id holds a control character or a character that is not text',
 };
+
+/** What a push says of a file that holds an id that is not an id of the type: the path, and what an id of the type is. */
+const notAnIdOfThisType = (path: string, prefix: string | null): string =>
+  `The file ${path} does not hold an id of this type: it is not ${prefix ? `the prefix ${JSON.stringify(prefix)} followed by ${ONE_NAME}` : ONE_NAME}.`;
 
 /** A split with the two options that a type has to say, as a caller of a type that keeps neither writes them. */
 const split = (
@@ -263,6 +271,9 @@ describe('splitList', () => {
       ['managed/alpha_user'],
       // as long as the prefix and more, so that what follows the first nine characters is one name
       ['abcdefghijkl'],
+      // an id that holds `${` and does not start with the prefix is not of the type: a notice, whichever test is made first
+      ['other/${X}'],
+      ['access${x}'],
     ])(
       'takes %j for an entry that is not an object of the type: not-of-type, never written',
       (id) => {
@@ -289,6 +300,16 @@ describe('splitList', () => {
       ['uilocale/a\tb'],
       ['uilocale/a\u0085b'],
       ['uilocale/x\ud800'],
+      // the URL parser cuts the spaces off the end of a URL: `uilocale/.. ` would be the request for the folder above
+      ['uilocale/.. '],
+      ['uilocale/. '],
+      ['uilocale/fr '],
+      ['uilocale/ fr'],
+      ['uilocale/fr\u00a0'],
+      ['uilocale/fr\u3000'],
+      // a server may cut the parameters off a segment before it reads the dots
+      ['uilocale/..;'],
+      ['uilocale/.;x=y'],
     ])('refuses %j: it starts with the prefix and is not one name', (id) => {
       const result = split(LOCALES, [{ _id: id }]);
 
@@ -307,6 +328,10 @@ describe('splitList', () => {
       ['uilocale/a b'],
       ['uilocale/..foo'],
       ['uilocale/a..b'],
+      ['uilocale/My Schedule'],
+      ['uilocale/a@b'],
+      ['uilocale/a;b'],
+      ['uilocale/a;..'],
       ['uilocale/ABC:x'],
       ['uilocale/é'],
     ])('writes %j: the rest of the id is one name', (id) => {
@@ -372,20 +397,42 @@ describe('splitList', () => {
   });
 
   describe('the id of the type: an id that never reaches a request', () => {
-    it('takes any text that is not empty, a slash and a lone surrogate too, and gives it a name that is a file name', () => {
+    it('takes any text that is not empty, with no control character and no lone surrogate, a slash and a blank too, and gives it a name that is a file name', () => {
       const result = split(
         FREE,
-        [{ _id: 'a/b' }, { _id: 'x\ud800' }, { _id: 'with space' }],
+        [
+          { _id: 'a/b' },
+          { _id: ' with space ' },
+          { _id: '../x' },
+          { _id: 'smile \ud83d\ude00' },
+        ],
         { nameOf: encodedName }
       );
 
       expect(result.findings).toEqual([]);
-      expect(paths(result)).toEqual([
-        'free/a%2Fb.json',
-        'free/with space.json',
-        expect.stringMatching(/^free\/x.*~[0-9a-f]{8}\.json$/),
-      ]);
+      expect(result.fileSet.files).toHaveLength(4);
+      expect(paths(result)).toContain('free/a%2Fb.json');
     });
+
+    it.each([
+      ['a control character', 'a\u0000b'],
+      ['an escape', 'a\u001bb'],
+      ['a tab', 'a\tb'],
+      ['DEL', 'a\u007fb'],
+      ['a control character of the C1 block', 'a\u0085b'],
+      ['a lone high surrogate', '\ud800'],
+      ['a lone low surrogate at the end', 'x\udc00'],
+    ])(
+      'refuses an id with %s although the id never reaches a request: it is the id of an outcome and of an error',
+      (_what, id) => {
+        const result = split(FREE, [{ _id: id }, { _id: 'ok' }]);
+
+        expect(result.findings).toEqual([
+          { kind: 'refused', id, message: MESSAGES.notText },
+        ]);
+        expect(paths(result)).toEqual(['free/ok.json']);
+      }
+    );
 
     it('does not look for a prefix: every entry is of the type', () => {
       expect(
@@ -624,6 +671,18 @@ describe('splitList', () => {
         undefined,
       ],
       [
+        'an id that holds a control character or a lone surrogate, where the id never reaches a request',
+        FREE,
+        [{ _id: `${MARKER}\u001b[2J` }, { _id: `${MARKER}\ud800` }],
+        undefined,
+      ],
+      [
+        'an id that ends in a space',
+        LOCALES,
+        [{ _id: `uilocale/${MARKER} ` }],
+        undefined,
+      ],
+      [
         'an id that holds a placeholder',
         LOCALES,
         [{ _id: `uilocale/${MARKER}\${x}` }],
@@ -770,6 +829,10 @@ describe('mergeList', () => {
       const { reader, asked } = countingReader({
         'locales/a.json': '{"_id":"uilocale/a"}',
         'locales/notes.txt': 'not read',
+        // the name of a file ends in `.json`, not in `json`
+        'locales/xjson': '{"_id":"uilocale/x"}',
+        'locales/backupjson': '{"_id":"uilocale/backup"}',
+        'locales/a.json.bak': '{"_id":"uilocale/bak"}',
         'locales/sub/b.json': '{"_id":"uilocale/b"}',
         // a folder whose name ends in `.json` is a folder, and is not read
         'locales/folder.json/d.json': '{"_id":"uilocale/d"}',
@@ -870,34 +933,79 @@ describe('mergeList', () => {
       );
     });
 
-    it('rejects when the reader fails, and says what it was doing, with the cause', async () => {
-      const failing = (which: 'list' | 'read'): FileSetReader => ({
+    it('rejects when the reader cannot list the folder, which fails every file at once, and says what it was doing, with the cause', async () => {
+      const reader: FileSetReader = {
         async listDirectory() {
-          if (which === 'list') throw new Error('disk gone');
-          return [{ name: 'a.json', isDirectory: false }];
+          throw new Error('disk gone');
+        },
+        async readFile() {
+          throw new Error('never read');
+        },
+      };
+
+      const error = await mergeList({ ...LOCALES, reader, state }).catch(
+        (e) => e
+      );
+
+      expect(error).toBeInstanceOf(FrodoError);
+      expect(error.message).toBe('Error listing the folder locales');
+      expect(error.originalErrors[0].message).toBe('disk gone');
+    });
+
+    it('fails only the file that the reader cannot read: it is one failed object, the others are read, and the cause is kept', async () => {
+      const inner = readerOf({
+        'locales/a.json': '{"_id":"uilocale/a"}',
+        'locales/b.json': '{"_id":"uilocale/b"}',
+        'locales/c.json': '{"_id":"uilocale/c"}',
+      });
+      const reader: FileSetReader = {
+        listDirectory: (path) => inner.listDirectory(path),
+        readFile: async (path) => {
+          if (path === 'locales/b.json') throw new Error('disk gone');
+          return inner.readFile(path);
+        },
+      };
+
+      const reads = await mergeList({ ...LOCALES, reader, state });
+
+      expect(shown(reads)).toEqual([
+        { id: 'uilocale/a', path: 'locales/a.json', ok: true },
+        { id: 'locales/b.json', path: 'locales/b.json', ok: false },
+        { id: 'uilocale/c', path: 'locales/c.json', ok: true },
+      ]);
+      expect(reads[1].error).toBeInstanceOf(FrodoError);
+      expect(reads[1].error?.message).toBe('Error reading file locales/b.json');
+      expect((reads[1].error as FrodoError).originalErrors[0].message).toBe(
+        'disk gone'
+      );
+    });
+
+    it('fails every file, one by one, when the reader cannot read any of them, and does not reject: the push then has one failed object for each', async () => {
+      const reader: FileSetReader = {
+        async listDirectory() {
+          return [
+            { name: 'a.json', isDirectory: false },
+            { name: 'b.json', isDirectory: false },
+          ];
         },
         async readFile() {
           throw new Error('disk gone');
         },
+      };
+      const write = jest.fn(async () => ({}));
+
+      const outcomes = await mergeAndWriteList({
+        ...LOCALES,
+        reader,
+        state,
+        write,
       });
 
-      const listing = await mergeList({
-        ...LOCALES,
-        reader: failing('list'),
-        state,
-      }).catch((e) => e);
-      const reading = await mergeList({
-        ...LOCALES,
-        reader: failing('read'),
-        state,
-      }).catch((e) => e);
-
-      expect(listing).toBeInstanceOf(FrodoError);
-      expect(listing.message).toBe('Error listing the folder locales');
-      expect(listing.originalErrors[0].message).toBe('disk gone');
-      expect(reading).toBeInstanceOf(FrodoError);
-      expect(reading.message).toBe('Error reading file locales/a.json');
-      expect(reading.originalErrors[0].message).toBe('disk gone');
+      expect(outcomes.map((o) => [o.id, o.error?.message])).toEqual([
+        ['locales/a.json', 'Error processing locales/a.json'],
+        ['locales/b.json', 'Error processing locales/b.json'],
+      ]);
+      expect(write).not.toHaveBeenCalled();
     });
 
     it('takes a file that is listed and not there for a file that cannot be used', async () => {
@@ -971,6 +1079,16 @@ describe('mergeList', () => {
       ['uilocale/a%2fb'],
       ['uilocale/a\\b'],
       ['uilocale/x\ud800'],
+      // a space at the end is cut off by the URL parser: these would be the requests for `uilocale/..`, `uilocale` and `uilocale/fr`
+      ['uilocale/.. '],
+      ['uilocale/. '],
+      ['uilocale/fr '],
+      ['uilocale/ fr'],
+      ['uilocale/fr\u00a0'],
+      ['uilocale/fr\u2003'],
+      // a path parameter on a dot
+      ['uilocale/..;'],
+      ['uilocale/.;x=y'],
     ])(
       'refuses a file that holds %j, with its path for an id, and the message does not hold the id',
       async (id) => {
@@ -984,7 +1102,7 @@ describe('mergeList', () => {
           { id: 'uilocale/b', path: 'locales/b.json', ok: true },
         ]);
         expect(reads[0].error?.message).toBe(
-          'The file locales/a.json does not hold an id of this type: it is not the prefix "uilocale/" followed by one name.'
+          notAnIdOfThisType('locales/a.json', 'uilocale/')
         );
       }
     );
@@ -1010,7 +1128,13 @@ describe('mergeList', () => {
         ROLES
       );
       const free = await read(
-        { 'free/a.json': '{"_id":"a/b"}', 'free/b.json': '{"_id":"x\\ud800"}' },
+        {
+          'free/a.json': '{"_id":"a/b"}',
+          'free/b.json': '{"_id":"x\\ud800"}',
+          'free/c.json': '{"_id":"a\\u0000b"}',
+          'free/d.json': '{"_id":"a\\u001bb"}',
+          'free/e.json': '{"_id":" a "}',
+        },
         FREE
       );
 
@@ -1019,12 +1143,21 @@ describe('mergeList', () => {
         { id: 'roles/b.json', path: 'roles/b.json', ok: false },
       ]);
       expect(roles[1].error?.message).toBe(
-        'The file roles/b.json does not hold an id of this type: it is not one name.'
+        notAnIdOfThisType('roles/b.json', '')
       );
       expect(shown(free)).toEqual([
         { id: 'a/b', path: 'free/a.json', ok: true },
-        { id: 'x\ud800', path: 'free/b.json', ok: true },
+        { id: 'free/b.json', path: 'free/b.json', ok: false },
+        { id: 'free/c.json', path: 'free/c.json', ok: false },
+        { id: 'free/d.json', path: 'free/d.json', ok: false },
+        { id: ' a ', path: 'free/e.json', ok: true },
       ]);
+      // no id reaches a request in this mode, but it is the id of an outcome and of an error: no control character, no lone surrogate
+      for (const refused of [free[1], free[2], free[3]]) {
+        expect(refused.error?.message).toBe(
+          `The file ${refused.path} holds an _id with a control character or a character that is not text.`
+        );
+      }
     });
 
     it('takes ids that differ in case for two ids: the comparison is exact', async () => {
@@ -1082,6 +1215,23 @@ describe('mergeList', () => {
       });
 
       expect(shown(reads).map((r) => r.ok)).toEqual([false, true]);
+    });
+
+    it('refuses a second file whose id has upper-case letters, as it does for one that has none: the comparison is exact in both directions', async () => {
+      const reads = await read({
+        'locales/a.json': '{"_id":"uilocale/en-US","n":1}',
+        'locales/b.json': '{"_id":"uilocale/en-US","n":2}',
+        'locales/c.json': '{"_id":"uilocale/en-us","n":3}',
+      });
+
+      expect(shown(reads)).toEqual([
+        { id: 'uilocale/en-US', path: 'locales/a.json', ok: true },
+        { id: 'locales/b.json', path: 'locales/b.json', ok: false },
+        { id: 'uilocale/en-us', path: 'locales/c.json', ok: true },
+      ]);
+      expect(reads[1].error?.message).toBe(
+        'The file locales/b.json holds the same _id as the file locales/a.json.'
+      );
     });
 
     it('refuses a second file in every mode', async () => {
@@ -1303,10 +1453,61 @@ describe('mergeAndWriteList', () => {
     expect(outcomes[0].error).toBeInstanceOf(FrodoError);
     expect(outcomes[0].error?.message).toBe('Error processing locales/a.json');
     expect(outcomes[0].error?.originalErrors[0].message).toBe(
-      'The file locales/a.json does not hold an id of this type: it is not the prefix "uilocale/" followed by one name.'
+      notAnIdOfThisType('locales/a.json', 'uilocale/')
     );
     expect(calls.map(([, id]) => id)).toEqual(['uilocale/ok']);
     expect(write).toHaveBeenCalledTimes(1);
+  });
+
+  it('writes only ids whose request goes to the object of that id: the URL that is built from each is the folder and the id', async () => {
+    // what a write does with the id: it builds the URL of the request as the request layer does (the WHATWG parser)
+    const urls: [string, string][] = [];
+    const write = jest.fn(
+      async (_object: Record<string, unknown>, id: string) => {
+        const url = new URL(
+          `https://openam-matrix.example.com/openidm/config/${id}`
+        );
+        urls.push([id, url.pathname]);
+        return {};
+      }
+    );
+    const files: Record<string, string> = {};
+    [
+      'uilocale/.. ',
+      'uilocale/. ',
+      'uilocale/fr ',
+      'uilocale/ fr',
+      'uilocale/..;',
+      'uilocale/.;x',
+      'uilocale/..',
+      'uilocale/a/b',
+      'uilocale/x?_action=y',
+      'uilocale/fr',
+      'uilocale/My Schedule',
+      'uilocale/en-US',
+    ].forEach((id, index) => {
+      files[`locales/f${String(index).padStart(2, '0')}.json`] = JSON.stringify(
+        { _id: id }
+      );
+    });
+
+    const outcomes = await mergeAndWriteList({
+      ...LOCALES,
+      reader: readerOf(files),
+      state,
+      write,
+    });
+
+    expect(urls.map(([id]) => id).sort()).toEqual([
+      'uilocale/My Schedule',
+      'uilocale/en-US',
+      'uilocale/fr',
+    ]);
+    for (const [id, pathname] of urls) {
+      expect(decodeURIComponent(pathname)).toBe(`/openidm/config/${id}`);
+    }
+    expect(outcomes.filter((o) => o.error === undefined)).toHaveLength(3);
+    expect(outcomes.filter((o) => o.error !== undefined)).toHaveLength(9);
   });
 
   it('sorts a file that was refused among the others by its path, as that is its id', async () => {

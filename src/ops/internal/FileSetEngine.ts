@@ -593,9 +593,9 @@ export async function mergeAndWriteSingleton<M, R>({
  * are, what its ids look like, and what it is. The functions take the spec as it is, so a type holds one constant and hands it
  * to the split, the merge and the push.
  * @property {string} folder the folder of the type in the file set; the set owns it
- * @property {string | null} idPrefix what the id of an object of the type looks like, which is checked on a pull and on a push, because a push reads the id from the content of a file and puts it into the path of a request, and nothing else says which object the file is for. A prefix, such as `a/`, means the id is that prefix and one name (the type decides which entries of a tenant are its objects by the prefix). The empty text means the id is one name and has no prefix. `null` means the id never reaches a request, so any text that is not empty will do. An id that holds `${` is refused in every case
+ * @property {string | null} idPrefix what the id of an object of the type looks like, which is checked on a pull and on a push, because a push reads the id from the content of a file and puts it into the path of a request, and nothing else says which object the file is for. A prefix, such as `a/`, means the id is that prefix and one name, as `isRequestSegment` says what a name is (the type decides which entries of a tenant are its objects by the prefix). The empty text means the id is one name and has no prefix. `null` means the id never reaches a request, so any text that is not empty will do, if it holds no control character and no lone surrogate. In every case an id that holds `${` is refused, and an id that is accepted is still text from a file or a tenant: in the mode `null` it can hold characters that change what a terminal shows (a bidirectional control, a zero-width character), and it is the `id` of the outcome of a push and is in the text of the error that the run of a push gives for the object, so a caller shows it in the form that is safe for its output
  * @property {Pick<ConfigTypeDescriptor, 'key' | 'volume'>} type the type itself: its descriptor, so that the flag that makes the engine refuse an unbounded type has one source
- * @property {(name: string) => string} nameOf gives the file name of an object, without the extension, from its id without the prefix. Default: `nameInFolder`, which keeps a colon and every other character that a file name can hold, and writes the characters of a path as `%XX`
+ * @property {(name: string) => string} nameOf gives the file name of an object, without the extension, from its id without the prefix. Default: `nameInFolder`, which keeps the name as it is when it is one name of a file (`Login:SSO` keeps its colon), and writes every other name with the characters of a path as `%XX`: a name that holds `C:` anywhere is written so, and its colon is `%3A` (`ABC:x` is `ABC%3Ax`), because the library removes `C:` from a path
  */
 export type ListSpec = {
   folder: string;
@@ -643,32 +643,35 @@ const isJsonObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** What a check of an id finds. */
-type IdVerdict = 'ok' | 'not-of-type' | 'not-an-id' | 'placeholder';
+type IdVerdict =
+  'ok' | 'not-of-type' | 'not-an-id' | 'not-text' | 'placeholder';
 
 /**
  * Check an id against the spec of a type. The same check runs on a pull, on the id that the tenant gave, and on a push, on the id
  * that the file holds, so that a pull never writes a file that a push would refuse.
  * @param {string} id the id, which is text that is not empty
  * @param {string | null} idPrefix what the id of the type looks like (see {@link ListSpec})
- * @returns {IdVerdict} `not-of-type` for an id that does not start with the prefix, `not-an-id` for one that is not the prefix and one name, `placeholder` for one that holds `${`, `ok` otherwise
+ * @returns {IdVerdict} `not-of-type` for an id that does not start with the prefix, `not-an-id` for one that is not the prefix and one name, `not-text` for an id that never reaches a request and holds a control character or a lone surrogate, `placeholder` for one that holds `${`, `ok` otherwise
  */
 function judgeId(id: string, idPrefix: string | null): IdVerdict {
   if (idPrefix !== null) {
     if (!id.startsWith(idPrefix)) return 'not-of-type';
     if (!isRequestSegment(id.slice(idPrefix.length))) return 'not-an-id';
+  } else if (/\p{Cc}/u.test(id) || !id.isWellFormed()) {
+    return 'not-text';
   }
   return id.includes(PLACEHOLDER_OPENER) ? 'placeholder' : 'ok';
 }
 
+/** What one name is, in the words of a message: what `isRequestSegment` accepts. */
+const ONE_NAME =
+  'one name (not empty, not "." or "..", not "." or ".." with a ";" after it, no slash, backslash, "?", "#", "%" or control character, and no blank at either end)';
+
 /** What an id has to be, in the words of a message, with the prefix of the type (a constant of the type) and never an id. */
 const shapeOfId = (idPrefix: string | null): string =>
   idPrefix
-    ? `the prefix ${JSON.stringify(idPrefix)} followed by one name`
-    : 'one name';
-
-/** What one name is, in the words of a message. */
-const ONE_NAME =
-  'one name (not empty, not "." or "..", with no slash, backslash, "?", "#", "%" or control character)';
+    ? `the prefix ${JSON.stringify(idPrefix)} followed by ${ONE_NAME}`
+    : ONE_NAME;
 
 /**
  * The finding for an id that is not an id of the type. One message for each reason, and none holds an id: the id is the `id` of
@@ -695,7 +698,14 @@ function findingOfVerdict(
       return {
         kind: 'refused',
         id,
-        message: `its id is not an id of this type: it is not ${idPrefix ? `the prefix ${JSON.stringify(idPrefix)} followed by ${ONE_NAME}` : ONE_NAME}`,
+        message: `its id is not an id of this type: it is not ${shapeOfId(idPrefix)}`,
+      };
+    case 'not-text':
+      return {
+        kind: 'refused',
+        id,
+        message:
+          'its id holds a control character or a character that is not text',
       };
     case 'placeholder':
       return {
@@ -888,7 +898,14 @@ function objectOfListFile(
       `The file ${path} holds an _id that its placeholders changed, which an id never does.`
     );
   }
-  if (judgeId(id, idPrefix) !== 'ok') {
+  const verdict = judgeId(id, idPrefix);
+  if (verdict === 'not-text') {
+    throw new FrodoError(
+      `The file ${path} holds an _id with a control character or a character that is not text.`
+    );
+  }
+  // the verdict `placeholder` cannot come here: an id that holds `${` was refused on the raw text, and the filled id is the raw id
+  if (verdict !== 'ok') {
     throw new FrodoError(
       `The file ${path} does not hold an id of this type: it is not ${shapeOfId(idPrefix)}.`
     );
@@ -901,8 +918,8 @@ function objectOfListFile(
  * are read, in the order of their paths; a folder that does not exist has no file, and nothing else is listed or read. The id
  * of an object is the `_id` that its file holds and never the name of the file: files can be renamed, or shortened because their
  * id is long, and the object is the same object. A file that cannot be used is a result of its own with its path for an id and
- * the error, and the other files are read: the text is not JSON, a placeholder has no value, the file holds no `_id` that is a
- * text that is not empty, the id is not an id of the type (see {@link ListSpec}), or it holds `${`, or another file that is
+ * the error, and the other files are read: the reader cannot read the file, the text is not JSON, a placeholder has no value, the
+ * file holds no `_id` that is a text that is not empty, the id is not an id of the type (see {@link ListSpec}), or it holds `${`, or another file that is
  * earlier in the order of the paths holds the same id (the later file is refused and the message names the earlier PATH). No
  * message holds an id. The comparison of ids is exact, with no case folding and no Unicode normalisation, as for the single
  * object of a type.
@@ -912,7 +929,7 @@ function objectOfListFile(
  * @param {FileSetReader} reader the reader of the file set
  * @param {State} state the state, which holds the values of the placeholders
  * @returns {Promise<ListRead[]>} one result for every file, in the order of the paths
- * @throws {FrodoError} if the type is unbounded, or the reader fails ("Error listing the folder", "Error reading file")
+ * @throws {FrodoError} if the type is unbounded, or the reader cannot list the folder ("Error listing the folder"): nothing can be read then, so it rejects for every file at once. A file that the reader cannot read ("Error reading file", with the cause) is a result of its own and does not reject
  */
 export async function mergeList({
   folder,
@@ -936,9 +953,9 @@ export async function mergeList({
   // the id of each object that was read, and the file it was read from
   const holders = new Map<string, string>();
   for (const path of paths) {
-    // a reader that fails rejects: it is not a file that cannot be used
-    const content = await readFileSetContent(reader, path);
     try {
+      // a reader that cannot read this file is one failed object, as a file that cannot be used: the others are read
+      const content = await readFileSetContent(reader, path);
       if (content === undefined) {
         throw new FrodoError(`The file ${path} does not exist.`);
       }
@@ -981,8 +998,8 @@ export async function mergeList({
  * @param {(object: Record<string, unknown>, id: string, leftOutCallback?: LeftOutAttributesCallback) => Promise<R>} write writes one object to the tenant, and gives what the tenant answered; its result goes to the callback
  * @param {ResultCallback<R>} resultCallback Optional. Told how the push of every object ended; the callback of the push of the type that was shipped before the engine took lists
  * @param {LeftOutAttributesCallback} leftOutCallback Optional. Passed on to every write
- * @returns {Promise<PushOutcome[]>} one outcome for every file, in the order of the ids; the id is the `_id` of the file, or its path when the file could not be used
- * @throws {FrodoError} if the type is unbounded, or the reader fails; a `resultCallback` that throws ends the push with its own error
+ * @returns {Promise<PushOutcome[]>} one outcome for every file, in the order of the ids; the id is the `_id` of the file, or its path when the file could not be used, which a file that the reader cannot read is too
+ * @throws {FrodoError} if the type is unbounded, or the reader cannot list the folder; a `resultCallback` that throws ends the push with its own error
  */
 export async function mergeAndWriteList<R>({
   folder,

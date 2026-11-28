@@ -470,18 +470,15 @@ describe('reading the file set and pushing it', () => {
 describe('a push never reads a file name', () => {
   const LONG_ONE = `${'a'.repeat(300)}-1`;
   const LONG_TWO = `${'a'.repeat(300)}-2`;
-  /** The toys of the tenant, and ids that need escapes, are long, or are not text. */
+  /** The toys of the tenant, and ids that need escapes or are long. */
   const hardToys = (): Record<string, ToyObject[]> => ({
     alpha: [
       ...TOY_TENANT.alpha,
       { _id: LONG_ONE, name: 'long one' },
       { _id: LONG_TWO, name: 'long two' },
-      { _id: 'x\ud800', name: 'a lone surrogate' },
       { _id: '😀'.repeat(70), name: 'emoji' },
       { _id: '/'.repeat(100), name: 'slashes' },
       { _id: `a:${'n'.repeat(247)}`, name: 'a colon' },
-      // U+007F is not text for a file name: the file has a clean name and a checksum, the toy keeps its id
-      { _id: 'a\u007fb', name: 'a control character' },
     ],
     bravo: TOY_TENANT.bravo,
   });
@@ -530,8 +527,8 @@ describe('a push never reads a file name', () => {
     const renamed = renamedEvery(fileSet);
 
     // the files are all called something else, in the same folders, and the pull is made of hard ids
-    expect(fileSet.files).toHaveLength(11);
-    expect(renamed.files).toHaveLength(11);
+    expect(fileSet.files).toHaveLength(9);
+    expect(renamed.files).toHaveLength(9);
     expect(renamed.files.map((file) => file.path)).not.toEqual(
       expect.arrayContaining(fileSet.files.map((file) => file.path))
     );
@@ -553,7 +550,6 @@ describe('a push never reads a file name', () => {
     });
 
     expect(after).toEqual(before);
-    expect(before.alpha.map((toy) => toy._id)).toContain('x\ud800');
     expect(before.alpha.map((toy) => toy._id)).toContain(LONG_ONE);
 
     const first = await pushed(fileSet);
@@ -561,7 +557,7 @@ describe('a push never reads a file name', () => {
 
     expect(second).toEqual(first);
     // the toys went in the order of their ids, and the failed one is the one that the server refused, by its id
-    expect(first.sent).toHaveLength(11);
+    expect(first.sent).toHaveLength(9);
     expect(
       first.outcomes.filter((outcome) => outcome[1] !== undefined)
     ).toEqual([
@@ -573,7 +569,7 @@ describe('a push never reads a file name', () => {
       ...alphaIds.sort((a, b) => (a < b ? -1 : 1)),
       'Login',
     ]);
-    expect(first.told).toHaveLength(11);
+    expect(first.told).toHaveLength(9);
   });
 
   it('sends the toys in the order of their ids, and not in the order of the files', async () => {
@@ -670,10 +666,10 @@ describe('a push never reads a file name', () => {
       'The file realms/alpha/toys/nullid.json holds no _id.'
     );
     // the others were pushed, all eleven of them, and the callback was told of every file
-    expect(sent).toHaveLength(11);
-    expect(outcomes).toHaveLength(14);
+    expect(sent).toHaveLength(9);
+    expect(outcomes).toHaveLength(12);
     expect(told.filter((message) => message !== undefined)).toHaveLength(3);
-    expect(told).toHaveLength(14);
+    expect(told).toHaveLength(12);
     await expect(
       mergeToys({
         reader: readerOf(buildFileSet(withoutId)),
@@ -706,6 +702,47 @@ describe('a push never reads a file name', () => {
     for (const toy of hardToys().alpha) {
       expect(ids).toContain(toy._id);
     }
+  });
+
+  it('refuses an id with a control character or a lone surrogate as a finding of its realm, and writes the others', async () => {
+    const toys: Record<string, ToyObject[]> = {
+      alpha: [
+        { _id: 'ok' },
+        { _id: 'x\ud800', name: 'a lone surrogate' },
+        { _id: 'a\u007fb', name: 'a control character' },
+      ],
+      bravo: [{ _id: 'ok' }, { _id: 'b\u001bc' }],
+    };
+
+    const { fileSet, findings } = await pull('cloud', { toys });
+
+    expect(findings).toEqual([
+      {
+        kind: 'refused',
+        realm: 'alpha',
+        id: 'a\u007fb',
+        message:
+          'its id holds a control character or a character that is not text',
+      },
+      {
+        kind: 'refused',
+        realm: 'alpha',
+        id: 'x\ud800',
+        message:
+          'its id holds a control character or a character that is not text',
+      },
+      {
+        kind: 'refused',
+        realm: 'bravo',
+        id: 'b\u001bc',
+        message:
+          'its id holds a control character or a character that is not text',
+      },
+    ]);
+    expect(fileSet.files.map((file) => file.path)).toEqual([
+      'realms/alpha/toys/ok.json',
+      'realms/bravo/toys/ok.json',
+    ]);
   });
 
   it('gives every id its own file and never makes a path that the gate refuses, however the id is made', () => {
@@ -743,14 +780,20 @@ describe('a push never reads a file name', () => {
 
     const split = splitToys({ toys: { alpha: toys } });
 
-    // only ids that leave no name (dots, `*`, a device name) are refused; every other id is a file, and no two ids share one
+    // only ids that leave no name (dots, `*`, a device name) and ids that are not text (a control character, a lone surrogate)
+    // are refused; every other id is a file, and no two ids share one
     expect(split.findings.filter((f) => f.kind === 'collision')).toEqual([]);
     expect(split.findings.every((f) => f.kind === 'refused')).toBe(true);
-    expect(
-      split.findings
-        .map((f) => f.id as string)
-        .every((id) => /^[*.]+$/.test(id))
-    ).toBe(true);
+    for (const finding of split.findings) {
+      const id = finding.id as string;
+      const isNotText = /\p{Cc}/u.test(id) || !id.isWellFormed();
+      expect(
+        isNotText
+          ? finding.message ===
+              'its id holds a control character or a character that is not text'
+          : /^[*.]+$/.test(id)
+      ).toBe(true);
+    }
     expect(split.fileSet.files.length + split.findings.length).toBe(ids.length);
     for (const file of split.fileSet.files) {
       expect(
