@@ -261,3 +261,28 @@ describe.each(rows.filter((row) => row.operation === 'delete'))(
     });
   }
 );
+
+describe.each(rows.filter((row) => row.operation === 'update'))(
+  '$name: a failed patch of an object',
+  (row) => {
+    test('is one more cause of the call, does not stop the rest of its page, and does not stop the next page from being read', async () => {
+      const cause = failedRequest(500);
+      row.request.mockImplementation(
+        scripted([page(['u1', 'u2'], 'c1'), page(['u3'])])
+      );
+      row.work.mockImplementation(async ({ id }: { id: string }) => {
+        if (id === 'u1') throw cause;
+        return { _id: id, patched: true };
+      });
+
+      const error = await failureOf(row.call);
+
+      expect(error.message).toBe(row.message(0));
+      expect(error.originalErrors).toEqual([cause]);
+      expect(row.request).toHaveBeenCalledTimes(2);
+      expect(cookiesOf(row.request)).toEqual([null, 'c1']);
+      // the failed object is the first of its page: the others of that page and of the next page are patched
+      expect(idsOf(row.work)).toEqual(['u1', 'u2', 'u3']);
+    });
+  }
+);
